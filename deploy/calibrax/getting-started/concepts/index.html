@@ -2383,14 +2383,21 @@ Calibrax's interfaces. There are two adapter hierarchies:</p>
   compatible with <code>nnx.jit</code>, <code>nnx.vmap</code>, and <code>nnx.grad</code>.</li>
 </ul>
 <div class="admonition tip">
-<p class="admonition-title">Using nnx.jit with NNXBenchmarkAdapter</p>
-<p>Because <code>nnx.jit</code> does not support bound methods, call it as a static method:</p>
+<p class="admonition-title">Using nnx.jit with NNXBenchmarkAdapter subclasses</p>
+<p><code>NNXBenchmarkAdapter</code> is intentionally minimal — subclasses in sister repos
+add domain-specific methods like <code>predict()</code>, <code>sample()</code>, etc.
+Because <code>nnx.jit</code> does not support bound methods, call them as unbound
+methods:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">flax</span><span class="w"> </span><span class="kn">import</span> <span class="n">nnx</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">calibrax.core.adapters</span><span class="w"> </span><span class="kn">import</span> <span class="n">NNXBenchmarkAdapter</span>
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">adapter</span> <span class="o">=</span> <span class="n">NNXBenchmarkAdapter</span><span class="p">(</span><span class="n">my_model</span><span class="p">)</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="c1"># Correct: pass the unbound method + instance</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="n">result</span> <span class="o">=</span> <span class="n">nnx</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">NNXBenchmarkAdapter</span><span class="o">.</span><span class="n">predict</span><span class="p">)(</span><span class="n">adapter</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">MyAdapter</span><span class="p">(</span><span class="n">NNXBenchmarkAdapter</span><span class="p">):</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="n">adapter</span> <span class="o">=</span> <span class="n">MyAdapter</span><span class="p">(</span><span class="n">my_model</span><span class="p">)</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="c1"># Correct: pass the unbound method + instance</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="n">result</span> <span class="o">=</span> <span class="n">nnx</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">MyAdapter</span><span class="o">.</span><span class="n">predict</span><span class="p">)(</span><span class="n">adapter</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
 </span></code></pre></div>
 </div>
 <p>The <code>AdapterRegistry</code> manages adapter resolution. The default registry
