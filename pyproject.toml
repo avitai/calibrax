@@ -1,0 +1,380 @@
+[build-system]
+build-backend = "hatchling.build"
+requires = [
+  "hatchling>=1.18"
+]
+
+[project]
+authors = [
+  {email = "mahdi@avitai.bio", name = "Mahdi Shafiei"}
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Natural Language :: English",
+  "Operating System :: MacOS :: MacOS X",
+  "Operating System :: MacOS",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Scientific/Engineering :: Mathematics",
+  "Topic :: Scientific/Engineering"
+]
+dependencies = [
+  "click>=8.0",
+  "flax>=0.12.0",
+  "jax>=0.4.0",
+  "jaxlib>=0.4.0",
+  "jaxtyping>=0.2.20",
+  "numpy>=1.24,<2.4.0",
+  "psutil>=5.9.5",
+  "typing_extensions>=4.5"
+]
+description = "Calibrax: Unified benchmarking framework for the JAX scientific ML ecosystem"
+dynamic = ["version"]
+keywords = [
+  "benchmarking",
+  "jax",
+  "machine-learning",
+  "profiling",
+  "scientific-computing",
+  "statistics"
+]
+license = {file = "LICENSE"}
+name = "calibrax"
+readme = "README.md"
+requires-python = ">=3.11"
+
+[project.optional-dependencies]
+all = [
+  "calibrax[changepoint,codecarbon,dev,docs,gpu,mlflow,publication,stats,test,wandb]"
+]
+all-cpu = [
+  "calibrax[changepoint,codecarbon,dev,docs,mlflow,publication,stats,test,wandb]"
+]
+all-macos = [
+  "calibrax[changepoint,codecarbon,dev,docs,metal,mlflow,publication,stats,test,wandb]"
+]
+changepoint = [
+  "ruptures>=1.1"
+]
+codecarbon = [
+  "codecarbon>=2.0"
+]
+cuda-dev = [
+  "calibrax[dev,gpu]"
+]
+dev = [
+  "build>=1.0.3",
+  "coverage>=7",
+  "interrogate>=1.5",
+  "ipykernel>=6.29.5",
+  "jupytext>=1.16.6",
+  "pre-commit>=4.2",
+  "pydeps>=1.12.17",
+  "pyright>=1.1.336",
+  "pytest-asyncio>=0.23",
+  "pytest-benchmark>=4",
+  "pytest-cov>=6.1.1",
+  "pytest-env>=1.0.1",
+  "pytest-json-report>=1.5.0",
+  "pytest-randomly>=3.15",
+  "pytest-timeout>=2.1",
+  "pytest-xdist>=3.6",
+  "pytest>=8.3.5",
+  "radon>=6.0",
+  "ruff>=0.1.5",
+  "twine>=4.0.2"
+]
+docs = [
+  "griffe>=1.7.3",
+  "hippogriffe>=0.2",
+  "mkdocs-include-exclude-files>=0.1",
+  "mkdocs-ipynb>=0.1",
+  "mkdocs-jupyter>=0.24",
+  "mkdocs-material>=9.6.7",
+  "mkdocs>=1.6.1,<2.0",
+  "mkdocstrings-python>=1.1.2",
+  "mkdocstrings>=0.28.3",
+  "pymdown-extensions>=10.14.3"
+]
+gpu = [
+  "jax-cuda12-pjrt>=0.7.0",
+  # GPU dependencies - Complete CUDA stack installed locally in venv
+  # JAX with CUDA 12 support (uses venv CUDA libraries via LD_LIBRARY_PATH)
+  "jax-cuda12-plugin>=0.7.0",
+  # Individual CUDA libraries - installed in .venv for complete isolation
+  "nvidia-cublas-cu12>=12.6",
+  "nvidia-cuda-cupti-cu12>=12.6",
+  "nvidia-cuda-nvcc-cu12>=12.6",
+  "nvidia-cuda-nvrtc-cu12>=12.6",
+  "nvidia-cuda-runtime-cu12>=12.6",
+  "nvidia-cudnn-cu12>=9.1",
+  "nvidia-cufft-cu12>=11.4",
+  "nvidia-curand-cu12>=10.3",
+  "nvidia-cusolver-cu12>=11.7",
+  "nvidia-cusparse-cu12>=12.3",
+  "nvidia-nccl-cu12>=2.20",
+  "nvidia-nvjitlink-cu12>=12.6",
+  "nvidia-nvtx-cu12>=12.6",
+  # GPU monitoring
+  "pynvml>=11.5.0"
+]
+metal = [
+  "jax-metal>=0.1.0"
+]
+mlflow = [
+  "mlflow>=2.0"
+]
+publication = [
+  "matplotlib>=3.8"
+]
+stats = [
+  "scipy>=1.10"
+]
+test = [
+  "beartype>=0.14.1",
+  "codecarbon>=2.0",
+  "coverage>=7",
+  "matplotlib>=3.8",
+  "mlflow>=2.0",
+  "pytest-asyncio>=0.23",
+  "pytest-benchmark>=4",
+  "pytest-cov>=6.1.1",
+  "pytest-env>=1.0.1",
+  "pytest-json-report>=1.5.0",
+  "pytest-timeout>=2.1",
+  "pytest-xdist>=3.6",
+  "pytest>=8.3.5",
+  "ruptures>=1.1",
+  "wandb>=0.18"
+]
+wandb = [
+  "wandb>=0.18"
+]
+
+[project.scripts]
+calibrax = "calibrax.cli.main:main"
+
+[project.urls]
+Documentation = "https://calibrax.readthedocs.io"
+Repository = "https://github.com/avitai/calibrax"
+
+[tool.bandit]
+exclude_dirs = [
+  "benchmarks",
+  "examples",
+  "scripts",
+  "tests"
+]
+skips = [
+  "B101"
+]
+
+[tool.coverage.html]
+directory = "htmlcov"
+skip_covered = false
+skip_empty = false
+
+[tool.coverage.report]
+exclude_lines = [
+  "@(abc\\.)?abstractmethod",
+  "class .*\\bProtocol\\):",
+  "def __repr__",
+  "if 0:",
+  "if __name__ == .__main__.:",
+  "if self.debug:",
+  "if settings.DEBUG",
+  "pass",
+  "pragma: no cover",
+  "raise AssertionError",
+  "raise ImportError",
+  "raise NotImplementedError"
+]
+fail_under = 80
+precision = 2
+show_missing = true
+skip_covered = false
+
+[tool.coverage.run]
+branch = true
+omit = [
+  "*/__pycache__/*",
+  "*/conftest.py",
+  "*/examples/*",
+  "*/scripts/*",
+  "*/tests/*"
+]
+parallel = true
+source = ["src"]
+
+[tool.coverage.xml]
+output = "coverage.xml"
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "LICENSE",
+  "README.md",
+  "pyproject.toml",
+  "src/calibrax"
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/calibrax"]
+
+[tool.hatch.version]
+path = "src/calibrax/__init__.py"
+
+[tool.pydocstyle]
+add-ignore = [
+  "D100",
+  "D200",
+  "D202",
+  "D203",
+  "D204",
+  "D205",
+  "D212",
+  "D213",
+  "D400",
+  "D401",
+  "D404",
+  "D415"
+]
+add-select = [
+  "D101",
+  "D102",
+  "D103",
+  "D104",
+  "D105",
+  "D107"
+]
+convention = "google"
+match = "(?!test_).*\\.py"
+match-dir = "(?!tests|scripts|examples).*"
+
+[tool.pylint."messages_control"]
+max-args = 10
+max-attributes = 12
+
+[tool.pyright]
+exclude = [
+  "examples",
+  "scripts"
+]
+include = [
+  "src",
+  "tests"
+]
+pythonVersion = "3.11"
+reportFunctionMemberAccess = false
+reportIncompatibleMethodOverride = false
+reportIncompatibleVariableOverride = false
+reportMissingImports = false
+reportMissingTypeStubs = false
+typeCheckingMode = "basic"
+
+[tool.pytest.ini_options]
+addopts = "--strict-markers --strict-config --verbose --tb=short --color=yes --durations=10 --disable-warnings --cov=calibrax --cov-report=term-missing --cov-report=html --cov-fail-under=80 --timeout=300 --json-report --json-report-file=temp/test-results.json --json-report-indent=2"
+cache_dir = ".pytest_cache"
+console_output_style = "progress"
+filterwarnings = [
+  "ignore:.*CUDA-enabled jaxlib.*",
+  "ignore:.*cuSPARSE.*",
+  "ignore::DeprecationWarning:jax.*",
+  "ignore::DeprecationWarning:pkg_resources.*",
+  "ignore::UserWarning:jax._src.xla_bridge",
+  "ignore:jax.interpreters.xla.pytype_aval_mappings is deprecated:DeprecationWarning"
+]
+log_cli = true
+log_cli_level = "INFO"
+markers = [
+  "benchmark: marks tests as performance benchmarks (requires pytest-benchmark)",
+  "contract: marks tests as contract tests",
+  "cpu: marks tests that should run on CPU only",
+  "cuda: marks tests that specifically test CUDA functionality",
+  "doctest: marks tests as documentation example tests",
+  "e2e: marks tests as end-to-end tests",
+  "gpu: marks tests that require GPU (deselect with '-m \"not gpu\"')",
+  "gpu_required: marks tests as requiring GPU (will fail if GPU unavailable)",
+  "integration: marks tests as integration tests",
+  "performance: marks tests as performance tests (alias for benchmark)",
+  "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+  "unit: marks tests as unit tests"
+]
+minversion = "6.0"
+python_classes = "Test*"
+python_files = "test_*.py"
+python_functions = "test_*"
+testpaths = ["tests"]
+
+[tool.pytest-env]
+"D:JAX_PLATFORMS" = "cpu"
+"D:TF_CPP_MIN_LOG_LEVEL" = "1"
+"D:WANDB_DIR" = "/tmp/calibrax-test-wandb"
+"D:WANDB_MODE" = "offline"
+"D:XLA_PYTHON_CLIENT_PREALLOCATE" = "false"
+
+[tool.ruff]
+extend-include = ["*.ipynb"]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.format]
+indent-style = "space"
+line-ending = "auto"
+quote-style = "double"
+skip-magic-trailing-comma = false
+
+[tool.ruff.lint]
+fixable = [
+  "E",
+  "F",
+  "F401",
+  "F841",
+  "I001",
+  "W",
+  "W291",
+  "W292",
+  "W293"
+]
+ignore = [
+  "E402",
+  "E721",
+  "E731",
+  "E741",
+  "F722",
+  "RUF005",
+  "UP006",
+  "UP007",
+  "UP015",
+  "UP024"
+]
+select = [
+  "E",
+  "F",
+  "I",
+  "UP",
+  "W"
+]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+extra-standard-library = ["typing_extensions"]
+known-first-party = ["calibrax"]
+lines-after-imports = 2
+order-by-type = false
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.uv]
+python-preference = "only-managed"
+
+[tool.uv.pip]
+find-links = [
+  "https://storage.googleapis.com/jax-releases/jax_cuda_releases.html"
+]

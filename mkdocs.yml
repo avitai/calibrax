@@ -1,0 +1,174 @@
+site_name: Calibrax
+site_url: https://calibrax.readthedocs.io
+site_description: Unified benchmarking framework for the JAX scientific ML ecosystem
+site_author: Mahdi Shafiei
+
+repo_url: https://github.com/avitai/calibrax
+repo_name: avitai/calibrax
+edit_uri: edit/main/docs/
+
+docs_dir: docs/
+site_dir: site/
+strict: false
+
+theme:
+  name: material
+  icon:
+    logo: material/chart-bar
+    repo: fontawesome/brands/github
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  font:
+    text: Roboto
+    code: Roboto Mono
+  features:
+    - content.code.annotate
+    - content.code.copy
+    - content.tabs.link
+    - content.tooltips
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.instant.progress
+    - navigation.path
+    - navigation.top
+    - navigation.tracking
+    - search.highlight
+    - search.share
+    - search.suggest
+    - toc.follow
+
+plugins:
+  - search
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            merge_init_into_class: true
+            show_source: false
+            show_root_heading: true
+            show_root_full_path: true
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            signature_crossrefs: true
+            members_order: source
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: "¤"
+      toc_depth: 4
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
+
+extra_css:
+  - stylesheets/extra.css
+
+watch:
+  - src/calibrax/
+  - docs/
+  - mkdocs.yml
+  - README.md
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - getting-started/index.md
+      - Installation: getting-started/installation.md
+      - Quick Start: getting-started/quickstart.md
+      - Core Concepts: getting-started/concepts.md
+  - User Guide:
+      - user-guide/index.md
+      - Overview: user-guide/overview.md
+      - Profiling Workloads: user-guide/profiling.md
+      - Statistical Analysis: user-guide/statistics.md
+      - Regression Detection: user-guide/regressions.md
+      - Comparing Configurations: user-guide/comparison.md
+      - Storage & Baselines: user-guide/storage.md
+      - Exporting Results: user-guide/exporters.md
+      - CI Integration: user-guide/ci-integration.md
+      - Production Monitoring: user-guide/monitoring.md
+      - Writing Adapters: user-guide/adapters.md
+      - Distributed Benchmarking: user-guide/distributed.md
+      - pytest Integration: user-guide/pytest-integration.md
+  - CLI Reference: cli-reference.md
+  - API Reference:
+      - api-reference/index.md
+      - Core:
+          - Models: api-reference/core/models.md
+          - Protocols: api-reference/core/protocols.md
+          - Adapters: api-reference/core/adapters.md
+          - Registry: api-reference/core/registry.md
+          - Result: api-reference/core/result.md
+      - Profiling:
+          - Timing: api-reference/profiling/timing.md
+          - Resources: api-reference/profiling/resources.md
+          - GPU: api-reference/profiling/gpu.md
+          - Energy: api-reference/profiling/energy.md
+          - FLOPS: api-reference/profiling/flops.md
+          - Hardware: api-reference/profiling/hardware.md
+          - Roofline: api-reference/profiling/roofline.md
+          - Compilation: api-reference/profiling/compilation.md
+          - Complexity: api-reference/profiling/complexity.md
+          - Tracing: api-reference/profiling/tracing.md
+          - Carbon: api-reference/profiling/carbon.md
+      - Statistics: api-reference/statistics.md
+      - Analysis: api-reference/analysis.md
+      - Validation: api-reference/validation.md
+      - Monitoring: api-reference/monitoring.md
+      - Storage: api-reference/storage.md
+      - Exporters: api-reference/exporters.md
+      - Metrics: api-reference/metrics.md
+      - CI: api-reference/ci.md
+  - Architecture:
+      - architecture/index.md
+      - Design Decisions: architecture/design-decisions.md
+      - Module Map: architecture/module-map.md

@@ -1,0 +1,53 @@
+name: Build Verification
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }}, Python ${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-14]
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Create virtual environment
+        run: uv venv
+
+      - name: Build wheel
+        run: uv build
+
+      - name: Check distribution
+        run: |
+          uv pip install twine
+          uv run twine check dist/*
+
+      - name: Pyright
+        run: |
+          uv pip install -e ".[dev]"
+          uv run pyright --warnings src/
+
+      - name: Install in clean venv and verify import
+        run: |
+          uv venv /tmp/test-env
+          VIRTUAL_ENV=/tmp/test-env uv pip install dist/*.whl
+          /tmp/test-env/bin/python -c "import calibrax; print(calibrax.__version__)"

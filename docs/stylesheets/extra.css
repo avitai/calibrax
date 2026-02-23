@@ -1,0 +1,30 @@
+/* Admonition color overrides */
+.md-typeset .admonition.note {
+  border-color: #448aff;
+}
+
+.md-typeset .admonition.tip {
+  border-color: #00c853;
+}
+
+.md-typeset .admonition.warning {
+  border-color: #ff9100;
+}
+
+.md-typeset .admonition.danger {
+  border-color: #ff5252;
+}
+
+/* Primary color theming */
+:root {
+  --md-primary-fg-color: #3F51B5;
+  --md-primary-fg-color--light: #7986CB;
+  --md-primary-fg-color--dark: #303F9F;
+}
+
+/* Dark mode adjustments */
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #5C6BC0;
+  --md-primary-fg-color--light: #9FA8DA;
+  --md-primary-fg-color--dark: #3949AB;
+}

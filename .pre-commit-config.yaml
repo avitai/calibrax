@@ -1,0 +1,142 @@
+ci:
+  autofix_prs: false
+  autoupdate_schedule: weekly
+
+repos:
+  # Sort pyproject.toml keys for consistency
+  - repo: local
+    hooks:
+      - id: sort_pyproject
+        name: sort pyproject.toml
+        entry: toml-sort
+        args: [--in-place, --all]
+        files: pyproject\.toml
+        language: python
+        additional_dependencies: ["toml-sort==0.23.1"]
+
+  # Standard pre-commit hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        exclude: mkdocs\.yml
+      - id: check-added-large-files
+        args: [--maxkb=2000]
+      - id: check-merge-conflict
+      - id: check-toml
+      - id: check-json
+      - id: debug-statements
+      - id: mixed-line-ending
+
+  # Ruff linter and formatter
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.8
+    hooks:
+      - id: ruff
+        args: [--fix, --unsafe-fixes]
+        types_or: [python, pyi, jupyter]
+      - id: ruff-format
+        types_or: [python, pyi, jupyter]
+
+  # Local ruff checks mirroring CI
+  - repo: local
+    hooks:
+      - id: ruff-docstring-whitespace
+        name: ruff docstring whitespace autofix
+        entry: ruff
+        args: [check, --fix, "--select=W291,W292,W293,F841", src/, tests/]
+        language: system
+        types: [python]
+        pass_filenames: false
+
+      - id: ruff-github-actions-check
+        name: ruff (github actions output)
+        entry: uv
+        args: [run, ruff, check, --output-format=github]
+        language: system
+        types: [python]
+        pass_filenames: false
+
+      - id: ruff-critical-check
+        name: ruff critical checks
+        entry: ruff
+        args: [check, "--select=RUF005,B904,F821,F822,F823", src/, tests/]
+        language: system
+        types: [python]
+        pass_filenames: false
+
+      - id: check-file-length
+        name: check-file-length (warn >1500, fail >2000 lines)
+        entry: bash
+        args:
+          - -c
+          - |
+            for file in "$@"; do
+              lines=$(wc -l < "$file" 2>/dev/null || echo 0)
+              if [ "$lines" -gt 2000 ]; then
+                echo "ERROR: $file has $lines lines (limit: 2000)"
+                exit 1
+              elif [ "$lines" -gt 1500 ]; then
+                echo "WARNING: $file has $lines lines (approaching limit of 2000)"
+              fi
+            done
+          - --
+        language: system
+        types: [python]
+        exclude: ^tests/
+
+  # Type checking with pyright
+  - repo: https://github.com/RobertCraigie/pyright-python
+    rev: v1.1.403
+    hooks:
+      - id: pyright
+        args: [--warnings, src]
+        pass_filenames: false
+        additional_dependencies:
+          - beartype>=0.14
+          - click>=8.0
+          - flax>=0.12.0
+          - jax>=0.4.0
+          - jaxlib>=0.4.0
+          - jaxtyping>=0.2.20
+          - matplotlib>=3.8
+          - numpy>=1.24
+          - psutil>=5.9.5
+          - pytest>=8.3
+          - scipy>=1.10
+          - types-psutil>=5.10
+          - typing_extensions>=4.5
+          - wandb>=0.18
+
+  # Security scanning
+  - repo: https://github.com/PyCQA/bandit
+    rev: "1.8.6"
+    hooks:
+      - id: bandit
+        args: [-c, pyproject.toml]
+        additional_dependencies: ["bandit[toml]"]
+        exclude: ^(tests|examples)/
+
+  # Docstring quality
+  - repo: https://github.com/pycqa/pydocstyle
+    rev: "6.3.0"
+    hooks:
+      - id: pydocstyle
+        additional_dependencies: ["pydocstyle[toml]"]
+        exclude: ^(tests|scripts|examples)/
+
+  # Notebook linting via nbQA
+  - repo: https://github.com/nbQA-dev/nbQA
+    rev: 1.9.1
+    hooks:
+      - id: nbqa-ruff
+        args: [--fix]
+
+  # Shell script linting
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+      - id: shellcheck
+        args: [-e, SC1091]
