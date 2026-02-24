@@ -2293,8 +2293,9 @@ which depend on the foundation. No circular dependencies exist.</p>
 </table>
 <h2 id="key-design-constraints">Key Design Constraints<a class="headerlink" href="#key-design-constraints" title="Permanent link">¤</a></h2>
 <ul>
-<li><strong><code>core</code> has no internal dependencies</strong> — it depends only on JAX, Flax NNX
-  (for adapters), and the standard library</li>
+<li><strong><code>core</code> depends only on <code>profiling</code></strong> — <code>core.result</code> imports
+  <code>TimingSample</code> and <code>ResourceSummary</code> for serialization; otherwise <code>core</code>
+  depends only on JAX, Flax NNX (for adapters), and the standard library</li>
 <li><strong><code>exporters</code> does not import <code>wandb</code> or <code>matplotlib</code> at the module level</strong> —
   optional dependencies are guarded by availability flags</li>
 <li><strong><code>ci</code> depends on <code>analysis</code> and <code>storage</code></strong> — it composes regression detection

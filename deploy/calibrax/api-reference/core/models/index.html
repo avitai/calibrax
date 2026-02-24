@@ -2963,8 +2963,9 @@
 <p>Data model classes for benchmark results. All dataclasses are frozen and
 immutable, with <code>to_dict()</code> / <code>from_dict()</code> support for JSON serialization.</p>
 <p>Key types: <code>Run</code>, <code>Point</code>, <code>Metric</code>, <code>MetricDef</code>, <code>MetricDirection</code>,
-<code>Regression</code>, <code>RankEntry</code>, <code>SignificanceResult</code>, <code>ScalingLaw</code>,
+<code>MetricPriority</code>, <code>Regression</code>, <code>RankEntry</code>, <code>SignificanceResult</code>, <code>ScalingLaw</code>,
 <code>TrendPoint</code>, <code>TrendSeries</code>.</p>
+<p>Key functions: <code>extract_framework_metrics</code>, <code>is_higher_better</code>.</p>
 
 
 <div class="doc doc-object doc-module">

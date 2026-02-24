@@ -2269,9 +2269,9 @@ All commands operate on a store directory specified via <code>--data</code>.</p>
 </span></code></pre></div>
 <h2 id="commands">Commands<a class="headerlink" href="#commands" title="Permanent link">¤</a></h2>
 <h3 id="profile"><code>profile</code><a class="headerlink" href="#profile" title="Permanent link">¤</a></h3>
-<p>Profile a Python function with timing, optional energy monitoring, and FLOP counting.</p>
+<p>Profile a JAX function with timing, resource, and optional energy/FLOP measurement.</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>calibrax<span class="w"> </span>profile<span class="w"> </span>--module<span class="w"> </span>&lt;PYTHON.PATH&gt;<span class="w"> </span>--function<span class="w"> </span>&lt;NAME&gt;<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">    </span><span class="o">[</span>--warmup<span class="w"> </span>&lt;N&gt;<span class="o">]</span><span class="w"> </span><span class="o">[</span>--iterations<span class="w"> </span>&lt;N&gt;<span class="o">]</span><span class="w"> </span><span class="o">[</span>--energy<span class="o">]</span><span class="w"> </span><span class="o">[</span>--flops<span class="o">]</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">    </span><span class="o">[</span>--warmup<span class="w"> </span>&lt;N&gt;<span class="o">]</span><span class="w"> </span><span class="o">[</span>--iterations<span class="w"> </span>&lt;N&gt;<span class="o">]</span><span class="w"> </span><span class="o">[</span>--energy<span class="o">]</span><span class="w"> </span><span class="o">[</span>--flops<span class="o">]</span><span class="w"> </span><span class="o">[</span>--data<span class="w"> </span>&lt;PATH&gt;<span class="o">]</span>
 </span></code></pre></div>
 <table>
 <thead>
@@ -2319,16 +2319,26 @@ All commands operate on a store directory specified via <code>--data</code>.</p>
 <td>off</td>
 <td>Enable FLOP counting</td>
 </tr>
+<tr>
+<td><code>--data</code></td>
+<td>No</td>
+<td>None</td>
+<td>Store directory to persist profiling results</td>
+</tr>
 </tbody>
 </table>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>calibrax<span class="w"> </span>profile<span class="w"> </span>--module<span class="w"> </span>my_pkg.benchmark<span class="w"> </span>--function<span class="w"> </span>train_step<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">    </span>--warmup<span class="w"> </span><span class="m">2</span><span class="w"> </span>--iterations<span class="w"> </span><span class="m">50</span>
 </span></code></pre></div>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>Profiling my_pkg.benchmark.train_step ...
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>Profile complete.
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>  Wall clock: 5.2340s
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>  Batches: 50 (1 warmup excluded)
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>  Mean batch time: 0.1047s
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>Profiling my_pkg.benchmark.train_step
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>  Warmup: 2, Iterations: 50
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>Timing Results:
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>  Wall clock: 5.2340s
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>  Batches: 52 (warmup excluded: 2)
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>  Mean batch time: 0.1047s
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>Profile complete.
 </span></code></pre></div>
 <hr />
 <h3 id="ingest"><code>ingest</code><a class="headerlink" href="#ingest" title="Permanent link">¤</a></h3>
@@ -2387,8 +2397,8 @@ All commands operate on a store directory specified via <code>--data</code>.</p>
 </tr>
 <tr>
 <td><code>--project</code></td>
-<td>No</td>
-<td><code>"calibrax"</code></td>
+<td>Yes</td>
+<td>—</td>
 <td>W&amp;B project name</td>
 </tr>
 <tr>

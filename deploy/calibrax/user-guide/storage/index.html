@@ -2311,9 +2311,9 @@ one active baseline at a time:</p>
 </span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="n">baseline</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">get_baseline</span><span class="p">()</span>
 </span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
 </span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="c1"># Update the baseline after a successful CI run</span>
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="n">latest_passing_run</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">latest</span><span class="p">()</span>
-</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="k">if</span> <span class="n">latest_passing_run</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>    <span class="n">store</span><span class="o">.</span><span class="n">set_baseline</span><span class="p">(</span><span class="n">latest_passing_run</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="c1"># Note: latest() raises FileNotFoundError if the store is empty</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="n">latest_passing_run</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">latest</span><span class="p">()</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="n">store</span><span class="o">.</span><span class="n">set_baseline</span><span class="p">(</span><span class="n">latest_passing_run</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="admonition tip">
 <p class="admonition-title">Baseline Strategy</p>
