@@ -3679,7 +3679,7 @@ loading mlflow at import time. Import directly:</p>
 
         <p>MLflow exporter for benchmark results and analysis.</p>
 <p>Exports benchmark runs, comparisons, and regressions to MLflow tracking.
-Requires the optional <code>mlflow</code> dependency (<code>pip install calibrax[mlflow]</code>).</p>
+Requires the optional <code>mlflow</code> dependency (<code>uv pip install "calibrax[mlflow]"</code>).</p>
 <p>Note: NOT re-exported from <code>calibrax.exporters.__init__</code> to avoid
 import-time MLflow loading. Import directly::</p>
 <div class="language-text highlight"><pre><span></span><code>from calibrax.exporters.mlflow import MLflowExporter

@@ -2289,7 +2289,7 @@ or inference runs.</p>
         <p>Carbon emissions tracking via CodeCarbon integration.</p>
 <p>Wraps the <code>codecarbon.EmissionsTracker</code> as a context manager, exposing
 emissions data as a frozen <code>CarbonResult</code> dataclass. Requires the
-optional <code>codecarbon</code> dependency (<code>pip install calibrax[codecarbon]</code>).</p>
+optional <code>codecarbon</code> dependency (<code>uv pip install "calibrax[codecarbon]"</code>).</p>
 
 
 
@@ -2531,7 +2531,7 @@ optional <code>codecarbon</code> dependency (<code>pip install calibrax[codecarb
 
         <p>Context manager for tracking carbon emissions via CodeCarbon.</p>
 <p>Requires the <code>codecarbon</code> package. Install with::</p>
-<div class="language-text highlight"><pre><span></span><code>pip install calibrax[codecarbon]
+<div class="language-text highlight"><pre><span></span><code>uv pip install &quot;calibrax[codecarbon]&quot;
 </code></pre></div>
 <p>Usage::</p>
 <div class="language-text highlight"><pre><span></span><code>with CarbonTracker() as tracker:

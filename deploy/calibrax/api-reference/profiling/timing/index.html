@@ -2261,7 +2261,7 @@ warm-up iteration exclusion and JIT compilation time measurement.</p>
 <a id="calibrax.profiling.timing"></a>
     <div class="doc doc-contents first">
 
-        <p>Framework-agnostic timing with configurable GPU sync support.</p>
+        <p>Framework-agnostic timing with configurable result synchronization.</p>
 <p>Provides TimingSample (frozen dataclass) and TimingCollector for
 measuring iteration throughput with per-batch timing breakdown.
 Uses time.perf_counter() exclusively for accurate benchmarking.
@@ -2540,22 +2540,25 @@ Supports warm-up iteration exclusion and JIT compilation time measurement.</p>
 
         <p>Framework-agnostic timing with configurable GPU sync support.</p>
 <p>Uses time.perf_counter() exclusively for accurate benchmarking.
-Supports configurable GPU synchronization via sync_fn and warm-up
+Supports configurable result synchronization via sync_fn and warm-up
 iteration exclusion for JIT-compiled workloads.</p>
-<p>JAX dispatches GPU operations asynchronously -- the host returns
+<p>JAX dispatches operations asynchronously -- the host returns
 immediately while the device is still computing.  Without an explicit
 synchronization barrier, <code>perf_counter</code> measures only host-side
-dispatch latency, not actual GPU compute time.  Pass a <code>sync_fn</code>
-that calls <code>block_until_ready()</code> to force the host to wait for
-the device to finish before recording the timestamp.</p>
+dispatch latency, not actual compute time. Pass a <code>sync_fn</code> that
+calls <code>block_until_ready()</code> on the workload result to force the host
+to wait for device completion before recording the timestamp.</p>
 <p>Example -- JAX GPU timing with warm-up::</p>
 <div class="language-text highlight"><pre><span></span><code>import jax.numpy as jnp
 
+def run_step(batch):
+    return jax.jit(step_fn)(batch)
+
 collector = TimingCollector(
-    sync_fn=lambda: jnp.array(0.0).block_until_ready(),
+    sync_fn=lambda result: result.block_until_ready(),
     warmup_iterations=2,
 )
-sample = collector.measure_iteration(data_iter, num_batches=50)
+sample = collector.measure_iteration(data_iter, num_batches=50, process_fn=run_step)
 # sample.per_batch_times excludes the first 2 batches
 </code></pre></div>
 
@@ -2576,14 +2579,14 @@ sample = collector.measure_iteration(data_iter, num_batches=50)
                 <code>sync_fn</code>
             </td>
             <td>
-                  <code><span title="collections.abc.Callable">Callable</span>[[], <span title="object">object</span>] | None</code>
+                  <code><span title="collections.abc.Callable">Callable</span>[[<span title="typing.Any">Any</span>], <span title="object">object</span>] | None</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>GPU synchronization function called after each batch.
-For JAX: <code>lambda: jnp.array(0.).block_until_ready()</code>
-For PyTorch: <code>torch.cuda.synchronize</code>
-For CPU-only: None (default)</p>
+                <p>Synchronization function called with each batch result.
+For JAX: <code>lambda result: result.block_until_ready()</code>
+For PyTorch: <code>lambda _: torch.cuda.synchronize()</code>
+For CPU-only: None (default, no-op)</p>
               </div>
             </td>
             <td>
@@ -2630,11 +2633,11 @@ for JIT warm-up) but omitted from the timing result. Default: 0.</p>
                 <code>sync_fn</code>
             </td>
             <td>
-                  <code><span title="collections.abc.Callable">Callable</span>[[], <span title="object">object</span>] | None</code>
+                  <code><span title="collections.abc.Callable">Callable</span>[[<span title="typing.Any">Any</span>], <span title="object">object</span>] | None</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>GPU synchronization function called after each batch.</p>
+                <p>Synchronization function called with each batch result.</p>
               </div>
             </td>
             <td>
@@ -2685,7 +2688,7 @@ for JIT warm-up) but omitted from the timing result. Default: 0.</p>
 
 
 <h3 id="calibrax.profiling.timing.TimingCollector.measure_iteration" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">measure_iteration</span><span class="p">(</span><span class="n">iterator</span><span class="p">,</span> <span class="n">num_batches</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">count_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">measure_iteration</span><span class="p">(</span><span class="n">iterator</span><span class="p">,</span> <span class="n">num_batches</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">process_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">count_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
 
 <a href="#calibrax.profiling.timing.TimingCollector.measure_iteration" class="headerlink" title="Permanent link">¤</a></h3>
 
@@ -2735,6 +2738,23 @@ including warm-up. <code>num_batches</code> reflects total batches consumed.</p>
             <td>
               <div class="doc-md-description">
                 <p>Max batches to consume (including warmup). None exhausts iterator.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>process_fn</code>
+            </td>
+            <td>
+                  <code><span title="collections.abc.Callable">Callable</span>[[<span title="typing.Any">Any</span>], <span title="typing.Any">Any</span>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Optional per-batch function whose execution is timed.
+Defaults to identity (the yielded batch is treated as result).</p>
               </div>
             </td>
             <td>
