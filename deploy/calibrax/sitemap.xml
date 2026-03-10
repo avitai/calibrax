@@ -2,190 +2,338 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://calibrax.readthedocs.io/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/cli-reference/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/api-reference/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/api-reference/analysis/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/api-reference/ci/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/api-reference/exporters/</loc>
-         <lastmod>2026-03-03</lastmod>
-    </url>
-    <url>
-         <loc>https://calibrax.readthedocs.io/api-reference/metrics/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/api-reference/monitoring/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/api-reference/statistics/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/api-reference/storage/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/api-reference/validation/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/api-reference/core/adapters/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/api-reference/core/models/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/api-reference/core/protocols/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/api-reference/core/registry/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/api-reference/core/result/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/api-reference/metrics/</loc>
+         <lastmod>2026-03-10</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/api-reference/metrics/audio/</loc>
+         <lastmod>2026-03-10</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/api-reference/metrics/calibration/</loc>
+         <lastmod>2026-03-10</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/api-reference/metrics/classification/</loc>
+         <lastmod>2026-03-10</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/api-reference/metrics/clustering/</loc>
+         <lastmod>2026-03-10</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/api-reference/metrics/composition/</loc>
+         <lastmod>2026-03-10</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/api-reference/metrics/distance/</loc>
+         <lastmod>2026-03-10</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/api-reference/metrics/divergence/</loc>
+         <lastmod>2026-03-10</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/api-reference/metrics/fairness/</loc>
+         <lastmod>2026-03-10</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/api-reference/metrics/geometric/</loc>
+         <lastmod>2026-03-10</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/api-reference/metrics/graph/</loc>
+         <lastmod>2026-03-10</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/api-reference/metrics/image/</loc>
+         <lastmod>2026-03-10</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/api-reference/metrics/information/</loc>
+         <lastmod>2026-03-10</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/api-reference/metrics/learning/</loc>
+         <lastmod>2026-03-10</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/api-reference/metrics/manifold/</loc>
+         <lastmod>2026-03-10</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/api-reference/metrics/ranking/</loc>
+         <lastmod>2026-03-10</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/api-reference/metrics/registry/</loc>
+         <lastmod>2026-03-10</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/api-reference/metrics/regression/</loc>
+         <lastmod>2026-03-10</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/api-reference/metrics/scientific/</loc>
+         <lastmod>2026-03-10</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/api-reference/metrics/segmentation/</loc>
+         <lastmod>2026-03-10</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/api-reference/metrics/stateful/</loc>
+         <lastmod>2026-03-10</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/api-reference/metrics/statistical/</loc>
+         <lastmod>2026-03-10</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/api-reference/metrics/text/</loc>
+         <lastmod>2026-03-10</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/api-reference/metrics/wrappers/</loc>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/api-reference/profiling/carbon/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/api-reference/profiling/compilation/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/api-reference/profiling/complexity/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/api-reference/profiling/energy/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/api-reference/profiling/flops/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/api-reference/profiling/gpu/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/api-reference/profiling/hardware/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/api-reference/profiling/resources/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/api-reference/profiling/roofline/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/api-reference/profiling/timing/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/api-reference/profiling/tracing/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/architecture/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/architecture/design-decisions/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/architecture/module-map/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/contributing/example_documentation_design/</loc>
+         <lastmod>2026-03-10</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/examples/metrics/advanced-manifold/</loc>
+         <lastmod>2026-03-10</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/examples/metrics/classification/</loc>
+         <lastmod>2026-03-10</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/examples/metrics/distances-and-spaces/</loc>
+         <lastmod>2026-03-10</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/examples/metrics/image-quality/</loc>
+         <lastmod>2026-03-10</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/examples/metrics/metric-learning/</loc>
+         <lastmod>2026-03-10</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/examples/metrics/model-evaluation/</loc>
+         <lastmod>2026-03-10</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/examples/metrics/quickstart/</loc>
+         <lastmod>2026-03-10</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/examples/metrics/regression-metrics/</loc>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/getting-started/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/getting-started/concepts/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/getting-started/installation/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/getting-started/quickstart/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/user-guide/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/user-guide/adapters/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/user-guide/ci-integration/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/user-guide/comparison/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/user-guide/distributed/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/user-guide/exporters/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/user-guide/geometric-metrics/</loc>
+         <lastmod>2026-03-10</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/user-guide/metric-composition/</loc>
+         <lastmod>2026-03-10</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/user-guide/metric-learning/</loc>
+         <lastmod>2026-03-10</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/user-guide/metrics-overview/</loc>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/user-guide/monitoring/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/user-guide/overview/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/user-guide/profiling/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/user-guide/pytest-integration/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/user-guide/regressions/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/user-guide/stateful-metrics/</loc>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/user-guide/statistics/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/user-guide/storage/</loc>
-         <lastmod>2026-03-03</lastmod>
+         <lastmod>2026-03-10</lastmod>
     </url>
 </urlset>
