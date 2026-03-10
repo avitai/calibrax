@@ -133,6 +133,8 @@ Available protocols:
 - **`DatasetProtocol`** — `__len__` + `__getitem__`
 - **`BatchableDatasetProtocol`** — extends `DatasetProtocol` with `get_batch()`
 - **`MetricProtocol`** — `name`, `higher_is_better`, `compute()`, `validate_inputs()`
+- **`StatefulMetricProtocol`** — `name`, `update()`, `compute()`, `reset()` for Tier 1-2 metrics
+- **`MetricLearningProtocol`** — `__call__(embeddings, labels) -> jax.Array` for Tier 3 losses
 
 ## Adapters
 

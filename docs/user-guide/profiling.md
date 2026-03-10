@@ -298,6 +298,19 @@ print(f"Trace saved to: {ref.trace_dir}")
 
 ## Carbon Emissions Tracking
 
+!!! warning "Import Path"
+
+    `CarbonTracker` is **not** re-exported from `calibrax.profiling` to avoid
+    loading codecarbon at import time. Import it directly:
+
+    ```python
+    from calibrax.profiling.carbon import CarbonTracker
+    ```
+
+!!! warning "Optional Dependency"
+
+    Requires codecarbon: `uv pip install "calibrax[codecarbon]"`
+
 `CarbonTracker` measures energy consumption and CO2 emissions during a
 workload via CodeCarbon:
 
@@ -312,11 +325,6 @@ print(f"Emissions: {result.emissions_kg_co2:.4f} kg CO2")
 print(f"Energy: {result.energy_consumed_kwh:.4f} kWh")
 print(f"Duration: {result.duration_sec:.1f}s")
 ```
-
-!!! note
-
-    Carbon tracking requires the `codecarbon` optional dependency:
-    `uv pip install "calibrax[codecarbon]"`
 
 ## Composing a BenchmarkResult
 

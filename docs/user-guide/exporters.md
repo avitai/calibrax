@@ -1,7 +1,7 @@
 # Exporting Results
 
-Calibrax supports exporting benchmark results to Weights & Biases (W&B) and
-generating publication-ready plots and tables. Both exporters implement the
+Calibrax supports exporting benchmark results to Weights & Biases (W&B),
+MLflow, and publication-ready plots and tables. All exporters implement the
 `Exporter` ABC, and custom exporters can be built by subclassing it.
 
 ## Exporter Interface
@@ -118,6 +118,55 @@ exporter.log_extra_tables({
     ),
 })
 ```
+
+## MLflow
+
+!!! warning "Import Path"
+
+    Like `WandBExporter`, `MLflowExporter` is **not** re-exported from
+    `calibrax.exporters` to avoid loading mlflow at import time. Import it
+    directly:
+
+    ```python
+    from calibrax.exporters.mlflow import MLflowExporter
+    ```
+
+!!! warning "Optional Dependency"
+
+    Requires mlflow: `uv pip install "calibrax[mlflow]"`
+
+### Basic Usage
+
+```python
+from calibrax.exporters.mlflow import MLflowExporter
+from calibrax.core.models import Metric, MetricDef, MetricDirection, Point, Run
+
+run = Run(
+    points=(Point(name="forward_pass", scenario="training",
+                  tags={"framework": "flax"},
+                  metrics={"throughput": Metric(value=1200.0),
+                           "latency": Metric(value=0.8)}),),
+    metric_defs={
+        "throughput": MetricDef(name="throughput", unit="samples/sec",
+                                direction=MetricDirection.HIGHER),
+        "latency": MetricDef(name="latency", unit="ms",
+                             direction=MetricDirection.LOWER),
+    },
+)
+
+exporter = MLflowExporter(
+    experiment_name="my-benchmarks",
+    tracking_uri="http://localhost:5000",  # optional
+)
+
+# Export a run — returns the MLflow run ID
+run_id = exporter.export_run(run)
+
+# Export analysis with baseline comparison (logs regressions as metrics)
+exporter.export_analysis(run, baseline=baseline_run)
+```
+
+Each benchmark point's metrics are logged as MLflow metrics, environment metadata is logged as MLflow parameters, and regression analysis produces a JSON artifact.
 
 ## Publication Generator
 

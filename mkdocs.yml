@@ -136,6 +136,12 @@ nav:
       - Exporting Results: user-guide/exporters.md
       - CI Integration: user-guide/ci-integration.md
       - Production Monitoring: user-guide/monitoring.md
+      - Metrics:
+          - user-guide/metrics-overview.md
+          - Geometric Metrics: user-guide/geometric-metrics.md
+          - Metric Composition: user-guide/metric-composition.md
+          - Stateful Metrics: user-guide/stateful-metrics.md
+          - Metric Learning: user-guide/metric-learning.md
       - Writing Adapters: user-guide/adapters.md
       - Distributed Benchmarking: user-guide/distributed.md
       - pytest Integration: user-guide/pytest-integration.md
@@ -166,8 +172,44 @@ nav:
       - Monitoring: api-reference/monitoring.md
       - Storage: api-reference/storage.md
       - Exporters: api-reference/exporters.md
-      - Metrics: api-reference/metrics.md
+      - Metrics:
+          - Overview: api-reference/metrics/index.md
+          - Registry: api-reference/metrics/registry.md
+          - Regression: api-reference/metrics/regression.md
+          - Classification: api-reference/metrics/classification.md
+          - Calibration: api-reference/metrics/calibration.md
+          - Segmentation: api-reference/metrics/segmentation.md
+          - Distance: api-reference/metrics/distance.md
+          - Divergence: api-reference/metrics/divergence.md
+          - Information: api-reference/metrics/information.md
+          - Ranking: api-reference/metrics/ranking.md
+          - Statistical: api-reference/metrics/statistical.md
+          - Clustering: api-reference/metrics/clustering.md
+          - Fairness: api-reference/metrics/fairness.md
+          - Image: api-reference/metrics/image.md
+          - Text: api-reference/metrics/text.md
+          - Audio: api-reference/metrics/audio.md
+          - Geometric: api-reference/metrics/geometric.md
+          - Graph: api-reference/metrics/graph.md
+          - Manifold: api-reference/metrics/manifold.md
+          - Composition: api-reference/metrics/composition.md
+          - Wrappers: api-reference/metrics/wrappers.md
+          - Stateful: api-reference/metrics/stateful.md
+          - Learning: api-reference/metrics/learning.md
+          - Scientific: api-reference/metrics/scientific.md
       - CI: api-reference/ci.md
+  - Examples:
+      - Metrics:
+          - Quickstart: examples/metrics/quickstart.md
+          - Regression Metrics: examples/metrics/regression-metrics.md
+          - Classification: examples/metrics/classification.md
+          - Distances & Spaces: examples/metrics/distances-and-spaces.md
+          - Model Evaluation: examples/metrics/model-evaluation.md
+          - Image Quality: examples/metrics/image-quality.md
+          - Metric Learning: examples/metrics/metric-learning.md
+          - Manifold & Graph: examples/metrics/advanced-manifold.md
+  - Contributing:
+      - Example Documentation Guide: contributing/example_documentation_design.md
   - Architecture:
       - architecture/index.md
       - Design Decisions: architecture/design-decisions.md

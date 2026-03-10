@@ -17,23 +17,79 @@
 
 ---
 
-**Calibrax** (*Calibrate + JAX*) is a unified benchmarking framework for the JAX scientific ML ecosystem. It extracts and consolidates shared benchmarking, profiling, and statistical analysis functionality from
+**Calibrax** (*Calibrate + JAX*) is a unified benchmarking and metrics framework for the JAX scientific ML ecosystem. It extracts and consolidates shared benchmarking, profiling, statistical analysis, and evaluation functionality from
 [Datarax](https://github.com/avitai/datarax),
 [Artifex](https://github.com/avitai/artifex), and
 [Opifex](https://github.com/avitai/opifex).
 
 ## Features
 
-- **Profiling** — Timing with warm-up awareness, resource monitoring, GPU memory/clock/power tracking, energy measurement, FLOPS counting, roofline analysis, XLA compilation profiling, complexity analysis, hardware detection, carbon tracking
-- **Statistical Analysis** — Bootstrap confidence intervals, hypothesis testing, effect sizes, outlier detection
-- **Regression Detection** — Direction-aware detection with configurable severity levels
-- **Comparison & Ranking** — Cross-configuration comparison, Pareto front analysis, aggregate scoring
+### Metrics (110+ registered, 17 domains, 4 tiers)
+
+Calibrax provides a 4-tier metric system covering the full spectrum of ML evaluation:
+
+| Tier | Name | Pattern | Examples |
+|------|------|---------|----------|
+| 0 | Pure Functions | `fn(predictions, targets) -> scalar` | MSE, cosine distance, BLEU |
+| 1 | Frozen Backbone | `update() -> compute() -> reset()` | FID, BERTScore, Inception Score |
+| 2 | Learned | `nnx.Module` with trainable weights | LPIPS |
+| 3 | Metric Learning | Differentiable embedding loss | Contrastive, Triplet, ArcFace |
+
+**Functional domains:** regression, classification, calibration, segmentation, distance, divergence, information, ranking, statistical, clustering, fairness, image, text, audio, geometric, graph, manifold
+
+**Key capabilities:**
+
+- **MetricRegistry** with axiom-based discovery (`list_true_metrics()`, `list_by_invariance("rotation")`)
+- **Geometric distance hierarchy** — Euclidean, Riemannian (SPD, Grassmann, Stiefel), pseudo-Riemannian (ultrahyperbolic), Finsler (Randers)
+- **Graph metrics** — spectral distance, resistance distance, Floyd-Warshall shortest paths
+- **Composition** — `MetricCollection`, `WeightedMetric`, `MetricSuite`, `ThresholdMetric`
+- **Wrappers** — `BootstrapMetric` (confidence intervals), `ClasswiseWrapper`, `MetricTracker`, `MinMaxTracker`
+- **Metric learning losses** — contrastive, triplet margin, NTXent, ArcFace, CosFace, ProxyNCA, ProxyAnchor, with hard/semi-hard negative mining
+
+### Benchmarking & Profiling
+
+- **Timing** — Warm-up aware timing with JIT compilation separation
+- **Resource monitoring** — CPU, memory, GPU memory/clock/power tracking
+- **Energy & carbon** — Energy measurement with carbon footprint estimation
+- **FLOPS & roofline** — XLA-level FLOP counting, roofline performance analysis
+- **Compilation** — XLA compilation profiling and tracing
+- **Complexity** — Algorithmic complexity analysis
+- **Hardware** — Automatic hardware detection and capability reporting
+
+### Analysis & Infrastructure
+
+- **Statistical analysis** — Bootstrap confidence intervals, hypothesis testing, effect sizes, outlier detection
+- **Regression detection** — Direction-aware detection with configurable severity levels
+- **Comparison & ranking** — Cross-configuration comparison, Pareto front analysis, aggregate scoring
 - **Validation** — Convergence analysis and accuracy assessment
 - **Storage** — JSON-per-run file backend with baseline management
 - **Exporters** — W&B and MLflow integration, publication-ready LaTeX/HTML/CSV tables and matplotlib plots
-- **CI Integration** — Regression gate with git bisect automation
+- **CI integration** — Regression gate with git bisect automation
 - **Monitoring** — Production alerting with configurable thresholds
 - **CLI** — `calibrax ingest|export|check|baseline|trend|summary|profile`
+
+## Quick Start
+
+```python
+import jax.numpy as jnp
+from calibrax.metrics import MetricRegistry, calculate_all
+from calibrax.metrics.functional.regression import mse, mae, r_squared
+
+predictions = jnp.array([1.1, 2.3, 2.8, 4.2, 4.7])
+targets = jnp.array([1.0, 2.0, 3.0, 4.0, 5.0])
+
+# Individual metrics
+print(f"MSE: {mse(predictions, targets):.4f}")
+print(f"R²:  {r_squared(predictions, targets):.4f}")
+
+# Batch computation of all registered metrics
+results = calculate_all(predictions, targets, metrics=["mse", "mae", "rmse", "r_squared"])
+
+# Registry discovery
+registry = MetricRegistry()
+true_metrics = registry.list_true_metrics()
+rotation_inv = registry.list_by_invariance("rotation")
+```
 
 ## Installation
 
@@ -46,6 +102,12 @@ uv pip install "calibrax[stats]"
 
 # With GPU monitoring
 uv pip install "calibrax[gpu]"
+
+# With image quality plugins (FID, Inception Score)
+uv pip install "calibrax[image]"
+
+# With text quality plugins (BERTScore)
+uv pip install "calibrax[text]"
 
 # With publication export (matplotlib)
 uv pip install "calibrax[publication]"
@@ -101,17 +163,40 @@ uv run pre-commit install
 ```
 src/calibrax/
 ├── core/          Data models, protocols, adapters, result container, registry
-├── profiling/     Timing, resources, GPU, energy, FLOPS, roofline, compilation, complexity, hardware, tracing, carbon
+├── profiling/     Timing, resources, GPU, energy, FLOPS, roofline, compilation,
+│                  complexity, hardware, tracing, carbon
 ├── statistics/    Statistical analyzer, significance testing
 ├── analysis/      Regression, comparison, ranking, scaling, Pareto, changepoint
 ├── validation/    Convergence, accuracy, validation framework
 ├── monitoring/    Alerts, production monitoring
 ├── storage/       JSON store, baselines
 ├── exporters/     W&B, MLflow, publication-ready output
-├── metrics/       JAX-native evaluation metrics
+├── metrics/
+│   ├── functional/   110+ Tier 0 pure functions across 17 domains
+│   ├── stateful/     Tier 1–2 base classes (FrozenBackboneMetric, LearnedMetric)
+│   ├── learning/     Tier 3 metric learning losses and miners
+│   ├── plugins/      Optional-dependency metrics (FID, BERTScore, LPIPS)
+│   ├── composition.py   MetricCollection, WeightedMetric, MetricSuite, ThresholdMetric
+│   ├── wrappers.py      BootstrapMetric, ClasswiseWrapper, MetricTracker, MinMaxTracker
+│   └── _registry.py     MetricRegistry singleton with axiom-based discovery
 ├── ci/            CI regression gate, bisection engine
 └── cli/           Command-line interface
 ```
+
+## Examples
+
+Runnable examples are in `examples/metrics/`, available as both Python scripts and Jupyter notebooks:
+
+| Example | Level | Topics |
+|---------|-------|--------|
+| [01_quickstart.py](examples/metrics/01_quickstart.py) | Beginner | Individual metrics, `calculate_all`, registry queries |
+| [02_regression_deep_dive.py](examples/metrics/02_regression_deep_dive.py) | Beginner | All 12 regression metrics, outlier sensitivity |
+| [03_classification.py](examples/metrics/03_classification.py) | Intermediate | Classification, calibration, segmentation |
+| [04_distances.py](examples/metrics/04_distances.py) | Intermediate | Euclidean, hyperbolic, divergences, information theory |
+| [05_composition.py](examples/metrics/05_composition.py) | Intermediate | Collections, weighted metrics, quality gates, tracking |
+| [06_image_quality.py](examples/metrics/06_image_quality.py) | Intermediate | PSNR, SSIM, MS-SSIM, BLEU, ROUGE |
+| [07_metric_learning.py](examples/metrics/07_metric_learning.py) | Advanced | Contrastive, triplet, NTXent, ArcFace, mining |
+| [08_manifold_graph.py](examples/metrics/08_manifold_graph.py) | Advanced | SPD, Grassmann, spectral distance, Floyd-Warshall |
 
 ## Development
 
@@ -128,6 +213,12 @@ uv run pyright src/
 
 # All quality checks
 uv run pre-commit run --all-files
+
+# Build documentation
+uv run mkdocs build
+
+# Convert examples to Jupyter notebooks
+uv run python scripts/jupytext_converter.py batch-py-to-nb examples/metrics/
 ```
 
 ## License

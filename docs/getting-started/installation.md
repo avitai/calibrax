@@ -34,6 +34,9 @@ Install only the extras relevant to your workflow:
 | `wandb` | wandb | Weights & Biases export |
 | `mlflow` | mlflow | MLflow experiment tracking export |
 | `publication` | matplotlib | Publication-ready plots and figures |
+| `image` | *(none — works with pre-extracted features)* | Image quality metrics (FID, Inception Score, LPIPS) |
+| `text` | *(none — works with pre-computed embeddings)* | Text quality metrics (BERTScore) |
+| `scientific` | *(none — pure JAX)* | Scientific domain metrics (molecular, protein) |
 | `codecarbon` | codecarbon | Carbon emissions and energy tracking |
 | `changepoint` | ruptures | Change point detection in benchmark trends |
 | `gpu` | CUDA libraries | GPU memory profiling and energy monitoring |

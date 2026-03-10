@@ -73,9 +73,9 @@ from source docstrings using [mkdocstrings](https://mkdocstrings.github.io/).
 
     ---
 
-    JAX-native evaluation metrics (MSE, MAE, RMSE, R-squared, MAPE)
+    4-tier metric system: pure functions, frozen backbone, learned, metric learning
 
-    [:octicons-arrow-right-24: Metrics API](metrics.md)
+    [:octicons-arrow-right-24: Metrics API](metrics/index.md)
 
 -   :material-shield-check:{ .lg .middle } **CI**
 

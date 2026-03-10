@@ -51,13 +51,13 @@ requires-python = ">=3.11"
 
 [project.optional-dependencies]
 all = [
-  "calibrax[changepoint,codecarbon,dev,docs,gpu,mlflow,publication,stats,test,wandb]"
+  "calibrax[changepoint,codecarbon,dev,docs,gpu,image,mlflow,publication,scientific,stats,test,text,wandb]"
 ]
 all-cpu = [
-  "calibrax[changepoint,codecarbon,dev,docs,mlflow,publication,stats,test,wandb]"
+  "calibrax[changepoint,codecarbon,dev,docs,image,mlflow,publication,scientific,stats,test,text,wandb]"
 ]
 all-macos = [
-  "calibrax[changepoint,codecarbon,dev,docs,metal,mlflow,publication,stats,test,wandb]"
+  "calibrax[changepoint,codecarbon,dev,docs,image,metal,mlflow,publication,scientific,stats,test,text,wandb]"
 ]
 changepoint = [
   "ruptures>=1.1"
@@ -124,6 +124,8 @@ gpu = [
   # GPU monitoring
   "pynvml>=11.5.0"
 ]
+image = [
+]
 metal = [
   "jax-metal>=0.1.0"
 ]
@@ -132,6 +134,8 @@ mlflow = [
 ]
 publication = [
   "matplotlib>=3.8"
+]
+scientific = [
 ]
 stats = [
   "scipy>=1.10"
@@ -152,6 +156,8 @@ test = [
   "pytest>=8.3.5",
   "ruptures>=1.1",
   "wandb>=0.18"
+]
+text = [
 ]
 wandb = [
   "wandb>=0.18"

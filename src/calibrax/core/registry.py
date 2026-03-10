@@ -1,6 +1,7 @@
 """Generic type-safe registry and benchmark registry singleton.
 
 Provides a reusable Registry[T] for named item storage, a
+SingletonRegistry[T] for shared-instance registries, a
 BenchmarkRegistry singleton specialization, and convenience
 functions for benchmark registration.
 """
@@ -8,7 +9,7 @@ functions for benchmark registration.
 from __future__ import annotations
 
 from collections.abc import Callable, Iterator
-from typing import Generic, TypeVar
+from typing import Generic, Self, TypeVar
 
 
 T = TypeVar("T")
@@ -107,16 +108,21 @@ class Registry(Generic[T]):
         return iter(self._items)
 
 
-class BenchmarkRegistry(Registry[object]):
-    """Singleton registry for benchmark implementations.
+class SingletonRegistry(Registry[T]):
+    """Registry that enforces a single shared instance per subclass.
 
-    Ensures a single shared registry instance across the application.
-    Provides reset() for test isolation.
+    Subclasses inherit register/get/remove/clear/iteration from Registry[T]
+    and gain automatic singleton semantics with a reset() classmethod for
+    test isolation.
+
+    Usage:
+        class MyRegistry(SingletonRegistry[MyItem]):
+            '''Project-specific singleton registry.'''
     """
 
-    _instance: BenchmarkRegistry | None = None
+    _instance: Self | None = None  # type: ignore[misc]
 
-    def __new__(cls) -> BenchmarkRegistry:
+    def __new__(cls) -> Self:
         """Return the singleton instance, creating it if needed."""
         if cls._instance is None:
             cls._instance = super().__new__(cls)
@@ -128,12 +134,20 @@ class BenchmarkRegistry(Registry[object]):
 
     @classmethod
     def reset(cls) -> None:
-        """Clear all registered benchmarks.
+        """Clear all registered items.
 
         Intended for test isolation to prevent cross-test leakage.
         """
         if cls._instance is not None:
             cls._instance._items.clear()
+
+
+class BenchmarkRegistry(SingletonRegistry[object]):
+    """Singleton registry for benchmark implementations.
+
+    Ensures a single shared registry instance across the application.
+    Provides reset() for test isolation.
+    """
 
 
 def register_benchmark(name: str) -> Callable[[_C], _C]:

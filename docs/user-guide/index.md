@@ -70,6 +70,14 @@ topic relevant to your task.
 
     [:octicons-arrow-right-24: Monitoring](monitoring.md)
 
+-   :material-function:{ .lg .middle } **Metrics**
+
+    ---
+
+    110+ metrics across 17 domains, geometric distances, composition, stateful metrics, and metric learning losses
+
+    [:octicons-arrow-right-24: Metrics](metrics-overview.md)
+
 -   :material-puzzle:{ .lg .middle } **Writing Adapters**
 
     ---

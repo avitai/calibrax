@@ -14,6 +14,7 @@ from __future__ import annotations
 import json
 import logging
 import tempfile
+from pathlib import Path
 
 from calibrax.core.models import Run
 from calibrax.exporters.base import Exporter
@@ -127,7 +128,10 @@ class MLflowExporter(Exporter):
                 json.dump(summary, f, indent=2, default=str)
                 artifact_path = f.name
 
-            mlflow.log_artifact(artifact_path, "benchmark_data")  # type: ignore[union-attr]
+            try:
+                mlflow.log_artifact(artifact_path, "benchmark_data")  # type: ignore[union-attr]
+            finally:
+                Path(artifact_path).unlink(missing_ok=True)
 
     def _log_regressions(self, run: Run, baseline: Run) -> None:
         """Log regression alerts as MLflow metrics.

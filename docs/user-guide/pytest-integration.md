@@ -88,7 +88,7 @@ def test_forward_pass(benchmark):
     from calibrax.profiling.timing import TimingCollector
 
     collector = TimingCollector(
-        sync_fn=lambda: jnp.array(0.0).block_until_ready(),
+        sync_fn=lambda result: jnp.array(0.0).block_until_ready(),
         warmup_iterations=3,
     )
     sample = collector.measure_iteration(

@@ -73,6 +73,8 @@ def discover_doc_code_blocks(docs_dir: Path) -> list[CodeBlock]:
 
 def _build_preamble() -> dict[str, Any]:
     """Build the preamble namespace injected into every file's execution context."""
+    import jax
+
     mock_model = MagicMock()
     mock_model.forward = MagicMock(return_value=jnp.ones((4, 4)))
 
@@ -80,6 +82,9 @@ def _build_preamble() -> dict[str, Any]:
         # Builtins & common imports
         "__builtins__": __builtins__,
         "print": print,
+        # Common imports used across doc examples
+        "jax": jax,
+        "jnp": jnp,
         # Common stub functions used in doc examples
         "train": lambda *_a, **_kw: None,
         "train_step": lambda *_a, **_kw: None,
@@ -87,9 +92,16 @@ def _build_preamble() -> dict[str, Any]:
         # Common data stubs
         "data": [{"image": jnp.ones((4, 8))} for _ in range(10)],
         "data_loader": [{"image": jnp.ones((4, 8))} for _ in range(100)],
+        "data_iterator": iter([jnp.ones((4, 8)) for _ in range(100)]),
         "sample_data": jnp.ones((4, 8)),
         "x": jnp.ones((32, 128)),
         "batch": jnp.ones((4, 8)),
+        # Metric evaluation stubs (predictions/targets for regression, classification, etc.)
+        "predictions": jnp.array([1.1, 1.9, 3.2, 3.8, 5.1]),
+        "targets": jnp.array([1.0, 2.0, 3.0, 4.0, 5.0]),
+        # Metric learning stubs
+        "embeddings": jnp.array([[1.0, 0.0], [0.9, 0.1], [0.0, 1.0], [0.1, 0.9]]),
+        "labels": jnp.array([0, 0, 1, 1]),
         # Model stubs
         "model": nnx.Linear(8, 4, rngs=nnx.Rngs(0)),
         "my_model": mock_model,
@@ -163,6 +175,26 @@ def _patch_external_dependencies(file_path: str):
             stack.enter_context(
                 patch(
                     "calibrax.exporters.wandb.WandBExporter.log_extra_tables",
+                    return_value=None,
+                )
+            )
+        if file_path == "user-guide/exporters.md":
+            # Mock mlflow to prevent ImportError when optional dep is not installed.
+            mock_mlflow = MagicMock()
+            stack.enter_context(patch.dict("sys.modules", {"mlflow": mock_mlflow}))
+            # Patch the module-level mlflow variable and availability flag
+            # (both set at import time before the mock takes effect).
+            stack.enter_context(patch("calibrax.exporters.mlflow.mlflow", mock_mlflow))
+            stack.enter_context(patch("calibrax.exporters.mlflow.MLFLOW_AVAILABLE", True))
+            stack.enter_context(
+                patch(
+                    "calibrax.exporters.mlflow.MLflowExporter.export_run",
+                    return_value="mock-run-id",
+                )
+            )
+            stack.enter_context(
+                patch(
+                    "calibrax.exporters.mlflow.MLflowExporter.export_analysis",
                     return_value=None,
                 )
             )

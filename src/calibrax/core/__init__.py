@@ -27,7 +27,9 @@ from calibrax.core.protocols import (
     BatchableDatasetProtocol,
     BenchmarkProtocol,
     DatasetProtocol,
+    MetricLearningProtocol,
     MetricProtocol,
+    StatefulMetricProtocol,
 )
 from calibrax.core.registry import (
     BenchmarkRegistry,
@@ -35,6 +37,7 @@ from calibrax.core.registry import (
     list_benchmarks,
     register_benchmark,
     Registry,
+    SingletonRegistry,
 )
 from calibrax.core.result import BenchmarkResult
 
@@ -65,10 +68,13 @@ __all__ = [
     "BatchableDatasetProtocol",
     "BenchmarkProtocol",
     "DatasetProtocol",
+    "MetricLearningProtocol",
     "MetricProtocol",
+    "StatefulMetricProtocol",
     # registry
     "BenchmarkRegistry",
     "Registry",
+    "SingletonRegistry",
     "get_benchmark",
     "list_benchmarks",
     "register_benchmark",

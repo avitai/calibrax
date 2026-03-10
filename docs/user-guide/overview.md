@@ -69,8 +69,8 @@ flowchart TD
 | [`calibrax.validation`](../api-reference/validation.md) | Convergence, accuracy assessment, validation framework |
 | [`calibrax.monitoring`](../api-reference/monitoring.md) | Alert management, production monitoring |
 | [`calibrax.storage`](../api-reference/storage.md) | JSON-per-run store, baseline repository |
-| [`calibrax.exporters`](../api-reference/exporters.md) | W&B, publication-ready LaTeX/HTML/CSV/matplotlib output |
-| [`calibrax.metrics`](../api-reference/metrics.md) | JAX-native evaluation metrics (MSE, MAE, RMSE, R-squared, MAPE) |
+| [`calibrax.exporters`](../api-reference/exporters.md) | W&B, MLflow, publication-ready LaTeX/HTML/CSV/matplotlib output |
+| [`calibrax.metrics`](../api-reference/metrics/index.md) | 4-tier metric system with 110+ registered metrics across 17 domains |
 | [`calibrax.ci`](../api-reference/ci.md) | CI regression gate, git bisect automation |
 | [`calibrax.cli`](../cli-reference.md) | Command-line interface |
 

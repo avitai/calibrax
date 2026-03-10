@@ -32,7 +32,7 @@ from calibrax.profiling.timing import TimingCollector
 collectors = {}
 for device in jax.devices():
     collectors[device.id] = TimingCollector(
-        sync_fn=lambda: jax.numpy.array(0.0).block_until_ready(),
+        sync_fn=lambda result: jax.numpy.array(0.0).block_until_ready(),
         warmup_iterations=2,
     )
 

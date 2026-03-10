@@ -7,12 +7,15 @@ non-conforming classes across all protocol definitions.
 from typing import Any
 
 import jax
+import jax.numpy as jnp
 
 from calibrax.core.protocols import (
     BatchableDatasetProtocol,
     BenchmarkProtocol,
     DatasetProtocol,
+    MetricLearningProtocol,
     MetricProtocol,
+    StatefulMetricProtocol,
 )
 
 
@@ -152,3 +155,49 @@ class TestMetricProtocol:
                 return "mse"
 
         assert not isinstance(BadMetric(), MetricProtocol)
+
+
+class TestStatefulMetricProtocol:
+    """Tests for StatefulMetricProtocol structural subtyping."""
+
+    def test_conforming_class_is_instance(self) -> None:
+        """A class implementing all methods should pass isinstance check."""
+
+        class MyStateful:
+            @property
+            def name(self) -> str:
+                return "my_metric"
+
+            def update(self, **kwargs: Any) -> None:
+                pass
+
+            def compute(self) -> dict[str, float]:
+                return {"value": 0.0}
+
+            def reset(self) -> None:
+                pass
+
+        assert isinstance(MyStateful(), StatefulMetricProtocol)
+
+    def test_non_conforming_class_fails(self) -> None:
+        """A class missing methods should fail isinstance check."""
+
+        class Incomplete:
+            @property
+            def name(self) -> str:
+                return "incomplete"
+
+        assert not isinstance(Incomplete(), StatefulMetricProtocol)
+
+
+class TestMetricLearningProtocol:
+    """Tests for MetricLearningProtocol structural subtyping."""
+
+    def test_conforming_class_is_instance(self) -> None:
+        """A callable class with correct signature should pass."""
+
+        class MyLoss:
+            def __call__(self, embeddings: jax.Array, labels: jax.Array) -> jax.Array:
+                return jnp.array(0.0)
+
+        assert isinstance(MyLoss(), MetricLearningProtocol)
