@@ -76,6 +76,7 @@ dev = [
   "jupytext>=1.16.6",
   "pre-commit>=4.2",
   "pydeps>=1.12.17",
+  "pygments>=2.20.0",
   "pyright>=1.1.336",
   "pytest-asyncio>=0.23",
   "pytest-benchmark>=4",
