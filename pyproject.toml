@@ -76,7 +76,7 @@ dev = [
   "jupytext>=1.16.6",
   "pre-commit>=4.2",
   "pydeps>=1.12.17",
-  "pygments>=2.19,<2.20",
+  "pygments>=2.19,<2.21",
   "pyright>=1.1.336",
   "pytest-asyncio>=0.23",
   "pytest-benchmark>=4",
@@ -101,7 +101,7 @@ docs = [
   "mkdocs>=1.6.1,<2.0",
   "mkdocstrings-python>=1.1.2",
   "mkdocstrings>=0.28.3",
-  "pygments>=2.19,<2.20",
+  "pygments>=2.19,<2.21",
   "pymdown-extensions>=10.14.3"
 ]
 gpu = [
