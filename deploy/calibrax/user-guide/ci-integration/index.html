@@ -3769,8 +3769,12 @@ code 1 on regression:</p>
 <h2 id="codspeed-benchmarks">CodSpeed Benchmarks<a class="headerlink" href="#codspeed-benchmarks" title="Permanent link">¤</a></h2>
 <p>Calibrax also includes a focused CodSpeed workflow for PR-level performance
 checks. The workflow installs <code>calibrax[test,performance]</code>, runs
-<code>pytest --codspeed</code> against <code>tests/performance/</code>, and uses OpenID Connect for
-CodSpeed authentication.</p>
+<code>tests/performance/</code>, and uploads CodSpeed results only when repository-side
+authentication is configured. Set a repository secret named <code>CODSPEED_TOKEN</code>, or
+set the repository variable <code>CODSPEED_OIDC_ENABLED=true</code> after enabling the
+repository in CodSpeed for OpenID Connect uploads. Without either setting, the
+workflow still runs the performance smoke tests and skips only the external
+upload step.</p>
 <p>Local smoke check:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nb">source</span><span class="w"> </span>activate.sh
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>uv<span class="w"> </span>run<span class="w"> </span>--extra<span class="w"> </span>performance<span class="w"> </span>pytest<span class="w"> </span>tests/performance/<span class="w"> </span>--codspeed<span class="w"> </span>--no-cov
