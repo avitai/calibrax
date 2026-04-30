@@ -1,0 +1,52 @@
+name: Metric request
+description: Request a new metric or metric-learning loss
+title: "[Metric]: "
+labels: ["metric", "enhancement"]
+body:
+  - type: input
+    id: metric-name
+    attributes:
+      label: Metric name
+      placeholder: "e.g. crps, vmaf, balanced_accuracy"
+    validations:
+      required: true
+  - type: dropdown
+    id: tier
+    attributes:
+      label: Proposed tier
+      options:
+        - Tier 0 pure function
+        - Tier 1 frozen backbone
+        - Tier 2 learned metric
+        - Tier 3 metric learning loss
+        - Unsure
+    validations:
+      required: true
+  - type: input
+    id: domain
+    attributes:
+      label: Domain
+      placeholder: "regression, classification, image, text, graph, ..."
+    validations:
+      required: true
+  - type: textarea
+    id: reference
+    attributes:
+      label: Reference implementation or source
+      description: Link to a paper, scikit-learn, SciPy, TorchMetrics, or another trusted implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: properties
+    attributes:
+      label: Mathematical properties
+      description: Direction, symmetry, proper scoring rule status, differentiability, JIT compatibility, invariances, and edge cases.
+    validations:
+      required: false
+  - type: textarea
+    id: validation
+    attributes:
+      label: Numerical-equivalence plan
+      description: How should Calibrax verify this metric?
+    validations:
+      required: false

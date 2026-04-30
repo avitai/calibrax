@@ -9,17 +9,18 @@
 
 ## Overview
 
-Calibrax provides 12 regression metrics that span common error measures, robust alternatives, and percentage-based losses. This example computes all 12 on clean data, then shows how outliers affect MSE, MAE, and Huber loss differently. It also demonstrates quantile loss at various levels and compares symmetric vs asymmetric percentage errors (SMAPE vs MAPE).
+Calibrax provides regression metrics that span common error measures, robust alternatives, percentage-based losses, and probabilistic ensemble scoring. This example computes the same-shape regression metrics on clean data, shows CRPS for ensemble forecasts, then demonstrates how outliers affect MSE, MAE, and Huber loss differently. It also demonstrates quantile loss at various levels and compares symmetric vs asymmetric percentage errors (SMAPE vs MAPE).
 
 Understanding when each metric is appropriate is essential for model evaluation. Squared-error metrics amplify large deviations; robust alternatives like Huber and log-cosh provide smoother behaviour near outliers while remaining differentiable.
 
 ## What You'll Learn
 
-1. Compute all 12 regression metrics on a single dataset
-2. Compare outlier sensitivity across MSE, MAE, and Huber loss
-3. Use quantile loss to penalize under- vs over-prediction asymmetrically
-4. Distinguish SMAPE (symmetric) from MAPE (asymmetric) percentage errors
-5. Choose log-cosh as a twice-differentiable alternative to MAE
+1. Compute same-shape regression metrics on a single dataset
+2. Score ensemble forecasts with CRPS
+3. Compare outlier sensitivity across MSE, MAE, and Huber loss
+4. Use quantile loss to penalize under- vs over-prediction asymmetrically
+5. Distinguish SMAPE (symmetric) from MAPE (asymmetric) percentage errors
+6. Choose log-cosh as a twice-differentiable alternative to MAE
 
 ## Files
 
@@ -29,12 +30,12 @@ Understanding when each metric is appropriate is essential for model evaluation.
 ## Quick Start
 
 ```bash
-source activate.sh && python examples/metrics/02_regression_deep_dive.py
+source activate.sh && uv run python examples/metrics/02_regression_deep_dive.py
 ```
 
 ## Key Concepts
 
-### The 12 Regression Metrics
+### Regression Metrics
 
 | Metric | Description | Outlier Sensitivity |
 |---|---|---|
@@ -50,12 +51,21 @@ source activate.sh && python examples/metrics/02_regression_deep_dive.py
 | `huber_loss` | Quadratic near zero, linear far away | Configurable via `delta` |
 | `quantile_loss` | Asymmetric loss for quantile regression | Low |
 | `log_cosh_loss` | Smooth approximation to MAE | Low |
+| `crps` | Continuous ranked probability score for ensemble forecasts | Depends on ensemble spread |
 
 ```python
 from calibrax.metrics.functional.regression import (
-    explained_variance, huber_loss, log_cosh_loss, mae, mape,
+    crps, explained_variance, huber_loss, log_cosh_loss, mae, mape,
     max_error, mse, quantile_loss, r_squared, relative_error, rmse, smape,
 )
+```
+
+CRPS uses an explicit ensemble-member dimension:
+
+```python
+ensemble_predictions = jnp.array([[0.8, 1.0, 1.2], [1.8, 2.0, 2.2]])
+ensemble_targets = jnp.array([1.0, 2.0])
+crps(ensemble_predictions, ensemble_targets)
 ```
 
 ### Outlier Sensitivity
@@ -110,7 +120,7 @@ log_cosh_loss(predictions, targets)
 
 ## Example Code
 
-The script starts by computing all 12 metrics on clean data:
+The script starts by computing same-shape metrics on clean data:
 
 ```python
 targets = jnp.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0])
@@ -135,5 +145,5 @@ metrics = {
 ## Next Steps
 
 - [Classification Metrics](classification.md) -- binary classification, calibration, and segmentation
-- [API Reference: `calibrax.metrics.functional.regression`](../../api-reference/metrics/regression.md) -- full signatures for all 12 functions
+- [API Reference: `calibrax.metrics.functional.regression`](../../api-reference/metrics/regression.md) -- full regression function signatures
 - [Quickstart](quickstart.md) -- if you skipped the basics

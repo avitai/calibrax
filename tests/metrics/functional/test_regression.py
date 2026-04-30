@@ -7,6 +7,7 @@ import jax.numpy as jnp
 import pytest
 
 from calibrax.metrics.functional.regression import (
+    crps,
     explained_variance,
     huber_loss,
     log_cosh_loss,
@@ -318,6 +319,48 @@ class TestSMAPE:
         """Result should be a JAX scalar array, not a Python float."""
         result = smape(jnp.ones(3), jnp.ones(3) * 2)
         assert isinstance(result, jax.Array)
+
+
+class TestCRPS:
+    """Tests for empirical continuous ranked probability score."""
+
+    def test_known_ensemble_value(self) -> None:
+        """CRPS should match a hand-calculated ensemble value."""
+        predictions = jnp.array([[0.0, 1.0, 2.0]])
+        targets = jnp.array([1.0])
+        assert crps(predictions, targets) == pytest.approx(2.0 / 9.0, rel=1e-6)
+
+    def test_exact_ensemble_is_lower_than_spread_ensemble(self) -> None:
+        """Exact ensembles should score better than spread ensembles."""
+        exact = crps(jnp.array([[1.0, 1.0, 1.0]]), jnp.array([1.0]))
+        spread = crps(jnp.array([[0.0, 1.0, 2.0]]), jnp.array([1.0]))
+        assert exact < spread
+
+    def test_one_dimensional_predictions_raise(self) -> None:
+        """CRPS requires an explicit ensemble-member dimension."""
+        with pytest.raises(ValueError, match="2-dimensional"):
+            crps(jnp.array([0.0, 1.0, 2.0]), jnp.array([1.0, 1.0, 1.0]))
+
+    def test_single_member_ensemble_raises(self) -> None:
+        """CRPS requires at least two ensemble members."""
+        with pytest.raises(ValueError, match="at least two ensemble members"):
+            crps(jnp.array([[1.0], [2.0]]), jnp.array([1.0, 2.0]))
+
+    def test_sample_count_mismatch_raises(self) -> None:
+        """Prediction and target sample counts must match."""
+        with pytest.raises(ValueError, match="matching sample count"):
+            crps(jnp.ones((2, 3)), jnp.ones(3))
+
+    def test_scalar_target_for_single_sample(self) -> None:
+        """A scalar target is accepted for a single ensemble forecast."""
+        predictions = jnp.array([[0.0, 1.0, 2.0]])
+        assert crps(predictions, jnp.array(1.0)) == pytest.approx(2.0 / 9.0, rel=1e-6)
+
+    def test_returns_jax_scalar_under_jit(self) -> None:
+        """JIT-compiled CRPS should return a JAX scalar array."""
+        result = jax.jit(crps)(jnp.array([[0.0, 1.0, 2.0]]), jnp.array([1.0]))
+        assert isinstance(result, jax.Array)
+        assert result == pytest.approx(2.0 / 9.0, rel=1e-6)
 
 
 class TestShapeValidation:

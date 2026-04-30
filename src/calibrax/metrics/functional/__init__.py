@@ -118,6 +118,7 @@ from calibrax.metrics.functional.ranking import (
     recall_at_k,
 )
 from calibrax.metrics.functional.regression import (
+    crps,
     explained_variance,
     huber_loss,
     log_cosh_loss,
@@ -274,6 +275,7 @@ __all__ = [
     "r_squared_adjusted",
     "spearman_rank_correlation",
     # Regression
+    "crps",
     "explained_variance",
     "huber_loss",
     "log_cosh_loss",

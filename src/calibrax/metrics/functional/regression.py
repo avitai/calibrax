@@ -3,9 +3,9 @@
 Pure functions for computing standard regression metrics between predictions
 and targets. All functions accept JAX arrays and return scalar values.
 
-Includes 12 metrics: MSE, MAE, RMSE, R-squared, MAPE, relative error,
+Includes 13 metrics: MSE, MAE, RMSE, R-squared, MAPE, relative error,
 explained variance, max error, Huber loss, quantile loss, log-cosh loss,
-and SMAPE.
+SMAPE, and CRPS.
 """
 
 from __future__ import annotations
@@ -15,6 +15,32 @@ from typing import Any
 import jax.numpy as jnp
 
 from calibrax.metrics._utils import _EPSILON, _prepare_arrays, safe_divide
+
+
+def _prepare_ensemble_forecast_arrays(predictions: Any, targets: Any) -> tuple[Any, Any]:
+    """Prepare ensemble forecast arrays for probabilistic regression metrics."""
+    pred = jnp.asarray(predictions, dtype=jnp.float32)
+    target = jnp.asarray(targets, dtype=jnp.float32)
+
+    if pred.ndim != 2:
+        msg = f"predictions must be 2-dimensional, got shape {pred.shape}"
+        raise ValueError(msg)
+    if pred.shape[1] < 2:
+        msg = f"predictions must contain at least two ensemble members, got {pred.shape[1]}"
+        raise ValueError(msg)
+    if target.ndim == 0:
+        target = target[None]
+    if target.ndim != 1:
+        msg = f"targets must be scalar or 1-dimensional, got shape {target.shape}"
+        raise ValueError(msg)
+    if pred.shape[0] != target.shape[0]:
+        msg = (
+            "predictions and targets must have matching sample count: "
+            f"{pred.shape[0]} != {target.shape[0]}"
+        )
+        raise ValueError(msg)
+
+    return pred, target
 
 
 def mse(predictions: Any, targets: Any) -> Any:
@@ -344,3 +370,32 @@ def smape(predictions: Any, targets: Any) -> Any:
     numerator = jnp.abs(p - t)
     denominator = (jnp.abs(p) + jnp.abs(t)) / 2.0
     return jnp.mean(safe_divide(numerator, denominator))
+
+
+def crps(predictions: Any, targets: Any) -> Any:
+    """Continuous ranked probability score for ensemble forecasts.
+
+    Computes the empirical ensemble CRPS:
+    ``mean(|X - y|) - 0.5 * mean(|X_i - X_j|)`` averaged over samples.
+
+    Note:
+        Direction: LOWER (0.0 = perfect).
+        Range: [0, inf).
+        Proper scoring rule for probabilistic forecasts.
+
+    Args:
+        predictions: Forecast ensemble with shape ``(n_samples, n_members)``.
+        targets: Observed targets with shape ``(n_samples,)``. A scalar target
+            is accepted for a single forecast sample.
+
+    Returns:
+        Mean empirical CRPS as a scalar JAX array.
+
+    Raises:
+        ValueError: If inputs do not have compatible ensemble forecast shapes.
+    """
+    pred, target = _prepare_ensemble_forecast_arrays(predictions, targets)
+    forecast_error = jnp.mean(jnp.abs(pred - target[:, None]), axis=1)
+    pairwise = jnp.abs(pred[:, :, None] - pred[:, None, :])
+    ensemble_spread = 0.5 * jnp.mean(pairwise, axis=(1, 2))
+    return jnp.mean(forecast_error - ensemble_spread)

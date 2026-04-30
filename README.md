@@ -10,6 +10,8 @@
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+**Validated against:** scikit-learn and SciPy references for representative regression, classification, distance, and divergence metrics.
+
 ---
 
 > **Early Development** — API is unstable and subject to breaking changes.
@@ -24,9 +26,12 @@
 
 ## Features
 
-### Metrics (110+ registered, 17 domains, 4 tiers)
+### Metrics (111 registered Tier 0 metrics, 17 domains, 4-tier architecture)
 
-Calibrax provides a 4-tier metric system covering the full spectrum of ML evaluation:
+Calibrax provides a 4-tier metric system covering the full spectrum of ML
+evaluation. The current registry contains 111 Tier 0 pure-function metrics;
+Tier 1-3 APIs, optional plugins, and metric-learning losses are part of the
+package architecture but are not all registered metric entries today.
 
 | Tier | Name | Pattern | Examples |
 |------|------|---------|----------|
@@ -39,9 +44,10 @@ Calibrax provides a 4-tier metric system covering the full spectrum of ML evalua
 
 **Key capabilities:**
 
-- **MetricRegistry** with axiom-based discovery (`list_true_metrics()`, `list_by_invariance("rotation")`)
+- **MetricRegistry** with axiom-based discovery for registered Tier 0 metrics (`list_true_metrics()`, `list_by_invariance("rotation")`)
 - **Geometric distance hierarchy** — Euclidean, Riemannian (SPD, Grassmann, Stiefel), pseudo-Riemannian (ultrahyperbolic), Finsler (Randers)
 - **Graph metrics** — spectral distance, resistance distance, Floyd-Warshall shortest paths
+- **Reference checks** — representative Tier 0 metrics are tested against scikit-learn and SciPy references with `1e-6` tolerance; see [Peer Comparison](docs/user-guide/peer-comparison.md)
 - **Composition** — `MetricCollection`, `WeightedMetric`, `MetricSuite`, `ThresholdMetric`
 - **Wrappers** — `BootstrapMetric` (confidence intervals), `ClasswiseWrapper`, `MetricTracker`, `MinMaxTracker`
 - **Metric learning losses** — contrastive, triplet margin, NTXent, ArcFace, CosFace, ProxyNCA, ProxyAnchor, with hard/semi-hard negative mining
@@ -172,8 +178,8 @@ src/calibrax/
 ├── storage/       JSON store, baselines
 ├── exporters/     W&B, MLflow, publication-ready output
 ├── metrics/
-│   ├── functional/   110+ Tier 0 pure functions across 17 domains
-│   ├── stateful/     Tier 1–2 base classes (FrozenBackboneMetric, LearnedMetric)
+│   ├── functional/   111 Tier 0 pure functions across 17 domains
+│   ├── stateful/     Tier 1-2 base classes (FrozenBackboneMetric, LearnedMetric)
 │   ├── learning/     Tier 3 metric learning losses and miners
 │   ├── plugins/      Optional-dependency metrics (FID, BERTScore, LPIPS)
 │   ├── composition.py   MetricCollection, WeightedMetric, MetricSuite, ThresholdMetric
@@ -190,7 +196,7 @@ Runnable examples are in `examples/metrics/`, available as both Python scripts a
 | Example | Level | Topics |
 |---------|-------|--------|
 | [01_quickstart.py](examples/metrics/01_quickstart.py) | Beginner | Individual metrics, `calculate_all`, registry queries |
-| [02_regression_deep_dive.py](examples/metrics/02_regression_deep_dive.py) | Beginner | All 12 regression metrics, outlier sensitivity |
+| [02_regression_deep_dive.py](examples/metrics/02_regression_deep_dive.py) | Beginner | Same-shape regression metrics, outlier sensitivity |
 | [03_classification.py](examples/metrics/03_classification.py) | Intermediate | Classification, calibration, segmentation |
 | [04_distances.py](examples/metrics/04_distances.py) | Intermediate | Euclidean, hyperbolic, divergences, information theory |
 | [05_composition.py](examples/metrics/05_composition.py) | Intermediate | Collections, weighted metrics, quality gates, tracking |
@@ -201,6 +207,9 @@ Runnable examples are in `examples/metrics/`, available as both Python scripts a
 ## Development
 
 ```bash
+# Activate the local environment first
+source activate.sh
+
 # Run tests
 uv run pytest tests/ -v --cov=calibrax --cov-report=term-missing
 
@@ -215,7 +224,7 @@ uv run pyright src/
 uv run pre-commit run --all-files
 
 # Build documentation
-uv run mkdocs build
+uv run mkdocs build --strict --clean
 
 # Convert examples to Jupyter notebooks
 uv run python scripts/jupytext_converter.py batch-py-to-nb examples/metrics/

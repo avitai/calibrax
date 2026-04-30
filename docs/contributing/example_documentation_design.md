@@ -52,7 +52,7 @@ Calibrax provides a JAX-native unified benchmarking framework with:
 - CI regression gates with git bisect automation
 - Production monitoring with alerting
 - CLI for all operations
-- Extensible metrics framework (110+ registered metrics across 4 tiers: pure functions, frozen backbone, learned, metric learning)
+- Extensible metrics framework (111 registered Tier 0 metrics plus Tier 1-3 APIs, optional plugins, and metric-learning losses)
 - Geometric distance hierarchy (Euclidean, Riemannian, Finsler, pseudo-Riemannian, graph)
 - Metric registry with axiom-based discovery and invariance-based selection
 
@@ -521,7 +521,7 @@ Each markdown file in `docs/examples/` follows this pattern:
 ### Run the Python Script
 
 ```bash
-source activate.sh && python examples/metrics/01_quickstart.py
+source activate.sh && uv run python examples/metrics/01_quickstart.py
 ```
 
 ### Run the Jupyter Notebook
@@ -660,13 +660,13 @@ collector = TimingCollector()
 
 ```bash
 # Convert Python script to notebook
-python scripts/jupytext_converter.py py-to-nb examples/metrics/01_quickstart.py
+uv run python scripts/jupytext_converter.py py-to-nb examples/metrics/01_quickstart.py
 
 # Batch convert directory
-python scripts/jupytext_converter.py batch-py-to-nb examples/metrics/
+uv run python scripts/jupytext_converter.py batch-py-to-nb examples/metrics/
 
 # Batch convert all examples
-python scripts/jupytext_converter.py batch-py-to-nb examples/
+uv run python scripts/jupytext_converter.py batch-py-to-nb examples/
 ```
 
 ### Synchronization Checklist
@@ -1022,7 +1022,7 @@ By the end of this example, you will be able to:
 ### Quick Start
 
 ```bash
-source activate.sh && python examples/metrics/05_composition.py
+source activate.sh && uv run python examples/metrics/05_composition.py
 ```
 
 ### Files
@@ -1507,7 +1507,7 @@ if __name__ == "__main__":
 ### Quick Start
 
 ```bash
-source activate.sh && python examples/path/to/example.py
+source activate.sh && uv run python examples/path/to/example.py
 ```
 
 ### Environment Setup
@@ -1753,7 +1753,7 @@ These templates can be copied and adapted for new examples.
 ### Quick Start
 
 ```bash
-source activate.sh && python examples/path/to/example.py
+source activate.sh && uv run python examples/path/to/example.py
 ```
 
 ### Files
@@ -2328,7 +2328,7 @@ Before writing any code, answer these questions:
 4. **Run the example and capture real output**
 
     ```bash
-    source activate.sh && python examples/<path>/<example>.py
+    source activate.sh && uv run python examples/<path>/<example>.py
     ```
 
     - **CRITICAL**: All "Terminal Output" in documentation MUST be from actual execution
@@ -2378,7 +2378,7 @@ Before writing any code, answer these questions:
 2. **Generate the Jupyter notebook**
 
     ```bash
-    python scripts/jupytext_converter.py py-to-nb examples/<path>/<example>.py
+    uv run python scripts/jupytext_converter.py py-to-nb examples/<path>/<example>.py
     ```
 
     - Do NOT use raw jupytext - use the converter script
@@ -2386,7 +2386,7 @@ Before writing any code, answer these questions:
 3. **Verify documentation links**
 
     ```bash
-    mkdocs build --strict
+    uv run mkdocs build --strict --clean
     ```
 
     - Fix any broken internal links
@@ -2419,7 +2419,7 @@ Use this checklist before submitting new examples or updates.
 - [ ] Metadata table (Level, Runtime, Prerequisites, Format, Memory)
 - [ ] Overview + What You'll Learn section
 - [ ] Files section with GitHub links
-- [ ] Quick Start with `source activate.sh && python ...`
+- [ ] Quick Start with `source activate.sh && uv run python ...`
 - [ ] Framework comparison (where applicable, see Section 7)
 - [ ] Step-by-step implementation with Terminal Output blocks
 - [ ] Mermaid architecture diagram (where applicable)
@@ -2659,7 +2659,8 @@ as a starting point for new examples.
 ## 18. Metrics Module Documentation Patterns
 
 The metrics module (`calibrax.metrics`) is the largest single module expansion in calibrax,
-adding 110+ registered metrics across 4 computational tiers and 17 functional domains. This
+adding 111 registered Tier 0 metrics across 17 functional domains, plus Tier 1-3
+APIs, optional plugins, and metric-learning losses. This
 section establishes documentation patterns specific to the metrics module.
 
 ### 18.1 Metrics Documentation Architecture

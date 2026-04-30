@@ -29,7 +29,7 @@ These metrics are essential for evaluating generative models (GANs, diffusion mo
 ## Quick Start
 
 ```bash
-source activate.sh && python examples/metrics/06_image_quality.py
+source activate.sh && uv run python examples/metrics/06_image_quality.py
 ```
 
 ## Key Concepts

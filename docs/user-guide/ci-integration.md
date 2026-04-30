@@ -110,6 +110,23 @@ jobs:
         run: calibrax baseline --data ./benchmark-data
 ```
 
+## CodSpeed Benchmarks
+
+Calibrax also includes a focused CodSpeed workflow for PR-level performance
+checks. The workflow installs `calibrax[test,performance]`, runs
+`pytest --codspeed` against `tests/performance/`, and uses OpenID Connect for
+CodSpeed authentication.
+
+Local smoke check:
+
+```bash
+source activate.sh
+uv run --extra performance pytest tests/performance/ --codspeed --no-cov
+```
+
+The performance extra installs `pytest-codspeed`; normal unit-test installs do
+not need it.
+
 ```mermaid
 flowchart LR
     A[Run Benchmarks] --> B[Save to Store]

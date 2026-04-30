@@ -36,7 +36,7 @@ jobs:
         run: uv pip install -e ".[docs]"
 
       - name: Build docs
-        run: uv run mkdocs build --clean
+        run: uv run mkdocs build --strict --clean
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3

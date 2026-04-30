@@ -10,7 +10,8 @@ from __future__ import annotations
 import csv
 import io
 import logging
-from collections.abc import Sequence
+import re
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -40,6 +41,16 @@ class PublicationGenerator:
         self._output_dir = Path(output_dir)
         self._output_dir.mkdir(parents=True, exist_ok=True)
 
+    def _get_pyplot(self, plot_name: str) -> Any | None:
+        """Return matplotlib.pyplot or None when plotting is unavailable."""
+        if not MATPLOTLIB_AVAILABLE:
+            logger.warning("matplotlib not available, skipping %s", plot_name)
+            return None
+
+        import matplotlib.pyplot as plt
+
+        return plt
+
     def generate_comparison_plot(
         self,
         run: Run,
@@ -57,11 +68,9 @@ class PublicationGenerator:
         Returns:
             Path to generated file, or None if matplotlib unavailable.
         """
-        if not MATPLOTLIB_AVAILABLE:
-            logger.warning("matplotlib not available, skipping comparison plot")
+        plt = self._get_pyplot("comparison plot")
+        if plt is None:
             return None
-
-        import matplotlib.pyplot as plt
 
         metric_names = (
             list(metrics) if metrics else sorted({mn for p in run.points for mn in p.metrics})
@@ -103,11 +112,9 @@ class PublicationGenerator:
         Returns:
             Path to generated file, or None if matplotlib unavailable.
         """
-        if not MATPLOTLIB_AVAILABLE:
-            logger.warning("matplotlib not available, skipping scaling plot")
+        plt = self._get_pyplot("scaling plot")
+        if plt is None:
             return None
-
-        import matplotlib.pyplot as plt
 
         fig, ax = plt.subplots(figsize=(8, 5))
         ax.plot(list(sizes), list(values), "o-", linewidth=2, markersize=6)
@@ -136,14 +143,12 @@ class PublicationGenerator:
         Returns:
             Path to generated file, or None if matplotlib unavailable.
         """
-        if not MATPLOTLIB_AVAILABLE:
-            logger.warning("matplotlib not available, skipping convergence plot")
+        plt = self._get_pyplot("convergence plot")
+        if plt is None:
             return None
 
         if not series.points:
             return None
-
-        import matplotlib.pyplot as plt
 
         values = [float(tp.value) for tp in series.points]
         indices = list(range(len(values)))
@@ -158,6 +163,51 @@ class PublicationGenerator:
         _add_confidence_band(ax, indices, series, len(values))
 
         path = self._output_dir / f"convergence_{series.metric}.{output_format}"
+        fig.savefig(path, dpi=150, bbox_inches="tight")
+        plt.close(fig)
+        return path
+
+    def plot_metric_values(
+        self,
+        values: Mapping[str, float],
+        *,
+        title: str,
+        filename: str,
+        output_format: str = "png",
+    ) -> Path | None:
+        """Plot one or more scalar metric values.
+
+        Args:
+            values: Mapping from metric name to scalar value.
+            title: Plot title.
+            filename: Output filename stem.
+            output_format: File format (png, pdf, svg).
+
+        Returns:
+            Path to generated file, or None if matplotlib unavailable.
+
+        Raises:
+            ValueError: If no metric values are provided.
+        """
+        if not values:
+            msg = "plot_metric_values requires at least one metric value"
+            raise ValueError(msg)
+
+        plt = self._get_pyplot("metric values plot")
+        if plt is None:
+            return None
+
+        names = list(values)
+        scores = [float(values[name]) for name in names]
+        fig, ax = plt.subplots(figsize=(max(4.0, len(names) * 1.2), 3.0))
+        ax.bar(names, scores)
+        ax.set_title(title)
+        ax.set_ylabel("Value")
+        for tick in ax.get_xticklabels():
+            tick.set_rotation(30)
+        fig.tight_layout()
+
+        path = self._output_dir / f"{_sanitize_filename(filename)}.{output_format}"
         fig.savefig(path, dpi=150, bbox_inches="tight")
         plt.close(fig)
         return path
@@ -311,6 +361,12 @@ def _plot_metric_bars(
     ax.set_ylabel(metric_name)
     for tick in ax.get_xticklabels():
         tick.set_rotation(45)
+
+
+def _sanitize_filename(filename: str) -> str:
+    """Return a stable filesystem-safe filename stem."""
+    cleaned = re.sub(r"[^A-Za-z0-9_.-]+", "_", filename.strip()).strip("._")
+    return cleaned or "metrics"
 
 
 def _add_confidence_band(

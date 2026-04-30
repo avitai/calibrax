@@ -51,13 +51,13 @@ requires-python = ">=3.11"
 
 [project.optional-dependencies]
 all = [
-  "calibrax[changepoint,codecarbon,dev,docs,gpu,image,mlflow,publication,scientific,stats,test,text,wandb]"
+  "calibrax[changepoint,codecarbon,dev,docs,gpu,image,mlflow,performance,publication,scientific,stats,test,text,wandb]"
 ]
 all-cpu = [
-  "calibrax[changepoint,codecarbon,dev,docs,image,mlflow,publication,scientific,stats,test,text,wandb]"
+  "calibrax[changepoint,codecarbon,dev,docs,image,mlflow,performance,publication,scientific,stats,test,text,wandb]"
 ]
 all-macos = [
-  "calibrax[changepoint,codecarbon,dev,docs,image,metal,mlflow,publication,scientific,stats,test,text,wandb]"
+  "calibrax[changepoint,codecarbon,dev,docs,image,metal,mlflow,performance,publication,scientific,stats,test,text,wandb]"
 ]
 changepoint = [
   "ruptures>=1.1"
@@ -76,7 +76,7 @@ dev = [
   "jupytext>=1.16.6",
   "pre-commit>=4.2",
   "pydeps>=1.12.17",
-  "pygments>=2.20.0",
+  "pygments>=2.19,<2.20",
   "pyright>=1.1.336",
   "pytest-asyncio>=0.23",
   "pytest-benchmark>=4",
@@ -101,6 +101,7 @@ docs = [
   "mkdocs>=1.6.1,<2.0",
   "mkdocstrings-python>=1.1.2",
   "mkdocstrings>=0.28.3",
+  "pygments>=2.19,<2.20",
   "pymdown-extensions>=10.14.3"
 ]
 gpu = [
@@ -133,6 +134,9 @@ metal = [
 mlflow = [
   "mlflow>=2.0"
 ]
+performance = [
+  "pytest-codspeed>=4.4.0"
+]
 publication = [
   "matplotlib>=3.8"
 ]
@@ -156,6 +160,7 @@ test = [
   "pytest-xdist>=3.6",
   "pytest>=8.3.5",
   "ruptures>=1.1",
+  "scikit-learn>=1.4",
   "wandb>=0.18"
 ]
 text = [

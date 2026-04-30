@@ -11,6 +11,7 @@ from calibrax.metrics import (
     calculate_all,
     MetricEntry,
     MetricRegistry,
+    MetricSignature,
     MetricTier,
 )
 from calibrax.metrics._registry import register_metric
@@ -101,9 +102,10 @@ class TestMetricRegistry:
         assert r1 is r2
 
     def test_builtin_metrics_registered(self) -> None:
-        """All 12 regression metrics should be registered at import time."""
+        """All 13 regression metrics should be registered at import time."""
         registry = MetricRegistry()
         expected = {
+            "crps",
             "mse",
             "mae",
             "rmse",
@@ -119,6 +121,14 @@ class TestMetricRegistry:
         }
         registered = set(registry.list_names())
         assert expected.issubset(registered)
+
+    def test_crps_registered_as_proper_ensemble_metric(self) -> None:
+        """CRPS should expose proper-scoring metadata without joining default batches."""
+        registry = MetricRegistry()
+        entry = registry.get("crps")
+        assert entry.properties.is_proper is True
+        assert entry.properties.is_jit_compatible is True
+        assert entry.signature == MetricSignature.ENSEMBLE_PREDICTIONS_TARGETS
 
     def test_get_returns_metric_entry(self) -> None:
         """get() should return a MetricEntry."""
@@ -165,9 +175,10 @@ class TestMetricRegistry:
         assert "mse" not in names
 
     def test_list_proper_scoring_rules(self) -> None:
-        """No regression metrics are proper scoring rules."""
+        """CRPS should be discoverable as a proper scoring rule."""
         entries = MetricRegistry().list_proper_scoring_rules()
         names = {e.name for e in entries}
+        assert "crps" in names
         assert "mse" not in names
 
     def test_list_by_invariance(self) -> None:
@@ -246,7 +257,7 @@ class TestCalculateAllFused:
     ]
 
     def test_fused_returns_all_regression_metrics(self) -> None:
-        """Fused path must return the exact 12 regression metric names."""
+        """Fused path must return the exact 12 same-shape regression metric names."""
         predictions = jnp.array([1.0, 2.5, 3.2, 4.1, 5.8])
         targets = jnp.array([1.1, 2.0, 3.0, 4.0, 5.0])
         fused = calculate_all(predictions, targets, metrics=self._FUSED_NAMES)
@@ -269,7 +280,7 @@ class TestCalculateAll:
     """Tests for calculate_all (registry-backed)."""
 
     def test_all_metrics_returned(self) -> None:
-        """Default should return all general Tier 0 metrics."""
+        """Default should return same-shape general Tier 0 metrics."""
         predictions = jnp.array([1.0, 2.0, 3.0])
         targets = jnp.array([1.1, 2.1, 3.1])
         result = calculate_all(predictions, targets)
@@ -288,6 +299,7 @@ class TestCalculateAll:
             "smape",
         }
         assert expected.issubset(set(result))
+        assert "crps" not in result
 
     def test_subset_metrics(self) -> None:
         """Should return only requested metrics."""

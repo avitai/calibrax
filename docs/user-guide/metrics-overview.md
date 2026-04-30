@@ -1,8 +1,12 @@
 # Metrics Overview
 
 Calibrax provides a 4-tier metric system that covers everything from stateless
-pure functions to trainable embedding losses. Every metric is registered in a
-singleton `MetricRegistry` with rich metadata -- domain, axioms, invariances,
+pure functions to trainable embedding losses. The current `MetricRegistry`
+contains 111 Tier 0 pure-function metrics across 17 domains. Tier 1-3 APIs,
+optional plugin metrics, and metric-learning losses are part of the package
+architecture, but they are not all registry entries today.
+
+Registered Tier 0 entries carry rich metadata -- domain, axioms, invariances,
 differentiability -- enabling programmatic discovery and filtering.
 
 ## The 4-Tier System
@@ -43,9 +47,9 @@ differentiable loss functions used in training loops with `jax.grad()`.
 
 ## MetricRegistry
 
-All metrics are registered in a singleton `MetricRegistry` at import time.
-Query it to discover available metrics by domain, tier, mathematical
-properties, or invariance.
+Tier 0 metrics are registered in a singleton `MetricRegistry` at import time.
+Query it to discover available registered metrics by domain, tier,
+mathematical properties, or invariance.
 
 ### Listing Metrics
 
@@ -152,8 +156,8 @@ def weighted_mse(predictions, targets, *, weights=None):
 
 ## Domain Reference
 
-The registry organizes metrics into 17 domains. Each domain groups metrics
-with a shared evaluation context.
+The registry organizes Tier 0 metrics into 17 domains. Each domain groups
+metrics with a shared evaluation context.
 
 | Domain | Count | Examples |
 |--------|-------|---------|

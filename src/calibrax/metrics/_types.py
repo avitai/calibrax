@@ -26,6 +26,7 @@ class MetricSignature(StrEnum):
     """
 
     PREDICTIONS_TARGETS = "predictions_targets"
+    ENSEMBLE_PREDICTIONS_TARGETS = "ensemble_predictions_targets"
     DISTRIBUTIONS = "distributions"
     SAMPLES = "samples"
     FEATURES_LABELS = "features_labels"

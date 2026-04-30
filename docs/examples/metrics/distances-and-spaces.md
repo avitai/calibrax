@@ -29,7 +29,7 @@ These metrics form the foundation for embedding evaluation, distribution compari
 ## Quick Start
 
 ```bash
-source activate.sh && python examples/metrics/04_distances.py
+source activate.sh && uv run python examples/metrics/04_distances.py
 ```
 
 ## Key Concepts

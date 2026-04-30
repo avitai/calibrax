@@ -29,7 +29,7 @@ These metrics are used in graph neural network evaluation, covariance matrix com
 ## Quick Start
 
 ```bash
-source activate.sh && python examples/metrics/08_manifold_graph.py
+source activate.sh && uv run python examples/metrics/08_manifold_graph.py
 ```
 
 ## Key Concepts

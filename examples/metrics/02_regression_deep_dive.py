@@ -19,14 +19,15 @@
 # | **Level** | Tier 1: Quick Reference |
 # | **Time** | ~10 minutes |
 # | **Prerequisites** | `01_quickstart.py`, basic statistics |
-# | **Metrics covered** | MSE, MAE, RMSE, R-squared, MAPE, SMAPE, Huber, quantile loss, log-cosh |
-# | **Key concepts** | Outlier sensitivity, robust losses, percentage errors |
+# | **Metrics covered** | MSE, MAE, RMSE, R-squared, MAPE, SMAPE, Huber, CRPS |
+# | **Key concepts** | Outliers, robust losses, percentages, probabilistic forecasts |
 
 # %%
-"""Regression metrics deep dive: all 12 regression metrics with interpretation.
+"""Regression metrics deep dive with interpretation.
 
 Demonstrates:
-- Computing each of the 12 regression metrics
+- Computing same-shape regression metrics
+- Scoring probabilistic ensemble forecasts with CRPS
 - Comparing MSE vs MAE vs Huber loss on data with outliers
 - Quantile loss at different quantile levels
 - SMAPE vs MAPE: symmetric vs asymmetric percentage errors
@@ -35,6 +36,7 @@ Demonstrates:
 import jax.numpy as jnp
 
 from calibrax.metrics.functional.regression import (
+    crps,
     explained_variance,
     huber_loss,
     log_cosh_loss,
@@ -56,7 +58,7 @@ def main() -> None:
     targets = jnp.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0])
     predictions = jnp.array([1.1, 1.9, 3.2, 3.8, 5.1, 5.9, 7.3, 7.8])
 
-    print("=== All 12 Regression Metrics (clean data) ===")
+    print("=== Same-Shape Regression Metrics (clean data) ===")
     metrics = {
         "MSE": mse(predictions, targets),
         "MAE": mae(predictions, targets),
@@ -73,6 +75,19 @@ def main() -> None:
     }
     for name, value in metrics.items():
         print(f"  {name:30s} = {value:.6f}")
+
+    # -- Probabilistic forecast scoring ------------------------------------
+    print("\n=== CRPS: Ensemble Forecast Quality ===")
+    ensemble_predictions = jnp.array(
+        [
+            [0.8, 1.0, 1.2],
+            [1.8, 2.0, 2.2],
+            [2.6, 3.0, 3.4],
+        ]
+    )
+    ensemble_targets = jnp.array([1.0, 2.0, 3.0])
+    print(f"  CRPS = {crps(ensemble_predictions, ensemble_targets):.6f}")
+    print("  Lower CRPS means the ensemble distribution is sharper and better calibrated.")
 
     # -- Outlier comparison ------------------------------------------------
     print("\n=== Outlier Sensitivity: MSE vs MAE vs Huber ===")
