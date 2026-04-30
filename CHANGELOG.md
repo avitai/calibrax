@@ -7,15 +7,23 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-04-30
+
 ### Added
 
 - Numerical-equivalence tests for representative regression, classification,
   distance, and divergence metrics against scikit-learn and SciPy references.
+- Continuous performance checks with a CodSpeed workflow and focused benchmark
+  coverage.
+- CRPS as a registered Tier 0 regression metric.
+- Optional FFmpeg/libvmaf VMAF video-quality metric boundary.
+- Stateful metric plotting via the shared publication plotting infrastructure.
 - Contributor, release, security, and code-of-conduct documentation.
 - Contributor guide pages for project workflow and adding metrics.
 - Peer-comparison guide covering TorchMetrics, jax_metrics, ASV, and CodSpeed.
 - Dependabot configuration for Python dependencies and GitHub Actions.
 - Structured issue templates for bugs, feature requests, and metric requests.
+- Manual generated-release automation in the PyPI publish workflow.
 
 ### Changed
 
@@ -24,6 +32,9 @@ and uses semantic versioning while the public API stabilizes.
   mkdocstrings/pymdown highlighting path passes `filename=None`.
 - Metrics documentation now distinguishes the 110 registered Tier 0 metrics
   from Tier 1-3 APIs and metric-learning losses.
+- GitHub Actions dependencies were updated through Dependabot.
+- Release scheduling now stays under operator control: no commit or tag push
+  creates a release by itself.
 
 ## [0.1.0] - 2026-04-25
 
