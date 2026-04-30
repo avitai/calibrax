@@ -13,11 +13,13 @@ from collections.abc import Callable
 class SamplingThread:
     """Reusable daemon thread lifecycle for background sampling.
 
-    Usage::
+    Usage:
 
-        thread = SamplingThread(target=self._sample_loop)
-        thread.start()   # in __enter__
-        thread.stop()    # in __exit__
+    ```python
+    thread = SamplingThread(target=self._sample_loop)
+    thread.start()   # in __enter__
+    thread.stop()    # in __exit__
+    ```
 
     Args:
         target: The sampling loop callable (runs in the daemon thread).

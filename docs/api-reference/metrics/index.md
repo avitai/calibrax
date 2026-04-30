@@ -45,6 +45,7 @@ results = calculate_all(predictions, targets, metrics=["mse", "mae", "r_squared"
 - [Clustering](clustering.md) -- ARI, NMI, silhouette, Davies-Bouldin
 - [Fairness](fairness.md) -- demographic parity, equalized odds, disparate impact
 - [Image](image.md) -- PSNR, SSIM, MS-SSIM, Vendi Score
+- [Video](video.md) -- VMAF via FFmpeg/libvmaf
 - [Text](text.md) -- BLEU, ROUGE, perplexity, distinct-N
 - [Audio](audio.md) -- SNR, spectral convergence, mel cepstral distortion
 - [Geometric](geometric.md) -- Chamfer, Hausdorff, Earth Mover's distance

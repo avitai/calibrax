@@ -110,6 +110,27 @@ jobs:
         run: calibrax baseline --data ./benchmark-data
 ```
 
+## CodSpeed Benchmarks
+
+Calibrax also includes a focused CodSpeed workflow for PR-level performance
+checks. The workflow installs `calibrax[test,performance]`, runs
+`tests/performance/`, and uploads CodSpeed results only when repository-side
+authentication is configured. Set a repository secret named `CODSPEED_TOKEN`, or
+set the repository variable `CODSPEED_OIDC_ENABLED=true` after enabling the
+repository in CodSpeed for OpenID Connect uploads. Without either setting, the
+workflow still runs the performance smoke tests and skips only the external
+upload step.
+
+Local smoke check:
+
+```bash
+source activate.sh
+uv run --extra performance pytest tests/performance/ --codspeed --no-cov
+```
+
+The performance extra installs `pytest-codspeed`; normal unit-test installs do
+not need it.
+
 ```mermaid
 flowchart LR
     A[Run Benchmarks] --> B[Save to Store]

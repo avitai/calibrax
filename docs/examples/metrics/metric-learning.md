@@ -30,7 +30,7 @@ This example computes each loss on a shared batch of embeddings, verifies gradie
 ## Quick Start
 
 ```bash
-source activate.sh && python examples/metrics/07_metric_learning.py
+source activate.sh && uv run python examples/metrics/07_metric_learning.py
 ```
 
 ## Key Concepts

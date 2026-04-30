@@ -151,11 +151,13 @@ class ResourceSummary:
 class ResourceMonitor:
     """Background 10Hz resource sampling via context manager.
 
-    Usage::
+    Usage:
 
-        with ResourceMonitor() as mon:
-            # ... run benchmark ...
-        summary = mon.summary
+    ```python
+    with ResourceMonitor() as mon:
+        # ... run benchmark ...
+    summary = mon.summary
+    ```
 
     Args:
         sample_interval_sec: Seconds between samples (default 0.1 = 10Hz).

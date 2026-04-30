@@ -1,0 +1,64 @@
+name: CodSpeed
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  benchmarks:
+    name: Run Benchmarks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      CODSPEED_TOKEN: ${{ secrets.CODSPEED_TOKEN }}
+      CODSPEED_OIDC_ENABLED: ${{ vars.CODSPEED_OIDC_ENABLED }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.11
+
+      - name: Create virtual environment
+        run: uv venv
+
+      - name: Install dependencies
+        run: uv pip install -e ".[test,performance]"
+
+      - name: Run performance smoke tests
+        if: env.CODSPEED_TOKEN == '' && env.CODSPEED_OIDC_ENABLED != 'true'
+        run: uv run pytest tests/performance/ --no-cov
+
+      - name: Run CodSpeed benchmarks with token
+        if: env.CODSPEED_TOKEN != ''
+        uses: CodSpeedHQ/action@v4
+        with:
+          mode: simulation
+          token: ${{ env.CODSPEED_TOKEN }}
+          run: uv run pytest tests/performance/ --codspeed --no-cov
+
+      - name: Run CodSpeed benchmarks with OIDC
+        if: env.CODSPEED_TOKEN == '' && env.CODSPEED_OIDC_ENABLED == 'true'
+        uses: CodSpeedHQ/action@v4
+        with:
+          mode: simulation
+          run: uv run pytest tests/performance/ --codspeed --no-cov
+
+      - name: Explain skipped CodSpeed upload
+        if: env.CODSPEED_TOKEN == '' && env.CODSPEED_OIDC_ENABLED != 'true'
+        run: |
+          echo "CodSpeed upload skipped because neither CODSPEED_TOKEN nor CODSPEED_OIDC_ENABLED=true is configured."
+          echo "Performance smoke tests still ran and remain required."

@@ -227,12 +227,13 @@ for _block in PYTHON_BLOCKS:
     sorted(_BLOCKS_BY_FILE.keys()),
     ids=sorted(_BLOCKS_BY_FILE.keys()),
 )
-def test_doc_file(file_path: str) -> None:
+def test_doc_file(file_path: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Execute all Python code blocks in a single documentation file, in order."""
     blocks = _BLOCKS_BY_FILE[file_path]
     ns = dict(_build_preamble())
     failures: list[str] = []
     skipped = 0
+    monkeypatch.chdir(tmp_path)
 
     with _patch_external_dependencies(file_path):
         for block in blocks:

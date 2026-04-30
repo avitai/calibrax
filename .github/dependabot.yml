@@ -1,0 +1,33 @@
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    groups:
+      jax-flax:
+        patterns:
+          - "jax"
+          - "jaxlib"
+          - "jax-*"
+          - "flax"
+      docs-tools:
+        patterns:
+          - "mkdocs*"
+          - "mkdocstrings*"
+          - "pymdown-extensions"
+          - "pygments"
+          - "griffe"
+      test-tools:
+        patterns:
+          - "pytest*"
+          - "coverage"
+          - "scikit-learn"
+          - "scipy"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"

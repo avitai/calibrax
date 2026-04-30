@@ -8,12 +8,26 @@ class and decorator focused on infrastructure.
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import Any
 
 import jax.numpy as jnp
 
 from calibrax.core.models import MetricDirection
 from calibrax.metrics._types import MetricEntry, MetricProperties, MetricSignature, MetricTier
+
+
+@dataclass(frozen=True)
+class _BuiltinMetricSpec:
+    """Named built-in metric registration metadata."""
+
+    name: str
+    fn: Any
+    description: str
+    direction: MetricDirection
+    properties: MetricProperties
+    signature: MetricSignature = MetricSignature.PREDICTIONS_TARGETS
+    domain: str = "general"
 
 
 _FUSED_REGRESSION_NAMES = frozenset(
@@ -38,7 +52,7 @@ def _calculate_regression_fused(
     predictions: Any,
     targets: Any,
 ) -> dict[str, Any]:
-    """Compute all 12 default regression metrics with shared subexpressions.
+    """Compute all 12 same-shape regression metrics with shared subexpressions.
 
     Avoids redundant computation by reusing intermediate values (diff, abs_diff,
     sq_diff, mean_t) across metrics instead of recomputing them independently.
@@ -48,7 +62,7 @@ def _calculate_regression_fused(
         targets: Ground truth values.
 
     Returns:
-        Dictionary mapping all 12 regression metric names to computed values.
+        Dictionary mapping the 12 same-shape regression metric names to computed values.
     """
     from calibrax.metrics._utils import _EPSILON, _prepare_arrays, safe_divide
 
@@ -101,9 +115,10 @@ def _register_all_builtins() -> None:
 
 
 def _register_regression_metrics() -> None:
-    """Register all 12 regression metrics at import time."""
+    """Register all 13 regression metrics at import time."""
     from calibrax.metrics._registry import MetricRegistry
     from calibrax.metrics.functional.regression import (
+        crps,
         explained_variance,
         huber_loss,
         log_cosh_loss,
@@ -119,118 +134,113 @@ def _register_regression_metrics() -> None:
     )
 
     registry = MetricRegistry()
-    # (name, fn, description, direction, is_symmetric, is_true_metric, is_differentiable)
-    builtins: list[tuple[str, Any, str, MetricDirection, bool, bool, bool]] = [
-        ("mse", mse, "Mean squared error", MetricDirection.LOWER, True, False, True),
-        ("mae", mae, "Mean absolute error", MetricDirection.LOWER, True, True, True),
-        (
+    builtins = [
+        _BuiltinMetricSpec(
+            "mse",
+            mse,
+            "Mean squared error",
+            MetricDirection.LOWER,
+            MetricProperties(is_symmetric=True, is_differentiable=True),
+        ),
+        _BuiltinMetricSpec(
+            "mae",
+            mae,
+            "Mean absolute error",
+            MetricDirection.LOWER,
+            MetricProperties(is_symmetric=True, is_true_metric=True, is_differentiable=True),
+        ),
+        _BuiltinMetricSpec(
             "rmse",
             rmse,
             "Root mean squared error",
             MetricDirection.LOWER,
-            True,
-            True,
-            True,
+            MetricProperties(is_symmetric=True, is_true_metric=True, is_differentiable=True),
         ),
-        (
+        _BuiltinMetricSpec(
             "r_squared",
             r_squared,
             "Coefficient of determination",
             MetricDirection.HIGHER,
-            False,
-            False,
-            True,
+            MetricProperties(is_differentiable=True),
         ),
-        (
+        _BuiltinMetricSpec(
             "mape",
             mape,
             "Mean absolute percentage error",
             MetricDirection.LOWER,
-            False,
-            False,
-            True,
+            MetricProperties(is_differentiable=True),
         ),
-        (
+        _BuiltinMetricSpec(
             "relative_error",
             relative_error,
             "Mean relative error (L2 norm ratio)",
             MetricDirection.LOWER,
-            False,
-            False,
-            True,
+            MetricProperties(is_differentiable=True),
         ),
-        (
+        _BuiltinMetricSpec(
             "explained_variance",
             explained_variance,
             "Explained variance score",
             MetricDirection.HIGHER,
-            False,
-            False,
-            True,
+            MetricProperties(is_differentiable=True),
         ),
-        (
+        _BuiltinMetricSpec(
             "max_error",
             max_error,
             "Maximum absolute error",
             MetricDirection.LOWER,
-            True,
-            False,
-            True,
+            MetricProperties(is_symmetric=True, is_differentiable=True),
         ),
-        (
+        _BuiltinMetricSpec(
             "huber_loss",
             huber_loss,
             "Huber loss (robust regression)",
             MetricDirection.LOWER,
-            True,
-            False,
-            True,
+            MetricProperties(is_symmetric=True, is_differentiable=True),
         ),
-        (
+        _BuiltinMetricSpec(
             "quantile_loss",
             quantile_loss,
             "Quantile (pinball) loss",
             MetricDirection.LOWER,
-            False,
-            False,
-            True,
+            MetricProperties(is_differentiable=True),
         ),
-        (
+        _BuiltinMetricSpec(
             "log_cosh_loss",
             log_cosh_loss,
             "Log-cosh loss",
             MetricDirection.LOWER,
-            True,
-            False,
-            True,
+            MetricProperties(is_symmetric=True, is_differentiable=True),
         ),
-        (
+        _BuiltinMetricSpec(
             "smape",
             smape,
             "Symmetric mean absolute percentage error",
             MetricDirection.LOWER,
-            True,
-            False,
-            True,
+            MetricProperties(is_symmetric=True, is_differentiable=True),
+        ),
+        _BuiltinMetricSpec(
+            "crps",
+            crps,
+            "Continuous ranked probability score for ensemble forecasts",
+            MetricDirection.LOWER,
+            MetricProperties(is_proper=True, is_differentiable=True, is_jit_compatible=True),
+            signature=MetricSignature.ENSEMBLE_PREDICTIONS_TARGETS,
         ),
     ]
-    for name, fn, desc, direction, is_sym, is_true, is_diff in builtins:
-        if not registry.has(name):
+    for spec in builtins:
+        if not registry.has(spec.name):
             entry = MetricEntry(
-                name=name,
-                fn=fn,
+                name=spec.name,
+                fn=spec.fn,
                 tier=MetricTier.PURE_FUNCTION,
-                domain="general",
-                direction=direction,
-                description=desc,
-                signature=MetricSignature.PREDICTIONS_TARGETS,
-                properties=MetricProperties(
-                    is_symmetric=is_sym,
-                    is_true_metric=is_true,
-                    is_differentiable=is_diff,
-                ),
+                domain=spec.domain,
+                direction=spec.direction,
+                description=spec.description,
+                signature=spec.signature,
+                properties=spec.properties,
             )
-            registry.register(name, entry)
+            registry.register(spec.name, entry)
 
 
 def _register_classification_metrics() -> None:
@@ -1387,7 +1397,7 @@ def calculate_all(
     Args:
         predictions: Predicted values.
         targets: Ground truth values.
-        metrics: Subset of metric names to compute. Defaults to all
+        metrics: Subset of metric names to compute. Defaults to same-shape
             Tier 0 general metrics.
 
     Returns:
@@ -1401,7 +1411,11 @@ def calculate_all(
     registry = MetricRegistry()
     if metrics is None:
         entries = registry.list_by_tier(MetricTier.PURE_FUNCTION)
-        names_set = {e.name for e in entries if e.domain == "general"}
+        names_set = {
+            e.name
+            for e in entries
+            if e.domain == "general" and e.signature == MetricSignature.PREDICTIONS_TARGETS
+        }
         # Use fused single-pass path when the default set matches exactly
         if names_set == _FUSED_REGRESSION_NAMES:
             return _calculate_regression_fused(predictions, targets)

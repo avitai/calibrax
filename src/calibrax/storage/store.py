@@ -1,14 +1,16 @@
 """JSON-per-run file backend with baseline management.
 
-Directory layout::
+Directory layout:
 
-    benchmark-data/
-    +-- runs/
-    |   +-- abc123.json
-    |   +-- ...
-    +-- baselines/
-    |   +-- main.json
-    +-- config.json
+```text
+benchmark-data/
++-- runs/
+|   +-- abc123.json
+|   +-- ...
++-- baselines/
+|   +-- main.json
++-- config.json
+```
 """
 
 from __future__ import annotations

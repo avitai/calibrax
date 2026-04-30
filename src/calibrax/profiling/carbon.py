@@ -72,16 +72,20 @@ class CarbonResult:
 class CarbonTracker:
     """Context manager for tracking carbon emissions via CodeCarbon.
 
-    Requires the ``codecarbon`` package. Install with::
+    Requires the ``codecarbon`` package. Install with:
 
-        uv pip install "calibrax[codecarbon]"
+    ```bash
+    uv pip install "calibrax[codecarbon]"
+    ```
 
-    Usage::
+    Usage:
 
-        with CarbonTracker() as tracker:
-            # ... run workload ...
-        result = tracker.result()
-        print(f"Emissions: {result.emissions_kg_co2:.6f} kg CO2")
+    ```python
+    with CarbonTracker() as tracker:
+        # ... run workload ...
+    result = tracker.result()
+    print(f"Emissions: {result.emissions_kg_co2:.6f} kg CO2")
+    ```
 
     Args:
         country_iso_code: Optional ISO country code for regional carbon intensity.

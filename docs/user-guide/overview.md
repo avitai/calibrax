@@ -70,7 +70,7 @@ flowchart TD
 | [`calibrax.monitoring`](../api-reference/monitoring.md) | Alert management, production monitoring |
 | [`calibrax.storage`](../api-reference/storage.md) | JSON-per-run store, baseline repository |
 | [`calibrax.exporters`](../api-reference/exporters.md) | W&B, MLflow, publication-ready LaTeX/HTML/CSV/matplotlib output |
-| [`calibrax.metrics`](../api-reference/metrics/index.md) | 4-tier metric system with 110+ registered metrics across 17 domains |
+| [`calibrax.metrics`](../api-reference/metrics/index.md) | 4-tier metric system with 111 registered Tier 0 metrics across 17 domains plus Tier 1-3 APIs and losses |
 | [`calibrax.ci`](../api-reference/ci.md) | CI regression gate, git bisect automation |
 | [`calibrax.cli`](../cli-reference.md) | Command-line interface |
 

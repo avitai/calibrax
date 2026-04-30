@@ -30,7 +30,7 @@ This example walks through six composable building blocks: `MetricCollection`, `
 ## Quick Start
 
 ```bash
-source activate.sh && python examples/metrics/05_composition.py
+source activate.sh && uv run python examples/metrics/05_composition.py
 ```
 
 ## Key Concepts

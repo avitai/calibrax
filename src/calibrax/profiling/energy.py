@@ -130,11 +130,13 @@ class EnergyMonitor:
     Uses daemon thread sampling at configurable interval.
     Gracefully degrades when NVML or RAPL is unavailable.
 
-    Usage::
+    Usage:
 
-        with EnergyMonitor() as mon:
-            # ... run benchmark ...
-        summary = mon.summary
+    ```python
+    with EnergyMonitor() as mon:
+        # ... run benchmark ...
+    summary = mon.summary
+    ```
     """
 
     def __init__(self, sample_interval_sec: float = 0.1) -> None:

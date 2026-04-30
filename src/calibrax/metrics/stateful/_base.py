@@ -12,8 +12,10 @@ from typing import Any
 
 import flax.nnx as nnx
 
+from calibrax.metrics.plotting import MetricPlotMixin
 
-class FrozenBackboneMetric(ABC):
+
+class FrozenBackboneMetric(MetricPlotMixin, ABC):
     """Base class for Tier 1 metrics with frozen pretrained backbones.
 
     Implements the StatefulMetricProtocol lifecycle:
@@ -113,7 +115,7 @@ class FrozenBackboneMetric(ABC):
         ...
 
 
-class LearnedMetric(nnx.Module):
+class LearnedMetric(MetricPlotMixin, nnx.Module):
     """Base class for Tier 2 metrics with trainable calibration layers.
 
     Extends nnx.Module for JAX transform compatibility (jit, grad, vmap).

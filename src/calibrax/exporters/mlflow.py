@@ -4,9 +4,7 @@ Exports benchmark runs, comparisons, and regressions to MLflow tracking.
 Requires the optional ``mlflow`` dependency (``uv pip install "calibrax[mlflow]"``).
 
 Note: NOT re-exported from ``calibrax.exporters.__init__`` to avoid
-import-time MLflow loading. Import directly::
-
-    from calibrax.exporters.mlflow import MLflowExporter
+import-time MLflow loading. Import it from ``calibrax.exporters.mlflow``.
 """
 
 from __future__ import annotations

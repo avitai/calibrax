@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 import flax.nnx as nnx
@@ -90,6 +91,15 @@ class TestFrozenBackboneMetric:
         result = metric.compute()
         assert result["mock_metric"] == 0.0
 
+    def test_plot_returns_output_path(self, tmp_path: Path) -> None:
+        """Frozen metrics should plot computed scalar values."""
+        metric = MockBackboneMetric()
+        metric.update(values=jnp.array([1.0, 3.0]))
+        result = metric.plot(output_dir=tmp_path)
+        assert result is not None
+        assert result.exists()
+        assert result.suffix == ".png"
+
 
 class MockLearnedMetric(LearnedMetric):
     """Mock implementation for testing LearnedMetric base."""
@@ -143,3 +153,12 @@ class TestLearnedMetric:
         result = metric.compute()
         assert isinstance(result, dict)
         assert "mock_learned" in result
+
+    def test_plot_returns_output_path(self, tmp_path: Path) -> None:
+        """Learned metrics should share the same plotting behavior."""
+        metric = MockLearnedMetric(rngs=nnx.Rngs(42))
+        metric.update(values=jnp.ones(4))
+        result = metric.plot(output_dir=tmp_path)
+        assert result is not None
+        assert result.exists()
+        assert result.suffix == ".png"

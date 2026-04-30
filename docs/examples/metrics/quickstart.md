@@ -28,7 +28,7 @@ Start here if you are new to calibrax. Every subsequent example builds on the pa
 ## Quick Start
 
 ```bash
-source activate.sh && python examples/metrics/01_quickstart.py
+source activate.sh && uv run python examples/metrics/01_quickstart.py
 ```
 
 ## Key Concepts
@@ -130,6 +130,6 @@ print(f"True metrics: {[e.name for e in true_metrics[:8]]}...")
 
 ## Next Steps
 
-- [Regression Metrics Deep Dive](regression-metrics.md) -- explore all 12 regression metrics with outlier and quantile analysis
+- [Regression Metrics Deep Dive](regression-metrics.md) -- explore regression metrics with outlier, quantile, and CRPS analysis
 - [API Reference: `calibrax.metrics`](../../api-reference/metrics/index.md) -- full function signatures and parameters
 - [User Guide: Geometric Metrics](../../user-guide/geometric-metrics.md) -- choosing the right metric for your task

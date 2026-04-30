@@ -85,19 +85,21 @@ class TimingCollector:
     calls ``block_until_ready()`` on the workload result to force the host
     to wait for device completion before recording the timestamp.
 
-    Example -- JAX GPU timing with warm-up::
+    Example -- JAX GPU timing with warm-up:
 
-        import jax.numpy as jnp
+    ```python
+    import jax.numpy as jnp
 
-        def run_step(batch):
-            return jax.jit(step_fn)(batch)
+    def run_step(batch):
+        return jax.jit(step_fn)(batch)
 
-        collector = TimingCollector(
-            sync_fn=lambda result: result.block_until_ready(),
-            warmup_iterations=2,
-        )
-        sample = collector.measure_iteration(data_iter, num_batches=50, process_fn=run_step)
-        # sample.per_batch_times excludes the first 2 batches
+    collector = TimingCollector(
+        sync_fn=lambda result: result.block_until_ready(),
+        warmup_iterations=2,
+    )
+    sample = collector.measure_iteration(data_iter, num_batches=50, process_fn=run_step)
+    # sample.per_batch_times excludes the first 2 batches
+    ```
 
     Args:
         sync_fn: Synchronization function called with each batch result.

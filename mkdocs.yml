@@ -132,6 +132,7 @@ nav:
       - Statistical Analysis: user-guide/statistics.md
       - Regression Detection: user-guide/regressions.md
       - Comparing Configurations: user-guide/comparison.md
+      - Peer Comparison: user-guide/peer-comparison.md
       - Storage & Baselines: user-guide/storage.md
       - Exporting Results: user-guide/exporters.md
       - CI Integration: user-guide/ci-integration.md
@@ -187,6 +188,7 @@ nav:
           - Clustering: api-reference/metrics/clustering.md
           - Fairness: api-reference/metrics/fairness.md
           - Image: api-reference/metrics/image.md
+          - Video: api-reference/metrics/video.md
           - Text: api-reference/metrics/text.md
           - Audio: api-reference/metrics/audio.md
           - Geometric: api-reference/metrics/geometric.md
@@ -209,7 +211,9 @@ nav:
           - Metric Learning: examples/metrics/metric-learning.md
           - Manifold & Graph: examples/metrics/advanced-manifold.md
   - Contributing:
-      - Example Documentation Guide: contributing/example_documentation_design.md
+      - Overview: contributing/index.md
+      - Adding a Metric: contributing/adding-a-metric.md
+      - Documentation Design Framework: contributing/example_documentation_design.md
   - Architecture:
       - architecture/index.md
       - Design Decisions: architecture/design-decisions.md

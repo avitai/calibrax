@@ -57,12 +57,14 @@ class TraceReference:
 class TraceLinker:
     """Links JAX profiler traces to benchmark runs.
 
-    Usage::
+    Usage:
 
-        linker = TraceLinker()
-        with linker.trace("/tmp/my_trace") as ref:
-            # ... run workload ...
-        print(ref.trace_dir)  # "/tmp/my_trace"
+    ```python
+    linker = TraceLinker()
+    with linker.trace("/tmp/my_trace") as ref:
+        # ... run workload ...
+    print(ref.trace_dir)  # "/tmp/my_trace"
+    ```
     """
 
     @contextmanager

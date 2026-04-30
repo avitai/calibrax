@@ -29,7 +29,7 @@ Classification metrics divide into two families. Hard-prediction metrics (accura
 ## Quick Start
 
 ```bash
-source activate.sh && python examples/metrics/03_classification.py
+source activate.sh && uv run python examples/metrics/03_classification.py
 ```
 
 ## Key Concepts
