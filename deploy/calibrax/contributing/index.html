@@ -12,31 +12,31 @@
         <meta name="author" content="Mahdi Shafiei">
       
       
-        <link rel="canonical" href="https://calibrax.readthedocs.io/examples/metrics/metric-learning/">
+        <link rel="canonical" href="https://calibrax.readthedocs.io/contributing/">
       
       
-        <link rel="prev" href="../image-quality/">
+        <link rel="prev" href="../examples/metrics/advanced-manifold/">
       
       
-        <link rel="next" href="../advanced-manifold/">
+        <link rel="next" href="adding-a-metric/">
       
       
         
       
       
-      <link rel="icon" href="../../../assets/images/favicon.png">
+      <link rel="icon" href="../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
-        <title>Metric Learning - Calibrax</title>
+        <title>Overview - Calibrax</title>
       
     
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -55,11 +55,11 @@
       
     
     
-      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
     
-      <link rel="stylesheet" href="../../../stylesheets/extra.css">
+      <link rel="stylesheet" href="../stylesheets/extra.css">
     
-    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -84,7 +84,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#metric-learning-losses" class="md-skip">
+        <a href="#contributing" class="md-skip">
           Skip to content
         </a>
       
@@ -100,7 +100,7 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="Calibrax" class="md-header__button md-logo" aria-label="Calibrax" data-md-component="logo">
+    <a href=".." title="Calibrax" class="md-header__button md-logo" aria-label="Calibrax" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M22 21H2V3h2v16h2v-9h4v9h2V6h4v13h2v-5h4z"/></svg>
@@ -120,7 +120,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Metric Learning
+              Overview
             
           </span>
         </div>
@@ -243,7 +243,7 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="Calibrax" class="md-nav__button md-logo" aria-label="Calibrax" data-md-component="logo">
+    <a href=".." title="Calibrax" class="md-nav__button md-logo" aria-label="Calibrax" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M22 21H2V3h2v16h2v-9h4v9h2V6h4v13h2v-5h4z"/></svg>
@@ -273,7 +273,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../.." class="md-nav__link">
+      <a href=".." class="md-nav__link">
         
   
   
@@ -347,7 +347,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../getting-started/" class="md-nav__link">
+      <a href="../getting-started/" class="md-nav__link">
         
   
   
@@ -375,7 +375,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../getting-started/installation/" class="md-nav__link">
+      <a href="../getting-started/installation/" class="md-nav__link">
         
   
   
@@ -403,7 +403,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../getting-started/quickstart/" class="md-nav__link">
+      <a href="../getting-started/quickstart/" class="md-nav__link">
         
   
   
@@ -431,7 +431,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../getting-started/concepts/" class="md-nav__link">
+      <a href="../getting-started/concepts/" class="md-nav__link">
         
   
   
@@ -513,7 +513,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../user-guide/" class="md-nav__link">
+      <a href="../user-guide/" class="md-nav__link">
         
   
   
@@ -541,7 +541,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../user-guide/overview/" class="md-nav__link">
+      <a href="../user-guide/overview/" class="md-nav__link">
         
   
   
@@ -569,7 +569,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../user-guide/profiling/" class="md-nav__link">
+      <a href="../user-guide/profiling/" class="md-nav__link">
         
   
   
@@ -597,7 +597,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../user-guide/statistics/" class="md-nav__link">
+      <a href="../user-guide/statistics/" class="md-nav__link">
         
   
   
@@ -625,7 +625,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../user-guide/regressions/" class="md-nav__link">
+      <a href="../user-guide/regressions/" class="md-nav__link">
         
   
   
@@ -653,7 +653,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../user-guide/comparison/" class="md-nav__link">
+      <a href="../user-guide/comparison/" class="md-nav__link">
         
   
   
@@ -681,7 +681,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../user-guide/peer-comparison/" class="md-nav__link">
+      <a href="../user-guide/peer-comparison/" class="md-nav__link">
         
   
   
@@ -709,7 +709,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../user-guide/storage/" class="md-nav__link">
+      <a href="../user-guide/storage/" class="md-nav__link">
         
   
   
@@ -737,7 +737,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../user-guide/exporters/" class="md-nav__link">
+      <a href="../user-guide/exporters/" class="md-nav__link">
         
   
   
@@ -765,7 +765,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../user-guide/ci-integration/" class="md-nav__link">
+      <a href="../user-guide/ci-integration/" class="md-nav__link">
         
   
   
@@ -793,7 +793,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../user-guide/monitoring/" class="md-nav__link">
+      <a href="../user-guide/monitoring/" class="md-nav__link">
         
   
   
@@ -868,7 +868,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../user-guide/metrics-overview/" class="md-nav__link">
+      <a href="../user-guide/metrics-overview/" class="md-nav__link">
         
   
   
@@ -896,7 +896,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../user-guide/geometric-metrics/" class="md-nav__link">
+      <a href="../user-guide/geometric-metrics/" class="md-nav__link">
         
   
   
@@ -924,7 +924,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../user-guide/metric-composition/" class="md-nav__link">
+      <a href="../user-guide/metric-composition/" class="md-nav__link">
         
   
   
@@ -952,7 +952,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../user-guide/stateful-metrics/" class="md-nav__link">
+      <a href="../user-guide/stateful-metrics/" class="md-nav__link">
         
   
   
@@ -980,7 +980,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../user-guide/metric-learning/" class="md-nav__link">
+      <a href="../user-guide/metric-learning/" class="md-nav__link">
         
   
   
@@ -1016,7 +1016,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../user-guide/adapters/" class="md-nav__link">
+      <a href="../user-guide/adapters/" class="md-nav__link">
         
   
   
@@ -1044,7 +1044,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../user-guide/distributed/" class="md-nav__link">
+      <a href="../user-guide/distributed/" class="md-nav__link">
         
   
   
@@ -1072,7 +1072,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../user-guide/pytest-integration/" class="md-nav__link">
+      <a href="../user-guide/pytest-integration/" class="md-nav__link">
         
   
   
@@ -1107,7 +1107,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../cli-reference/" class="md-nav__link">
+      <a href="../cli-reference/" class="md-nav__link">
         
   
   
@@ -1181,7 +1181,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/" class="md-nav__link">
+      <a href="../api-reference/" class="md-nav__link">
         
   
   
@@ -1256,7 +1256,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/core/models/" class="md-nav__link">
+      <a href="../api-reference/core/models/" class="md-nav__link">
         
   
   
@@ -1284,7 +1284,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/core/protocols/" class="md-nav__link">
+      <a href="../api-reference/core/protocols/" class="md-nav__link">
         
   
   
@@ -1312,7 +1312,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/core/adapters/" class="md-nav__link">
+      <a href="../api-reference/core/adapters/" class="md-nav__link">
         
   
   
@@ -1340,7 +1340,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/core/registry/" class="md-nav__link">
+      <a href="../api-reference/core/registry/" class="md-nav__link">
         
   
   
@@ -1368,7 +1368,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/core/result/" class="md-nav__link">
+      <a href="../api-reference/core/result/" class="md-nav__link">
         
   
   
@@ -1451,7 +1451,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/profiling/timing/" class="md-nav__link">
+      <a href="../api-reference/profiling/timing/" class="md-nav__link">
         
   
   
@@ -1479,7 +1479,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/profiling/resources/" class="md-nav__link">
+      <a href="../api-reference/profiling/resources/" class="md-nav__link">
         
   
   
@@ -1507,7 +1507,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/profiling/gpu/" class="md-nav__link">
+      <a href="../api-reference/profiling/gpu/" class="md-nav__link">
         
   
   
@@ -1535,7 +1535,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/profiling/energy/" class="md-nav__link">
+      <a href="../api-reference/profiling/energy/" class="md-nav__link">
         
   
   
@@ -1563,7 +1563,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/profiling/flops/" class="md-nav__link">
+      <a href="../api-reference/profiling/flops/" class="md-nav__link">
         
   
   
@@ -1591,7 +1591,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/profiling/hardware/" class="md-nav__link">
+      <a href="../api-reference/profiling/hardware/" class="md-nav__link">
         
   
   
@@ -1619,7 +1619,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/profiling/roofline/" class="md-nav__link">
+      <a href="../api-reference/profiling/roofline/" class="md-nav__link">
         
   
   
@@ -1647,7 +1647,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/profiling/compilation/" class="md-nav__link">
+      <a href="../api-reference/profiling/compilation/" class="md-nav__link">
         
   
   
@@ -1675,7 +1675,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/profiling/complexity/" class="md-nav__link">
+      <a href="../api-reference/profiling/complexity/" class="md-nav__link">
         
   
   
@@ -1703,7 +1703,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/profiling/tracing/" class="md-nav__link">
+      <a href="../api-reference/profiling/tracing/" class="md-nav__link">
         
   
   
@@ -1731,7 +1731,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/profiling/carbon/" class="md-nav__link">
+      <a href="../api-reference/profiling/carbon/" class="md-nav__link">
         
   
   
@@ -1767,7 +1767,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/statistics/" class="md-nav__link">
+      <a href="../api-reference/statistics/" class="md-nav__link">
         
   
   
@@ -1795,7 +1795,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/analysis/" class="md-nav__link">
+      <a href="../api-reference/analysis/" class="md-nav__link">
         
   
   
@@ -1823,7 +1823,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/validation/" class="md-nav__link">
+      <a href="../api-reference/validation/" class="md-nav__link">
         
   
   
@@ -1851,7 +1851,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/monitoring/" class="md-nav__link">
+      <a href="../api-reference/monitoring/" class="md-nav__link">
         
   
   
@@ -1879,7 +1879,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/storage/" class="md-nav__link">
+      <a href="../api-reference/storage/" class="md-nav__link">
         
   
   
@@ -1907,7 +1907,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/exporters/" class="md-nav__link">
+      <a href="../api-reference/exporters/" class="md-nav__link">
         
   
   
@@ -1982,7 +1982,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/metrics/" class="md-nav__link">
+      <a href="../api-reference/metrics/" class="md-nav__link">
         
   
   
@@ -2010,7 +2010,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/metrics/registry/" class="md-nav__link">
+      <a href="../api-reference/metrics/registry/" class="md-nav__link">
         
   
   
@@ -2038,7 +2038,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/metrics/regression/" class="md-nav__link">
+      <a href="../api-reference/metrics/regression/" class="md-nav__link">
         
   
   
@@ -2066,7 +2066,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/metrics/classification/" class="md-nav__link">
+      <a href="../api-reference/metrics/classification/" class="md-nav__link">
         
   
   
@@ -2094,7 +2094,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/metrics/calibration/" class="md-nav__link">
+      <a href="../api-reference/metrics/calibration/" class="md-nav__link">
         
   
   
@@ -2122,7 +2122,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/metrics/segmentation/" class="md-nav__link">
+      <a href="../api-reference/metrics/segmentation/" class="md-nav__link">
         
   
   
@@ -2150,7 +2150,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/metrics/distance/" class="md-nav__link">
+      <a href="../api-reference/metrics/distance/" class="md-nav__link">
         
   
   
@@ -2178,7 +2178,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/metrics/divergence/" class="md-nav__link">
+      <a href="../api-reference/metrics/divergence/" class="md-nav__link">
         
   
   
@@ -2206,7 +2206,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/metrics/information/" class="md-nav__link">
+      <a href="../api-reference/metrics/information/" class="md-nav__link">
         
   
   
@@ -2234,7 +2234,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/metrics/ranking/" class="md-nav__link">
+      <a href="../api-reference/metrics/ranking/" class="md-nav__link">
         
   
   
@@ -2262,7 +2262,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/metrics/statistical/" class="md-nav__link">
+      <a href="../api-reference/metrics/statistical/" class="md-nav__link">
         
   
   
@@ -2290,7 +2290,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/metrics/clustering/" class="md-nav__link">
+      <a href="../api-reference/metrics/clustering/" class="md-nav__link">
         
   
   
@@ -2318,7 +2318,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/metrics/fairness/" class="md-nav__link">
+      <a href="../api-reference/metrics/fairness/" class="md-nav__link">
         
   
   
@@ -2346,7 +2346,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/metrics/image/" class="md-nav__link">
+      <a href="../api-reference/metrics/image/" class="md-nav__link">
         
   
   
@@ -2374,7 +2374,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/metrics/video/" class="md-nav__link">
+      <a href="../api-reference/metrics/video/" class="md-nav__link">
         
   
   
@@ -2402,7 +2402,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/metrics/text/" class="md-nav__link">
+      <a href="../api-reference/metrics/text/" class="md-nav__link">
         
   
   
@@ -2430,7 +2430,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/metrics/audio/" class="md-nav__link">
+      <a href="../api-reference/metrics/audio/" class="md-nav__link">
         
   
   
@@ -2458,7 +2458,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/metrics/geometric/" class="md-nav__link">
+      <a href="../api-reference/metrics/geometric/" class="md-nav__link">
         
   
   
@@ -2486,7 +2486,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/metrics/graph/" class="md-nav__link">
+      <a href="../api-reference/metrics/graph/" class="md-nav__link">
         
   
   
@@ -2514,7 +2514,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/metrics/manifold/" class="md-nav__link">
+      <a href="../api-reference/metrics/manifold/" class="md-nav__link">
         
   
   
@@ -2542,7 +2542,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/metrics/composition/" class="md-nav__link">
+      <a href="../api-reference/metrics/composition/" class="md-nav__link">
         
   
   
@@ -2570,7 +2570,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/metrics/wrappers/" class="md-nav__link">
+      <a href="../api-reference/metrics/wrappers/" class="md-nav__link">
         
   
   
@@ -2598,7 +2598,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/metrics/stateful/" class="md-nav__link">
+      <a href="../api-reference/metrics/stateful/" class="md-nav__link">
         
   
   
@@ -2626,7 +2626,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/metrics/learning/" class="md-nav__link">
+      <a href="../api-reference/metrics/learning/" class="md-nav__link">
         
   
   
@@ -2654,7 +2654,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/metrics/scientific/" class="md-nav__link">
+      <a href="../api-reference/metrics/scientific/" class="md-nav__link">
         
   
   
@@ -2690,7 +2690,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api-reference/ci/" class="md-nav__link">
+      <a href="../api-reference/ci/" class="md-nav__link">
         
   
   
@@ -2722,20 +2722,18 @@
       
   
   
-    
   
   
-  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
         
           
           <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
@@ -2756,7 +2754,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_6">
             <span class="md-nav__icon md-icon"></span>
             
@@ -2771,20 +2769,18 @@
                 
   
   
-    
   
   
-  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_1" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_1" >
         
           
           <label class="md-nav__link" for="__nav_6_1" id="__nav_6_1_label" tabindex="0">
@@ -2805,7 +2801,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_1_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_1_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_6_1">
             <span class="md-nav__icon md-icon"></span>
             
@@ -2823,7 +2819,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../quickstart/" class="md-nav__link">
+      <a href="../examples/metrics/quickstart/" class="md-nav__link">
         
   
   
@@ -2851,7 +2847,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../regression-metrics/" class="md-nav__link">
+      <a href="../examples/metrics/regression-metrics/" class="md-nav__link">
         
   
   
@@ -2879,7 +2875,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../classification/" class="md-nav__link">
+      <a href="../examples/metrics/classification/" class="md-nav__link">
         
   
   
@@ -2907,7 +2903,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../distances-and-spaces/" class="md-nav__link">
+      <a href="../examples/metrics/distances-and-spaces/" class="md-nav__link">
         
   
   
@@ -2935,7 +2931,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../model-evaluation/" class="md-nav__link">
+      <a href="../examples/metrics/model-evaluation/" class="md-nav__link">
         
   
   
@@ -2963,7 +2959,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../image-quality/" class="md-nav__link">
+      <a href="../examples/metrics/image-quality/" class="md-nav__link">
         
   
   
@@ -2988,37 +2984,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Metric Learning
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../examples/metrics/metric-learning/" class="md-nav__link">
         
   
   
@@ -3034,175 +3003,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#overview" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Overview
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#what-youll-learn" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        What You'll Learn
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#files" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Files
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#quick-start" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Quick Start
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#key-concepts" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Key Concepts
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Key Concepts">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#contrastiveloss" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ContrastiveLoss
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#tripletmarginloss" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        TripletMarginLoss
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#ntxentloss-infonce" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        NTXentLoss (InfoNCE)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#arcfaceloss" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ArcFaceLoss
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#gradient-verification" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Gradient Verification
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#hardnegativeminer" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        HardNegativeMiner
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#example-code" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Example Code
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#next-steps" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Next Steps
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -3215,7 +3015,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../advanced-manifold/" class="md-nav__link">
+      <a href="../examples/metrics/advanced-manifold/" class="md-nav__link">
         
   
   
@@ -3255,18 +3055,20 @@
       
   
   
+    
   
   
+  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
         
           
           <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
@@ -3287,7 +3089,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_7">
             <span class="md-nav__icon md-icon"></span>
             
@@ -3302,10 +3104,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../../contributing/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -3321,6 +3150,59 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#start-here" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Start Here
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#local-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local Commands
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#current-metric-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current Metric Architecture
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -3333,7 +3215,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../contributing/adding-a-metric/" class="md-nav__link">
+      <a href="adding-a-metric/" class="md-nav__link">
         
   
   
@@ -3361,7 +3243,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../contributing/example_documentation_design/" class="md-nav__link">
+      <a href="example_documentation_design/" class="md-nav__link">
         
   
   
@@ -3443,7 +3325,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../architecture/" class="md-nav__link">
+      <a href="../architecture/" class="md-nav__link">
         
   
   
@@ -3471,7 +3353,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../architecture/design-decisions/" class="md-nav__link">
+      <a href="../architecture/design-decisions/" class="md-nav__link">
         
   
   
@@ -3499,7 +3381,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../architecture/module-map/" class="md-nav__link">
+      <a href="../architecture/module-map/" class="md-nav__link">
         
   
   
@@ -3554,10 +3436,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#overview" class="md-nav__link">
+  <a href="#start-here" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Overview
+        Start Here
       
     </span>
   </a>
@@ -3565,10 +3447,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#what-youll-learn" class="md-nav__link">
+  <a href="#local-commands" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What You'll Learn
+        Local Commands
       
     </span>
   </a>
@@ -3576,126 +3458,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#files" class="md-nav__link">
+  <a href="#current-metric-architecture" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Files
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#quick-start" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Quick Start
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#key-concepts" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Key Concepts
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Key Concepts">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#contrastiveloss" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ContrastiveLoss
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#tripletmarginloss" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        TripletMarginLoss
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#ntxentloss-infonce" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        NTXentLoss (InfoNCE)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#arcfaceloss" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ArcFaceLoss
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#gradient-verification" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Gradient Verification
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#hardnegativeminer" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        HardNegativeMiner
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#example-code" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Example Code
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#next-steps" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Next Steps
+        Current Metric Architecture
       
     </span>
   </a>
@@ -3727,7 +3493,7 @@
   
   
     <li class="md-path__item">
-      <a href="../../.." class="md-path__link">
+      <a href=".." class="md-path__link">
         
   <span class="md-ellipsis">
     Home
@@ -3744,37 +3510,11 @@
   
     
     
-      
-  
-  
-    
-    
       <li class="md-path__item">
-        <a href="../quickstart/" class="md-path__link">
+        <a href="./" class="md-path__link">
           
   <span class="md-ellipsis">
-    Examples
-  </span>
-
-        </a>
-      </li>
-    
-  
-
-    
-  
-
-      
-        
-  
-  
-    
-    
-      <li class="md-path__item">
-        <a href="../quickstart/" class="md-path__link">
-          
-  <span class="md-ellipsis">
-    Metrics
+    Contributing
   </span>
 
         </a>
@@ -3796,147 +3536,33 @@
   
 
 
-<h1 id="metric-learning-losses">Metric Learning Losses<a class="headerlink" href="#metric-learning-losses" title="Permanent link">¤</a></h1>
-<table>
-<thead>
-<tr>
-<th></th>
-<th></th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>Level</strong></td>
-<td>Advanced</td>
-</tr>
-<tr>
-<td><strong>Time</strong></td>
-<td>~15 minutes</td>
-</tr>
-<tr>
-<td><strong>Prerequisites</strong></td>
-<td><a href="../quickstart/">Quickstart</a>, <a href="../distances-and-spaces/">Distances and Spaces</a>, <a href="../model-evaluation/">Model Evaluation</a></td>
-</tr>
-<tr>
-<td><strong>Format</strong></td>
-<td>Python + Jupyter</td>
-</tr>
-</tbody>
-</table>
-<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">¤</a></h2>
-<p>Metric learning trains embedding spaces where semantically similar items are close together and dissimilar items are far apart. Calibrax provides seven differentiable loss functions -- contrastive, triplet margin, NTXent (InfoNCE), ArcFace, CosFace, ProxyNCA, and ProxyAnchor -- along with hard negative and semi-hard miners. All losses are JIT-compatible and produce gradients suitable for training with JAX/Flax.</p>
-<p>This example computes each loss on a shared batch of embeddings, verifies gradient flow with <code>jax.grad()</code>, and mines hard negatives for triplet training. It shows how hyperparameters (margin, temperature, scale) affect loss behaviour.</p>
-<h2 id="what-youll-learn">What You'll Learn<a class="headerlink" href="#what-youll-learn" title="Permanent link">¤</a></h2>
-<ol>
-<li>Compute contrastive loss on embedding pairs with configurable margin</li>
-<li>Apply triplet margin loss with anchor/positive/negative selection</li>
-<li>Use NTXent (InfoNCE) for self-supervised contrastive learning</li>
-<li>Train angular-margin classifiers with ArcFace loss (Flax NNX module)</li>
-<li>Verify gradient flow through each loss with <code>jax.grad()</code> and <code>nnx.grad()</code></li>
-<li>Mine hard negatives with <code>HardNegativeMiner</code></li>
-</ol>
-<h2 id="files">Files<a class="headerlink" href="#files" title="Permanent link">¤</a></h2>
+<h1 id="contributing">Contributing<a class="headerlink" href="#contributing" title="Permanent link">¤</a></h1>
+<p>This section is the contributor-facing entry point for Calibrax. Root project
+files describe repository policy; these pages describe how to make changes that
+fit the current code and documentation system.</p>
+<h2 id="start-here">Start Here<a class="headerlink" href="#start-here" title="Permanent link">¤</a></h2>
 <ul>
-<li><strong>Python Script</strong>: <a href="https://github.com/avitai/calibrax/blob/main/examples/metrics/07_metric_learning.py"><code>examples/metrics/07_metric_learning.py</code></a></li>
-<li><strong>Jupyter Notebook</strong>: <a href="https://github.com/avitai/calibrax/blob/main/examples/metrics/07_metric_learning.ipynb"><code>examples/metrics/07_metric_learning.ipynb</code></a></li>
+<li><a href="https://github.com/avitai/calibrax/blob/main/CONTRIBUTING.md">Project contributing guide</a> - local setup, workflow,
+  and pull request expectations.</li>
+<li><a href="adding-a-metric/">Adding a Metric</a> - the implementation, registration,
+  testing, and documentation path for new metrics.</li>
+<li><a href="example_documentation_design/">Documentation Design Framework</a> - the
+  detailed reference for example structure, progressive disclosure, and docs
+  quality standards.</li>
 </ul>
-<h2 id="quick-start">Quick Start<a class="headerlink" href="#quick-start" title="Permanent link">¤</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">source</span><span class="w"> </span>activate.sh<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>examples/metrics/07_metric_learning.py
+<h2 id="local-commands">Local Commands<a class="headerlink" href="#local-commands" title="Permanent link">¤</a></h2>
+<p>Run commands from the repository root after activating the Calibrax environment:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">source</span><span class="w"> </span>activate.sh
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>uv<span class="w"> </span>run<span class="w"> </span>pytest
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>uv<span class="w"> </span>run<span class="w"> </span>pre-commit<span class="w"> </span>run<span class="w"> </span>--all-files
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>uv<span class="w"> </span>run<span class="w"> </span>mkdocs<span class="w"> </span>build<span class="w"> </span>--strict<span class="w"> </span>--clean
 </span></code></pre></div>
-<h2 id="key-concepts">Key Concepts<a class="headerlink" href="#key-concepts" title="Permanent link">¤</a></h2>
-<h3 id="contrastiveloss">ContrastiveLoss<a class="headerlink" href="#contrastiveloss" title="Permanent link">¤</a></h3>
-<p>Contrastive loss pulls same-class pairs together and pushes different-class pairs apart by at least <code>margin</code>. Given embeddings and integer labels, it forms all valid pairs within the batch.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">calibrax.metrics.learning</span><span class="w"> </span><span class="kn">import</span> <span class="n">ContrastiveLoss</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">contrastive</span> <span class="o">=</span> <span class="n">ContrastiveLoss</span><span class="p">(</span><span class="n">margin</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">loss</span> <span class="o">=</span> <span class="n">contrastive</span><span class="p">(</span><span class="n">embeddings</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
-</span></code></pre></div>
-<p>Larger margins enforce wider separation between classes but require embeddings to be more spread out to satisfy the constraint.</p>
-<h3 id="tripletmarginloss">TripletMarginLoss<a class="headerlink" href="#tripletmarginloss" title="Permanent link">¤</a></h3>
-<p>Triplet loss operates on (anchor, positive, negative) triplets. It enforces that the anchor-positive distance is smaller than the anchor-negative distance by at least <code>margin</code>.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">calibrax.metrics.learning</span><span class="w"> </span><span class="kn">import</span> <span class="n">TripletMarginLoss</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">triplet</span> <span class="o">=</span> <span class="n">TripletMarginLoss</span><span class="p">(</span><span class="n">margin</span><span class="o">=</span><span class="mf">0.2</span><span class="p">)</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">loss</span> <span class="o">=</span> <span class="n">triplet</span><span class="p">(</span><span class="n">embeddings</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
-</span></code></pre></div>
-<p>The loss automatically mines triplets from the batch using the provided labels.</p>
-<h3 id="ntxentloss-infonce">NTXentLoss (InfoNCE)<a class="headerlink" href="#ntxentloss-infonce" title="Permanent link">¤</a></h3>
-<p>NTXent is the normalised temperature-scaled cross-entropy loss used in SimCLR and other self-supervised frameworks. It treats each sample's positive pair as the target class in a softmax over all negatives in the batch.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">calibrax.metrics.learning</span><span class="w"> </span><span class="kn">import</span> <span class="n">NTXentLoss</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">ntxent</span> <span class="o">=</span> <span class="n">NTXentLoss</span><span class="p">(</span><span class="n">temperature</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">loss</span> <span class="o">=</span> <span class="n">ntxent</span><span class="p">(</span><span class="n">embeddings</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
-</span></code></pre></div>
-<p>Temperature controls the sharpness of the softmax distribution. Lower values produce sharper distributions that focus more on the hardest negatives.</p>
-<h3 id="arcfaceloss">ArcFaceLoss<a class="headerlink" href="#arcfaceloss" title="Permanent link">¤</a></h3>
-<p>ArcFace adds an angular margin penalty in the cosine similarity space. It is an <code>nnx.Module</code> with a learnable weight matrix, making it suitable for large-scale face recognition and fine-grained classification.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">flax.nnx</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nnx</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">calibrax.metrics.learning</span><span class="w"> </span><span class="kn">import</span> <span class="n">ArcFaceLoss</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="c1"># ArcFace needs embeddings matching embedding_dim</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="n">embeddings</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">PRNGKey</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">16</span><span class="p">))</span>
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="n">labels</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="n">arcface</span> <span class="o">=</span> <span class="n">ArcFaceLoss</span><span class="p">(</span>
-</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="n">num_classes</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
-</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>    <span class="n">embedding_dim</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
-</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>    <span class="n">margin</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
-</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>    <span class="n">scale</span><span class="o">=</span><span class="mf">64.0</span><span class="p">,</span>
-</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>    <span class="n">rngs</span><span class="o">=</span><span class="n">nnx</span><span class="o">.</span><span class="n">Rngs</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
-</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="p">)</span>
-</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="n">loss</span> <span class="o">=</span> <span class="n">arcface</span><span class="p">(</span><span class="n">embeddings</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
-</span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>
-</span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="c1"># Inspect trainable parameters</span>
-</span><span id="__span-4-18"><a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a><span class="n">graph_def</span><span class="p">,</span> <span class="n">state</span> <span class="o">=</span> <span class="n">nnx</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">arcface</span><span class="p">)</span>
-</span><span id="__span-4-19"><a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a><span class="n">param_count</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">size</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree</span><span class="o">.</span><span class="n">leaves</span><span class="p">(</span><span class="n">state</span><span class="p">))</span>
-</span></code></pre></div>
-<h3 id="gradient-verification">Gradient Verification<a class="headerlink" href="#gradient-verification" title="Permanent link">¤</a></h3>
-<p>All losses support differentiation. Pure-function losses (contrastive, triplet, NTXent) work with <code>jax.grad()</code>. The ArcFace module uses <code>nnx.grad()</code>:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># Pure-function loss</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">grad_fn</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="k">lambda</span> <span class="n">emb</span><span class="p">:</span> <span class="n">ContrastiveLoss</span><span class="p">(</span><span class="n">margin</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)(</span><span class="n">emb</span><span class="p">,</span> <span class="n">labels</span><span class="p">))</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">grads</span> <span class="o">=</span> <span class="n">grad_fn</span><span class="p">(</span><span class="n">embeddings</span><span class="p">)</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="c1"># NNX module loss</span>
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="n">arcface_grad_fn</span> <span class="o">=</span> <span class="n">nnx</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span>
-</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="k">lambda</span> <span class="n">model</span><span class="p">,</span> <span class="n">emb</span><span class="p">:</span> <span class="n">model</span><span class="p">(</span><span class="n">emb</span><span class="p">,</span> <span class="n">labels</span><span class="p">),</span> <span class="n">argnums</span><span class="o">=</span><span class="mi">1</span>
-</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="p">)</span>
-</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="n">arcface_grads</span> <span class="o">=</span> <span class="n">arcface_grad_fn</span><span class="p">(</span><span class="n">arcface</span><span class="p">,</span> <span class="n">embeddings</span><span class="p">)</span>
-</span></code></pre></div>
-<h3 id="hardnegativeminer">HardNegativeMiner<a class="headerlink" href="#hardnegativeminer" title="Permanent link">¤</a></h3>
-<p>Hard negative mining selects the closest different-class sample for each anchor, producing the most informative triplets for training.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">calibrax.metrics.learning</span><span class="w"> </span><span class="kn">import</span> <span class="n">HardNegativeMiner</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">miner</span> <span class="o">=</span> <span class="n">HardNegativeMiner</span><span class="p">()</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">mined</span> <span class="o">=</span> <span class="n">miner</span><span class="o">.</span><span class="n">mine</span><span class="p">(</span><span class="n">embeddings</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="c1"># mined.anchors, mined.positives, mined.negatives -- index arrays</span>
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="c1"># All triplets satisfy: label[anchor] == label[positive] != label[negative]</span>
-</span></code></pre></div>
-<h2 id="example-code">Example Code<a class="headerlink" href="#example-code" title="Permanent link">¤</a></h2>
-<p>The gradient verification section confirms that gradients flow correctly through each loss:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">contrastive_loss_fn</span><span class="p">(</span><span class="n">emb</span><span class="p">:</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span><span class="p">:</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>    <span class="k">return</span> <span class="n">ContrastiveLoss</span><span class="p">(</span><span class="n">margin</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)(</span><span class="n">emb</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="n">grads</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">contrastive_loss_fn</span><span class="p">)(</span><span class="n">embeddings</span><span class="p">)</span>
-</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="n">grad_norm</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">grads</span><span class="p">))</span>
-</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="n">nonzero_count</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">grads</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">1e-10</span><span class="p">))</span>
-</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Gradient norm: </span><span class="si">{</span><span class="n">grad_norm</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Non-zero elements: </span><span class="si">{</span><span class="n">nonzero_count</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">grads</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span></code></pre></div>
-<p>The miner verification validates that all produced triplets are semantically correct:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">mined</span> <span class="o">=</span> <span class="n">miner</span><span class="o">.</span><span class="n">mine</span><span class="p">(</span><span class="n">embeddings</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="n">all_valid</span> <span class="o">=</span> <span class="nb">all</span><span class="p">(</span>
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    <span class="n">labels</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">mined</span><span class="o">.</span><span class="n">anchors</span><span class="p">[</span><span class="n">i</span><span class="p">])]</span> <span class="o">==</span> <span class="n">labels</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">mined</span><span class="o">.</span><span class="n">positives</span><span class="p">[</span><span class="n">i</span><span class="p">])]</span>
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    <span class="ow">and</span> <span class="n">labels</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">mined</span><span class="o">.</span><span class="n">anchors</span><span class="p">[</span><span class="n">i</span><span class="p">])]</span> <span class="o">!=</span> <span class="n">labels</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">mined</span><span class="o">.</span><span class="n">negatives</span><span class="p">[</span><span class="n">i</span><span class="p">])]</span>
-</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">mined</span><span class="o">.</span><span class="n">anchors</span><span class="p">))</span>
-</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="p">)</span>
-</span></code></pre></div>
-<h2 id="next-steps">Next Steps<a class="headerlink" href="#next-steps" title="Permanent link">¤</a></h2>
-<ul>
-<li><a href="../advanced-manifold/">Advanced Manifold and Graph Metrics</a> -- SPD, Grassmann, and graph-theoretic distances</li>
-<li><a href="../distances-and-spaces/">Distances and Spaces</a> -- the distance functions underlying metric learning losses</li>
-<li><a href="../../../api-reference/metrics/learning/">API Reference: <code>calibrax.metrics.learning</code></a> -- full loss function signatures and parameters</li>
-</ul>
+<p>Use targeted tests during development, but run the full verification stack
+before opening a pull request that changes behavior, dependencies, or docs.</p>
+<h2 id="current-metric-architecture">Current Metric Architecture<a class="headerlink" href="#current-metric-architecture" title="Permanent link">¤</a></h2>
+<p>The registry currently contains 111 Tier 0 pure-function metrics across 17
+domains. Tier 1-3 APIs, optional plugin metrics, and metric-learning losses are
+part of the package architecture, but they are not all registry entries today.</p>
 
 
 
@@ -3996,12 +3622,12 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["content.code.annotate", "content.code.copy", "content.tabs.link", "content.tooltips", "navigation.instant", "navigation.instant.prefetch", "navigation.instant.progress", "navigation.path", "navigation.top", "navigation.tracking", "search.highlight", "search.share", "search.suggest", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.code.annotate", "content.code.copy", "content.tabs.link", "content.tooltips", "navigation.instant", "navigation.instant.prefetch", "navigation.instant.progress", "navigation.path", "navigation.top", "navigation.tracking", "search.highlight", "search.share", "search.suggest", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
       
-        <script src="../../../javascripts/mathjax.js"></script>
+        <script src="../javascripts/mathjax.js"></script>
       
         <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
       

@@ -12,13 +12,13 @@
         <meta name="author" content="Mahdi Shafiei">
       
       
-        <link rel="canonical" href="https://calibrax.readthedocs.io/user-guide/comparison/">
+        <link rel="canonical" href="https://calibrax.readthedocs.io/contributing/adding-a-metric/">
       
       
-        <link rel="prev" href="../regressions/">
+        <link rel="prev" href="../">
       
       
-        <link rel="next" href="../peer-comparison/">
+        <link rel="next" href="../example_documentation_design/">
       
       
         
@@ -29,7 +29,7 @@
     
     
       
-        <title>Comparing Configurations - Calibrax</title>
+        <title>Adding a Metric - Calibrax</title>
       
     
     
@@ -84,7 +84,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#comparing-configurations" class="md-skip">
+        <a href="#adding-a-metric" class="md-skip">
           Skip to content
         </a>
       
@@ -120,7 +120,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Comparing Configurations
+              Adding a Metric
             
           </span>
         </div>
@@ -463,20 +463,18 @@
       
   
   
-    
   
   
-  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
         
           
           <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
@@ -497,7 +495,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -515,7 +513,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../" class="md-nav__link">
+      <a href="../../user-guide/" class="md-nav__link">
         
   
   
@@ -543,7 +541,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../overview/" class="md-nav__link">
+      <a href="../../user-guide/overview/" class="md-nav__link">
         
   
   
@@ -571,7 +569,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../profiling/" class="md-nav__link">
+      <a href="../../user-guide/profiling/" class="md-nav__link">
         
   
   
@@ -599,7 +597,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../statistics/" class="md-nav__link">
+      <a href="../../user-guide/statistics/" class="md-nav__link">
         
   
   
@@ -627,7 +625,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../regressions/" class="md-nav__link">
+      <a href="../../user-guide/regressions/" class="md-nav__link">
         
   
   
@@ -652,37 +650,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Comparing Configurations
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../user-guide/comparison/" class="md-nav__link">
         
   
   
@@ -698,92 +669,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#ranking-by-a-single-metric" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Ranking by a Single Metric
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#aggregate-scoring" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Aggregate Scoring
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#cross-configuration-comparison" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Cross-Configuration Comparison
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#pareto-front-analysis" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Pareto Front Analysis
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#best-practices" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Best Practices
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#next-steps" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Next Steps
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -796,7 +681,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../peer-comparison/" class="md-nav__link">
+      <a href="../../user-guide/peer-comparison/" class="md-nav__link">
         
   
   
@@ -824,7 +709,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../storage/" class="md-nav__link">
+      <a href="../../user-guide/storage/" class="md-nav__link">
         
   
   
@@ -852,7 +737,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../exporters/" class="md-nav__link">
+      <a href="../../user-guide/exporters/" class="md-nav__link">
         
   
   
@@ -880,7 +765,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../ci-integration/" class="md-nav__link">
+      <a href="../../user-guide/ci-integration/" class="md-nav__link">
         
   
   
@@ -908,7 +793,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../monitoring/" class="md-nav__link">
+      <a href="../../user-guide/monitoring/" class="md-nav__link">
         
   
   
@@ -983,7 +868,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../metrics-overview/" class="md-nav__link">
+      <a href="../../user-guide/metrics-overview/" class="md-nav__link">
         
   
   
@@ -1011,7 +896,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../geometric-metrics/" class="md-nav__link">
+      <a href="../../user-guide/geometric-metrics/" class="md-nav__link">
         
   
   
@@ -1039,7 +924,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../metric-composition/" class="md-nav__link">
+      <a href="../../user-guide/metric-composition/" class="md-nav__link">
         
   
   
@@ -1067,7 +952,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../stateful-metrics/" class="md-nav__link">
+      <a href="../../user-guide/stateful-metrics/" class="md-nav__link">
         
   
   
@@ -1095,7 +980,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../metric-learning/" class="md-nav__link">
+      <a href="../../user-guide/metric-learning/" class="md-nav__link">
         
   
   
@@ -1131,7 +1016,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../adapters/" class="md-nav__link">
+      <a href="../../user-guide/adapters/" class="md-nav__link">
         
   
   
@@ -1159,7 +1044,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../distributed/" class="md-nav__link">
+      <a href="../../user-guide/distributed/" class="md-nav__link">
         
   
   
@@ -1187,7 +1072,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../pytest-integration/" class="md-nav__link">
+      <a href="../../user-guide/pytest-integration/" class="md-nav__link">
         
   
   
@@ -3170,18 +3055,20 @@
       
   
   
+    
   
   
+  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
         
           
           <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
@@ -3202,7 +3089,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_7">
             <span class="md-nav__icon md-icon"></span>
             
@@ -3220,7 +3107,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../contributing/" class="md-nav__link">
+      <a href="../" class="md-nav__link">
         
   
   
@@ -3245,10 +3132,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../contributing/adding-a-metric/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Adding a Metric
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -3264,6 +3178,70 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#choose-the-tier" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Choose the Tier
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#implementation-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation Steps
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#numerical-equivalence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Numerical Equivalence
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#required-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Required Checks
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -3276,7 +3254,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../contributing/example_documentation_design/" class="md-nav__link">
+      <a href="../example_documentation_design/" class="md-nav__link">
         
   
   
@@ -3469,10 +3447,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#ranking-by-a-single-metric" class="md-nav__link">
+  <a href="#choose-the-tier" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Ranking by a Single Metric
+        Choose the Tier
       
     </span>
   </a>
@@ -3480,10 +3458,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#aggregate-scoring" class="md-nav__link">
+  <a href="#implementation-steps" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Aggregate Scoring
+        Implementation Steps
       
     </span>
   </a>
@@ -3491,10 +3469,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#cross-configuration-comparison" class="md-nav__link">
+  <a href="#numerical-equivalence" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Cross-Configuration Comparison
+        Numerical Equivalence
       
     </span>
   </a>
@@ -3502,32 +3480,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#pareto-front-analysis" class="md-nav__link">
+  <a href="#required-checks" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Pareto Front Analysis
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#best-practices" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Best Practices
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#next-steps" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Next Steps
+        Required Checks
       
     </span>
   </a>
@@ -3580,7 +3536,7 @@
         <a href="../" class="md-path__link">
           
   <span class="md-ellipsis">
-    User Guide
+    Contributing
   </span>
 
         </a>
@@ -3602,187 +3558,82 @@
   
 
 
-<h1 id="comparing-configurations">Comparing Configurations<a class="headerlink" href="#comparing-configurations" title="Permanent link">¤</a></h1>
-<p>Calibrax provides tools for ranking configurations by a single metric, computing
-aggregate scores across multiple metrics, generating full comparison reports,
-and finding Pareto-optimal tradeoffs.</p>
-<h2 id="ranking-by-a-single-metric">Ranking by a Single Metric<a class="headerlink" href="#ranking-by-a-single-metric" title="Permanent link">¤</a></h2>
-<p><code>rank_table()</code> ranks all points in a run by a given metric, grouping by a tag
-(default: <code>"framework"</code>). Rankings respect <code>MetricDef.direction</code> — higher-is-better
-metrics rank the highest value first, and lower-is-better metrics rank the lowest
-value first.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">calibrax.core.models</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">MetricDef</span><span class="p">,</span> <span class="n">MetricDirection</span><span class="p">,</span> <span class="n">Metric</span><span class="p">,</span> <span class="n">Point</span><span class="p">,</span> <span class="n">Run</span><span class="p">,</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">calibrax.analysis.ranking</span><span class="w"> </span><span class="kn">import</span> <span class="n">rank_table</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">run</span> <span class="o">=</span> <span class="n">Run</span><span class="p">(</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">points</span><span class="o">=</span><span class="p">(</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>        <span class="n">Point</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;bench&quot;</span><span class="p">,</span> <span class="n">scenario</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;framework&quot;</span><span class="p">:</span> <span class="s2">&quot;flax&quot;</span><span class="p">},</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>              <span class="n">metrics</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;throughput&quot;</span><span class="p">:</span> <span class="n">Metric</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">1200.0</span><span class="p">)}),</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>        <span class="n">Point</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;bench&quot;</span><span class="p">,</span> <span class="n">scenario</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;framework&quot;</span><span class="p">:</span> <span class="s2">&quot;pytorch&quot;</span><span class="p">},</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>              <span class="n">metrics</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;throughput&quot;</span><span class="p">:</span> <span class="n">Metric</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">950.0</span><span class="p">)}),</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        <span class="n">Point</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;bench&quot;</span><span class="p">,</span> <span class="n">scenario</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;framework&quot;</span><span class="p">:</span> <span class="s2">&quot;keras&quot;</span><span class="p">},</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>              <span class="n">metrics</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;throughput&quot;</span><span class="p">:</span> <span class="n">Metric</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">1050.0</span><span class="p">)}),</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="p">),</span>
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="n">metric_defs</span><span class="o">=</span><span class="p">{</span>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>        <span class="s2">&quot;throughput&quot;</span><span class="p">:</span> <span class="n">MetricDef</span><span class="p">(</span>
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;throughput&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;samples/sec&quot;</span><span class="p">,</span> <span class="n">direction</span><span class="o">=</span><span class="n">MetricDirection</span><span class="o">.</span><span class="n">HIGHER</span>
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>        <span class="p">),</span>
-</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>    <span class="p">},</span>
-</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="p">)</span>
-</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>
-</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="n">rankings</span> <span class="o">=</span> <span class="n">rank_table</span><span class="p">(</span><span class="n">run</span><span class="p">,</span> <span class="s2">&quot;throughput&quot;</span><span class="p">)</span>
-</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">rankings</span><span class="p">:</span>
-</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;#</span><span class="si">{</span><span class="n">entry</span><span class="o">.</span><span class="n">rank</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">entry</span><span class="o">.</span><span class="n">label</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">entry</span><span class="o">.</span><span class="n">value</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2"> &quot;</span>
-</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>          <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="s1">&#39;best&#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">entry</span><span class="o">.</span><span class="n">is_best</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">entry</span><span class="o">.</span><span class="n">delta_from_best</span><span class="si">:</span><span class="s1">.1f</span><span class="si">}</span><span class="s1">% behind&#39;</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+<h1 id="adding-a-metric">Adding a Metric<a class="headerlink" href="#adding-a-metric" title="Permanent link">¤</a></h1>
+<p>Metric changes should keep the registry, tests, and documentation aligned. The
+current registry contains 111 Tier 0 pure-function metrics across 17 domains;
+Tier 1-3 APIs and losses use separate patterns.</p>
+<h2 id="choose-the-tier">Choose the Tier<a class="headerlink" href="#choose-the-tier" title="Permanent link">¤</a></h2>
+<table>
+<thead>
+<tr>
+<th>Tier</th>
+<th>Use when</th>
+<th>Typical location</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Tier 0 pure function</td>
+<td>The metric is a stateless JAX function</td>
+<td><code>src/calibrax/metrics/functional/</code></td>
+</tr>
+<tr>
+<td>Tier 1 frozen backbone</td>
+<td>The metric accumulates features from fixed pretrained weights</td>
+<td><code>src/calibrax/metrics/stateful/</code> or <code>plugins/</code></td>
+</tr>
+<tr>
+<td>Tier 2 learned metric</td>
+<td>The metric has trainable parameters</td>
+<td><code>src/calibrax/metrics/stateful/</code> or <code>plugins/</code></td>
+</tr>
+<tr>
+<td>Tier 3 metric learning</td>
+<td>The function is a differentiable training loss</td>
+<td><code>src/calibrax/metrics/learning/</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="implementation-steps">Implementation Steps<a class="headerlink" href="#implementation-steps" title="Permanent link">¤</a></h2>
+<ol>
+<li>Add the implementation in the existing domain module, or create a focused
+   module if the domain is new.</li>
+<li>Use JAX arrays and <code>jax.numpy</code> for numeric operations.</li>
+<li>Register Tier 0 functions with <code>MetricEntry</code> metadata in
+   <code>src/calibrax/metrics/_builtin_registrations.py</code> or the local registration
+   helper already used by the domain.</li>
+<li>Set the domain, direction, signature, required extra, and mathematical
+   properties deliberately.</li>
+<li>Export the function from the relevant package <code>__init__.py</code> if neighboring
+   metrics are exported there.</li>
+<li>Add unit tests for shape handling, edge cases, JIT compatibility when
+   expected, and numerical behavior.</li>
+<li>Add numerical-equivalence tests against scikit-learn, SciPy, TorchMetrics,
+   or a paper reference when a reliable implementation exists.</li>
+<li>Update user-guide and API docs when the metric changes public behavior.</li>
+</ol>
+<h2 id="numerical-equivalence">Numerical Equivalence<a class="headerlink" href="#numerical-equivalence" title="Permanent link">¤</a></h2>
+<p>Prefer reference-backed tests for standard metrics. The baseline pattern is:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">ABS_TOL</span> <span class="o">=</span> <span class="mf">1e-6</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="k">def</span><span class="w"> </span><span class="nf">assert_close</span><span class="p">(</span><span class="n">actual</span><span class="p">,</span> <span class="n">expected</span><span class="p">):</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">actual</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">expected</span><span class="p">),</span> <span class="n">atol</span><span class="o">=</span><span class="n">ABS_TOL</span><span class="p">)</span>
 </span></code></pre></div>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>#1 flax: 1200 (best)
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>#2 keras: 1050 (12.5% behind)
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>#3 pytorch: 950 (20.8% behind)
+<p>Use deterministic arrays and document any semantic differences from the
+reference library, such as label averaging, zero-division handling, smoothing,
+or log base.</p>
+<h2 id="required-checks">Required Checks<a class="headerlink" href="#required-checks" title="Permanent link">¤</a></h2>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nb">source</span><span class="w"> </span>activate.sh
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>tests/metrics/<span class="w"> </span>-v
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>uv<span class="w"> </span>run<span class="w"> </span>pytest
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>uv<span class="w"> </span>run<span class="w"> </span>pre-commit<span class="w"> </span>run<span class="w"> </span>--all-files
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>uv<span class="w"> </span>run<span class="w"> </span>mkdocs<span class="w"> </span>build<span class="w"> </span>--strict<span class="w"> </span>--clean
 </span></code></pre></div>
-<h2 id="aggregate-scoring">Aggregate Scoring<a class="headerlink" href="#aggregate-scoring" title="Permanent link">¤</a></h2>
-<p><code>aggregate_score()</code> computes a weighted, normalized score across multiple
-metrics. Scores are in <code>[0, 1]</code> where higher is always better, regardless of
-individual metric directions:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">calibrax.core.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">MetricDef</span><span class="p">,</span> <span class="n">MetricDirection</span><span class="p">,</span> <span class="n">Metric</span><span class="p">,</span> <span class="n">Point</span><span class="p">,</span> <span class="n">Run</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">calibrax.analysis.ranking</span><span class="w"> </span><span class="kn">import</span> <span class="n">aggregate_score</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">run_multi</span> <span class="o">=</span> <span class="n">Run</span><span class="p">(</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">points</span><span class="o">=</span><span class="p">(</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>        <span class="n">Point</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;bench&quot;</span><span class="p">,</span> <span class="n">scenario</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;framework&quot;</span><span class="p">:</span> <span class="s2">&quot;flax&quot;</span><span class="p">},</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>              <span class="n">metrics</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;throughput&quot;</span><span class="p">:</span> <span class="n">Metric</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">1200.0</span><span class="p">),</span> <span class="s2">&quot;latency&quot;</span><span class="p">:</span> <span class="n">Metric</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">0.8</span><span class="p">)}),</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>        <span class="n">Point</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;bench&quot;</span><span class="p">,</span> <span class="n">scenario</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;framework&quot;</span><span class="p">:</span> <span class="s2">&quot;pytorch&quot;</span><span class="p">},</span>
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>              <span class="n">metrics</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;throughput&quot;</span><span class="p">:</span> <span class="n">Metric</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">950.0</span><span class="p">),</span> <span class="s2">&quot;latency&quot;</span><span class="p">:</span> <span class="n">Metric</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">1.2</span><span class="p">)}),</span>
-</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>        <span class="n">Point</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;bench&quot;</span><span class="p">,</span> <span class="n">scenario</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;framework&quot;</span><span class="p">:</span> <span class="s2">&quot;keras&quot;</span><span class="p">},</span>
-</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>              <span class="n">metrics</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;throughput&quot;</span><span class="p">:</span> <span class="n">Metric</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">1050.0</span><span class="p">),</span> <span class="s2">&quot;latency&quot;</span><span class="p">:</span> <span class="n">Metric</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)}),</span>
-</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>    <span class="p">),</span>
-</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>    <span class="n">metric_defs</span><span class="o">=</span><span class="p">{</span>
-</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>        <span class="s2">&quot;throughput&quot;</span><span class="p">:</span> <span class="n">MetricDef</span><span class="p">(</span>
-</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;throughput&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;samples/sec&quot;</span><span class="p">,</span> <span class="n">direction</span><span class="o">=</span><span class="n">MetricDirection</span><span class="o">.</span><span class="n">HIGHER</span>
-</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>        <span class="p">),</span>
-</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>        <span class="s2">&quot;latency&quot;</span><span class="p">:</span> <span class="n">MetricDef</span><span class="p">(</span>
-</span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;latency&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;ms&quot;</span><span class="p">,</span> <span class="n">direction</span><span class="o">=</span><span class="n">MetricDirection</span><span class="o">.</span><span class="n">LOWER</span>
-</span><span id="__span-2-19"><a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>        <span class="p">),</span>
-</span><span id="__span-2-20"><a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>    <span class="p">},</span>
-</span><span id="__span-2-21"><a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a><span class="p">)</span>
-</span><span id="__span-2-22"><a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a>
-</span><span id="__span-2-23"><a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a><span class="n">scores</span> <span class="o">=</span> <span class="n">aggregate_score</span><span class="p">(</span><span class="n">run_multi</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;throughput&quot;</span><span class="p">:</span> <span class="mf">0.6</span><span class="p">,</span> <span class="s2">&quot;latency&quot;</span><span class="p">:</span> <span class="mf">0.4</span><span class="p">})</span>
-</span><span id="__span-2-24"><a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a><span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">score</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">scores</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="o">-</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
-</span><span id="__span-2-25"><a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">score</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span></code></pre></div>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>flax: 1.000
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>keras: 0.440
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>pytorch: 0.000
-</span></code></pre></div>
-<h2 id="cross-configuration-comparison">Cross-Configuration Comparison<a class="headerlink" href="#cross-configuration-comparison" title="Permanent link">¤</a></h2>
-<p><code>compare_configurations()</code> takes a dictionary of labeled runs and produces a
-<code>ComparisonReport</code> with per-metric comparisons, winner determination, and
-improvement factors:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">calibrax.core.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">MetricDef</span><span class="p">,</span> <span class="n">MetricDirection</span><span class="p">,</span> <span class="n">Metric</span><span class="p">,</span> <span class="n">Point</span><span class="p">,</span> <span class="n">Run</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">calibrax.analysis.comparison</span><span class="w"> </span><span class="kn">import</span> <span class="n">compare_configurations</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">metric_defs</span> <span class="o">=</span> <span class="p">{</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="s2">&quot;throughput&quot;</span><span class="p">:</span> <span class="n">MetricDef</span><span class="p">(</span>
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;throughput&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;samples/sec&quot;</span><span class="p">,</span> <span class="n">direction</span><span class="o">=</span><span class="n">MetricDirection</span><span class="o">.</span><span class="n">HIGHER</span>
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="p">),</span>
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="s2">&quot;latency&quot;</span><span class="p">:</span> <span class="n">MetricDef</span><span class="p">(</span>
-</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;latency&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;ms&quot;</span><span class="p">,</span> <span class="n">direction</span><span class="o">=</span><span class="n">MetricDirection</span><span class="o">.</span><span class="n">LOWER</span>
-</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>    <span class="p">),</span>
-</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="p">}</span>
-</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>
-</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="n">flax_run</span> <span class="o">=</span> <span class="n">Run</span><span class="p">(</span>
-</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>    <span class="n">points</span><span class="o">=</span><span class="p">(</span><span class="n">Point</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;bench&quot;</span><span class="p">,</span> <span class="n">scenario</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;framework&quot;</span><span class="p">:</span> <span class="s2">&quot;flax&quot;</span><span class="p">},</span>
-</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>                  <span class="n">metrics</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;throughput&quot;</span><span class="p">:</span> <span class="n">Metric</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">1200.0</span><span class="p">),</span> <span class="s2">&quot;latency&quot;</span><span class="p">:</span> <span class="n">Metric</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">0.8</span><span class="p">)}),),</span>
-</span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>    <span class="n">metric_defs</span><span class="o">=</span><span class="n">metric_defs</span><span class="p">,</span>
-</span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="p">)</span>
-</span><span id="__span-4-18"><a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a><span class="n">pytorch_run</span> <span class="o">=</span> <span class="n">Run</span><span class="p">(</span>
-</span><span id="__span-4-19"><a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>    <span class="n">points</span><span class="o">=</span><span class="p">(</span><span class="n">Point</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;bench&quot;</span><span class="p">,</span> <span class="n">scenario</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;framework&quot;</span><span class="p">:</span> <span class="s2">&quot;pytorch&quot;</span><span class="p">},</span>
-</span><span id="__span-4-20"><a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a>                  <span class="n">metrics</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;throughput&quot;</span><span class="p">:</span> <span class="n">Metric</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">950.0</span><span class="p">),</span> <span class="s2">&quot;latency&quot;</span><span class="p">:</span> <span class="n">Metric</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">1.2</span><span class="p">)}),),</span>
-</span><span id="__span-4-21"><a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a>    <span class="n">metric_defs</span><span class="o">=</span><span class="n">metric_defs</span><span class="p">,</span>
-</span><span id="__span-4-22"><a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a><span class="p">)</span>
-</span><span id="__span-4-23"><a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a><span class="n">keras_run</span> <span class="o">=</span> <span class="n">Run</span><span class="p">(</span>
-</span><span id="__span-4-24"><a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a>    <span class="n">points</span><span class="o">=</span><span class="p">(</span><span class="n">Point</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;bench&quot;</span><span class="p">,</span> <span class="n">scenario</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;framework&quot;</span><span class="p">:</span> <span class="s2">&quot;keras&quot;</span><span class="p">},</span>
-</span><span id="__span-4-25"><a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a>                  <span class="n">metrics</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;throughput&quot;</span><span class="p">:</span> <span class="n">Metric</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">1050.0</span><span class="p">),</span> <span class="s2">&quot;latency&quot;</span><span class="p">:</span> <span class="n">Metric</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)}),),</span>
-</span><span id="__span-4-26"><a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a>    <span class="n">metric_defs</span><span class="o">=</span><span class="n">metric_defs</span><span class="p">,</span>
-</span><span id="__span-4-27"><a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a><span class="p">)</span>
-</span><span id="__span-4-28"><a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a>
-</span><span id="__span-4-29"><a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a><span class="n">report</span> <span class="o">=</span> <span class="n">compare_configurations</span><span class="p">(</span>
-</span><span id="__span-4-30"><a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a>    <span class="n">runs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;flax&quot;</span><span class="p">:</span> <span class="n">flax_run</span><span class="p">,</span> <span class="s2">&quot;pytorch&quot;</span><span class="p">:</span> <span class="n">pytorch_run</span><span class="p">,</span> <span class="s2">&quot;keras&quot;</span><span class="p">:</span> <span class="n">keras_run</span><span class="p">},</span>
-</span><span id="__span-4-31"><a id="__codelineno-4-31" name="__codelineno-4-31" href="#__codelineno-4-31"></a>    <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;throughput&quot;</span><span class="p">,</span> <span class="s2">&quot;latency&quot;</span><span class="p">],</span>
-</span><span id="__span-4-32"><a id="__codelineno-4-32" name="__codelineno-4-32" href="#__codelineno-4-32"></a><span class="p">)</span>
-</span><span id="__span-4-33"><a id="__codelineno-4-33" name="__codelineno-4-33" href="#__codelineno-4-33"></a>
-</span><span id="__span-4-34"><a id="__codelineno-4-34" name="__codelineno-4-34" href="#__codelineno-4-34"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Overall winner: </span><span class="si">{</span><span class="n">report</span><span class="o">.</span><span class="n">overall_winner</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span id="__span-4-35"><a id="__codelineno-4-35" name="__codelineno-4-35" href="#__codelineno-4-35"></a><span class="k">for</span> <span class="n">mc</span> <span class="ow">in</span> <span class="n">report</span><span class="o">.</span><span class="n">metric_comparisons</span><span class="p">:</span>
-</span><span id="__span-4-36"><a id="__codelineno-4-36" name="__codelineno-4-36" href="#__codelineno-4-36"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">{</span><span class="n">mc</span><span class="o">.</span><span class="n">metric_name</span><span class="si">}</span><span class="s2">:&quot;</span><span class="p">)</span>
-</span><span id="__span-4-37"><a id="__codelineno-4-37" name="__codelineno-4-37" href="#__codelineno-4-37"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Best: </span><span class="si">{</span><span class="n">mc</span><span class="o">.</span><span class="n">best_label</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span id="__span-4-38"><a id="__codelineno-4-38" name="__codelineno-4-38" href="#__codelineno-4-38"></a>    <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">factor</span> <span class="ow">in</span> <span class="n">mc</span><span class="o">.</span><span class="n">improvement_factors</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-</span><span id="__span-4-39"><a id="__codelineno-4-39" name="__codelineno-4-39" href="#__codelineno-4-39"></a>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">factor</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">x of best&quot;</span><span class="p">)</span>
-</span></code></pre></div>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>Overall winner: flax
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>throughput:
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>  Best: flax
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>  flax: 1.00x of best
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>  keras: 1.14x of best
-</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>  pytorch: 1.26x of best
-</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>
-</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>latency:
-</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>  Best: flax
-</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>  flax: 1.00x of best
-</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>  keras: 1.25x of best
-</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>  pytorch: 1.50x of best
-</span></code></pre></div>
-<p>The report is serializable via <code>report.to_dict()</code> and <code>ComparisonReport.from_dict()</code>.</p>
-<h2 id="pareto-front-analysis">Pareto Front Analysis<a class="headerlink" href="#pareto-front-analysis" title="Permanent link">¤</a></h2>
-<p><code>pareto_front()</code> finds the set of points where no other point is better in
-all specified metrics simultaneously — the Pareto-optimal configurations:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">calibrax.analysis.pareto</span><span class="w"> </span><span class="kn">import</span> <span class="n">pareto_front</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="c1"># All points from a multi-configuration run</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">optimal</span> <span class="o">=</span> <span class="n">pareto_front</span><span class="p">(</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="n">points</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">run</span><span class="o">.</span><span class="n">points</span><span class="p">),</span>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="n">x_metric</span><span class="o">=</span><span class="s2">&quot;throughput&quot;</span><span class="p">,</span>
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="n">y_metric</span><span class="o">=</span><span class="s2">&quot;latency&quot;</span><span class="p">,</span>
-</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    <span class="n">metric_defs</span><span class="o">=</span><span class="n">run</span><span class="o">.</span><span class="n">metric_defs</span><span class="p">,</span>
-</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="p">)</span>
-</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>
-</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Pareto-optimal configurations: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">optimal</span><span class="p">)</span><span class="si">}</span><span class="s2"> of </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">run</span><span class="o">.</span><span class="n">points</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">optimal</span><span class="p">:</span>
-</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">tags</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;framework&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;unknown&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">: &quot;</span>
-</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>          <span class="sa">f</span><span class="s2">&quot;throughput=</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;throughput&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">, &quot;</span>
-</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>          <span class="sa">f</span><span class="s2">&quot;latency=</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;latency&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span></code></pre></div>
-<p>The function respects <code>MetricDef.direction</code> — for <code>HIGHER</code> metrics, larger values
-dominate; for <code>LOWER</code> metrics, smaller values dominate. When <code>metric_defs</code> is
-not provided, both metrics default to higher-is-better.</p>
-<h2 id="best-practices">Best Practices<a class="headerlink" href="#best-practices" title="Permanent link">¤</a></h2>
-<ul>
-<li>Use <code>rank_table()</code> for quick single-metric comparisons</li>
-<li>Use <code>aggregate_score()</code> when multiple metrics matter and you need a single
-  ranking</li>
-<li>Use <code>compare_configurations()</code> for detailed multi-metric reports suitable
-  for export</li>
-<li>Use <code>pareto_front()</code> to identify configurations with fundamentally different
-  tradeoffs (e.g., throughput vs. latency)</li>
-</ul>
-<h2 id="next-steps">Next Steps<a class="headerlink" href="#next-steps" title="Permanent link">¤</a></h2>
-<div class="grid cards">
-<ul>
-<li>
-<p><span class="twemoji lg middle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m23 12-4-4v3h-9v2h9v3M1 18V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3h-2V6H3v12h12v-3h2v3a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2"/></svg></span> <strong>Exporting Results</strong></p>
-<hr />
-<p>Export comparison reports to W&amp;B or publication-ready tables</p>
-<p><a href="../exporters/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span> Exporters</a></p>
-</li>
-<li>
-<p><span class="twemoji lg middle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.96 11.31C10.82 8.1 11.5 6 13 6s2.18 2.1 3.04 5.31C17 14.92 18.1 19 22 19v-2c-2.2 0-3-2.46-4.03-6.2C17.08 7.46 16.15 4 13 4s-4.08 3.46-4.97 6.8C7.03 14.54 6.2 17 4 17V2H2v20h20v-2H4v-1c3.9 0 5-4.08 5.96-7.69"/></svg></span> <strong>Statistical Analysis</strong></p>
-<hr />
-<p>Add statistical rigor with significance tests and confidence intervals</p>
-<p><a href="../statistics/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span> Statistics</a></p>
-</li>
-</ul>
-</div>
+<p>If the targeted test run uses repository-wide coverage options, add <code>--no-cov</code>
+for quick local iteration and rely on the full <code>uv run pytest</code> command for the
+coverage gate.</p>
 
 
 

@@ -25,7 +25,7 @@
       
       
       <link rel="icon" href="../../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.5">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
@@ -681,6 +681,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../user-guide/peer-comparison/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Peer Comparison
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../user-guide/storage/" class="md-nav__link">
         
   
@@ -801,10 +829,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_11" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_12" >
         
           
-          <label class="md-nav__link" for="__nav_3_11" id="__nav_3_11_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3_12" id="__nav_3_12_label" tabindex="0">
             
   
   
@@ -822,8 +850,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_11_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3_11">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_12_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_12">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2346,6 +2374,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../api-reference/metrics/video/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Video
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../api-reference/metrics/text/" class="md-nav__link">
         
   
@@ -2911,10 +2967,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#the-12-regression-metrics" class="md-nav__link">
+  <a href="#regression-metrics" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The 12 Regression Metrics
+        Regression Metrics
       
     </span>
   </a>
@@ -3238,6 +3294,62 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contributing/adding-a-metric/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Adding a Metric
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../contributing/example_documentation_design/" class="md-nav__link">
         
   
@@ -3245,7 +3357,7 @@
   <span class="md-ellipsis">
     
   
-    Example Documentation Guide
+    Documentation Design Framework
   
 
     
@@ -3487,10 +3599,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#the-12-regression-metrics" class="md-nav__link">
+  <a href="#regression-metrics" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The 12 Regression Metrics
+        Regression Metrics
       
     </span>
   </a>
@@ -3690,11 +3802,12 @@
 </tbody>
 </table>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">¤</a></h2>
-<p>Calibrax provides 12 regression metrics that span common error measures, robust alternatives, and percentage-based losses. This example computes all 12 on clean data, then shows how outliers affect MSE, MAE, and Huber loss differently. It also demonstrates quantile loss at various levels and compares symmetric vs asymmetric percentage errors (SMAPE vs MAPE).</p>
+<p>Calibrax provides regression metrics that span common error measures, robust alternatives, percentage-based losses, and probabilistic ensemble scoring. This example computes the same-shape regression metrics on clean data, shows CRPS for ensemble forecasts, then demonstrates how outliers affect MSE, MAE, and Huber loss differently. It also demonstrates quantile loss at various levels and compares symmetric vs asymmetric percentage errors (SMAPE vs MAPE).</p>
 <p>Understanding when each metric is appropriate is essential for model evaluation. Squared-error metrics amplify large deviations; robust alternatives like Huber and log-cosh provide smoother behaviour near outliers while remaining differentiable.</p>
 <h2 id="what-youll-learn">What You'll Learn<a class="headerlink" href="#what-youll-learn" title="Permanent link">¤</a></h2>
 <ol>
-<li>Compute all 12 regression metrics on a single dataset</li>
+<li>Compute same-shape regression metrics on a single dataset</li>
+<li>Score ensemble forecasts with CRPS</li>
 <li>Compare outlier sensitivity across MSE, MAE, and Huber loss</li>
 <li>Use quantile loss to penalize under- vs over-prediction asymmetrically</li>
 <li>Distinguish SMAPE (symmetric) from MAPE (asymmetric) percentage errors</li>
@@ -3706,10 +3819,10 @@
 <li><strong>Jupyter Notebook</strong>: <a href="https://github.com/avitai/calibrax/blob/main/examples/metrics/02_regression_deep_dive.ipynb"><code>examples/metrics/02_regression_deep_dive.ipynb</code></a></li>
 </ul>
 <h2 id="quick-start">Quick Start<a class="headerlink" href="#quick-start" title="Permanent link">¤</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">source</span><span class="w"> </span>activate.sh<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>python<span class="w"> </span>examples/metrics/02_regression_deep_dive.py
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">source</span><span class="w"> </span>activate.sh<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>examples/metrics/02_regression_deep_dive.py
 </span></code></pre></div>
 <h2 id="key-concepts">Key Concepts<a class="headerlink" href="#key-concepts" title="Permanent link">¤</a></h2>
-<h3 id="the-12-regression-metrics">The 12 Regression Metrics<a class="headerlink" href="#the-12-regression-metrics" title="Permanent link">¤</a></h3>
+<h3 id="regression-metrics">Regression Metrics<a class="headerlink" href="#regression-metrics" title="Permanent link">¤</a></h3>
 <table>
 <thead>
 <tr>
@@ -3779,70 +3892,80 @@
 <td>Smooth approximation to MAE</td>
 <td>Low</td>
 </tr>
+<tr>
+<td><code>crps</code></td>
+<td>Continuous ranked probability score for ensemble forecasts</td>
+<td>Depends on ensemble spread</td>
+</tr>
 </tbody>
 </table>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">calibrax.metrics.functional.regression</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">explained_variance</span><span class="p">,</span> <span class="n">huber_loss</span><span class="p">,</span> <span class="n">log_cosh_loss</span><span class="p">,</span> <span class="n">mae</span><span class="p">,</span> <span class="n">mape</span><span class="p">,</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">crps</span><span class="p">,</span> <span class="n">explained_variance</span><span class="p">,</span> <span class="n">huber_loss</span><span class="p">,</span> <span class="n">log_cosh_loss</span><span class="p">,</span> <span class="n">mae</span><span class="p">,</span> <span class="n">mape</span><span class="p">,</span>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">max_error</span><span class="p">,</span> <span class="n">mse</span><span class="p">,</span> <span class="n">quantile_loss</span><span class="p">,</span> <span class="n">r_squared</span><span class="p">,</span> <span class="n">relative_error</span><span class="p">,</span> <span class="n">rmse</span><span class="p">,</span> <span class="n">smape</span><span class="p">,</span>
 </span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="p">)</span>
 </span></code></pre></div>
+<p>CRPS uses an explicit ensemble-member dimension:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">ensemble_predictions</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">0.8</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.2</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.8</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">2.2</span><span class="p">]])</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">ensemble_targets</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">])</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">crps</span><span class="p">(</span><span class="n">ensemble_predictions</span><span class="p">,</span> <span class="n">ensemble_targets</span><span class="p">)</span>
+</span></code></pre></div>
 <h3 id="outlier-sensitivity">Outlier Sensitivity<a class="headerlink" href="#outlier-sensitivity" title="Permanent link">¤</a></h3>
 <p>When data contains outliers, squared-error metrics (MSE, RMSE) can be dominated by a single bad prediction. The example injects one outlier and compares the effect:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">preds_clean</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.1</span><span class="p">,</span> <span class="mf">2.1</span><span class="p">,</span> <span class="mf">3.1</span><span class="p">,</span> <span class="mf">4.1</span><span class="p">,</span> <span class="mf">5.1</span><span class="p">])</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">preds_outlier</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.1</span><span class="p">,</span> <span class="mf">2.1</span><span class="p">,</span> <span class="mf">3.1</span><span class="p">,</span> <span class="mf">4.1</span><span class="p">,</span> <span class="mf">15.0</span><span class="p">])</span>  <span class="c1"># outlier at index 4</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># MSE jumps dramatically; MAE grows linearly; Huber caps the contribution</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">mse</span><span class="p">(</span><span class="n">preds_outlier</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>    <span class="c1"># large increase</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="n">mae</span><span class="p">(</span><span class="n">preds_outlier</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>    <span class="c1"># moderate increase</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="n">huber_loss</span><span class="p">(</span><span class="n">preds_outlier</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">delta</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>  <span class="c1"># bounded increase</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">preds_clean</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.1</span><span class="p">,</span> <span class="mf">2.1</span><span class="p">,</span> <span class="mf">3.1</span><span class="p">,</span> <span class="mf">4.1</span><span class="p">,</span> <span class="mf">5.1</span><span class="p">])</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">preds_outlier</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.1</span><span class="p">,</span> <span class="mf">2.1</span><span class="p">,</span> <span class="mf">3.1</span><span class="p">,</span> <span class="mf">4.1</span><span class="p">,</span> <span class="mf">15.0</span><span class="p">])</span>  <span class="c1"># outlier at index 4</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1"># MSE jumps dramatically; MAE grows linearly; Huber caps the contribution</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="n">mse</span><span class="p">(</span><span class="n">preds_outlier</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>    <span class="c1"># large increase</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="n">mae</span><span class="p">(</span><span class="n">preds_outlier</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>    <span class="c1"># moderate increase</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="n">huber_loss</span><span class="p">(</span><span class="n">preds_outlier</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">delta</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>  <span class="c1"># bounded increase</span>
 </span></code></pre></div>
 <p>Huber loss transitions from quadratic (for errors smaller than <code>delta</code>) to linear (for errors larger than <code>delta</code>), providing a tunable trade-off.</p>
 <h3 id="quantile-loss">Quantile Loss<a class="headerlink" href="#quantile-loss" title="Permanent link">¤</a></h3>
 <p>Quantile loss penalizes under-prediction and over-prediction asymmetrically. At quantile <code>q</code>, under-prediction is penalized by factor <code>q</code> and over-prediction by factor <code>1-q</code>.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># q=0.9: heavily penalizes under-prediction (useful for safety margins)</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">quantile_loss</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">quantile</span><span class="o">=</span><span class="mf">0.9</span><span class="p">)</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1"># q=0.1: heavily penalizes over-prediction</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="n">quantile_loss</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">quantile</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="c1"># q=0.5: equivalent to MAE (symmetric)</span>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="n">quantile_loss</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">quantile</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># q=0.9: heavily penalizes under-prediction (useful for safety margins)</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">quantile_loss</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">quantile</span><span class="o">=</span><span class="mf">0.9</span><span class="p">)</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="c1"># q=0.1: heavily penalizes over-prediction</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="n">quantile_loss</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">quantile</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="c1"># q=0.5: equivalent to MAE (symmetric)</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="n">quantile_loss</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">quantile</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
 </span></code></pre></div>
 <h3 id="smape-vs-mape">SMAPE vs MAPE<a class="headerlink" href="#smape-vs-mape" title="Permanent link">¤</a></h3>
 <p>MAPE is asymmetric: swapping predictions and targets changes the result. SMAPE normalizes by the average of prediction and target, producing a symmetric measure.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">mape</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>   <span class="c1"># changes if you swap arguments</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">smape</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>  <span class="c1"># same value regardless of argument order</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">mape</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>   <span class="c1"># changes if you swap arguments</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">smape</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>  <span class="c1"># same value regardless of argument order</span>
 </span></code></pre></div>
 <h3 id="log-cosh-smooth-mae-alternative">Log-Cosh: Smooth MAE Alternative<a class="headerlink" href="#log-cosh-smooth-mae-alternative" title="Permanent link">¤</a></h3>
 <p>Log-cosh behaves like <code>0.5 * MSE</code> for small errors and like <code>MAE</code> for large errors. Unlike MAE, it is twice-differentiable everywhere, which makes it well-suited for gradient-based optimisation.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># For small errors: log_cosh ≈ 0.5 * error^2</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="c1"># For large errors: log_cosh ≈ |error| - log(2)</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">log_cosh_loss</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># For small errors: log_cosh ≈ 0.5 * error^2</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="c1"># For large errors: log_cosh ≈ |error| - log(2)</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">log_cosh_loss</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
 </span></code></pre></div>
 <h2 id="example-code">Example Code<a class="headerlink" href="#example-code" title="Permanent link">¤</a></h2>
-<p>The script starts by computing all 12 metrics on clean data:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">targets</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">,</span> <span class="mf">7.0</span><span class="p">,</span> <span class="mf">8.0</span><span class="p">])</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="n">predictions</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.1</span><span class="p">,</span> <span class="mf">1.9</span><span class="p">,</span> <span class="mf">3.2</span><span class="p">,</span> <span class="mf">3.8</span><span class="p">,</span> <span class="mf">5.1</span><span class="p">,</span> <span class="mf">5.9</span><span class="p">,</span> <span class="mf">7.3</span><span class="p">,</span> <span class="mf">7.8</span><span class="p">])</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">metrics</span> <span class="o">=</span> <span class="p">{</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="s2">&quot;MSE&quot;</span><span class="p">:</span> <span class="n">mse</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">),</span>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="s2">&quot;MAE&quot;</span><span class="p">:</span> <span class="n">mae</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">),</span>
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="s2">&quot;RMSE&quot;</span><span class="p">:</span> <span class="n">rmse</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">),</span>
-</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    <span class="s2">&quot;R-squared&quot;</span><span class="p">:</span> <span class="n">r_squared</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">),</span>
-</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>    <span class="s2">&quot;MAPE&quot;</span><span class="p">:</span> <span class="n">mape</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">),</span>
-</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>    <span class="s2">&quot;SMAPE&quot;</span><span class="p">:</span> <span class="n">smape</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">),</span>
-</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>    <span class="s2">&quot;Relative Error&quot;</span><span class="p">:</span> <span class="n">relative_error</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">),</span>
-</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>    <span class="s2">&quot;Explained Variance&quot;</span><span class="p">:</span> <span class="n">explained_variance</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">),</span>
-</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>    <span class="s2">&quot;Max Error&quot;</span><span class="p">:</span> <span class="n">max_error</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">),</span>
-</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>    <span class="s2">&quot;Huber Loss (delta=1.0)&quot;</span><span class="p">:</span> <span class="n">huber_loss</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">delta</span><span class="o">=</span><span class="mf">1.0</span><span class="p">),</span>
-</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>    <span class="s2">&quot;Quantile Loss (q=0.5)&quot;</span><span class="p">:</span> <span class="n">quantile_loss</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">quantile</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
-</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>    <span class="s2">&quot;Log-Cosh Loss&quot;</span><span class="p">:</span> <span class="n">log_cosh_loss</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">),</span>
-</span><span id="__span-6-17"><a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a><span class="p">}</span>
+<p>The script starts by computing same-shape metrics on clean data:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">targets</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">,</span> <span class="mf">7.0</span><span class="p">,</span> <span class="mf">8.0</span><span class="p">])</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="n">predictions</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.1</span><span class="p">,</span> <span class="mf">1.9</span><span class="p">,</span> <span class="mf">3.2</span><span class="p">,</span> <span class="mf">3.8</span><span class="p">,</span> <span class="mf">5.1</span><span class="p">,</span> <span class="mf">5.9</span><span class="p">,</span> <span class="mf">7.3</span><span class="p">,</span> <span class="mf">7.8</span><span class="p">])</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="n">metrics</span> <span class="o">=</span> <span class="p">{</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>    <span class="s2">&quot;MSE&quot;</span><span class="p">:</span> <span class="n">mse</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">),</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>    <span class="s2">&quot;MAE&quot;</span><span class="p">:</span> <span class="n">mae</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">),</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>    <span class="s2">&quot;RMSE&quot;</span><span class="p">:</span> <span class="n">rmse</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">),</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>    <span class="s2">&quot;R-squared&quot;</span><span class="p">:</span> <span class="n">r_squared</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">),</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>    <span class="s2">&quot;MAPE&quot;</span><span class="p">:</span> <span class="n">mape</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">),</span>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>    <span class="s2">&quot;SMAPE&quot;</span><span class="p">:</span> <span class="n">smape</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">),</span>
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>    <span class="s2">&quot;Relative Error&quot;</span><span class="p">:</span> <span class="n">relative_error</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">),</span>
+</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>    <span class="s2">&quot;Explained Variance&quot;</span><span class="p">:</span> <span class="n">explained_variance</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">),</span>
+</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>    <span class="s2">&quot;Max Error&quot;</span><span class="p">:</span> <span class="n">max_error</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">),</span>
+</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>    <span class="s2">&quot;Huber Loss (delta=1.0)&quot;</span><span class="p">:</span> <span class="n">huber_loss</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">delta</span><span class="o">=</span><span class="mf">1.0</span><span class="p">),</span>
+</span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a>    <span class="s2">&quot;Quantile Loss (q=0.5)&quot;</span><span class="p">:</span> <span class="n">quantile_loss</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">quantile</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+</span><span id="__span-7-16"><a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a>    <span class="s2">&quot;Log-Cosh Loss&quot;</span><span class="p">:</span> <span class="n">log_cosh_loss</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">),</span>
+</span><span id="__span-7-17"><a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a><span class="p">}</span>
 </span></code></pre></div>
 <h2 id="next-steps">Next Steps<a class="headerlink" href="#next-steps" title="Permanent link">¤</a></h2>
 <ul>
 <li><a href="../classification/">Classification Metrics</a> -- binary classification, calibration, and segmentation</li>
-<li><a href="../../../api-reference/metrics/regression/">API Reference: <code>calibrax.metrics.functional.regression</code></a> -- full signatures for all 12 functions</li>
+<li><a href="../../../api-reference/metrics/regression/">API Reference: <code>calibrax.metrics.functional.regression</code></a> -- full regression function signatures</li>
 <li><a href="../quickstart/">Quickstart</a> -- if you skipped the basics</li>
 </ul>
 

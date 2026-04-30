@@ -25,7 +25,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.5">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
@@ -683,6 +683,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../peer-comparison/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Peer Comparison
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../storage/" class="md-nav__link">
         
   
@@ -805,10 +833,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_11" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_12" checked>
         
           
-          <label class="md-nav__link" for="__nav_3_11" id="__nav_3_11_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3_12" id="__nav_3_12_label" tabindex="0">
             
   
   
@@ -826,8 +854,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_11_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_3_11">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_12_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_12">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2530,6 +2558,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../api-reference/metrics/video/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Video
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../api-reference/metrics/text/" class="md-nav__link">
         
   
@@ -3233,6 +3289,62 @@
   
   
     <li class="md-nav__item">
+      <a href="../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/adding-a-metric/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Adding a Metric
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../contributing/example_documentation_design/" class="md-nav__link">
         
   
@@ -3240,7 +3352,7 @@
   <span class="md-ellipsis">
     
   
-    Example Documentation Guide
+    Documentation Design Framework
   
 
     
@@ -3646,8 +3758,11 @@
 
 <h1 id="metrics-overview">Metrics Overview<a class="headerlink" href="#metrics-overview" title="Permanent link">¤</a></h1>
 <p>Calibrax provides a 4-tier metric system that covers everything from stateless
-pure functions to trainable embedding losses. Every metric is registered in a
-singleton <code>MetricRegistry</code> with rich metadata -- domain, axioms, invariances,
+pure functions to trainable embedding losses. The current <code>MetricRegistry</code>
+contains 111 Tier 0 pure-function metrics across 17 domains. Tier 1-3 APIs,
+optional plugin metrics, and metric-learning losses are part of the package
+architecture, but they are not all registry entries today.</p>
+<p>Registered Tier 0 entries carry rich metadata -- domain, axioms, invariances,
 differentiability -- enabling programmatic discovery and filtering.</p>
 <h2 id="the-4-tier-system">The 4-Tier System<a class="headerlink" href="#the-4-tier-system" title="Permanent link">¤</a></h2>
 <p>Each tier represents a different computational pattern:</p>
@@ -3709,9 +3824,9 @@ differentiable loss functions used in training loops with <code>jax.grad()</code
 <li><strong>Training an encoder</strong> to produce good embeddings: Tier 3</li>
 </ul>
 <h2 id="metricregistry">MetricRegistry<a class="headerlink" href="#metricregistry" title="Permanent link">¤</a></h2>
-<p>All metrics are registered in a singleton <code>MetricRegistry</code> at import time.
-Query it to discover available metrics by domain, tier, mathematical
-properties, or invariance.</p>
+<p>Tier 0 metrics are registered in a singleton <code>MetricRegistry</code> at import time.
+Query it to discover available registered metrics by domain, tier,
+mathematical properties, or invariance.</p>
 <h3 id="listing-metrics">Listing Metrics<a class="headerlink" href="#listing-metrics" title="Permanent link">¤</a></h3>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">calibrax.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">MetricRegistry</span><span class="p">,</span> <span class="n">MetricTier</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
@@ -3823,8 +3938,8 @@ mathematical guarantees:</p>
 </span><span id="__span-4-19"><a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">diff</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
 </span></code></pre></div>
 <h2 id="domain-reference">Domain Reference<a class="headerlink" href="#domain-reference" title="Permanent link">¤</a></h2>
-<p>The registry organizes metrics into 17 domains. Each domain groups metrics
-with a shared evaluation context.</p>
+<p>The registry organizes Tier 0 metrics into 17 domains. Each domain groups
+metrics with a shared evaluation context.</p>
 <table>
 <thead>
 <tr>
