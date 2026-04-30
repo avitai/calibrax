@@ -1,9 +1,12 @@
 # Releasing Calibrax
 
-Calibrax publishes from GitHub releases through `.github/workflows/publish.yml`.
-The workflow builds the package, runs `twine check`, and publishes with PyPI
-trusted publishing. GitHub generated release notes are the release-note
-automation path; there is no separate tag-push release workflow.
+Calibrax publishes through `.github/workflows/publish.yml`.
+No commit or tag push creates a release by itself. Release timing and versioning
+stay under operator control. The manual `target=github-release` workflow path
+creates a GitHub Release for an explicit existing tag with
+`softprops/action-gh-release@v2` and `generate_release_notes: true`, then
+publishes to PyPI with trusted publishing. Publishing an existing GitHub Release
+also runs the PyPI upload path.
 
 ## Release Checklist
 
@@ -36,14 +39,25 @@ automation path; there is no separate tag-push release workflow.
    git push origin main vX.Y.Z
    ```
 
-7. Create the GitHub release with generated notes.
+7. In GitHub Actions, manually run `Publish to PyPI` with:
+
+   - `target=github-release`
+   - `version_tag=vX.Y.Z`
+
+   The workflow verifies that the tag exists, creates the GitHub Release with
+   generated release notes, then publishes to PyPI.
+
+## Manual Release Recovery
+
+If the manual generated-release workflow is interrupted before creating the
+GitHub Release, use GitHub generated notes manually from the exact tagged
+commit.
 
    ```bash
    gh release create vX.Y.Z --target "$target_sha" --generate-notes
    ```
 
-8. Confirm the `Publish to PyPI` workflow completed successfully. That workflow
-   is triggered by the published GitHub release and performs the PyPI upload.
+Publishing that release triggers the same PyPI upload workflow.
 
 ## TestPyPI
 
