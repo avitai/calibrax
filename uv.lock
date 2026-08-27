@@ -748,7 +748,7 @@ requires-dist = [
     { name = "mlflow", marker = "extra == 'all-macos'", specifier = ">=2.0" },
     { name = "mlflow", marker = "extra == 'mlflow'", specifier = ">=2.0" },
     { name = "mlflow", marker = "extra == 'test'", specifier = ">=2.0" },
-    { name = "numpy", specifier = ">=1.24,<2.4.0" },
+    { name = "numpy", specifier = ">=1.24,<2.5.0" },
     { name = "nvidia-cublas-cu12", marker = "extra == 'all'", specifier = ">=12.6" },
     { name = "nvidia-cublas-cu12", marker = "extra == 'cuda-dev'", specifier = ">=12.6" },
     { name = "nvidia-cublas-cu12", marker = "extra == 'gpu'", specifier = ">=12.6" },
