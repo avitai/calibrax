@@ -115,7 +115,7 @@ FILES CREATED:
 
 REQUIREMENTS:
     - uv package manager (installed automatically if missing)
-    - Python 3.11+ (handled by uv)
+    - Python 3.12+ (handled by uv)
     - NVIDIA drivers (for GPU support on Linux)
     - Xcode Command Line Tools (for macOS)
 

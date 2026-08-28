@@ -9,14 +9,13 @@ functions for benchmark registration.
 from __future__ import annotations
 
 from collections.abc import Callable, Iterator
-from typing import Generic, Self, TypeVar
+from typing import Self, TypeVar
 
 
-T = TypeVar("T")
 _C = TypeVar("_C", bound=type)
 
 
-class Registry(Generic[T]):
+class Registry[T]:
     """Generic type-safe registry for named items.
 
     Supports register, get, remove, clear, and iteration.
@@ -108,7 +107,7 @@ class Registry(Generic[T]):
         return iter(self._items)
 
 
-class SingletonRegistry(Registry[T]):
+class SingletonRegistry[T](Registry[T]):
     """Registry that enforces a single shared instance per subclass.
 
     Subclasses inherit register/get/remove/clear/iteration from Registry[T]
