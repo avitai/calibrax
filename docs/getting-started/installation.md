@@ -66,7 +66,7 @@ uv pip install "calibrax[all]"
 
     ```bash
     # Ensure NVIDIA drivers are installed, then:
-    uv pip install "calibrax[gpu]"
+    uv pip install "calibrax[cuda12]"
     ```
 
 === "macOS (Apple Silicon)"

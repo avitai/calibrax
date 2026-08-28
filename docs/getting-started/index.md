@@ -6,7 +6,7 @@
 
     ---
 
-    Python 3.11+, JAX 0.4+, and optional extras for statistics, GPU, W&B, and publication output
+    Python 3.12+, JAX 0.4+, and optional extras for statistics, GPU, W&B, and publication output
 
     [:octicons-arrow-right-24: Install](installation.md)
 
