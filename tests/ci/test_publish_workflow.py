@@ -38,7 +38,10 @@ def test_manual_release_target_generates_release_notes() -> None:
         "github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'github-release'"
     )
     assert release_job["permissions"]["contents"] == "write"
-    assert release_step["uses"] == "softprops/action-gh-release@v2"
+    # Pinned to a major version on purpose: this is the action that publishes releases,
+    # so a major bump should be a deliberate edit here rather than something that rides
+    # in unnoticed. Updated to v3 with the dependabot bump that moved the workflow.
+    assert release_step["uses"] == "softprops/action-gh-release@v3"
     assert release_step["with"]["generate_release_notes"] == "true"
     assert release_step["with"]["tag_name"] == "${{ github.event.inputs.version_tag }}"
 
@@ -60,6 +63,6 @@ def test_releasing_docs_describe_generated_release_note_automation() -> None:
     releasing = RELEASING_DOC.read_text()
 
     assert "No commit or tag push creates a release by itself" in releasing
-    assert "softprops/action-gh-release@v2" in releasing
+    assert "softprops/action-gh-release@v3" in releasing
     assert "generate_release_notes: true" in releasing
     assert "target=github-release" in releasing
