@@ -43,7 +43,7 @@ jobs:
 
       - name: Pyright
         run: |
-          uv pip install -e ".[dev]"
+          uv sync --locked --extra dev
           uv run pyright --warnings src/
 
       - name: Install in clean venv and verify import
