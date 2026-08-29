@@ -4,7 +4,7 @@
 [![Build](https://github.com/avitai/calibrax/actions/workflows/build-verification.yml/badge.svg)](https://github.com/avitai/calibrax/actions/workflows/build-verification.yml)
 [![Quality](https://github.com/avitai/calibrax/actions/workflows/quality-checks.yml/badge.svg)](https://github.com/avitai/calibrax/actions/workflows/quality-checks.yml)
 [![Security](https://github.com/avitai/calibrax/actions/workflows/security.yml/badge.svg)](https://github.com/avitai/calibrax/actions/workflows/security.yml)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![JAX](https://img.shields.io/badge/JAX-0.4+-green.svg)](https://github.com/jax-ml/jax)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
@@ -113,7 +113,7 @@ uv pip install calibrax
 uv pip install "calibrax[stats]"
 
 # With GPU monitoring
-uv pip install "calibrax[gpu]"
+uv pip install "calibrax[cuda12]"
 
 # With image quality plugins (FID, Inception Score)
 uv pip install "calibrax[image]"

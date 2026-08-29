@@ -18,7 +18,6 @@ classifiers = [
   "Operating System :: MacOS",
   "Operating System :: POSIX :: Linux",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Topic :: Scientific/Engineering :: Artificial Intelligence",
   "Topic :: Scientific/Engineering :: Mathematics",
@@ -26,7 +25,9 @@ classifiers = [
 ]
 dependencies = [
   "click>=8.0",
-  "flax>=0.12.0",
+  # 0.12.1 is where nnx Variable gained set_value / get_value; 0.12.0 is the only
+  # release in the supported range that the jax-ml stack cannot run against.
+  "flax>=0.12.1",
   "jax>=0.4.0",
   "jaxlib>=0.4.0",
   "jaxtyping>=0.2.20",
@@ -47,11 +48,11 @@ keywords = [
 license = {file = "LICENSE"}
 name = "calibrax"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 
 [project.optional-dependencies]
 all = [
-  "calibrax[changepoint,codecarbon,dev,docs,gpu,image,mlflow,performance,publication,scientific,stats,test,text,wandb]"
+  "calibrax[changepoint,codecarbon,cuda12,dev,docs,image,mlflow,performance,publication,scientific,stats,test,text,wandb]"
 ]
 all-cpu = [
   "calibrax[changepoint,codecarbon,dev,docs,image,mlflow,performance,publication,scientific,stats,test,text,wandb]"
@@ -66,7 +67,32 @@ codecarbon = [
   "codecarbon>=2.0"
 ]
 cuda-dev = [
-  "calibrax[dev,gpu]"
+  "calibrax[cuda12,dev]"
+]
+cuda12 = [
+  # Named for the CUDA major version, as JAX names its own extras (cuda12, cuda12-local,
+  # cuda13); JAX publishes no `gpu` extra, and this package also ships `metal`, which is a
+  # GPU too. Declaring jax[cuda12] resolves jax-cuda12-plugin[with-cuda], which brings the
+  # pjrt package and the CUDA wheels in versions matched to jax, rather than naming the
+  # plugin packages here and hoping the two stay in step.
+  "jax[cuda12]>=0.4.0",
+  # The floors below are stricter than jax-cuda12-plugin[with-cuda] requires: they hold a
+  # CUDA 12.6 baseline, and curand and nvtx are not in with-cuda at all.
+  "nvidia-cublas-cu12>=12.6",
+  "nvidia-cuda-cupti-cu12>=12.6",
+  "nvidia-cuda-nvcc-cu12>=12.6",
+  "nvidia-cuda-nvrtc-cu12>=12.6",
+  "nvidia-cuda-runtime-cu12>=12.6",
+  "nvidia-cudnn-cu12>=9.1",
+  "nvidia-cufft-cu12>=11.4",
+  "nvidia-curand-cu12>=10.3",
+  "nvidia-cusolver-cu12>=11.7",
+  "nvidia-cusparse-cu12>=12.3",
+  "nvidia-nccl-cu12>=2.20",
+  "nvidia-nvjitlink-cu12>=12.6",
+  "nvidia-nvtx-cu12>=12.6",
+  # GPU monitoring
+  "pynvml>=11.5.0"
 ]
 dev = [
   "build>=1.0.3",
@@ -103,28 +129,6 @@ docs = [
   "mkdocstrings>=0.28.3",
   "pygments>=2.20,<3.0",
   "pymdown-extensions>=10.16.1"
-]
-gpu = [
-  "jax-cuda12-pjrt>=0.7.0",
-  # GPU dependencies - Complete CUDA stack installed locally in venv
-  # JAX with CUDA 12 support (uses venv CUDA libraries via LD_LIBRARY_PATH)
-  "jax-cuda12-plugin>=0.7.0",
-  # Individual CUDA libraries - installed in .venv for complete isolation
-  "nvidia-cublas-cu12>=12.6",
-  "nvidia-cuda-cupti-cu12>=12.6",
-  "nvidia-cuda-nvcc-cu12>=12.6",
-  "nvidia-cuda-nvrtc-cu12>=12.6",
-  "nvidia-cuda-runtime-cu12>=12.6",
-  "nvidia-cudnn-cu12>=9.1",
-  "nvidia-cufft-cu12>=11.4",
-  "nvidia-curand-cu12>=10.3",
-  "nvidia-cusolver-cu12>=11.7",
-  "nvidia-cusparse-cu12>=12.3",
-  "nvidia-nccl-cu12>=2.20",
-  "nvidia-nvjitlink-cu12>=12.6",
-  "nvidia-nvtx-cu12>=12.6",
-  # GPU monitoring
-  "pynvml>=11.5.0"
 ]
 image = [
 ]
@@ -281,7 +285,7 @@ include = [
   "src",
   "tests"
 ]
-pythonVersion = "3.11"
+pythonVersion = "3.12"
 reportFunctionMemberAccess = false
 reportIncompatibleMethodOverride = false
 reportIncompatibleVariableOverride = false
@@ -333,7 +337,7 @@ testpaths = ["tests"]
 [tool.ruff]
 extend-include = ["*.ipynb"]
 line-length = 100
-target-version = "py311"
+target-version = "py312"
 
 [tool.ruff.format]
 indent-style = "space"
@@ -384,6 +388,11 @@ order-by-type = false
 convention = "google"
 
 [tool.uv]
+# calibrax does not import optax; flax does. Below 0.2.8 optax calls
+# jax.config.update("jax_pmap_shmap_merge"), which jax removed in 0.10, so importing
+# flax raises AttributeError and takes out collection for the whole suite. Constrained
+# rather than declared, because this is a transitive requirement, not a direct one.
+constraint-dependencies = ["optax>=0.2.8"]
 python-preference = "only-managed"
 
 [tool.uv.pip]

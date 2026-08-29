@@ -1,6 +1,6 @@
 # Calibrax: Unified Benchmarking for JAX Scientific ML
 
-[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org)
+[![Python](https://img.shields.io/badge/Python-3.12+-blue.svg)](https://www.python.org)
 [![JAX](https://img.shields.io/badge/JAX-0.4+-green.svg)](https://github.com/google/jax)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/avitai/calibrax/blob/main/LICENSE)
 
