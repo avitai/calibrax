@@ -261,3 +261,6 @@ CLAUDE.md
 .cursor/
 .agent/
 .taskmaster/
+
+# Private working notes and per-editor assistant configuration. Local only.
+AGENTS.md

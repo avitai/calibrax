@@ -12,10 +12,16 @@
 
 **Validated against:** scikit-learn and SciPy references for representative regression, classification, distance, and divergence metrics.
 
+[Documentation](https://calibrax.readthedocs.io/en/latest/) - [Issues](https://github.com/avitai/calibrax/issues) - [Contributing](CONTRIBUTING.md)
+
 ---
 
-> **Early Development** — API is unstable and subject to breaking changes.
-> Pin to specific commits if stability is required.
+> **Research preview.** The API will change while we iterate toward v1.0, so pin a version if you
+> need stability. Calibrax is the most standalone library in the Avitai stack: it depends on none
+> of the others, so it is a low-commitment way to try one piece.
+>
+> This is public this early on purpose. Issues, questions and pull requests genuinely steer
+> what gets built next, and a star tells us which layer to push on.
 
 ---
 
@@ -45,34 +51,34 @@ package architecture but are not all registered metric entries today.
 **Key capabilities:**
 
 - **MetricRegistry** with axiom-based discovery for registered Tier 0 metrics (`list_true_metrics()`, `list_by_invariance("rotation")`)
-- **Geometric distance hierarchy** — Euclidean, Riemannian (SPD, Grassmann, Stiefel), pseudo-Riemannian (ultrahyperbolic), Finsler (Randers)
-- **Graph metrics** — spectral distance, resistance distance, Floyd-Warshall shortest paths
-- **Reference checks** — representative Tier 0 metrics are tested against scikit-learn and SciPy references with `1e-6` tolerance; see [Peer Comparison](docs/user-guide/peer-comparison.md)
-- **Composition** — `MetricCollection`, `WeightedMetric`, `MetricSuite`, `ThresholdMetric`
-- **Wrappers** — `BootstrapMetric` (confidence intervals), `ClasswiseWrapper`, `MetricTracker`, `MinMaxTracker`
-- **Metric learning losses** — contrastive, triplet margin, NTXent, ArcFace, CosFace, ProxyNCA, ProxyAnchor, with hard/semi-hard negative mining
+- **Geometric distance hierarchy** - Euclidean, Riemannian (SPD, Grassmann, Stiefel), pseudo-Riemannian (ultrahyperbolic), Finsler (Randers)
+- **Graph metrics** - spectral distance, resistance distance, Floyd-Warshall shortest paths
+- **Reference checks** - representative Tier 0 metrics are tested against scikit-learn and SciPy references with `1e-6` tolerance; see [Peer Comparison](docs/user-guide/peer-comparison.md)
+- **Composition** - `MetricCollection`, `WeightedMetric`, `MetricSuite`, `ThresholdMetric`
+- **Wrappers** - `BootstrapMetric` (confidence intervals), `ClasswiseWrapper`, `MetricTracker`, `MinMaxTracker`
+- **Metric learning losses** - contrastive, triplet margin, NTXent, ArcFace, CosFace, ProxyNCA, ProxyAnchor, with hard/semi-hard negative mining
 
 ### Benchmarking & Profiling
 
-- **Timing** — Warm-up aware timing with JIT compilation separation
-- **Resource monitoring** — CPU, memory, GPU memory/clock/power tracking
-- **Energy & carbon** — Energy measurement with carbon footprint estimation
-- **FLOPS & roofline** — XLA-level FLOP counting, roofline performance analysis
-- **Compilation** — XLA compilation profiling and tracing
-- **Complexity** — Algorithmic complexity analysis
-- **Hardware** — Automatic hardware detection and capability reporting
+- **Timing** - Warm-up aware timing with JIT compilation separation
+- **Resource monitoring** - CPU, memory, GPU memory/clock/power tracking
+- **Energy & carbon** - Energy measurement with carbon footprint estimation
+- **FLOPS & roofline** - XLA-level FLOP counting, roofline performance analysis
+- **Compilation** - XLA compilation profiling and tracing
+- **Complexity** - Algorithmic complexity analysis
+- **Hardware** - Automatic hardware detection and capability reporting
 
 ### Analysis & Infrastructure
 
-- **Statistical analysis** — Bootstrap confidence intervals, hypothesis testing, effect sizes, outlier detection
-- **Regression detection** — Direction-aware detection with configurable severity levels
-- **Comparison & ranking** — Cross-configuration comparison, Pareto front analysis, aggregate scoring
-- **Validation** — Convergence analysis and accuracy assessment
-- **Storage** — JSON-per-run file backend with baseline management
-- **Exporters** — W&B and MLflow integration, publication-ready LaTeX/HTML/CSV tables and matplotlib plots
-- **CI integration** — Regression gate with git bisect automation
-- **Monitoring** — Production alerting with configurable thresholds
-- **CLI** — `calibrax ingest|export|check|baseline|trend|summary|profile`
+- **Statistical analysis** - Bootstrap confidence intervals, hypothesis testing, effect sizes, outlier detection
+- **Regression detection** - Direction-aware detection with configurable severity levels
+- **Comparison & ranking** - Cross-configuration comparison, Pareto front analysis, aggregate scoring
+- **Validation** - Convergence analysis and accuracy assessment
+- **Storage** - JSON-per-run file backend with baseline management
+- **Exporters** - W&B and MLflow integration, publication-ready LaTeX/HTML/CSV tables and matplotlib plots
+- **CI integration** - Regression gate with git bisect automation
+- **Monitoring** - Production alerting with configurable thresholds
+- **CLI** - `calibrax ingest|export|check|baseline|trend|summary|profile`
 
 ## Quick Start
 
