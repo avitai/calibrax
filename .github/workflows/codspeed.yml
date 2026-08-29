@@ -36,7 +36,7 @@ jobs:
         run: uv venv
 
       - name: Install dependencies
-        run: uv pip install -e ".[test,performance]"
+        run: uv sync --locked --extra test --extra performance
 
       - name: Run performance smoke tests
         if: env.CODSPEED_TOKEN == '' && env.CODSPEED_OIDC_ENABLED != 'true'

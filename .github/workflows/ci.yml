@@ -29,7 +29,7 @@ jobs:
         run: uv venv
 
       - name: Install dependencies
-        run: uv pip install -e ".[dev]"
+        run: uv sync --locked --extra dev
 
       - name: Ruff check
         run: uv run ruff check src/ tests/
@@ -70,7 +70,7 @@ jobs:
         run: uv venv
 
       - name: Install dependencies
-        run: uv pip install -e ".[dev,test,stats,changepoint,mlflow]"
+        run: uv sync --locked --extra dev --extra test --extra stats --extra changepoint --extra mlflow
 
       - name: Create temp directory
         run: mkdir -p temp
