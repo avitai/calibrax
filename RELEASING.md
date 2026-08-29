@@ -4,7 +4,7 @@ Calibrax publishes through `.github/workflows/publish.yml`.
 No commit or tag push creates a release by itself. Release timing and versioning
 stay under operator control. The manual `target=github-release` workflow path
 creates a GitHub Release for an explicit existing tag with
-`softprops/action-gh-release@v2` and `generate_release_notes: true`, then
+`softprops/action-gh-release@v3` and `generate_release_notes: true`, then
 publishes to PyPI with trusted publishing. Publishing an existing GitHub Release
 also runs the PyPI upload path.
 
