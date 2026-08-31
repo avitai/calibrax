@@ -44,7 +44,7 @@ jobs:
 
       - name: Run CodSpeed benchmarks with token
         if: env.CODSPEED_TOKEN != ''
-        uses: CodSpeedHQ/action@v4
+        uses: CodSpeedHQ/action@v5
         with:
           mode: simulation
           token: ${{ env.CODSPEED_TOKEN }}
@@ -52,7 +52,7 @@ jobs:
 
       - name: Run CodSpeed benchmarks with OIDC
         if: env.CODSPEED_TOKEN == '' && env.CODSPEED_OIDC_ENABLED == 'true'
-        uses: CodSpeedHQ/action@v4
+        uses: CodSpeedHQ/action@v5
         with:
           mode: simulation
           run: uv run pytest tests/performance/ --codspeed --no-cov
