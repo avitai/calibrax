@@ -14,6 +14,12 @@ repos:
         language: python
         additional_dependencies: ["toml-sort==0.23.1"]
 
+  # Schema-check pyproject.toml
+  - repo: https://github.com/abravalheri/validate-pyproject
+    rev: v0.24.1
+    hooks:
+      - id: validate-pyproject
+
   # Standard pre-commit hooks
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
@@ -119,13 +125,22 @@ repos:
         additional_dependencies: ["bandit[toml]"]
         exclude: ^(tests|examples)/
 
-  # Docstring quality
-  - repo: https://github.com/pycqa/pydocstyle
-    rev: "6.3.0"
+  # Gates that need the project environment
+  - repo: local
     hooks:
-      - id: pydocstyle
-        additional_dependencies: ["pydocstyle[toml]"]
-        exclude: ^(tests|scripts|examples)/
+      - id: lint-imports
+        name: lint-imports (layered architecture)
+        entry: uv run --no-sync lint-imports
+        language: system
+        pass_filenames: false
+        files: ^(src/calibrax/|\.importlinter$)
+
+      - id: interrogate
+        name: interrogate (docstring coverage)
+        entry: uv run --no-sync interrogate src/
+        language: system
+        pass_filenames: false
+        files: ^src/calibrax/.*\.py$
 
   # Notebook linting via nbQA
   - repo: https://github.com/nbQA-dev/nbQA

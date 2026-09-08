@@ -1,0 +1,16 @@
+# Layering contracts, checked by `uv run lint-imports`. Kept outside pyproject.toml because
+# toml-sort reorders arrays and the order of a layers contract is its meaning.
+[importlinter]
+root_package = calibrax
+include_external_packages = True
+
+[importlinter:contract:layers]
+name = cli on top, profiling at the bottom; siblings on one line are independent
+type = layers
+layers =
+    calibrax.cli
+    calibrax.ci | calibrax.metrics
+    calibrax.exporters | calibrax.monitoring
+    calibrax.analysis | calibrax.statistics | calibrax.storage | calibrax.validation
+    calibrax.core
+    calibrax.profiling

@@ -38,13 +38,11 @@ jobs:
 
       - name: Check distribution
         run: |
-          uv pip install twine
-          uv run twine check dist/*
+          uv sync --locked --extra dev
+          uv run twine check --strict dist/*
 
       - name: Pyright
-        run: |
-          uv sync --locked --extra dev
-          uv run pyright --warnings src/
+        run: uv run pyright --warnings src/
 
       - name: Install in clean venv and verify import
         run: |

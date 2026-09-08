@@ -31,6 +31,9 @@ jobs:
       - name: Install dependencies
         run: uv sync --locked --extra dev
 
+      - name: Lock file is current
+        run: uv lock --check
+
       - name: Ruff check
         run: uv run ruff check src/ tests/
 
@@ -48,7 +51,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-14]
-        python-version: ["3.12"]
+        python-version: ["3.12", "3.13"]
     env:
       JAX_PLATFORMS: cpu
       WANDB_DIR: /tmp/calibrax-test-wandb
@@ -86,7 +89,7 @@ jobs:
             -v
 
       - name: Upload coverage
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
         uses: codecov/codecov-action@v7
         with:
           file: coverage.xml
@@ -115,5 +118,5 @@ jobs:
 
       - name: Check distribution
         run: |
-          uv pip install twine
-          uv run twine check dist/*
+          uv sync --locked --extra dev
+          uv run twine check --strict dist/*

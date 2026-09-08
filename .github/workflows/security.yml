@@ -31,9 +31,7 @@ jobs:
         run: uv venv
 
       - name: Install dependencies
-        run: |
-          uv sync --locked --extra dev
-          uv pip install pip-audit bandit
+        run: uv sync --locked --extra dev
 
       - name: Pip audit
         # PYSEC-2026-3552 is a PKCS#7 EnvelopedData Bleichenbacher oracle in
@@ -47,7 +45,9 @@ jobs:
           --ignore-vuln CVE-2026-3219 --ignore-vuln PYSEC-2026-3552
 
       - name: Bandit
-        run: uv run bandit -r src/calibrax/ -c pyproject.toml -f json -o bandit-report.json
+        run: |
+          uv run bandit -r src/calibrax/ -c pyproject.toml -ll
+          uv run bandit -r src/calibrax/ -c pyproject.toml -f json -o bandit-report.json -q
 
       - name: Upload Bandit report
         if: always()

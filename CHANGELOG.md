@@ -9,6 +9,14 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Changed
 
+- CI checks that `uv.lock` is current, runs the tests on Python 3.13 as well as 3.12,
+  uploads coverage from the 3.12 lane (the old condition named 3.11 and never fired),
+  checks distributions with `twine check --strict`, and installs bandit and pip-audit
+  from the `dev` extra with bandit blocking at medium severity. Pre-commit gains
+  import-linter (the layering `cli > ci, metrics > exporters, monitoring > analysis,
+  statistics, storage, validation > core > profiling`), interrogate and
+  validate-pyproject; the standalone pydocstyle hook is replaced by ruff's docstring
+  rules under the Google convention. Pyright runs in `standard` mode on `src/`.
 - Lint now enforces the annotation, argument, bugbear, comprehension, complexity, docstring,
   naming, pylint, pytest-style, pathlib, return, security, simplification, print and
   try-except rule families (the same set as substrax), with the reasons for every ignored

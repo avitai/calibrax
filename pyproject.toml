@@ -67,7 +67,11 @@ codecarbon = [
   "codecarbon>=2.0"
 ]
 cuda-dev = [
-  "calibrax[cuda12,dev]"
+  "bandit[toml]>=1.8.6",
+  "calibrax[cuda12,dev]",
+  "import-linter>=2.0",
+  "pip-audit>=2.7",
+  "pydoclint>=0.5"
 ]
 cuda12 = [
   # Named for the CUDA major version, as JAX names its own extras (cuda12, cuda12-local,
@@ -246,32 +250,12 @@ packages = ["src/calibrax"]
 [tool.hatch.version]
 path = "src/calibrax/__init__.py"
 
-[tool.pydocstyle]
-add-ignore = [
-  "D100",
-  "D200",
-  "D202",
-  "D203",
-  "D204",
-  "D205",
-  "D212",
-  "D213",
-  "D400",
-  "D401",
-  "D404",
-  "D415"
-]
-add-select = [
-  "D101",
-  "D102",
-  "D103",
-  "D104",
-  "D105",
-  "D107"
-]
-convention = "google"
-match = "(?!test_).*\\.py"
-match-dir = "(?!tests|scripts|examples).*"
+[tool.interrogate]
+exclude = ["examples", "scripts", "tests"]
+fail-under = 80
+ignore-init-method = true
+ignore-init-module = false
+ignore-magic = true
 
 [tool.pylint."messages_control"]
 max-args = 10
@@ -292,7 +276,7 @@ reportIncompatibleMethodOverride = false
 reportIncompatibleVariableOverride = false
 reportMissingImports = false
 reportMissingTypeStubs = false
-typeCheckingMode = "basic"
+typeCheckingMode = "standard"
 
 [tool.pytest.ini_options]
 addopts = "--strict-markers --strict-config --verbose --tb=short --color=yes --durations=10 --disable-warnings --cov=calibrax --cov-report=term-missing --cov-report=html --cov-fail-under=80 --timeout=300 --json-report --json-report-file=temp/test-results.json --json-report-indent=2"
