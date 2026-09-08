@@ -3982,8 +3982,9 @@ Intel RAPL for CPU energy. On unsupported hardware, energy fields will
 be <code>None</code>.</p>
 </div>
 <h2 id="flop-counting">FLOP Counting<a class="headerlink" href="#flop-counting" title="Permanent link">¤</a></h2>
-<p><code>FlopsCounter</code> analyzes a JAX function's computation graph (jaxpr) to count
-floating-point operations:</p>
+<p><code>FlopsCounter</code> lowers a JAX function from the shapes of its example arguments and
+reads XLA's cost analysis of the result, the same estimate <code>flax.nnx.tabulate</code>
+reports. Nothing is executed and no data is copied:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jax.numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">jnp</span>
 </span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">calibrax.profiling.flops</span><span class="w"> </span><span class="kn">import</span> <span class="n">FlopsCounter</span>
 </span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>
@@ -3994,15 +3995,19 @@ floating-point operations:</p>
 </span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="n">result</span> <span class="o">=</span> <span class="n">counter</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">matmul_workload</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">64</span><span class="p">,</span> <span class="mi">128</span><span class="p">)),</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">128</span><span class="p">,</span> <span class="mi">32</span><span class="p">)))</span>
 </span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>
 </span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Total FLOPs: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">total_flops</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Operations: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">num_operations</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="k">for</span> <span class="n">op</span><span class="p">,</span> <span class="n">count</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">flops_by_operation</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">op</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">count</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Transcendentals: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">transcendentals</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </span></code></pre></div>
+<p>XLA's conventions: a matmul <code>(M, K) @ (K, N)</code> is <code>2 * M * K * N</code>, an elementwise op
+is one FLOP per output element, <code>sin</code>, <code>exp</code> and friends are transcendentals rather
+than FLOPs, a conditional costs its most expensive branch, and a loop body is
+counted once because the trip count is not part of the HLO. A function containing a
+custom call XLA has no cost model for (<code>jax.pure_callback</code>, some linear-algebra
+kernels) raises <code>FlopsUnavailableError</code>.</p>
 <div class="admonition tip">
 <p class="admonition-title">NNX Models</p>
-<p><code>FlopsCounter</code> works with pure JAX functions. For Flax NNX models,
-use <code>flax.nnx.tabulate(model, *args, compute_flops=True)</code> instead,
-which handles the NNX state and <code>Rngs</code> automatically.</p>
+<p>Pass the NNX state as an argument, or close over the module; both lower. For a
+per-module table use <code>flax.nnx.tabulate(model, *args, compute_flops=True)</code>,
+which reports the same estimate per submodule.</p>
 </div>
 <h2 id="hardware-detection">Hardware Detection<a class="headerlink" href="#hardware-detection" title="Permanent link">¤</a></h2>
 <p><code>detect_hardware_specs()</code> auto-detects the active JAX backend and returns

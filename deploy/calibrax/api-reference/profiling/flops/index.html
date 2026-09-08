@@ -1638,6 +1638,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#calibrax.profiling.flops.FlopsUnavailableError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;FlopsUnavailableError
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#calibrax.profiling.flops.FlopsResult" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3466,6 +3477,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#calibrax.profiling.flops.FlopsUnavailableError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;FlopsUnavailableError
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#calibrax.profiling.flops.FlopsResult" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3591,8 +3613,9 @@
 
 
 <h1 id="calibraxprofilingflops">calibrax.profiling.flops<a class="headerlink" href="#calibraxprofilingflops" title="Permanent link">¤</a></h1>
-<p>FLOP counting via jaxpr analysis. <code>FlopsCounter.count()</code> traces a JAX function
-and counts floating-point operations by operation type.</p>
+<p>FLOP counting through XLA's cost analysis. <code>FlopsCounter.count()</code> lowers a JAX
+function from its example arguments' shapes and reports the FLOPs and
+transcendentals XLA estimates for it.</p>
 
 
 <div class="doc doc-object doc-module">
@@ -3602,9 +3625,23 @@ and counts floating-point operations by operation type.</p>
 <a id="calibrax.profiling.flops"></a>
     <div class="doc doc-contents first">
 
-        <p>FLOP counting via JAX's jaxpr tracing.</p>
-<p>Provides FlopsCounter for estimating FLOPs of JAX functions
-by analyzing their Jaxpr intermediate representation.</p>
+        <p>FLOP counting through XLA's cost analysis.</p>
+<p><code>FlopsCounter.count</code> lowers the function with <code>jax.jit</code> from the shapes and
+dtypes of the example arguments (no data is copied and nothing is executed) and reads
+<code>jax.stages.Lowered.cost_analysis()</code>, XLA's <code>HloCostAnalysis</code> of the unoptimised
+HLO. It is the estimate <code>flax.nnx.tabulate(..., compute_flops=True)</code> reports and
+JAX's ahead-of-time documentation shows, so the numbers agree across the stack and
+follow jax's primitive set without a table here.</p>
+<p>Conventions of <code>HloCostAnalysis</code> a reader should know: a matmul <code>(M, K) @ (K, N)</code>
+is <code>2 * M * K * N</code>; an elementwise op is one FLOP per output element; <code>sin</code>,
+<code>exp</code> and friends are reported as transcendentals, not FLOPs; a reduction over
+<code>n</code> elements is <code>n - 1</code>; a conditional costs its most expensive branch; a loop body
+is counted once, because the trip count is not part of the HLO.</p>
+<p>The lowering targets the CPU backend when jax has one, so accelerator custom calls
+(a cuDNN convolution, for example) cannot hide the arithmetic behind a cost XLA does
+not estimate. When jax was started without a CPU backend (<code>JAX_PLATFORMS=cuda</code>) the
+function is lowered for the default device and, if that lowering carries no analysis,
+the compiled executable's analysis is used, as <code>nnx.tabulate</code> does.</p>
 
 
 
@@ -3629,8 +3666,42 @@ by analyzing their Jaxpr intermediate representation.</p>
 
 
 
+<h2 id="calibrax.profiling.flops.FlopsUnavailableError" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <code>FlopsUnavailableError</code>
+
+
+<a href="#calibrax.profiling.flops.FlopsUnavailableError" class="headerlink" title="Permanent link">¤</a></h2>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="ValueError">ValueError</span></code></p>
+
+
+
+        <p>XLA could not estimate the cost of the function.</p>
+<p>Raised when the analysis is negative, which is how <code>HloCostAnalysis</code> reports a
+custom call it has no model for (<code>jax.pure_callback</code>, some linear-algebra
+kernels, Pallas kernels), or when no backend provides an analysis at all.</p>
+
+
+
+
+
+
+
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
 <h2 id="calibrax.profiling.flops.FlopsResult" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>              <code class="highlight language-python"><span class="n">FlopsResult</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">total_flops</span><span class="p">,</span> <span class="n">flops_by_operation</span><span class="p">,</span> <span class="n">num_operations</span><span class="p">,</span> <span class="n">function_name</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>              <code class="highlight language-python"><span class="n">FlopsResult</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">total_flops</span><span class="p">,</span> <span class="n">transcendentals</span><span class="p">,</span> <span class="n">function_name</span><span class="p">)</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
@@ -3643,7 +3714,7 @@ by analyzing their Jaxpr intermediate representation.</p>
 
 
 
-        <p>Result of FLOP counting for a function.</p>
+        <p>Cost of one function, as XLA estimates it.</p>
 
 
 <p><span class="doc-section-title">Attributes:</span></p>
@@ -3663,29 +3734,18 @@ by analyzing their Jaxpr intermediate representation.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Total estimated FLOPs.</p>
+                <p>Floating-point operations, excluding transcendentals.</p>
               </div>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code><span title="calibrax.profiling.flops.FlopsResult.flops_by_operation">flops_by_operation</span></code></td>
-            <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="int">int</span>]</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Breakdown by primitive operation name.</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td><code><span title="calibrax.profiling.flops.FlopsResult.num_operations">num_operations</span></code></td>
+            <td><code><span title="calibrax.profiling.flops.FlopsResult.transcendentals">transcendentals</span></code></td>
             <td>
                   <code><span title="int">int</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Number of JAX primitives in the trace.</p>
+                <p>Transcendental operations (<code>sin</code>, <code>exp</code>, <code>tanh</code>, ...).</p>
               </div>
             </td>
           </tr>
@@ -3747,12 +3807,10 @@ by analyzing their Jaxpr intermediate representation.</p>
 
 
 
-        <p>Count FLOPs of JAX functions via jaxpr analysis.</p>
-<p>Uses <code>jax.make_jaxpr</code> to trace the function and counts FLOPs
-for each primitive based on operation-specific rules.</p>
-<p>For NNX models that use stochastic operations (dropout, etc.),
-use <code>flax.nnx.tabulate(model, *args, compute_flops=True)</code>
-instead — it handles NNX state management internally.</p>
+        <p>Count the FLOPs of a JAX function from XLA's cost analysis of its lowering.</p>
+<p>Works for pure JAX functions and for functions that close over or take Flax NNX
+state; nothing is executed, so stochastic modules are fine as long as their keys
+are arguments or captured state.</p>
 
 
 
@@ -3825,7 +3883,8 @@ instead — it handles NNX state management internally.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Example arguments for tracing.</p>
+                <p>Example arguments; only their shapes and dtypes are used, except
+for the static ones.</p>
               </div>
             </td>
             <td>
@@ -3841,7 +3900,7 @@ instead — it handles NNX state management internally.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Argument indices to treat as static.</p>
+                <p>Argument indices <code>jax.jit</code> treats as static.</p>
               </div>
             </td>
             <td>
@@ -3863,7 +3922,7 @@ instead — it handles NNX state management internally.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;              &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;FlopsResult&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;total_flops&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;flops_by_operation&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;num_operations&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;function_name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;              &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;FlopsResult&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;total_flops&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;transcendentals&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;function_name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;
 
   &lt;span class=&quot;doc doc-labels&quot;&gt;
       &lt;small class=&quot;doc doc-label doc-label-dataclass&quot;&gt;&lt;code&gt;dataclass&lt;/code&gt;&lt;/small&gt;
@@ -3871,7 +3930,31 @@ instead — it handles NNX state management internally.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>FlopsResult with FLOP count and breakdown.</p>
+                <p>FlopsResult with the FLOP and transcendental counts.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;code&gt;FlopsUnavailableError&lt;/code&gt; (&lt;code&gt;calibrax.profiling.flops.FlopsUnavailableError&lt;/code&gt;)" href="#calibrax.profiling.flops.FlopsUnavailableError">FlopsUnavailableError</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If XLA cannot estimate the cost, typically because
+the function contains a custom call it has no model for.</p>
               </div>
             </td>
           </tr>
