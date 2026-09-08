@@ -3,7 +3,7 @@
 ## Requirements
 
 - Python 3.11 or higher
-- JAX 0.4.0 or higher
+- JAX 0.11.1 or higher
 
 ## Install Calibrax
 
@@ -98,7 +98,7 @@ print(calibrax.__version__)
 
     **JAX not found or wrong version**
 
-    Calibrax requires JAX 0.4.0+. Upgrade with:
+    Calibrax requires JAX 0.11.1+. Upgrade with:
 
     ```bash
     uv pip install --upgrade jax jaxlib

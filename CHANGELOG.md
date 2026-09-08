@@ -9,6 +9,11 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Changed
 
+- **Floors match what is tested.** `jax>=0.11.1`, `jaxlib>=0.11.1` and `flax>=0.12.9` are
+  the versions every release since 0.1.2 has resolved and run CI against; the previous
+  `>=0.4.0` and `>=0.12.1` floors promised compatibility nothing checked. `numpy` is
+  `>=2.1` (jax's own floor) with no ceiling: the `<2.5.0` cap was a snapshot from a
+  dependency refresh with no recorded reason, and the lock now resolves numpy 2.5.
 - CI checks that `uv.lock` is current, runs the tests on Python 3.13 as well as 3.12,
   uploads coverage from the 3.12 lane (the old condition named 3.11 and never fired),
   checks distributions with `twine check --strict`, and installs bandit and pip-audit

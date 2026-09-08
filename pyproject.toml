@@ -27,11 +27,11 @@ dependencies = [
   "click>=8.0",
   # 0.12.1 is where nnx Variable gained set_value / get_value; 0.12.0 is the only
   # release in the supported range that the jax-ml stack cannot run against.
-  "flax>=0.12.1",
-  "jax>=0.4.0",
-  "jaxlib>=0.4.0",
+  "flax>=0.12.9",
+  "jax>=0.11.1",
+  "jaxlib>=0.11.1",
   "jaxtyping>=0.2.20",
-  "numpy>=1.24,<2.5.0",
+  "numpy>=2.1",
   "psutil>=5.9.5",
   "typing_extensions>=4.5"
 ]
@@ -75,7 +75,7 @@ cuda12 = [
   # GPU too. Declaring jax[cuda12] resolves jax-cuda12-plugin[with-cuda], which brings the
   # pjrt package and the CUDA wheels in versions matched to jax, rather than naming the
   # plugin packages here and hoping the two stay in step.
-  "jax[cuda12]>=0.4.0",
+  "jax[cuda12]>=0.11.1",
   # The floors below are stricter than jax-cuda12-plugin[with-cuda] requires: they hold a
   # CUDA 12.6 baseline, and curand and nvtx are not in with-cuda at all.
   "nvidia-cublas-cu12>=12.6",
