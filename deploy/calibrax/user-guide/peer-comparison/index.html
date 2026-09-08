@@ -599,6 +599,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../profiling-boundary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Profiling Boundary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../statistics/" class="md-nav__link">
         
   
@@ -797,6 +825,50 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#metrax" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        metrax
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#conformal-prediction-libraries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Conformal prediction libraries
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#netcal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        netcal
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#xprof-and-accelerator-microbenchmarks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        XProf and accelerator-microbenchmarks
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -933,10 +1005,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_12" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_13" >
         
           
-          <label class="md-nav__link" for="__nav_3_12" id="__nav_3_12_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3_13" id="__nav_3_13_label" tabindex="0">
             
   
   
@@ -954,8 +1026,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_12_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3_12">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_13_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_13">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3596,6 +3668,50 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#metrax" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        metrax
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#conformal-prediction-libraries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Conformal prediction libraries
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#netcal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        netcal
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#xprof-and-accelerator-microbenchmarks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        XProf and accelerator-microbenchmarks
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -3687,7 +3803,7 @@ package.</p>
 <tr>
 <td><a href="https://cgarciae.github.io/jax_metrics/">jax_metrics</a></td>
 <td>JAX metric and loss abstractions with pytree state, distributed-friendly accumulation, and numerical-equivalence discipline</td>
-<td>Calibrax has a broader benchmarking system, 111 registered Tier 0 metrics, registry metadata, exporters, storage, and regression analysis</td>
+<td>Calibrax has a broader benchmarking system, 132 registered Tier 0 metrics, registry metadata, exporters, storage, and regression analysis</td>
 </tr>
 <tr>
 <td><a href="https://asv.readthedocs.io/en/stable/">ASV</a></td>
@@ -3698,6 +3814,31 @@ package.</p>
 <td><a href="https://codspeed.io/docs">CodSpeed</a></td>
 <td>Hosted and CI-oriented performance testing with PR checks, profiling, and benchmark reports</td>
 <td>Calibrax now includes a focused CodSpeed workflow for PR benchmark checks while keeping local storage and analysis in Calibrax</td>
+</tr>
+<tr>
+<td><a href="https://github.com/google/metrax">metrax</a></td>
+<td>Google's JAX evaluation metrics on CLU: accuracy, AUC, F-beta, MSE/MAE/RMSE, R-squared, Spearman, ranking at k, BLEU/ROUGE/WER/perplexity, PSNR/SSIM/IoU/Dice, SNR, with an <code>nnx</code> subpackage</td>
+<td>Calibrax covers those as Tier 0 functions plus fourteen more domains (distance, divergence, information, geometric, graph, manifold, fairness, forecasting, uncertainty, generative, ...), registry metadata (direction, signature, invariances, properness), composition, and the benchmarking stack; metrax accumulates distributed state, which Calibrax leaves to the caller</td>
+</tr>
+<tr>
+<td><a href="https://github.com/scikit-learn-contrib/MAPIE">MAPIE</a>, <a href="https://github.com/henrikbostrom/crepes">crepes</a>, <a href="https://github.com/deel-ai/puncc">puncc</a></td>
+<td>Conformal prediction on top of scikit-learn-style estimators: prediction intervals and sets with coverage guarantees, Mondrian and normalised variants, risk control, exchangeability tests</td>
+<td>Calibrax does not build conformal predictors; it scores the intervals and distributions they produce (<code>picp</code>, <code>mpiw</code>, <code>interval_score</code>, <code>regression_calibration_error</code>, <code>gaussian_nll</code>, the forecasting scores) as JAX functions, so a conformal library and Calibrax compose rather than overlap</td>
+</tr>
+<tr>
+<td><a href="https://github.com/EFS-OpenSource/calibration-framework">netcal</a></td>
+<td>Calibration methods (binning, scaling, regularisation) for classification, detection and regression, with ECE/MCE-style metrics and reliability plots</td>
+<td>Calibrax has the metrics side (Brier, ECE, MCE, adaptive and classwise ECE, PIT and rank histograms, event reliability) without the recalibration methods; netcal's post-hoc calibrators are a modelling step that belongs to the model library</td>
+</tr>
+<tr>
+<td><a href="https://github.com/openxla/xprof">XProf</a></td>
+<td>The XLA profiler UI: overview page, trace viewer, op profile, memory profile and input pipeline analysis over profiles captured with <code>jax.profiler</code></td>
+<td>Calibrax's <code>TraceLinker</code> captures those profiles and links them to a benchmark run, and its profilers report the numbers a run stores (timing, FLOPs from XLA's cost analysis, roofline, compilation); XProf is where a captured trace is read</td>
+</tr>
+<tr>
+<td><a href="https://github.com/AI-Hypercomputer/accelerator-microbenchmarks">accelerator-microbenchmarks</a></td>
+<td>Google's YAML-driven JAX microbenchmarks of GEMMs, attention and collectives on TPUs and GPUs, reporting latency, throughput and bandwidth as JSON/CSV</td>
+<td>Calibrax benchmarks the caller's own functions and models rather than fixed kernels, stores runs with statistics, baselines and regression gates, and reads its hardware peaks from a spec table those microbenchmarks could calibrate</td>
 </tr>
 </tbody>
 </table>
@@ -3734,6 +3875,30 @@ and repository integration.</p>
 benchmark suite. Treat CodSpeed as an external reporting layer for PR checks;
 Calibrax storage, statistical analysis, and regression gates remain the local
 source of benchmark truth.</p>
+<h2 id="metrax">metrax<a class="headerlink" href="#metrax" title="Permanent link">¤</a></h2>
+<p>metrax is the JAX-native metric library closest to Calibrax's Tier 0 surface. Its
+classes accumulate state through CLU, which fits distributed evaluation loops; Calibrax
+keeps metrics as pure functions and leaves accumulation to the composition layer.
+Overlapping names (accuracy, AUC, MSE, BLEU, PSNR, SSIM, IoU) are candidates for the
+numerical-equivalence tests; the registry, the geometry-heavy domains, and the
+benchmarking system are where the two differ.</p>
+<h2 id="conformal-prediction-libraries">Conformal prediction libraries<a class="headerlink" href="#conformal-prediction-libraries" title="Permanent link">¤</a></h2>
+<p>MAPIE, crepes and puncc produce prediction intervals and sets with coverage guarantees
+from scikit-learn-style estimators. Calibrax scores what they produce: <code>picp</code> and
+<code>mpiw</code> for coverage and width, <code>interval_score</code> for a proper score, and the
+<code>uncertainty</code> and <code>forecasting</code> domains for distributional forecasts. A workflow
+calibrates with one of those libraries and reports with Calibrax.</p>
+<h2 id="netcal">netcal<a class="headerlink" href="#netcal" title="Permanent link">¤</a></h2>
+<p>netcal implements post-hoc calibration methods and the metrics that judge them.
+Calibrax implements the metrics side in JAX and no recalibration methods; a model
+library that ships temperature scaling or histogram binning pairs with Calibrax's
+<code>calibration</code> domain to measure the result.</p>
+<h2 id="xprof-and-accelerator-microbenchmarks">XProf and accelerator-microbenchmarks<a class="headerlink" href="#xprof-and-accelerator-microbenchmarks" title="Permanent link">¤</a></h2>
+<p>XProf reads profiles; Calibrax's <code>TraceLinker</code> writes them alongside a run's stored
+metrics, and the profiling modules report the scalar numbers a run keeps. Google's
+accelerator-microbenchmarks measure fixed kernels on TPUs and GPUs; Calibrax measures
+the caller's code against hardware peaks from its spec table, which those kernel
+measurements are one way to calibrate.</p>
 
 
 
