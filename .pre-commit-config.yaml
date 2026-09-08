@@ -54,7 +54,7 @@ repos:
       - id: ruff-github-actions-check
         name: ruff (github actions output)
         entry: uv
-        args: [run, ruff, check, --output-format=github]
+        args: [run, --no-sync, ruff, check, --output-format=github]
         language: system
         types: [python]
         pass_filenames: false
