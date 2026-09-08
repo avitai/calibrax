@@ -83,9 +83,7 @@ def mel_cepstral_distortion(predictions: Any, targets: Any, *, num_mels: int = 8
 
     # MCD formula
     diff_sq = jnp.sum((cep_pred - cep_tgt) ** 2)
-    mcd = (10.0 / jnp.log(10.0)) * jnp.sqrt(2.0 * diff_sq + _EPSILON)
-
-    return mcd
+    return (10.0 / jnp.log(10.0)) * jnp.sqrt(2.0 * diff_sq + _EPSILON)
 
 
 def signal_to_noise_ratio(signal: Any, noise: Any) -> Any:

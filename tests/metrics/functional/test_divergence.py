@@ -209,7 +209,7 @@ class TestRenyiDivergence:
 
     def test_alpha_1_raises(self) -> None:
         p = jnp.array([0.5, 0.5])
-        with pytest.raises(ValueError, match="alpha=1.0"):
+        with pytest.raises(ValueError, match=r"alpha=1\.0"):
             renyi_divergence(p, p, alpha=1.0)
 
 

@@ -1,6 +1,7 @@
 # ---
 # jupyter:
 #   jupytext:
+#     formats: py:percent,ipynb
 #     text_representation:
 #       extension: .py
 #       format_name: percent
@@ -10,6 +11,9 @@
 #     language: python
 #     name: python3
 # ---
+
+# %%
+"""Metric learning: contrastive, triplet, angular and proxy losses on toy embeddings."""
 
 # %% [markdown]
 # # Metric Learning Losses
@@ -28,9 +32,9 @@
 # and demonstrates hard negative mining for improved training.
 
 # %%
-import flax.nnx as nnx
 import jax
 import jax.numpy as jnp
+from flax import nnx
 
 from calibrax.metrics.learning import (
     ArcFaceLoss,
@@ -40,6 +44,10 @@ from calibrax.metrics.learning import (
     SemiHardMiner,
     TripletMarginLoss,
 )
+
+
+# Gradients below this magnitude count as zero.
+GRADIENT_EPSILON = 1e-10
 
 
 # %% [markdown]
@@ -186,7 +194,7 @@ def demonstrate_arcface_loss(embeddings: jax.Array, labels: jax.Array) -> None:
     print(f"  Loss (margin=0.5, scale=64): {float(loss_val):.6f}")
 
     # Inspect trainable parameters
-    graph_def, state = nnx.split(arcface)
+    _, state = nnx.split(arcface)
     param_count = sum(p.size for p in jax.tree.leaves(state))
     print(f"  Trainable parameters: {param_count}")
     print(f"  Weight matrix shape: {arcface._weight[...].shape}")
@@ -246,7 +254,7 @@ def verify_gradients(embeddings: jax.Array, labels: jax.Array) -> None:
 
     grads = jax.grad(contrastive_fn)(embeddings)
     grad_norm = float(jnp.linalg.norm(grads))
-    nonzero_count = int(float(jnp.sum(jnp.abs(grads) > 1e-10)))
+    nonzero_count = int(float(jnp.sum(jnp.abs(grads) > GRADIENT_EPSILON)))
     print(f"  ContrastiveLoss gradient norm: {grad_norm:.6f}")
     print(f"    Non-zero elements: {nonzero_count}/{grads.size}")
 

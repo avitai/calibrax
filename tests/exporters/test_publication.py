@@ -7,12 +7,12 @@ from pathlib import Path
 
 import pytest
 
-import calibrax.exporters.publication as publication
 from calibrax.core.models import (
     MetricDef,
     TrendPoint,
     TrendSeries,
 )
+from calibrax.exporters import publication
 from calibrax.exporters.publication import PublicationGenerator
 from tests.factories import make_dual_framework_run, make_throughput_latency_defs
 

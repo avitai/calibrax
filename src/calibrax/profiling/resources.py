@@ -226,11 +226,12 @@ class ResourceMonitor:
             return None
         try:
             result = getattr(self._gpu_profiler, method)()
-            if key is not None:
-                return result.get(key)  # type: ignore[union-attr]
-            return result  # type: ignore[return-value]
+            # A malformed payload (not a dict where one is expected) degrades the same way.
+            value = result.get(key) if key is not None else result
         except (AttributeError, TypeError, ValueError, RuntimeError):
             return None
+        else:
+            return value  # type: ignore[return-value]
 
     def _get_gpu_util(self) -> float | None:
         """Get GPU utilization, returning None on failure or no profiler."""

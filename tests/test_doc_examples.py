@@ -11,6 +11,7 @@ A coverage-assertion test guarantees zero blocks are silently missed.
 
 from __future__ import annotations
 
+import logging
 import re
 import textwrap
 from contextlib import contextmanager, ExitStack
@@ -24,9 +25,12 @@ import pytest
 from flax import nnx
 
 
+logger = logging.getLogger(__name__)
+
 DOCS_DIR = Path(__file__).resolve().parent.parent / "docs"
 
-SKIP_PATTERN = re.compile(r"^#\s*doctest:\s*\+SKIP(?:\s*[—–-]\s*(.+))?", re.MULTILINE)
+# The reason may follow an em dash, an en dash or a hyphen.
+SKIP_PATTERN = re.compile(r"^#\s*doctest:\s*\+SKIP(?:\s*[\u2014\u2013-]\s*(.+))?", re.MULTILINE)
 FENCE_PATTERN = re.compile(r"^```(\w*)\n(.*?)^```", re.MULTILINE | re.DOTALL)
 
 
@@ -127,7 +131,7 @@ def _run_code_block(code: str, namespace: dict[str, Any], label: str) -> None:
     """
     compiled = compile(code, f"<{label}>", "exec")
     # S102: exec is intentional here — we are testing doc code blocks
-    exec(compiled, namespace)  # noqa: S102
+    exec(compiled, namespace)  # noqa: S102  # running the documented example is the test
 
 
 @contextmanager
@@ -244,7 +248,7 @@ def test_doc_file(file_path: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatc
             code = textwrap.dedent(block.code)
             try:
                 _run_code_block(code, ns, f"{block.file}:{block.line}")
-            except Exception as exc:  # noqa: BLE001 - aggregate block failures in a single report
+            except Exception as exc:
                 failures.append(
                     f"Block at line {block.line} failed:\n{exc!r}\n\n--- code ---\n{code}"
                 )
@@ -276,9 +280,11 @@ def test_all_python_blocks_accounted_for() -> None:
 
     # Informational summary
     non_python = sum(1 for b in ALL_BLOCKS if b.language != "python")
-    print("\nDoc code block summary:")
-    print(f"  Total code blocks: {len(ALL_BLOCKS)}")
-    print(f"  Python blocks:     {total}")
-    print(f"  Executed:          {executed}")
-    print(f"  Skipped:           {skipped}")
-    print(f"  Non-Python:        {non_python}")
+    logger.info(
+        "Doc code blocks: %d total, %d python, %d executed, %d skipped, %d non-python",
+        len(ALL_BLOCKS),
+        total,
+        executed,
+        skipped,
+        non_python,
+    )

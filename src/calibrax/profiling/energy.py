@@ -15,6 +15,10 @@ from pathlib import Path
 from calibrax.profiling._sampling import SamplingThread
 
 
+# Rectangular integration needs two power readings.
+_MIN_READINGS_FOR_INTEGRATION = 2
+
+
 logger = logging.getLogger(__name__)
 
 # RAPL sysfs path for CPU package energy
@@ -221,7 +225,7 @@ class EnergyMonitor:
     def _compute_gpu_energy(self) -> float | None:
         """Compute cumulative GPU energy via rectangular integration."""
         readings = self._gpu_power_readings
-        if len(readings) < 2:
+        if len(readings) < _MIN_READINGS_FOR_INTEGRATION:
             return None
 
         total = 0.0

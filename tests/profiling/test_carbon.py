@@ -132,9 +132,11 @@ class TestCarbonTracker:
 
     def test_raises_import_error_when_unavailable(self) -> None:
         """Should raise ImportError when codecarbon is not installed."""
-        with patch("calibrax.profiling.carbon.CODECARBON_AVAILABLE", False):
-            with pytest.raises(ImportError, match="codecarbon is required"):
-                CarbonTracker()
+        with (
+            patch("calibrax.profiling.carbon.CODECARBON_AVAILABLE", False),
+            pytest.raises(ImportError, match="codecarbon is required"),
+        ):
+            CarbonTracker()
 
     def test_context_manager_with_mocked_tracker(self) -> None:
         """Should wrap EmissionsTracker and yield CarbonResult."""
@@ -196,9 +198,9 @@ class TestCarbonTracker:
                 "calibrax.profiling.carbon.EmissionsTracker",
                 return_value=mock_emissions_tracker,
             ),
+            CarbonTracker(),
         ):
-            with CarbonTracker():
-                pass
+            pass
 
     def test_result_before_context_manager(self) -> None:
         """result() before entering context should return zeros."""
@@ -235,9 +237,9 @@ class TestCarbonTracker:
                 "calibrax.profiling.carbon.EmissionsTracker",
                 side_effect=[TypeError("unsupported kwarg"), mock_tracker],
             ) as tracker_cls,
+            CarbonTracker(country_iso_code="USA"),
         ):
-            with CarbonTracker(country_iso_code="USA"):
-                pass
+            pass
 
         assert tracker_cls.call_count == 2
         first_kwargs = tracker_cls.call_args_list[0].kwargs

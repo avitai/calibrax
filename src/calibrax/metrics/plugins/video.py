@@ -54,7 +54,9 @@ def vmaf_score(reference: str | Path, distorted: str | Path, *, model: str | Non
         ]
 
         try:
-            subprocess.run(command, check=True, capture_output=True, text=True)  # nosec B603
+            subprocess.run(  # noqa: S603  # nosec B603  # a fixed ffmpeg argv over validated paths
+                command, check=True, capture_output=True, text=True
+            )
         except FileNotFoundError as e:
             msg = "FFmpeg executable not found; install FFmpeg with libvmaf support"
             raise RuntimeError(msg) from e

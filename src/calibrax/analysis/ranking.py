@@ -53,10 +53,7 @@ def rank_table(
     best_value = sorted_items[0][1]
     entries: list[RankEntry] = []
     for rank, (label, value) in enumerate(sorted_items, start=1):
-        if best_value != 0:
-            delta = abs((value - best_value) / best_value) * 100.0
-        else:
-            delta = 0.0
+        delta = abs((value - best_value) / best_value) * 100.0 if best_value != 0 else 0.0
 
         entries.append(
             RankEntry(

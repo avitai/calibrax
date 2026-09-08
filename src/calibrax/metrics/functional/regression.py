@@ -17,15 +17,20 @@ import jax.numpy as jnp
 from calibrax.metrics._utils import _EPSILON, _prepare_arrays, safe_divide
 
 
+# Ensemble forecasts are (samples, members) with at least two members.
+_ENSEMBLE_NDIM = 2
+_MIN_ENSEMBLE_MEMBERS = 2
+
+
 def _prepare_ensemble_forecast_arrays(predictions: Any, targets: Any) -> tuple[Any, Any]:
     """Prepare ensemble forecast arrays for probabilistic regression metrics."""
     pred = jnp.asarray(predictions, dtype=jnp.float32)
     target = jnp.asarray(targets, dtype=jnp.float32)
 
-    if pred.ndim != 2:
+    if pred.ndim != _ENSEMBLE_NDIM:
         msg = f"predictions must be 2-dimensional, got shape {pred.shape}"
         raise ValueError(msg)
-    if pred.shape[1] < 2:
+    if pred.shape[1] < _MIN_ENSEMBLE_MEMBERS:
         msg = f"predictions must contain at least two ensemble members, got {pred.shape[1]}"
         raise ValueError(msg)
     if target.ndim == 0:

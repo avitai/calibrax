@@ -6,10 +6,10 @@ and generic target wrapping without domain-specific methods.
 
 from unittest.mock import MagicMock
 
-import flax.nnx as nnx
 import jax
 import jax.numpy as jnp
 import pytest
+from flax import nnx
 
 from calibrax.core.adapters import (
     adapt,
@@ -208,7 +208,7 @@ class TestAdapterRegistry:
         registry = AdapterRegistry()
         registry.register(NNXBenchmarkAdapter)
         registry.reset()
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="No adapter found"):
             registry.adapt(nnx.Linear(2, 3, rngs=nnx.Rngs(0)))
 
     def test_priority_order(self) -> None:

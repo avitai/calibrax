@@ -15,19 +15,19 @@ class TestTraceReference:
 
     def test_creation_with_defaults(self) -> None:
         """Should create TraceReference with default run_id=None."""
-        ref = TraceReference(trace_dir="/tmp/trace")
-        assert ref.trace_dir == "/tmp/trace"
+        ref = TraceReference(trace_dir="traces/run")
+        assert ref.trace_dir == "traces/run"
         assert ref.run_id is None
 
     def test_creation_with_run_id(self) -> None:
         """Should create TraceReference with explicit run_id."""
-        ref = TraceReference(trace_dir="/tmp/trace", run_id="run123")
-        assert ref.trace_dir == "/tmp/trace"
+        ref = TraceReference(trace_dir="traces/run", run_id="run123")
+        assert ref.trace_dir == "traces/run"
         assert ref.run_id == "run123"
 
     def test_frozen_immutability(self) -> None:
         """Should raise FrozenInstanceError on attribute mutation."""
-        ref = TraceReference(trace_dir="/tmp/trace", run_id="run1")
+        ref = TraceReference(trace_dir="traces/run", run_id="run1")
         with pytest.raises(dataclasses.FrozenInstanceError):
             ref.trace_dir = "/other"  # type: ignore[misc]
         with pytest.raises(dataclasses.FrozenInstanceError):
@@ -35,32 +35,32 @@ class TestTraceReference:
 
     def test_to_dict_without_run_id(self) -> None:
         """to_dict should omit run_id when None."""
-        ref = TraceReference(trace_dir="/tmp/trace")
+        ref = TraceReference(trace_dir="traces/run")
         d = ref.to_dict()
-        assert d == {"trace_dir": "/tmp/trace"}
+        assert d == {"trace_dir": "traces/run"}
         assert "run_id" not in d
 
     def test_to_dict_with_run_id(self) -> None:
         """to_dict should include run_id when set."""
-        ref = TraceReference(trace_dir="/tmp/trace", run_id="r1")
+        ref = TraceReference(trace_dir="traces/run", run_id="r1")
         d = ref.to_dict()
-        assert d == {"trace_dir": "/tmp/trace", "run_id": "r1"}
+        assert d == {"trace_dir": "traces/run", "run_id": "r1"}
 
     def test_from_dict_without_run_id(self) -> None:
         """from_dict should handle missing run_id as None."""
-        ref = TraceReference.from_dict({"trace_dir": "/tmp/trace"})
-        assert ref.trace_dir == "/tmp/trace"
+        ref = TraceReference.from_dict({"trace_dir": "traces/run"})
+        assert ref.trace_dir == "traces/run"
         assert ref.run_id is None
 
     def test_from_dict_with_run_id(self) -> None:
         """from_dict should restore run_id."""
-        ref = TraceReference.from_dict({"trace_dir": "/tmp/trace", "run_id": "r2"})
-        assert ref.trace_dir == "/tmp/trace"
+        ref = TraceReference.from_dict({"trace_dir": "traces/run", "run_id": "r2"})
+        assert ref.trace_dir == "traces/run"
         assert ref.run_id == "r2"
 
     def test_to_dict_from_dict_round_trip(self) -> None:
         """to_dict/from_dict should produce an equivalent object."""
-        original = TraceReference(trace_dir="/tmp/my_trace", run_id="abc123")
+        original = TraceReference(trace_dir="traces/my_run", run_id="abc123")
         reconstructed = TraceReference.from_dict(original.to_dict())
         assert reconstructed.trace_dir == original.trace_dir
         assert reconstructed.run_id == original.run_id
@@ -83,9 +83,9 @@ class TestTraceLinker:
         mock_trace.return_value.__exit__ = MagicMock(return_value=False)
 
         linker = TraceLinker()
-        with linker.trace("/tmp/my_trace") as ref:
+        with linker.trace("traces/my_run") as ref:
             assert isinstance(ref, TraceReference)
-            assert ref.trace_dir == "/tmp/my_trace"
+            assert ref.trace_dir == "traces/my_run"
             assert ref.run_id is None
 
     @patch("calibrax.profiling.tracing.jax.profiler.trace")
@@ -95,9 +95,9 @@ class TestTraceLinker:
         mock_trace.return_value.__exit__ = MagicMock(return_value=False)
 
         linker = TraceLinker()
-        with linker.trace("/tmp/trace_dir", run_id="run42") as ref:
+        with linker.trace("traces/dir", run_id="run42") as ref:
             assert ref.run_id == "run42"
-            assert ref.trace_dir == "/tmp/trace_dir"
+            assert ref.trace_dir == "traces/dir"
 
     @patch("calibrax.profiling.tracing.jax.profiler.trace")
     def test_trace_calls_jax_profiler(self, mock_trace: MagicMock) -> None:
@@ -106,11 +106,11 @@ class TestTraceLinker:
         mock_trace.return_value.__exit__ = MagicMock(return_value=False)
 
         linker = TraceLinker()
-        with linker.trace("/tmp/prof", create_perfetto_link=True):
+        with linker.trace("traces/prof", create_perfetto_link=True):
             pass
 
         mock_trace.assert_called_once_with(
-            "/tmp/prof",
+            "traces/prof",
             create_perfetto_link=True,
             create_perfetto_trace=False,
         )
@@ -124,8 +124,8 @@ class TestTraceLinker:
         mock_trace.return_value.__exit__ = MagicMock(return_value=False)
 
         linker = TraceLinker()
-        with linker.trace(Path("/tmp/path_trace")) as ref:
-            assert ref.trace_dir == "/tmp/path_trace"
+        with linker.trace(Path("traces/path")) as ref:
+            assert ref.trace_dir == "traces/path"
 
     @patch("calibrax.profiling.tracing.jax.profiler.trace")
     def test_trace_perfetto_options(self, mock_trace: MagicMock) -> None:
@@ -135,14 +135,14 @@ class TestTraceLinker:
 
         linker = TraceLinker()
         with linker.trace(
-            "/tmp/t",
+            "traces/t",
             create_perfetto_link=True,
             create_perfetto_trace=True,
         ):
             pass
 
         mock_trace.assert_called_once_with(
-            "/tmp/t",
+            "traces/t",
             create_perfetto_link=True,
             create_perfetto_trace=True,
         )

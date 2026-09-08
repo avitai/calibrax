@@ -20,6 +20,10 @@ from calibrax.core.models import (
 )
 
 
+# A comparison needs two configurations.
+_MIN_CONFIGURATIONS = 2
+
+
 @dataclass(frozen=True, slots=True, kw_only=True)
 class MetricComparison:
     """Comparison results for a single metric across configurations.
@@ -187,7 +191,7 @@ def compare_configurations(
     Raises:
         ValueError: If fewer than 2 configurations are provided.
     """
-    if len(runs) < 2:
+    if len(runs) < _MIN_CONFIGURATIONS:
         msg = "At least 2 configurations are required for comparison"
         raise ValueError(msg)
 

@@ -20,6 +20,10 @@ from calibrax.metrics.functional.regression import mae, mse, r_squared
 from calibrax.metrics.functional.statistical import pearson_correlation
 
 
+# Diversity is a pairwise quantity; one conformation has none.
+_MIN_CONFORMATIONS = 2
+
+
 def chemical_validity(
     bond_lengths: jnp.ndarray,
     bond_angles: jnp.ndarray,
@@ -112,7 +116,7 @@ def conformational_diversity(
         >>> conformational_diversity(coords)  # > 0.0
     """
     n = coordinates.shape[0]
-    if n < 2:
+    if n < _MIN_CONFORMATIONS:
         return 0.0
 
     # Broadcasting: (n, 1, atoms, 3) - (1, n, atoms, 3) -> (n, n, atoms, 3)

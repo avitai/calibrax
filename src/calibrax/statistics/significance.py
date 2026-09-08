@@ -120,7 +120,7 @@ def _sign_test_fallback(
     a: list[float], b: list[float], es: float, alpha: float
 ) -> SignificanceResult:
     """Pure-Python sign test fallback when scipy is unavailable."""
-    diffs = [ai - bi for ai, bi in zip(a, b)]
+    diffs = [ai - bi for ai, bi in zip(a, b, strict=True)]
     non_zero = [d for d in diffs if d != 0.0]
     if not non_zero:
         return SignificanceResult(
@@ -178,7 +178,7 @@ def _binom_coeff(n: int, k: int) -> int:
     """
     if k < 0 or k > n:
         return 0
-    if k == 0 or k == n:
+    if k in (0, n):
         return 1
     k = min(k, n - k)
     result = 1

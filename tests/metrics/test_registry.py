@@ -47,7 +47,7 @@ class TestMetricEntry:
     def test_creation_full(self) -> None:
         """Should create with all fields specified."""
 
-        def dummy(p: object, t: object) -> float:
+        def dummy(_p: object, _t: object) -> float:
             return 0.0
 
         entry = MetricEntry(
@@ -188,7 +188,7 @@ class TestMetricRegistry:
         registry = MetricRegistry()
         entry = MetricEntry(
             name="test_invariant",
-            fn=lambda p, t: 0.0,
+            fn=lambda _p, _t: 0.0,
             tier=MetricTier.PURE_FUNCTION,
             properties=MetricProperties(invariances=("translation", "rotation")),
         )
@@ -226,7 +226,7 @@ class TestRegisterMetricDecorator:
         """Decorated function should appear in the registry."""
 
         @register_metric("test_custom_metric", description="Test")
-        def custom_metric(predictions: object, targets: object) -> float:
+        def custom_metric(_predictions: object, _targets: object) -> float:
             return 0.0
 
         registry = MetricRegistry()
@@ -241,7 +241,7 @@ class TestRegisterMetricDecorator:
 class TestCalculateAllFused:
     """Verify fused calculate_all matches individual metric calls."""
 
-    _FUSED_NAMES = [
+    _FUSED_NAMES = (
         "mse",
         "mae",
         "rmse",
@@ -254,7 +254,7 @@ class TestCalculateAllFused:
         "quantile_loss",
         "log_cosh_loss",
         "smape",
-    ]
+    )
 
     def test_fused_returns_all_regression_metrics(self) -> None:
         """Fused path must return the exact 12 same-shape regression metric names."""

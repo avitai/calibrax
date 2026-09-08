@@ -266,7 +266,7 @@ class MetricSuite:
                 domains.setdefault(entry.domain, []).append(entry.name)
 
         for domain, names in sorted(domains.items()):
-            suite._groups[domain] = names  # noqa: SLF001
+            suite._groups[domain] = names
         return suite
 
 

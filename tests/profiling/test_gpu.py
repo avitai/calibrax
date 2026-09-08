@@ -241,9 +241,11 @@ class TestGPUMemoryProfiler:
         profiler = GPUMemoryProfiler()
         profiler.has_gpu = True
 
-        with patch("calibrax.profiling.gpu.PYNVML_AVAILABLE", True):
-            with patch("calibrax.profiling.gpu.pynvml", fake_nvml):
-                result = profiler._safe_nvml_query(lambda _handle: {"ok": 1.0}, {"ok": 0.0})
+        with (
+            patch("calibrax.profiling.gpu.PYNVML_AVAILABLE", True),
+            patch("calibrax.profiling.gpu.pynvml", fake_nvml),
+        ):
+            result = profiler._safe_nvml_query(lambda _handle: {"ok": 1.0}, {"ok": 0.0})
 
         assert result == {"ok": 0.0}
 
@@ -263,9 +265,11 @@ class TestGPUMemoryProfiler:
         profiler = GPUMemoryProfiler()
         profiler.has_gpu = True
 
-        with patch("calibrax.profiling.gpu.PYNVML_AVAILABLE", True):
-            with patch("calibrax.profiling.gpu.pynvml", fake_nvml):
-                clocks = profiler.get_clock_info()
+        with (
+            patch("calibrax.profiling.gpu.PYNVML_AVAILABLE", True),
+            patch("calibrax.profiling.gpu.pynvml", fake_nvml),
+        ):
+            clocks = profiler.get_clock_info()
 
         assert clocks == {"gpu_clock_mhz": 1500.0, "mem_clock_mhz": 2100.0}
 
@@ -284,9 +288,11 @@ class TestGPUMemoryProfiler:
         profiler = GPUMemoryProfiler()
         profiler.has_gpu = True
 
-        with patch("calibrax.profiling.gpu.PYNVML_AVAILABLE", True):
-            with patch("calibrax.profiling.gpu.pynvml", fake_nvml):
-                power = profiler.get_power_info()
+        with (
+            patch("calibrax.profiling.gpu.PYNVML_AVAILABLE", True),
+            patch("calibrax.profiling.gpu.pynvml", fake_nvml),
+        ):
+            power = profiler.get_power_info()
 
         assert power == {"power_draw_w": 240.0, "power_limit_w": 300.0}
 

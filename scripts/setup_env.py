@@ -33,7 +33,7 @@ def detect_linux_nvidia_gpu() -> bool:
     """Return True when `nvidia-smi` reports at least one visible NVIDIA GPU."""
     try:
         result = subprocess.run(
-            ["nvidia-smi", "-L"],
+            ["nvidia-smi", "-L"],  # noqa: S607  # probing PATH is the point; a miss is handled
             check=False,
             capture_output=True,
             text=True,

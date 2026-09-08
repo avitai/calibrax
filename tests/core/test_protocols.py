@@ -100,7 +100,7 @@ class TestBatchableDatasetProtocol:
             def __getitem__(self, idx: int) -> Any:
                 return idx
 
-            def get_batch(self, batch_size: int, start_idx: int) -> dict[str, Any]:
+            def get_batch(self, batch_size: int, start_idx: int) -> dict[str, Any]:  # noqa: ARG002  # protocol stub
                 return {}
 
         instance = GoodBatchable()
@@ -134,8 +134,8 @@ class TestMetricProtocol:
 
             def compute(
                 self,
-                predictions: jax.Array,
-                targets: jax.Array,
+                predictions: jax.Array,  # noqa: ARG002  # protocol stub
+                targets: jax.Array,  # noqa: ARG002  # protocol stub
             ) -> float:
                 return 0.95
 
@@ -197,7 +197,7 @@ class TestMetricLearningProtocol:
         """A callable class with correct signature should pass."""
 
         class MyLoss:
-            def __call__(self, embeddings: jax.Array, labels: jax.Array) -> jax.Array:
+            def __call__(self, embeddings: jax.Array, labels: jax.Array) -> jax.Array:  # noqa: ARG002  # protocol stub
                 return jnp.array(0.0)
 
         assert isinstance(MyLoss(), MetricLearningProtocol)

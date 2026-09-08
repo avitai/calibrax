@@ -41,12 +41,18 @@ class ContrastiveLoss(MetricLearningLoss):
         super().__init__(reduction=reduction)
         self._margin = margin
 
-    def _compute_loss(self, embeddings: jax.Array, labels: jax.Array, **kwargs: Any) -> jax.Array:
+    def _compute_loss(
+        self,
+        embeddings: jax.Array,
+        labels: jax.Array,
+        **kwargs: Any,  # noqa: ARG002  # part of the loss interface
+    ) -> jax.Array:
         """Compute contrastive loss for all pairs.
 
         Args:
             embeddings: (batch_size, dim) embedding vectors.
             labels: (batch_size,) class labels.
+            **kwargs: Unused; accepted for the loss interface.
 
         Returns:
             Per-pair loss array.
@@ -93,12 +99,18 @@ class TripletMarginLoss(MetricLearningLoss):
         super().__init__(reduction=reduction)
         self._margin = margin
 
-    def _compute_loss(self, embeddings: jax.Array, labels: jax.Array, **kwargs: Any) -> jax.Array:
+    def _compute_loss(
+        self,
+        embeddings: jax.Array,
+        labels: jax.Array,
+        **kwargs: Any,  # noqa: ARG002  # part of the loss interface
+    ) -> jax.Array:
         """Compute triplet loss for all valid triplets.
 
         Args:
             embeddings: (batch_size, dim) embedding vectors.
             labels: (batch_size,) class labels.
+            **kwargs: Unused; accepted for the loss interface.
 
         Returns:
             Per-triplet loss array (reduced to scalar via batch mean).
@@ -154,12 +166,18 @@ class NTXentLoss(MetricLearningLoss):
         super().__init__(reduction=reduction)
         self._temperature = temperature
 
-    def _compute_loss(self, embeddings: jax.Array, labels: jax.Array, **kwargs: Any) -> jax.Array:
+    def _compute_loss(
+        self,
+        embeddings: jax.Array,
+        labels: jax.Array,
+        **kwargs: Any,  # noqa: ARG002  # part of the loss interface
+    ) -> jax.Array:
         """Compute NT-Xent loss.
 
         Args:
             embeddings: (batch_size, dim) embedding vectors.
             labels: (batch_size,) class labels.
+            **kwargs: Unused; accepted for the loss interface.
 
         Returns:
             Per-anchor loss array.
@@ -190,5 +208,4 @@ class NTXentLoss(MetricLearningLoss):
         num_positives = jnp.maximum(jnp.sum(pos_mask, axis=1), 1.0)
         log_num = jnp.sum(pos_sim, axis=1) / num_positives
 
-        losses = -log_num + log_denom
-        return losses
+        return -log_num + log_denom

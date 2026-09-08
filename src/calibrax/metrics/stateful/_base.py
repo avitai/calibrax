@@ -10,7 +10,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any
 
-import flax.nnx as nnx
+from flax import nnx
 
 from calibrax.metrics.plotting import MetricPlotMixin
 
@@ -136,7 +136,7 @@ class LearnedMetric(MetricPlotMixin, nnx.Module):
         ...         self._linear = nnx.Linear(4, 1, rngs=rngs)
     """
 
-    def __init__(self, name: str, *, rngs: nnx.Rngs) -> None:
+    def __init__(self, name: str, *, rngs: nnx.Rngs) -> None:  # noqa: ARG002  # for subclasses
         """Initialize learned metric.
 
         Args:

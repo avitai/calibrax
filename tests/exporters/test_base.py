@@ -11,7 +11,7 @@ from calibrax.exporters.base import Exporter
 class ConcreteExporter(Exporter):
     """Minimal concrete exporter for testing the ABC."""
 
-    def export_run(self, run: Run) -> str:
+    def export_run(self, run: Run) -> str:  # noqa: ARG002  # abstract-method stub
         """Return a fixed URL."""
         return "https://example.com/run"
 

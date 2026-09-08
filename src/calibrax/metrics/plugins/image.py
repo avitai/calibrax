@@ -12,11 +12,15 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-import flax.nnx as nnx
 import jax.numpy as jnp
+from flax import nnx
 
 from calibrax.metrics._utils import _EPSILON
 from calibrax.metrics.stateful._base import FrozenBackboneMetric, LearnedMetric
+
+
+# Feature inputs are (samples, features); anything deeper is raw images.
+_FEATURE_NDIM = 2
 
 
 logger = logging.getLogger(__name__)
@@ -75,7 +79,7 @@ class FIDMetric(FrozenBackboneMetric):
         """
         real = jnp.asarray(kwargs["real"])
         generated = jnp.asarray(kwargs["generated"])
-        if real.ndim > 2:
+        if real.ndim > _FEATURE_NDIM:
             logger.warning(
                 "Raw image input detected. Install calibrax[image] for "
                 "InceptionV3 feature extraction. Using flattened features."
@@ -250,7 +254,9 @@ class LPIPSMetric(LearnedMetric):
         features_b = kwargs.get("features_b", [])
 
         total = 0.0
-        for layer_feat_a, layer_feat_b, linear in zip(features_a, features_b, self._layer_weights):
+        for layer_feat_a, layer_feat_b, linear in zip(
+            features_a, features_b, self._layer_weights, strict=True
+        ):
             diff = jnp.asarray(layer_feat_a) - jnp.asarray(layer_feat_b)
             weighted = linear(diff)
             total += float(jnp.mean(weighted**2))

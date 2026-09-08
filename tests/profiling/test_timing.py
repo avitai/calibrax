@@ -275,8 +275,8 @@ class TestTimingCollector:
         assert result.num_elements == 9
 
     def test_process_and_count_fns_are_separate(self) -> None:
-        process_fn = MagicMock(side_effect=lambda batch: sum(batch))
-        count_fn = MagicMock(side_effect=lambda batch: len(batch))
+        process_fn = MagicMock(side_effect=sum)
+        count_fn = MagicMock(side_effect=len)
         batches = [[1, 2, 3], [4, 5], [6]]
         collector = TimingCollector()
 

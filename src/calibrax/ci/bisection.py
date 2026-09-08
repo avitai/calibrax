@@ -8,6 +8,7 @@ detection functions.
 from __future__ import annotations
 
 import logging
+import shutil
 import subprocess  # nosec B404
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -15,6 +16,23 @@ from pathlib import Path
 from typing import Any
 
 from calibrax.core.models import Run
+
+
+# A range of two commits (good, bad) has nothing left to bisect.
+_ADJACENT_RANGE = 2
+
+
+def _git_executable() -> str:
+    """Return the absolute path of ``git``, failing fast when it is not installed.
+
+    Raises:
+        FileNotFoundError: If ``git`` is not on ``PATH``.
+    """
+    path = shutil.which("git")
+    if path is None:
+        msg = "git is not on PATH; bisection needs it"
+        raise FileNotFoundError(msg)
+    return path
 
 
 logger = logging.getLogger(__name__)
@@ -86,12 +104,12 @@ class BisectionEngine:
 
         try:
             commits = self._get_commit_range(good_commit, bad_commit)
-            if len(commits) <= 2:
+            if len(commits) <= _ADJACENT_RANGE:
                 return BisectionResult(
-                    culprit_commit=bad_commit if len(commits) == 2 else None,
+                    culprit_commit=bad_commit if len(commits) == _ADJACENT_RANGE else None,
                     total_steps=0,
                     tested_commits=(),
-                    is_regression_found=len(commits) == 2,
+                    is_regression_found=len(commits) == _ADJACENT_RANGE,
                 )
 
             left = 0
@@ -131,8 +149,8 @@ class BisectionEngine:
 
     def _get_current_head(self) -> str:
         """Get the current HEAD commit hash."""
-        result = subprocess.run(  # nosec B603 B607
-            ["git", "rev-parse", "HEAD"],
+        result = subprocess.run(  # noqa: S603  # nosec B603  # refs come from the caller; no shell
+            [_git_executable(), "rev-parse", "HEAD"],
             cwd=self._repo_path,
             capture_output=True,
             text=True,
@@ -147,8 +165,8 @@ class BisectionEngine:
         to the current commit hash when detached.
         """
         try:
-            result = subprocess.run(  # nosec B603 B607
-                ["git", "symbolic-ref", "--quiet", "--short", "HEAD"],
+            result = subprocess.run(  # noqa: S603  # nosec B603  # refs come from the caller; no shell
+                [_git_executable(), "symbolic-ref", "--quiet", "--short", "HEAD"],
                 cwd=self._repo_path,
                 capture_output=True,
                 text=True,
@@ -173,8 +191,8 @@ class BisectionEngine:
         Returns:
             List of commit hashes from good to bad inclusive.
         """
-        result = subprocess.run(  # nosec B603 B607
-            ["git", "rev-list", "--reverse", f"{good}^..{bad}"],
+        result = subprocess.run(  # noqa: S603  # nosec B603  # refs come from the caller; no shell
+            [_git_executable(), "rev-list", "--reverse", f"{good}^..{bad}"],
             cwd=self._repo_path,
             capture_output=True,
             text=True,
@@ -184,8 +202,8 @@ class BisectionEngine:
 
     def _checkout(self, commit: str) -> None:
         """Checkout a specific commit."""
-        subprocess.run(  # nosec B603 B607
-            ["git", "checkout", commit],
+        subprocess.run(  # noqa: S603  # nosec B603  # refs come from the caller; no shell
+            [_git_executable(), "checkout", commit],
             cwd=self._repo_path,
             capture_output=True,
             text=True,
@@ -194,8 +212,8 @@ class BisectionEngine:
 
     def _restore_head(self, original_head: str) -> None:
         """Restore the original HEAD after bisection."""
-        subprocess.run(  # nosec B603 B607
-            ["git", "checkout", original_head],
+        subprocess.run(  # noqa: S603  # nosec B603  # refs come from the caller; no shell
+            [_git_executable(), "checkout", original_head],
             cwd=self._repo_path,
             capture_output=True,
             text=True,

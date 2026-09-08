@@ -18,6 +18,19 @@ from typing import Any
 import jax
 
 
+# Thresholds behind the recommendations and the health level.
+_LOW_CACHE_HIT_RATE = 0.5
+_MODERATE_CACHE_HIT_RATE = 0.8
+_HIGH_COMPILATION_SECONDS = 5.0
+_MODERATE_COMPILATION_SECONDS = 2.0
+_EXCELLENT_HEALTH_SCORE = 0.8
+_GOOD_HEALTH_SCORE = 0.6
+_MODERATE_HEALTH_SCORE = 0.4
+_LOW_FUSION_RATIO = 0.2
+_LOW_ARITHMETIC_RATIO = 0.3
+_HIGH_MEMORY_RATIO = 0.5
+
+
 logger = logging.getLogger(__name__)
 
 _HLO_OPCODE_RE = re.compile(r"\b([A-Za-z_][\w.\-]*)\s*\(")
@@ -391,7 +404,7 @@ class CompilationProfiler:
         """
         recommendations: list[str] = []
 
-        if cache_hit_rate < 0.5:
+        if cache_hit_rate < _LOW_CACHE_HIT_RATE:
             recommendations.extend(
                 [
                     f"Low cache hit rate ({cache_hit_rate:.2%}).",
@@ -399,13 +412,13 @@ class CompilationProfiler:
                     "Use static_argnums for non-array arguments in jax.jit.",
                 ]
             )
-        elif cache_hit_rate < 0.8:
+        elif cache_hit_rate < _MODERATE_CACHE_HIT_RATE:
             recommendations.append(
                 f"Moderate cache hit rate ({cache_hit_rate:.2%}). "
                 "Fine-tune input preprocessing for better shape consistency."
             )
 
-        if avg_compilation_time > 5.0:
+        if avg_compilation_time > _HIGH_COMPILATION_SECONDS:
             recommendations.extend(
                 [
                     f"High average compilation time ({avg_compilation_time:.2f}s).",
@@ -413,7 +426,7 @@ class CompilationProfiler:
                     "Consider pre-compilation for critical paths.",
                 ]
             )
-        elif avg_compilation_time > 2.0:
+        elif avg_compilation_time > _MODERATE_COMPILATION_SECONDS:
             recommendations.append(
                 f"Moderate compilation time ({avg_compilation_time:.2f}s). "
                 "Monitor for complex control flow that may slow compilation."
@@ -439,11 +452,11 @@ class CompilationProfiler:
         score += speed_score * 0.5
         score = min(score, 1.0)
 
-        if score > 0.8:
+        if score > _EXCELLENT_HEALTH_SCORE:
             level = "excellent"
-        elif score > 0.6:
+        elif score > _GOOD_HEALTH_SCORE:
             level = "good"
-        elif score > 0.4:
+        elif score > _MODERATE_HEALTH_SCORE:
             level = "moderate"
         else:
             level = "poor"
@@ -524,7 +537,7 @@ class CompilationProfiler:
         """
         recommendations: list[str] = []
 
-        if fusion_ratio < 0.2:
+        if fusion_ratio < _LOW_FUSION_RATIO:
             recommendations.extend(
                 [
                     "Low fusion ratio - operations may not be well-fused.",
@@ -532,7 +545,7 @@ class CompilationProfiler:
                 ]
             )
 
-        if arithmetic_ratio < 0.3:
+        if arithmetic_ratio < _LOW_ARITHMETIC_RATIO:
             recommendations.extend(
                 [
                     "Low arithmetic intensity.",
@@ -540,7 +553,7 @@ class CompilationProfiler:
                 ]
             )
 
-        if memory_ratio > 0.5:
+        if memory_ratio > _HIGH_MEMORY_RATIO:
             recommendations.extend(
                 [
                     "High memory operation ratio.",

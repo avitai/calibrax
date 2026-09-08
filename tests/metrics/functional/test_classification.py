@@ -40,7 +40,8 @@ class TestAccuracy:
     def test_returns_scalar(self) -> None:
         """Result should be a JAX scalar array."""
         result = accuracy(jnp.zeros(3, dtype=jnp.int32), jnp.zeros(3, dtype=jnp.int32))
-        assert hasattr(result, "shape") and result.shape == ()
+        assert hasattr(result, "shape")
+        assert result.shape == ()
 
     def test_probabilities_input(self) -> None:
         """Should handle 2D probability input via argmax."""
@@ -128,7 +129,8 @@ class TestROCAUC:
     def test_returns_scalar(self) -> None:
         """Result should be a JAX scalar array."""
         result = roc_auc(jnp.array([0.5, 0.5]), jnp.array([0, 1]))
-        assert hasattr(result, "shape") and result.shape == ()
+        assert hasattr(result, "shape")
+        assert result.shape == ()
 
 
 class TestLogLoss:
@@ -159,7 +161,8 @@ class TestLogLoss:
     def test_returns_scalar(self) -> None:
         """Result should be a JAX scalar array."""
         result = log_loss(jnp.array([0.5, 0.5]), jnp.array([0, 1]))
-        assert hasattr(result, "shape") and result.shape == ()
+        assert hasattr(result, "shape")
+        assert result.shape == ()
 
 
 class TestMatthewsCorrcoef:
@@ -191,7 +194,8 @@ class TestCohenKappa:
     def test_returns_scalar(self) -> None:
         """Result should be a JAX scalar array."""
         result = cohen_kappa(jnp.array([0, 1]), jnp.array([0, 1]))
-        assert hasattr(result, "shape") and result.shape == ()
+        assert hasattr(result, "shape")
+        assert result.shape == ()
 
 
 class TestConfusionMatrix:

@@ -17,6 +17,11 @@ import jax.numpy as jnp
 from calibrax.metrics._utils import _EPSILON
 
 
+# Images are (H, W) for one channel or (H, W, C).
+_SINGLE_CHANNEL_NDIM = 2
+_MULTICHANNEL_NDIM = 3
+
+
 def _gaussian_kernel_1d(size: int, sigma: float) -> Any:
     """Create 1D Gaussian kernel.
 
@@ -195,7 +200,7 @@ def ssim(
     predictions = jnp.asarray(predictions, dtype=jnp.float32)
     targets = jnp.asarray(targets, dtype=jnp.float32)
 
-    if predictions.ndim == 2:
+    if predictions.ndim == _SINGLE_CHANNEL_NDIM:
         val, _, _ = _ssim_single_channel(
             predictions,
             targets,
@@ -261,7 +266,7 @@ def ms_ssim(
     targets = jnp.asarray(targets, dtype=jnp.float32)
 
     n_scales = len(power_factors)
-    is_multichannel = predictions.ndim == 3
+    is_multichannel = predictions.ndim == _MULTICHANNEL_NDIM
 
     def _ssim_components_for_channel(pred_ch: Any, tgt_ch: Any) -> tuple[Any, Any]:
         val, cs, _ = _ssim_single_channel(
@@ -284,7 +289,7 @@ def ms_ssim(
             ssim_val = jnp.mean(vals)
             cs_val = jnp.mean(css)
         else:
-            ssim_val, cs_val, lum_val = _ssim_single_channel(
+            ssim_val, cs_val, _ = _ssim_single_channel(
                 predictions,
                 targets,
                 max_val=max_val,
@@ -319,9 +324,7 @@ def ms_ssim(
     # Product of contrast-structure raised to power factors
     cs_arr = jnp.array(cs_values)
     pf_arr = jnp.array(power_factors)
-    result = jnp.prod(jnp.maximum(cs_arr, _EPSILON) ** pf_arr)
-
-    return result
+    return jnp.prod(jnp.maximum(cs_arr, _EPSILON) ** pf_arr)
 
 
 def vendi_score(similarity_matrix: Any) -> Any:

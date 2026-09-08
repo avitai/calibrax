@@ -73,10 +73,7 @@ class CIGuard:
             msg = "No baseline set. Use store.set_baseline() first."
             raise FileNotFoundError(msg)
 
-        if run_id is not None:
-            run = self._store.load(run_id)
-        else:
-            run = self._store.latest()
+        run = self._store.load(run_id) if run_id is not None else self._store.latest()
 
         regressions = detect_regressions(run, baseline, threshold=self._threshold)
 

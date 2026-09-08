@@ -14,10 +14,15 @@ from typing import Any
 
 import jax
 
+from calibrax.profiling.hardware import detect_hardware_specs, measure_execution_time
+
+
+# Attained-over-attainable fractions behind the recommendations.
+_LOW_EFFICIENCY = 0.2
+_MODERATE_EFFICIENCY = 0.5
+
 
 logger = logging.getLogger(__name__)
-
-from calibrax.profiling.hardware import detect_hardware_specs, measure_execution_time
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -279,7 +284,7 @@ class RooflineAnalyzer:
                 ]
             )
 
-        if efficiency < 0.2:
+        if efficiency < _LOW_EFFICIENCY:
             attained_gflops = achieved_flops / 1e9
             recommendations.extend(
                 [
@@ -291,7 +296,7 @@ class RooflineAnalyzer:
                     "Check data alignment.",
                 ]
             )
-        elif efficiency < 0.5:
+        elif efficiency < _MODERATE_EFFICIENCY:
             recommendations.extend(
                 [
                     f"Moderate efficiency ({efficiency:.2%}). Potential improvements:",

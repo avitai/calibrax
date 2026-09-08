@@ -383,31 +383,35 @@ class TestCompilationProfiler:
             mock_jax.jit.return_value = MagicMock(side_effect=RuntimeError("warmup compile failed"))
             fn = profiler.profile_jit_compilation(lambda x: x)
 
-            with caplog.at_level("WARNING"):
-                with pytest.raises(RuntimeError, match="warmup compile failed"):
-                    fn(jnp.ones((2,)))
+            with (
+                caplog.at_level("WARNING"),
+                pytest.raises(RuntimeError, match="warmup compile failed"),
+            ):
+                fn(jnp.ones((2,)))
 
         assert any("Compilation failed after" in msg for msg in caplog.messages)
 
     def test_warmup_unexpected_error_propagates_without_wrapper_warning(
         self, caplog: pytest.LogCaptureFixture
     ) -> None:
-        class CatastrophicCompileFailure(Exception):
+        class CatastrophicCompileError(Exception):
             pass
 
         profiler = CompilationProfiler()
         with patch("calibrax.profiling.compilation.jax") as mock_jax:
             mock_jax.jit.return_value = MagicMock(
-                side_effect=CatastrophicCompileFailure("unexpected compile failure")
+                side_effect=CatastrophicCompileError("unexpected compile failure")
             )
             fn = profiler.profile_jit_compilation(lambda x: x)
 
-            with caplog.at_level("WARNING"):
-                with pytest.raises(
-                    CatastrophicCompileFailure,
+            with (
+                caplog.at_level("WARNING"),
+                pytest.raises(
+                    CatastrophicCompileError,
                     match="unexpected compile failure",
-                ):
-                    fn(jnp.ones((2,)))
+                ),
+            ):
+                fn(jnp.ones((2,)))
 
         assert all("Compilation failed after" not in msg for msg in caplog.messages)
 
@@ -462,17 +466,17 @@ class TestCompilationProfilerXLAOptimization:
         assert len(result.recommendations) > 0
 
     def test_unexpected_xla_error_is_not_swallowed(self) -> None:
-        class CatastrophicXLAFailure(Exception):
+        class CatastrophicXlaError(Exception):
             pass
 
         profiler = CompilationProfiler()
 
         with patch("calibrax.profiling.compilation.jax") as mock_jax:
             mock_jit = MagicMock()
-            mock_jit.lower.side_effect = CatastrophicXLAFailure("unexpected XLA failure")
+            mock_jit.lower.side_effect = CatastrophicXlaError("unexpected XLA failure")
             mock_jax.jit.return_value = mock_jit
 
-            with pytest.raises(CatastrophicXLAFailure, match="unexpected XLA failure"):
+            with pytest.raises(CatastrophicXlaError, match="unexpected XLA failure"):
                 profiler.estimate_xla_optimization(lambda a: a, "bad_input")
 
     def test_analyze_hlo_counts_only_instruction_lines(self) -> None:

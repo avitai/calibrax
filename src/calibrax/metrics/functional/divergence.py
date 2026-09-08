@@ -23,6 +23,10 @@ import jax.numpy as jnp
 from calibrax.metrics._utils import _EPSILON, safe_divide, safe_log
 
 
+# Renyi divergence is undefined at alpha = 1; treat values this close as 1.
+_ALPHA_ONE_TOLERANCE = 1e-10
+
+
 def kl_divergence(p: Any, q: Any) -> Any:
     """Kullback-Leibler divergence: ``sum(p * log(p / q))``.
 
@@ -200,7 +204,7 @@ def renyi_divergence(p: Any, q: Any, *, alpha: float = 0.5) -> Any:
     Raises:
         ValueError: If alpha equals 1.0.
     """
-    if abs(alpha - 1.0) < 1e-10:
+    if abs(alpha - 1.0) < _ALPHA_ONE_TOLERANCE:
         msg = "alpha=1.0 is undefined for Renyi divergence; use kl_divergence instead"
         raise ValueError(msg)
     p_arr = jnp.asarray(p).ravel()
@@ -389,8 +393,7 @@ def sinkhorn_divergence(
         init_state = (jnp.ones(n_a), jnp.ones(n_b), jnp.bool_(False), jnp.int32(0))
         u, v, _, _ = jax.lax.while_loop(_not_converged, _step, init_state)
         # Transport cost: sum_{ij} u_i K_{ij} v_j C_{ij}
-        transport = jnp.sum(u[:, None] * k * v[None, :] * cost)
-        return transport
+        return jnp.sum(u[:, None] * k * v[None, :] * cost)
 
     ot_xy = _sinkhorn_cost(x_arr, y_arr)
     ot_xx = _sinkhorn_cost(x_arr, x_arr)
@@ -493,5 +496,4 @@ def bregman_divergence(
     grad_y = generator_grad(y_arr)
     diff = x_arr - y_arr
 
-    result = psi_x - psi_y - jnp.dot(grad_y, diff)
-    return result
+    return psi_x - psi_y - jnp.dot(grad_y, diff)

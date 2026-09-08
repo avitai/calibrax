@@ -247,12 +247,11 @@ class Store:
             return None
         return Run.from_dict(json.loads(path.read_text()))
 
-    def ingest(self, path: Path, format: str = "auto") -> Run:
+    def ingest(self, path: Path) -> Run:
         """Import results from an external JSON file and save to store.
 
         Args:
             path: Path to the external JSON file.
-            format: Import format (currently only "auto" / JSON supported).
 
         Returns:
             The imported Run.

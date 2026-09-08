@@ -12,6 +12,10 @@ from dataclasses import dataclass, field
 from typing import Any
 
 
+# Convergence is judged on consecutive differences, so a series needs two points.
+_MIN_SERIES_LENGTH = 2
+
+
 @dataclass(frozen=True, slots=True, kw_only=True)
 class ConvergenceResult:
     """Analysis of convergence behavior.
@@ -139,7 +143,7 @@ def check_convergence(
     iterations: dict[str, int] = {}
 
     for metric_name, values in metric_series.items():
-        if len(values) < 2:
+        if len(values) < _MIN_SERIES_LENGTH:
             rates[metric_name] = 0.0
             for tol in tolerances:
                 achieved[f"{metric_name}_{tol}"] = bool(len(values) == 1 and values[0] <= tol)

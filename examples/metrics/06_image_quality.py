@@ -12,6 +12,9 @@
 #     name: python3
 # ---
 
+# %%
+"""Image-quality metrics: PSNR, SSIM and multi-scale SSIM on synthetic images."""
+
 # %% [markdown]
 # # Image Quality and Text Evaluation Metrics
 #

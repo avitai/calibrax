@@ -7,6 +7,18 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+### Changed
+
+- Lint now enforces the annotation, argument, bugbear, comprehension, complexity, docstring,
+  naming, pylint, pytest-style, pathlib, return, security, simplification, print and
+  try-except rule families (the same set as substrax), with the reasons for every ignored
+  rule recorded in `pyproject.toml`. The code changes it required: every threshold in the
+  profiling, monitoring, fairness and analysis modules is a named module constant;
+  `BisectionEngine` resolves `git` through `shutil.which` and fails fast when it is
+  missing; `zip` calls over paired sequences are strict; `BenchmarkAdapter` is a plain
+  base class (it never declared an abstract method); `Store.ingest` lost its unused
+  `format` parameter.
+
 ### Fixed
 
 - `FlopsCounter` counted 0 FLOPs for anything inside a nested `jax.jit`, a

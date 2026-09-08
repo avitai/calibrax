@@ -21,8 +21,8 @@ from calibrax.metrics.learning.proxy import ProxyAnchorLoss, ProxyNCALoss
 
 __all__ = [
     "ArcFaceLoss",
-    "CosFaceLoss",
     "ContrastiveLoss",
+    "CosFaceLoss",
     "HardNegativeMiner",
     "MetricLearningLoss",
     "MinedIndices",

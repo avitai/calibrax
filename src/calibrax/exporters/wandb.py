@@ -23,6 +23,10 @@ except ImportError:
     WANDB_AVAILABLE = False
 
 
+# A Pareto front is drawn for the first two metrics.
+_PARETO_METRIC_COUNT = 2
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -154,7 +158,7 @@ class WandBExporter(Exporter):
                 panel_key = f"{group}/{metric_name}/{fw}" if group else f"{metric_name}/{fw}"
                 self._wandb_run.log({panel_key: float(metric.value)})
 
-        self._log_comparison_table(run, metric_names, best_values)
+        self._log_comparison_table(run, metric_names)
         self._log_html_comparison(run, metric_names, best_values)
 
         url = self._wandb_run.url or ""
@@ -265,12 +269,7 @@ class WandBExporter(Exporter):
             table = wandb.Table(columns=columns, data=rows)  # type: ignore[union-attr]
             self._wandb_run.log({name: table})
 
-    def _log_comparison_table(
-        self,
-        run: Run,
-        metric_names: list[str],
-        best_values: dict[str, tuple[float, bool]],
-    ) -> None:
+    def _log_comparison_table(self, run: Run, metric_names: list[str]) -> None:
         """Log a W&B Table comparing all points across metrics."""
         columns = ["point", "scenario", "framework", *metric_names]
         data: list[list[Any]] = []
@@ -361,7 +360,7 @@ class WandBExporter(Exporter):
         """Log aggregate scores across all metrics with equal weights."""
         from calibrax.analysis.ranking import aggregate_score
 
-        weights = {mn: 1.0 for mn in metric_names}
+        weights = dict.fromkeys(metric_names, 1.0)
         scores = aggregate_score(run, weights)
         if not scores:
             return
@@ -372,7 +371,7 @@ class WandBExporter(Exporter):
 
     def _log_pareto_front(self, run: Run, metric_names: list[str]) -> None:
         """Log Pareto front for the first two metrics if available."""
-        if len(metric_names) < 2:
+        if len(metric_names) < _PARETO_METRIC_COUNT:
             return
         from calibrax.analysis.pareto import pareto_front
 

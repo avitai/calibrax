@@ -35,8 +35,7 @@ def _cycle_graph(n: int) -> jnp.ndarray:
     """Create adjacency matrix for a cycle graph with n nodes."""
     adj = _path_graph(n)
     adj = adj.at[0, n - 1].set(1.0)
-    adj = adj.at[n - 1, 0].set(1.0)
-    return adj
+    return adj.at[n - 1, 0].set(1.0)
 
 
 class TestSpectralDistance:

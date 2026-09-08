@@ -13,7 +13,7 @@ from calibrax.storage.store import Store
 from tests.factories import make_matmul_run
 
 
-@pytest.fixture()
+@pytest.fixture
 def store(tmp_path: Path) -> Store:
     """Create a Store in a temp directory."""
     return Store(tmp_path / "benchmark-data")

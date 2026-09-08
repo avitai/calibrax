@@ -12,13 +12,12 @@ these bases.
 
 from __future__ import annotations
 
-from abc import ABC
 from typing import Any
 
-import flax.nnx as nnx
+from flax import nnx
 
 
-class BenchmarkAdapter(ABC):
+class BenchmarkAdapter:
     """Base class for non-NNX benchmark adapters.
 
     Wraps an arbitrary target (model, data pipeline, solver, etc.)
@@ -63,7 +62,7 @@ class BenchmarkAdapter(ABC):
         return self._name
 
     @classmethod
-    def can_adapt(cls, target: object) -> bool:
+    def can_adapt(cls, target: object) -> bool:  # noqa: ARG003  # subclasses inspect it
         """Check if this adapter can handle the given target.
 
         Returns False by default — subclasses override with specific checks.

@@ -20,6 +20,14 @@ import psutil  # pyright: ignore[reportMissingModuleSource]
 from calibrax.profiling.resources import GPUProfilerProtocol, ResourceMonitor
 
 
+# How far past its threshold a value has to be for each severity, and what counts as a trend.
+_CRITICAL_THRESHOLD_RATIO = 2.0
+_ERROR_THRESHOLD_RATIO = 1.5
+_WARNING_THRESHOLD_RATIO = 1.2
+_MIN_TREND_SAMPLES = 3
+_TREND_SLOPE = 0.01
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -121,7 +129,7 @@ class AlertManager:
         for handler in self._handlers:
             try:
                 handler(alert)
-            except Exception:  # noqa: BLE001 - isolate third-party handlers from monitor core
+            except Exception:
                 logger.exception("Alert handler raised an exception")
 
     def get_recent_alerts(self, count: int = 10) -> list[Alert]:
@@ -263,7 +271,7 @@ class AdvancedMonitor:
             try:
                 metrics = self._collect_metrics()
                 self._check_thresholds(metrics)
-            except Exception:  # noqa: BLE001 - loop boundary must not crash monitoring thread
+            except Exception:
                 logger.exception("Error during monitoring cycle")
             self._stop_event.wait(timeout=interval)
 
@@ -328,11 +336,11 @@ class AdvancedMonitor:
         if threshold == 0:
             return AlertSeverity.CRITICAL
         ratio = value / threshold
-        if ratio > 2.0:
+        if ratio > _CRITICAL_THRESHOLD_RATIO:
             return AlertSeverity.CRITICAL
-        if ratio > 1.5:
+        if ratio > _ERROR_THRESHOLD_RATIO:
             return AlertSeverity.ERROR
-        if ratio > 1.2:
+        if ratio > _WARNING_THRESHOLD_RATIO:
             return AlertSeverity.WARNING
         return AlertSeverity.INFO
 
@@ -347,7 +355,7 @@ class AdvancedMonitor:
         """
         with self._state_lock:
             history = self._metric_history.get(metric_name)
-            if not history or len(history) < 3:
+            if not history or len(history) < _MIN_TREND_SAMPLES:
                 return "stable"
             values = list(history)
         n = len(values)
@@ -357,8 +365,8 @@ class AdvancedMonitor:
         denominator = sum((i - x_mean) ** 2 for i in range(n))
         slope = numerator / denominator
         relative_slope = slope / (abs(y_mean) + 1e-8)
-        if relative_slope > 0.01:
+        if relative_slope > _TREND_SLOPE:
             return "increasing"
-        if relative_slope < -0.01:
+        if relative_slope < -_TREND_SLOPE:
             return "decreasing"
         return "stable"

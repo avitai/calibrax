@@ -128,7 +128,7 @@ class TestAlertManager:
         """A failing handler should not prevent alert storage."""
         manager = AlertManager()
 
-        def bad_handler(alert: Alert) -> None:
+        def bad_handler(_alert: Alert) -> None:
             msg = "handler error"
             raise RuntimeError(msg)
 

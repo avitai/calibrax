@@ -56,7 +56,7 @@ def _fit_log_linear(
     mean_y = sum(log_values) / m
 
     ss_xx = sum((x - mean_x) ** 2 for x in log_sizes)
-    ss_xy = sum((x - mean_x) * (y - mean_y) for x, y in zip(log_sizes, log_values))
+    ss_xy = sum((x - mean_x) * (y - mean_y) for x, y in zip(log_sizes, log_values, strict=True))
     ss_yy = sum((y - mean_y) ** 2 for y in log_values)
 
     if ss_xx == 0:
@@ -65,7 +65,9 @@ def _fit_log_linear(
     slope = ss_xy / ss_xx
     intercept = mean_y - slope * mean_x
 
-    ss_res = sum((y - (intercept + slope * x)) ** 2 for x, y in zip(log_sizes, log_values))
+    ss_res = sum(
+        (y - (intercept + slope * x)) ** 2 for x, y in zip(log_sizes, log_values, strict=True)
+    )
     r_squared = 1.0 - (ss_res / ss_yy) if ss_yy > 0 else 0.0
 
     return slope, intercept, r_squared
@@ -90,7 +92,7 @@ def scaling_fit(sizes: list[float], values: list[float]) -> ScalingLaw:
     """
     _validate_inputs(sizes, values)
 
-    pairs = [(s, v) for s, v in zip(sizes, values) if s > 0 and v > 0]
+    pairs = [(s, v) for s, v in zip(sizes, values, strict=True) if s > 0 and v > 0]
     if not pairs:
         return ScalingLaw(coefficient=0.0, exponent=0.0, r_squared=0.0, complexity="O(1)")
 

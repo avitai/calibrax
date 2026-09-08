@@ -26,6 +26,15 @@ except ImportError:
     PYNVML_AVAILABLE = False
 
 
+# Thresholds behind the memory suggestions.
+_MIN_SAMPLES_FOR_TREND = 3
+_LEAK_TREND_MB_PER_SAMPLE = 10
+_HIGH_MEMORY_UTILIZATION = 0.9
+_SUSTAINED_MEMORY_UTILIZATION = 0.8
+_HIGH_PEAK_USAGE_MB = 1000
+_LOW_MEMORY_EFFICIENCY = 0.7
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -311,9 +320,9 @@ class GPUMemoryProfiler:
         usage_values = [m.get("gpu_memory_used_mb", 0) for m in measurements]
         utilization_values = [m.get("gpu_memory_utilization", 0) for m in measurements]
 
-        if len(usage_values) >= 3:
+        if len(usage_values) >= _MIN_SAMPLES_FOR_TREND:
             trend = (usage_values[-1] - usage_values[0]) / (len(usage_values) - 1)
-            if trend > 10:
+            if trend > _LEAK_TREND_MB_PER_SAMPLE:
                 suggestions.append(
                     "Potential memory leak detected. Consider using JAX's "
                     "garbage collection or clearing unused variables."
@@ -322,12 +331,12 @@ class GPUMemoryProfiler:
         max_util = max(utilization_values) if utilization_values else 0
         avg_util = sum(utilization_values) / len(utilization_values) if utilization_values else 0
 
-        if max_util > 0.9:
+        if max_util > _HIGH_MEMORY_UTILIZATION:
             suggestions.append(
                 "High GPU memory utilization (>90%). Consider reducing "
                 "batch size or using gradient checkpointing."
             )
-        elif avg_util > 0.8:
+        elif avg_util > _SUSTAINED_MEMORY_UTILIZATION:
             suggestions.append(
                 "Consistently high GPU memory usage (>80%). Monitor for "
                 "potential out-of-memory errors."
@@ -402,14 +411,14 @@ class MemoryOptimizer:
         """
         suggestions: list[str] = []
 
-        if peak_usage > 1000:
+        if peak_usage > _HIGH_PEAK_USAGE_MB:
             suggestions.append(
                 "High memory usage detected. Consider processing data "
                 "in smaller batches or using sharding."
             )
 
         efficiency = (peak_usage - retained_memory) / peak_usage if peak_usage > 0 else 1.0
-        if efficiency < 0.7:
+        if efficiency < _LOW_MEMORY_EFFICIENCY:
             suggestions.append(
                 "Low memory efficiency. Consider explicit del statements "
                 "for large temporary arrays."

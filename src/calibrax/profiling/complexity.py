@@ -15,6 +15,10 @@ import jax.numpy as jnp
 from flax import nnx
 
 
+# Spectral methods take FFTs over at least two spatial dimensions.
+_MIN_FFT_DIMS = 2
+
+
 @dataclass(frozen=True, slots=True, kw_only=True)
 class ComplexityResult:
     """Result of model complexity analysis.
@@ -195,7 +199,7 @@ def _analyze_computational_complexity(
     ops: dict[str, int] = {}
 
     # FFT-based operations (common in spectral methods)
-    if len(spatial_dims) >= 2 and spatial_size > 1:
+    if len(spatial_dims) >= _MIN_FFT_DIMS and spatial_size > 1:
         fft_ops = int(spatial_size * math.log2(max(spatial_size, 2)))
         ops["fft_operations"] = fft_ops
 

@@ -40,7 +40,7 @@ def _make_baseline() -> Run:
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_mlflow() -> MagicMock:
     """Create a mock mlflow module with standard API surface."""
     mock = MagicMock()
@@ -266,7 +266,7 @@ class TestMLflowExporterAdditional:
 
         calls = mock_mlflow.log_metric.call_args_list
         assert any(call.args[0] == "regression_count" and call.args[1] == 1 for call in calls)
-        assert any("regression_throughput_bench_a" == call.args[0] for call in calls)
+        assert any(call.args[0] == "regression_throughput_bench_a" for call in calls)
 
     def test_log_regressions_skips_count_when_empty(self, mock_mlflow: MagicMock) -> None:
         """_log_regressions should not log regression_count when there are none."""

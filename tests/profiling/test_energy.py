@@ -86,13 +86,9 @@ class TestEnergyMonitor:
         mon = EnergyMonitor(sample_interval_sec=0.05)
         assert_monitor_collects_samples_twice(mon)
 
-    @patch("calibrax.profiling.energy._read_rapl_energy_uj", return_value=None)
-    @patch("calibrax.profiling.energy._get_nvml_power_mw", return_value=None)
-    def test_graceful_degradation_no_nvml_no_rapl(
-        self,
-        _mock_nvml: MagicMock,
-        _mock_rapl: MagicMock,
-    ) -> None:
+    @patch("calibrax.profiling.energy._read_rapl_energy_uj", new=MagicMock(return_value=None))
+    @patch("calibrax.profiling.energy._get_nvml_power_mw", new=MagicMock(return_value=None))
+    def test_graceful_degradation_no_nvml_no_rapl(self) -> None:
         mon = EnergyMonitor(sample_interval_sec=0.05)
         with mon:
             time.sleep(0.2)
@@ -212,14 +208,14 @@ class TestNVMLPowerReader:
     """Tests for NVML power sampling helper."""
 
     def test_known_nvml_error_returns_none(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        class FakeNVMLException(Exception):
+        class FakeNvmlError(Exception):
             pass
 
         def raise_nvml_error(_handle: object) -> int:
-            raise FakeNVMLException("nvml query failed")
+            raise FakeNvmlError("nvml query failed")
 
         fake_nvml = types.SimpleNamespace(
-            NVMLError=FakeNVMLException,
+            NVMLError=FakeNvmlError,
             nvmlInit=lambda: None,
             nvmlDeviceGetHandleByIndex=lambda _: object(),
             nvmlDeviceGetPowerUsage=raise_nvml_error,
@@ -229,22 +225,22 @@ class TestNVMLPowerReader:
         assert _get_nvml_power_mw() is None
 
     def test_unexpected_error_is_not_swallowed(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        class FakeNVMLException(Exception):
+        class FakeNvmlError(Exception):
             pass
 
-        class CatastrophicNVMLFailure(Exception):
+        class CatastrophicNvmlError(Exception):
             pass
 
         def raise_catastrophic_error(_handle: object) -> int:
-            raise CatastrophicNVMLFailure("unexpected failure")
+            raise CatastrophicNvmlError("unexpected failure")
 
         fake_nvml = types.SimpleNamespace(
-            NVMLError=FakeNVMLException,
+            NVMLError=FakeNvmlError,
             nvmlInit=lambda: None,
             nvmlDeviceGetHandleByIndex=lambda _: object(),
             nvmlDeviceGetPowerUsage=raise_catastrophic_error,
         )
         monkeypatch.setitem(sys.modules, "pynvml", fake_nvml)
 
-        with pytest.raises(CatastrophicNVMLFailure):
+        with pytest.raises(CatastrophicNvmlError):
             _get_nvml_power_mw()

@@ -221,7 +221,7 @@ def hit_rate(scores: Any, relevance: Any, *, k: int) -> Any:
     return jnp.where(jnp.sum(ranked_rel[:k]) > 0, 1.0, 0.0)
 
 
-def coverage(scores: Any, relevance: Any, *, catalog_size: int) -> Any:
+def coverage(scores: Any, relevance: Any, *, catalog_size: int) -> Any:  # noqa: ARG001  # registry signature
     """Fraction of catalog covered by recommendations.
 
     Note:

@@ -188,5 +188,4 @@ def r_squared_adjusted(
     ss_tot = jnp.sum((t_arr - jnp.mean(t_arr)) ** 2)
     r2 = 1.0 - ss_res / (ss_tot + _EPSILON)
 
-    adj = 1.0 - (1.0 - r2) * (n - 1) / (n - num_predictors - 1 + _EPSILON)
-    return adj
+    return 1.0 - (1.0 - r2) * (n - 1) / (n - num_predictors - 1 + _EPSILON)

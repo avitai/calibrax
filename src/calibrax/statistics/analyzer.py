@@ -29,6 +29,10 @@ OUTLIER_Z_THRESHOLD: float = 3.5
 _MAD_CONSISTENCY_CONSTANT: float = 0.6745
 
 
+# A median absolute deviation from fewer than three samples says nothing about outliers.
+_MIN_SAMPLES_FOR_MAD = 3
+
+
 @dataclass(frozen=True, slots=True, kw_only=True)
 class StatisticalResult:
     """Summary statistics with confidence intervals.
@@ -199,7 +203,7 @@ class StatisticalAnalyzer:
             List of indices where outliers are detected.
         """
         arr = np.array(samples, dtype=np.float64)
-        if len(arr) < 3:
+        if len(arr) < _MIN_SAMPLES_FOR_MAD:
             return []
         median = np.median(arr)
         mad = np.median(np.abs(arr - median))

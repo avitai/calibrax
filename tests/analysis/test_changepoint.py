@@ -130,9 +130,11 @@ class TestDetectChangePoints:
     def test_raises_import_error_when_unavailable(self) -> None:
         """Should raise ImportError when ruptures is not installed."""
         trend = _make_trend([1.0, 2.0, 3.0, 4.0])
-        with patch("calibrax.analysis.changepoint.RUPTURES_AVAILABLE", False):
-            with pytest.raises(ImportError, match="ruptures is required"):
-                detect_change_points(trend)
+        with (
+            patch("calibrax.analysis.changepoint.RUPTURES_AVAILABLE", False),
+            pytest.raises(ImportError, match="ruptures is required"),
+        ):
+            detect_change_points(trend)
 
     @_skip_no_ruptures
     def test_raises_value_error_too_few_points(self) -> None:

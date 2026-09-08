@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 
-@pytest.fixture()
+@pytest.fixture
 def tmp_data_dir(tmp_path: Path) -> Path:
     """Provide a temporary directory for test data."""
     data_dir = tmp_path / "data"
@@ -13,7 +13,7 @@ def tmp_data_dir(tmp_path: Path) -> Path:
     return data_dir
 
 
-@pytest.fixture()
+@pytest.fixture
 def tmp_output_dir(tmp_path: Path) -> Path:
     """Provide a temporary directory for test outputs."""
     output_dir = tmp_path / "output"

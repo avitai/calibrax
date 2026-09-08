@@ -7,9 +7,9 @@ scalable metric learning approach for large class counts.
 
 from __future__ import annotations
 
-import flax.nnx as nnx
 import jax
 import jax.numpy as jnp
+from flax import nnx
 
 from calibrax.metrics._utils import _EPSILON
 
@@ -164,5 +164,4 @@ class ProxyAnchorLoss(nnx.Module):
         has_positives = jnp.sum(pos_mask, axis=1) > 0
         num_valid = jnp.maximum(jnp.sum(has_positives), 1.0)
 
-        total_loss = jnp.sum((pos_loss + neg_loss) * has_positives) / num_valid
-        return total_loss
+        return jnp.sum((pos_loss + neg_loss) * has_positives) / num_valid

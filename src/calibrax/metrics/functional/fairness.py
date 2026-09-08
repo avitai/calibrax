@@ -22,6 +22,11 @@ import jax.numpy as jnp
 from calibrax.metrics._utils import _EPSILON, safe_divide
 
 
+# Scores and labels above this are the positive class; a group needs two members to test.
+_POSITIVE_THRESHOLD = 0.5
+_MIN_GROUP_SIZE = 2
+
+
 def demographic_parity_ratio(
     predictions: Any,
     protected_attribute: Any,
@@ -53,7 +58,9 @@ def demographic_parity_ratio(
     # Build group masks: (n_groups, n)
     group_masks = pa[None, :] == unique_vals[:, None]
     group_sizes = jnp.sum(group_masks, axis=1)  # (n_groups,)
-    group_positives = jnp.sum(group_masks * (predictions > 0.5)[None, :], axis=1)  # (n_groups,)
+    group_positives = jnp.sum(
+        group_masks * (predictions > _POSITIVE_THRESHOLD)[None, :], axis=1
+    )  # (n_groups,)
     rates = safe_divide(group_positives, group_sizes)  # (n_groups,)
 
     # Pairwise symmetric min ratio via broadcasting
@@ -105,14 +112,14 @@ def equalized_odds_difference(
     # Build group masks: (n_groups, n)
     group_masks = pa[None, :] == unique_vals[:, None]  # (n_groups, n)
 
-    pos_mask = targets > 0.5  # (n,)
+    pos_mask = targets > _POSITIVE_THRESHOLD  # (n,)
     neg_mask = ~pos_mask  # (n,)
 
     # Per-group counts
     group_positives = jnp.sum(group_masks * pos_mask[None, :], axis=1)  # (n_groups,)
     group_negatives = jnp.sum(group_masks * neg_mask[None, :], axis=1)  # (n_groups,)
 
-    pred_pos = predictions > 0.5  # (n,)
+    pred_pos = predictions > _POSITIVE_THRESHOLD  # (n,)
 
     # TP and FP per group
     group_tp = jnp.sum(group_masks * (pred_pos & pos_mask)[None, :], axis=1)
@@ -161,13 +168,13 @@ def equal_opportunity_difference(
     # Build group masks: (n_groups, n)
     group_masks = pa[None, :] == unique_vals[:, None]  # (n_groups, n)
 
-    pos_mask = targets > 0.5  # (n,)
+    pos_mask = targets > _POSITIVE_THRESHOLD  # (n,)
 
     # Per-group positives
     group_positives = jnp.sum(group_masks * pos_mask[None, :], axis=1)  # (n_groups,)
 
     # TP per group
-    pred_pos = predictions > 0.5  # (n,)
+    pred_pos = predictions > _POSITIVE_THRESHOLD  # (n,)
     group_tp = jnp.sum(group_masks * (pred_pos & pos_mask)[None, :], axis=1)
 
     tprs = safe_divide(group_tp, group_positives)  # (n_groups,)
@@ -241,7 +248,7 @@ def group_metric_breakdown(
     for val in unique_vals:
         mask = pa == val
         n_group = int(jnp.sum(mask))
-        if n_group < 2:
+        if n_group < _MIN_GROUP_SIZE:
             continue
         group_preds = predictions[mask]
         group_targets = targets[mask]

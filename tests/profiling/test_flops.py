@@ -10,10 +10,10 @@ branch, a loop body counted once.
 import dataclasses
 import functools
 
-import flax.nnx as nnx
 import jax
 import jax.numpy as jnp
 import pytest
+from flax import nnx
 from hypothesis import given, settings, strategies as st
 
 from calibrax.profiling.flops import FlopsCounter, FlopsResult, FlopsUnavailableError
@@ -119,7 +119,11 @@ class TestNesting:
         a, b = jnp.ones((64, 128)), jnp.ones((128, 40))
         flat = FlopsCounter().count(_matmul, a, b)
         nested = FlopsCounter().count(jax.jit(_matmul), a, b)
-        outer = FlopsCounter().count(lambda x, y: jax.jit(_matmul)(x, y), a, b)
+
+        def outer_fn(x: jax.Array, y: jax.Array) -> jax.Array:
+            return jax.jit(_matmul)(x, y)
+
+        outer = FlopsCounter().count(outer_fn, a, b)
         assert flat.total_flops == 2 * 64 * 128 * 40
         assert nested.total_flops == flat.total_flops
         assert outer.total_flops == flat.total_flops
@@ -161,7 +165,11 @@ class TestNesting:
     def test_nnx_inference_model(self) -> None:
         """A function closing over an NNX module; the zero bias may fold away at lowering."""
         model = nnx.Linear(16, 32, rngs=nnx.Rngs(0))
-        result = FlopsCounter().count(lambda x: model(x), jnp.ones((8, 16)))
+
+        def forward(x: jax.Array) -> jax.Array:
+            return model(x)
+
+        result = FlopsCounter().count(forward, jnp.ones((8, 16)))
         assert result.total_flops >= 2 * 8 * 16 * 32
 
     def test_nnx_state_and_prng_key_arguments(self) -> None:

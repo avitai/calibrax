@@ -154,10 +154,7 @@ def shortest_path_distance(
     adj = jnp.asarray(adjacency_matrix, dtype=jnp.float32)
     n = adj.shape[0]
 
-    if weighted:
-        dist = jnp.where(adj > 0, adj, jnp.inf)
-    else:
-        dist = jnp.where(adj > 0, 1.0, jnp.inf)
+    dist = jnp.where(adj > 0, adj, jnp.inf) if weighted else jnp.where(adj > 0, 1.0, jnp.inf)
 
     # Zero diagonal
     dist = dist.at[jnp.arange(n), jnp.arange(n)].set(0.0)

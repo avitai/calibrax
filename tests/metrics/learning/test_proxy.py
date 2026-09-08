@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-import flax.nnx as nnx
 import jax
 import jax.numpy as jnp
+from flax import nnx
 
 from calibrax.metrics.learning.proxy import ProxyAnchorLoss, ProxyNCALoss
 

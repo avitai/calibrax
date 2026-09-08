@@ -19,6 +19,10 @@ import jax.numpy as jnp
 from calibrax.metrics._utils import _EPSILON, _prepare_class_arrays, safe_divide
 
 
+# Predictions are class indices (1D) or per-class scores (2D).
+_CLASS_SCORES_NDIM = 2
+
+
 def _to_class_indices(predictions: Any) -> jax.Array:
     """Convert predictions to class indices.
 
@@ -32,7 +36,7 @@ def _to_class_indices(predictions: Any) -> jax.Array:
         1D array of integer class indices.
     """
     p = jnp.asarray(predictions)
-    if p.ndim == 2:
+    if p.ndim == _CLASS_SCORES_NDIM:
         return jnp.argmax(p, axis=-1)
     return p.astype(jnp.int32)
 
@@ -257,10 +261,7 @@ def _precision_recall_fbeta(
         raise ValueError(msg)
 
     beta_sq = beta**2
-    if beta_sq == 0:
-        fb = prec
-    else:
-        fb = (1 + beta_sq) * prec * rec / (beta_sq * prec + rec + _EPSILON)
+    fb = prec if beta_sq == 0 else (1 + beta_sq) * prec * rec / (beta_sq * prec + rec + _EPSILON)
     return prec, rec, fb
 
 

@@ -102,7 +102,7 @@ class BootstrapMetric:
         # Bootstrap resamples
         key = jax.random.PRNGKey(self._seed)
         samples = []
-        for i in range(self._num_bootstraps):
+        for _ in range(self._num_bootstraps):
             key, subkey = jax.random.split(key)
             indices = jax.random.randint(subkey, shape=(n,), minval=0, maxval=n)
             boot_pred = predictions[indices]

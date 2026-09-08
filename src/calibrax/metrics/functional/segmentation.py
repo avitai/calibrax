@@ -54,7 +54,7 @@ def iou(
         >>> truth = jnp.array([1, 0, 0, 0])
         >>> iou(preds, truth)  # binary IoU
         0.5
-    """
+    """  # noqa: RUF002  # set notation
     p, t = _prepare_class_arrays(predictions, targets)
     p, t = p.ravel(), t.ravel()
 

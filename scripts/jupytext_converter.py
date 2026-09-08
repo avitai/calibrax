@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-r"""Jupytext Conversion & Synchronization Utility
+r"""Jupytext Conversion & Synchronization Utility.
 
 A comprehensive tool for converting and synchronizing between Python scripts (.py)
 and Jupyter notebooks (.ipynb) using Jupytext's py:percent format.
@@ -89,7 +89,7 @@ def validate_python_for_jupytext(py_file: Path) -> tuple[bool, list[str]]:
     issues = []
 
     try:
-        with open(py_file, "r", encoding="utf-8") as f:
+        with Path(py_file).open(encoding="utf-8") as f:
             lines = f.readlines()
 
         # Pattern 1: print() with "\n" or other escape sequences in string concatenation
@@ -136,21 +136,23 @@ def run_jupytext_command(args: list[str], verbose: bool = False) -> tuple[bool, 
         print(f"Running: {' '.join(cmd)}")
 
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, check=False, timeout=120)
+        result = subprocess.run(  # noqa: S603  # argv is built above from known paths; no shell
+            cmd, capture_output=True, text=True, check=False, timeout=120
+        )
 
         if verbose or result.returncode != 0:
             if result.stdout:
                 print(result.stdout)
             if result.stderr:
                 print(result.stderr, file=sys.stderr)
-
-        return result.returncode == 0, result.stdout
     except subprocess.TimeoutExpired:
         print(f"❌ Command timed out: {' '.join(cmd)}", file=sys.stderr)
         return False, ""
     except Exception as e:
         print(f"❌ Error running jupytext: {e}", file=sys.stderr)
         return False, ""
+    else:
+        return result.returncode == 0, result.stdout
 
 
 def convert_py_to_nb(py_file: Path, verbose: bool = False) -> bool:
@@ -212,7 +214,7 @@ def convert_py_to_nb(py_file: Path, verbose: bool = False) -> bool:
         import json
 
         try:
-            with open(nb_file, "r") as f:
+            with Path(nb_file).open() as f:
                 notebook = json.load(f)
 
             # Remove cell IDs
@@ -220,15 +222,15 @@ def convert_py_to_nb(py_file: Path, verbose: bool = False) -> bool:
                 cell.pop("id", None)
 
             # Write back
-            with open(nb_file, "w") as f:
+            with Path(nb_file).open("w") as f:
                 json.dump(notebook, f, indent=1, ensure_ascii=False)
                 f.write("\n")  # Add trailing newline
-
-            print(f"✅ Created {nb_file}")
-            return True
         except Exception as e:
             print(f"⚠️  Created {nb_file} but failed to strip cell IDs: {e}")
             return True  # Still consider it success
+        else:
+            print(f"✅ Created {nb_file}")
+            return True
     else:
         print(f"❌ Failed to convert {py_file}")
         return False
@@ -265,9 +267,8 @@ def convert_nb_to_py(nb_file: Path, verbose: bool = False) -> bool:
     if success:
         print(f"✅ Created {py_file}")
         return True
-    else:
-        print(f"❌ Failed to convert {nb_file}")
-        return False
+    print(f"❌ Failed to convert {nb_file}")
+    return False
 
 
 def sync_pair(file_path: Path, verbose: bool = False) -> bool:
@@ -316,9 +317,8 @@ def sync_pair(file_path: Path, verbose: bool = False) -> bool:
     if success:
         print("✅ Synchronized pair")
         return True
-    else:
-        print("❌ Failed to sync pair")
-        return False
+    print("❌ Failed to sync pair")
+    return False
 
 
 def batch_convert_directory(
@@ -418,7 +418,7 @@ def validate_sync(directory: Path, verbose: bool = False) -> tuple[int, int, int
         try:
             import json
 
-            with open(nb_file, "r") as f:
+            with Path(nb_file).open() as f:
                 notebook = json.load(f)
 
             # Check if notebook has jupytext metadata with formats
@@ -452,8 +452,8 @@ def validate_sync(directory: Path, verbose: bool = False) -> tuple[int, int, int
     return synced_count, out_of_sync_count, missing_pair_count
 
 
-def main():
-    """Main entry point."""
+def _build_parser() -> argparse.ArgumentParser:
+    """Build the command-line parser with one sub-command per operation."""
     parser = argparse.ArgumentParser(
         description="Jupytext Conversion & Synchronization Utility",
         epilog="For more information, see the docstring at the top of this file.",
@@ -495,7 +495,12 @@ def main():
     )
     validate.add_argument("directory", type=Path, help="Directory to check")
     validate.add_argument("-v", "--verbose", action="store_true", help="Verbose output")
+    return parser
 
+
+def main() -> None:
+    """Run the command named on the command line."""
+    parser = _build_parser()
     args = parser.parse_args()
 
     if not args.command:

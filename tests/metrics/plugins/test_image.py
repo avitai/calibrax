@@ -6,9 +6,9 @@ requiring InceptionV3 weights in CI.
 
 from __future__ import annotations
 
-import flax.nnx as nnx
 import jax.numpy as jnp
 import pytest
+from flax import nnx
 
 from calibrax.core.protocols import StatefulMetricProtocol
 from calibrax.metrics.plugins.image import FIDMetric, InceptionScoreMetric, LPIPSMetric

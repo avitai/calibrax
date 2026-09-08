@@ -359,21 +359,42 @@ fixable = [
   "W293"
 ]
 ignore = [
-  "E402",
-  "E721",
-  "E731",
-  "E741",
-  "F722",
-  "RUF005",
-  "UP006",
-  "UP007",
-  "UP015",
-  "UP024"
+  # Any is the honest type of a pytree leaf container.
+  "ANN401",
+  # Google-style docstrings: D203 and D213 conflict with D211 and D212.
+  "D203",
+  "D213",
+  # The formatter owns line length.
+  "E501",
+  # Optional extras (scipy, wandb, mlflow, pynvml, ...) are imported where they are used so the
+  # base install stays light; 193 function-local imports carry that pattern.
+  "PLC0415",
+  # The __all__ lists are grouped by domain with comments; a sort would destroy the grouping.
+  "RUF022",
+  # Exception messages are written inline; a message class per raise is noise.
+  "TRY003"
 ]
 select = [
+  "ANN",
+  "ARG",
+  "B",
+  "C4",
+  "C90",
+  "D",
   "E",
   "F",
   "I",
+  "N",
+  "PIE",
+  "PL",
+  "PT",
+  "PTH",
+  "RET",
+  "RUF",
+  "S",
+  "SIM",
+  "T20",
+  "TRY",
   "UP",
   "W"
 ]
@@ -385,8 +406,24 @@ known-first-party = ["calibrax"]
 lines-after-imports = 2
 order-by-type = false
 
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.per-file-ignores]
+# Examples are narrative walkthroughs: they print, and their main functions are long.
+"examples/*" = ["C901", "PLR0915", "T20"]
+# Development scripts report on stdout.
+"scripts/*" = ["T20"]
+# The CLI's output is print by design.
+"src/calibrax/cli/main.py" = ["T201"]
+# Test factories are keyword-only builders with one parameter per field.
+"tests/*" = ["ANN", "D", "PLR0913", "PLR2004", "S101"]
+
 [tool.ruff.lint.pydocstyle]
 convention = "google"
+
+[tool.ruff.lint.pylint]
+max-args = 8
 
 [tool.uv]
 # calibrax does not import optax; flax does. Below 0.2.8 optax calls

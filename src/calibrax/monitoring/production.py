@@ -13,6 +13,13 @@ from typing import Any
 from calibrax.monitoring.monitor import AdvancedMonitor, AlertSeverity
 
 
+# Error-rate thresholds for the health level and the pipeline alert.
+_CRITICAL_ERROR_RATE = 0.5
+_DEGRADED_ERROR_RATE = 0.2
+_ALERT_ERROR_RATE = 0.3
+_MIN_EXECUTIONS_FOR_ERROR_RATE = 3
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -25,9 +32,9 @@ def _classify_health(error_rate: float) -> str:
     Returns:
         Health level string: "critical", "degraded", or "healthy".
     """
-    if error_rate > 0.5:
+    if error_rate > _CRITICAL_ERROR_RATE:
         return "critical"
-    if error_rate > 0.2:
+    if error_rate > _DEGRADED_ERROR_RATE:
         return "degraded"
     return "healthy"
 
@@ -168,11 +175,11 @@ class ProductionMonitor(AdvancedMonitor):
         with self._state_lock:
             recent_window = self._pipeline_executions[-20:]
             recent = [e for e in recent_window if e["pipeline_name"] == pipeline_name]
-        if len(recent) < 3:
+        if len(recent) < _MIN_EXECUTIONS_FOR_ERROR_RATE:
             return
         failures = sum(1 for e in recent if not e["success"])
         error_rate = failures / len(recent)
-        if error_rate > 0.3:
+        if error_rate > _ALERT_ERROR_RATE:
             self.alert_manager.trigger_alert(
                 message=(
                     f"Pipeline '{pipeline_name}' high error rate: "

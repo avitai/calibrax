@@ -135,7 +135,7 @@ def trend(data: Path, metric: str, point: str, framework: str, n_runs: int | Non
         print("-" * 56)
         for tp in series.points:
             commit = tp.commit[:8] if tp.commit else "-"
-            print(f"{str(tp.timestamp):<28} {tp.value:>12.4f} {commit:<12}")
+            print(f"{tp.timestamp!s:<28} {tp.value:>12.4f} {commit:<12}")
     except FileNotFoundError as e:
         raise click.ClickException(str(e)) from None
 

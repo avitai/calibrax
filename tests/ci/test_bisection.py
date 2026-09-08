@@ -33,7 +33,7 @@ def _make_mock_subprocess(
     """Create a mock subprocess.run that simulates git operations."""
     mock = MagicMock()
 
-    def side_effect(cmd, **kwargs):
+    def side_effect(cmd, **_kwargs):
         result = MagicMock()
         result.returncode = 0
         if cmd[1] == "symbolic-ref":
@@ -83,7 +83,7 @@ class TestBisectionEngine:
         def benchmark_fn(commit: str) -> Run:
             return _make_run(commit)
 
-        def regression_fn(run: Run) -> bool:
+        def regression_fn(_run: Run) -> bool:
             return False
 
         engine = BisectionEngine("/fake/repo", benchmark_fn, regression_fn)
@@ -102,7 +102,7 @@ class TestBisectionEngine:
         def benchmark_fn(commit: str) -> Run:
             return _make_run(commit)
 
-        def regression_fn(run: Run) -> bool:
+        def regression_fn(_run: Run) -> bool:
             return False
 
         engine = BisectionEngine("/fake/repo", benchmark_fn, regression_fn)

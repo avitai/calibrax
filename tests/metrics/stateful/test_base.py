@@ -5,9 +5,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-import flax.nnx as nnx
 import jax.numpy as jnp
 import pytest
+from flax import nnx
 
 from calibrax.core.protocols import StatefulMetricProtocol
 from calibrax.metrics.stateful._base import FrozenBackboneMetric, LearnedMetric

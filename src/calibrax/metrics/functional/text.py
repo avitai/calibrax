@@ -213,8 +213,7 @@ def rouge_l(
 
     # F-measure with beta = recall/precision (balanced)
     beta_sq = (recall / (precision + 1e-12)) ** 2
-    f_measure = (1 + beta_sq) * precision * recall / (beta_sq * precision + recall + 1e-12)
-    return f_measure
+    return (1 + beta_sq) * precision * recall / (beta_sq * precision + recall + 1e-12)
 
 
 def perplexity(log_probabilities: Any) -> Any:
