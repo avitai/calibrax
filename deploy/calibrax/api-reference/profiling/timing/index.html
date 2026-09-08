@@ -3983,58 +3983,6 @@ to wait for device completion before recording the timestamp.</p>
 </span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="c1"># sample.per_batch_times excludes the first 2 batches</span>
 </span></code></pre></div>
 
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>sync_fn</code>
-            </td>
-            <td>
-                  <code><span title="collections.abc.Callable">Callable</span>[[<span title="typing.Any">Any</span>], <span title="object">object</span>] | None</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Synchronization function called with each batch result.
-For JAX: <code>lambda result: result.block_until_ready()</code>
-For PyTorch: <code>lambda _: torch.cuda.synchronize()</code>
-For CPU-only: None (default, no-op)</p>
-              </div>
-            </td>
-            <td>
-                  <code>None</code>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>warmup_iterations</code>
-            </td>
-            <td>
-                  <code><span title="int">int</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Number of initial batches to exclude from
-per_batch_times statistics. They are still executed (important
-for JIT warm-up) but omitted from the timing result. Default: 0.</p>
-              </div>
-            </td>
-            <td>
-                  <code>0</code>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
         <p>Initialize TimingCollector.</p>
 
 
@@ -4079,6 +4027,29 @@ for JIT warm-up) but omitted from the timing result. Default: 0.</p>
             </td>
             <td>
                   <code>0</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If <code>warmup_iterations</code> is negative.</p>
+              </div>
             </td>
           </tr>
       </tbody>
@@ -4222,6 +4193,29 @@ Defaults to identity (the yielded batch is treated as result).</p>
             <td>
               <div class="doc-md-description">
                 <p>TimingSample with timing measurements.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If <code>num_batches</code> is negative.</p>
               </div>
             </td>
           </tr>

@@ -4189,6 +4189,28 @@ and optional GPU utilization during benchmark execution.</p>
               </div>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="calibrax.profiling.resources.ResourceSample.gpu_clock_mhz">gpu_clock_mhz</span></code></td>
+            <td>
+                  <code><span title="float">float</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>GPU SM clock in MHz (None if unavailable).</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="calibrax.profiling.resources.ResourceSample.gpu_power_w">gpu_power_w</span></code></td>
+            <td>
+                  <code><span title="float">float</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>GPU power draw in watts (None if unavailable).</p>
+              </div>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -4326,6 +4348,28 @@ and optional GPU utilization during benchmark execution.</p>
             <td>
               <div class="doc-md-description">
                 <p>Time span of monitoring.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="calibrax.profiling.resources.ResourceSummary.mean_gpu_clock_mhz">mean_gpu_clock_mhz</span></code></td>
+            <td>
+                  <code><span title="float">float</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Average GPU SM clock in MHz (None if unavailable).</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="calibrax.profiling.resources.ResourceSummary.mean_gpu_power_w">mean_gpu_power_w</span></code></td>
+            <td>
+                  <code><span title="float">float</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Average GPU power draw in watts (None if unavailable).</p>
               </div>
             </td>
           </tr>
@@ -4504,53 +4548,6 @@ Numeric values are converted to Python primitives for JAX scalar safety.</p>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="c1"># ... run benchmark ...</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">summary</span> <span class="o">=</span> <span class="n">mon</span><span class="o">.</span><span class="n">summary</span>
 </span></code></pre></div>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>sample_interval_sec</code>
-            </td>
-            <td>
-                  <code><span title="float">float</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Seconds between samples (default 0.1 = 10Hz).</p>
-              </div>
-            </td>
-            <td>
-                  <code>0.1</code>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>gpu_profiler</code>
-            </td>
-            <td>
-                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;code&gt;GPUProfilerProtocol&lt;/code&gt; (&lt;code&gt;calibrax.profiling.resources.GPUProfilerProtocol&lt;/code&gt;)" href="#calibrax.profiling.resources.GPUProfilerProtocol">GPUProfilerProtocol</a> | None</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Optional profiler satisfying GPUProfilerProtocol.</p>
-              </div>
-            </td>
-            <td>
-                  <code>None</code>
-            </td>
-          </tr>
-      </tbody>
-    </table>
 
         <p>Initialize ResourceMonitor.</p>
 
