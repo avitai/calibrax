@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import threading
+
 from calibrax.monitoring.monitor import AlertSeverity
 from calibrax.monitoring.production import ProductionMonitor
 
@@ -110,6 +112,31 @@ class TestProductionMonitor:
         alerts = monitor.alert_manager.get_recent_alerts()
         error_alerts = [a for a in alerts if "error rate" in a.message]
         assert error_alerts[0].severity == AlertSeverity.ERROR
+
+    def test_concurrent_recording_counts_every_execution(self) -> None:
+        """Recording from several threads must lose no execution."""
+        monitor = ProductionMonitor()
+        num_threads = 4
+        per_thread = 10
+
+        def record(thread_id: int) -> None:
+            for i in range(per_thread):
+                monitor.record_pipeline_execution(
+                    pipeline_name=f"pipe_{thread_id}",
+                    execution_time=float(i),
+                    success=(i % 2 == 0),
+                )
+
+        threads = [threading.Thread(target=record, args=(i,)) for i in range(num_threads)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+
+        report = monitor.get_pipeline_health_report()
+        assert report["total_executions"] == num_threads * per_thread
+        for i in range(num_threads):
+            assert report["pipelines"][f"pipe_{i}"]["total_executions"] == per_thread
 
     def test_inherits_from_advanced_monitor(self) -> None:
         """ProductionMonitor should have all AdvancedMonitor capabilities."""
