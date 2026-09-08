@@ -45,7 +45,7 @@ README_PATH = REPO_ROOT / "README.md"
 # label -> regex with ONE capture group pulling the asserted value out of the
 # README. Drop entries you do not assert; the derived value is still printed.
 ASSERTIONS: dict[str, str] = {
-    # The README's metrics headline: "(111 registered Tier 0 metrics, 17 domains, ...)".
+    # The README's metrics headline: "(<n> registered Tier 0 metrics, <m> domains, ...)".
     "tier0_metrics": r"\((\d+) registered Tier 0 metrics, \d+ domains",
     "metric_domains": r"\(\d+ registered Tier 0 metrics, (\d+) domains",
 }

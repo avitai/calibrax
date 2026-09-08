@@ -129,6 +129,7 @@ nav:
       - user-guide/index.md
       - Overview: user-guide/overview.md
       - Profiling Workloads: user-guide/profiling.md
+      - Profiling Boundary: user-guide/profiling-boundary.md
       - Statistical Analysis: user-guide/statistics.md
       - Regression Detection: user-guide/regressions.md
       - Comparing Configurations: user-guide/comparison.md
