@@ -179,8 +179,9 @@ if energy_summary.mean_gpu_power_watts is not None:
 
 ## FLOP Counting
 
-`FlopsCounter` analyzes a JAX function's computation graph (jaxpr) to count
-floating-point operations:
+`FlopsCounter` lowers a JAX function from the shapes of its example arguments and
+reads XLA's cost analysis of the result, the same estimate `flax.nnx.tabulate`
+reports. Nothing is executed and no data is copied:
 
 ```python
 import jax.numpy as jnp
@@ -193,16 +194,21 @@ counter = FlopsCounter()
 result = counter.count(matmul_workload, jnp.ones((64, 128)), jnp.ones((128, 32)))
 
 print(f"Total FLOPs: {result.total_flops:,}")
-print(f"Operations: {result.num_operations}")
-for op, count in result.flops_by_operation.items():
-    print(f"  {op}: {count:,}")
+print(f"Transcendentals: {result.transcendentals:,}")
 ```
+
+XLA's conventions: a matmul `(M, K) @ (K, N)` is `2 * M * K * N`, an elementwise op
+is one FLOP per output element, `sin`, `exp` and friends are transcendentals rather
+than FLOPs, a conditional costs its most expensive branch, and a loop body is
+counted once because the trip count is not part of the HLO. A function containing a
+custom call XLA has no cost model for (`jax.pure_callback`, some linear-algebra
+kernels) raises `FlopsUnavailableError`.
 
 !!! tip "NNX Models"
 
-    `FlopsCounter` works with pure JAX functions. For Flax NNX models,
-    use `flax.nnx.tabulate(model, *args, compute_flops=True)` instead,
-    which handles the NNX state and `Rngs` automatically.
+    Pass the NNX state as an argument, or close over the module; both lower. For a
+    per-module table use `flax.nnx.tabulate(model, *args, compute_flops=True)`,
+    which reports the same estimate per submodule.
 
 ## Hardware Detection
 

@@ -16,7 +16,7 @@ that are inconsistent, hard to compare, and impossible to integrate into CI.
 **Decision:** Build a standalone benchmarking framework purpose-built for
 scientific ML workloads on JAX. Calibrax provides a unified data model for
 benchmark results, direction-aware metric semantics, JAX-native profiling
-(GPU sync, FLOP counting via jaxpr analysis, roofline analysis, XLA
+(GPU sync, FLOP counting via XLA's cost analysis, roofline analysis, XLA
 compilation profiling, carbon emissions tracking), and a full pipeline from
 measurement through statistical analysis to CI gating.
 

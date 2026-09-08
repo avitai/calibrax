@@ -7,6 +7,26 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+### Fixed
+
+- `FlopsCounter` counted 0 FLOPs for anything inside a nested `jax.jit`, a
+  `jax.checkpoint` or a custom-derivative call such as `jax.nn.relu`, and skipped
+  `lax.cond` branches: its hand-maintained primitive table had not followed jax's
+  primitive names (`pjit` became `jit` in jax 0.7). It now reads XLA's cost analysis
+  of the function's lowering, the estimate `flax.nnx.tabulate` reports, so nested
+  computations count and the table is gone.
+
+### Changed
+
+- `FlopsResult` reports `total_flops` and `transcendentals` (XLA counts `sin`, `exp`
+  and friends separately); `flops_by_operation` and `num_operations` are removed,
+  since XLA reports no per-primitive breakdown and nothing outside the CLI's print
+  read them. A reduction over `n` elements now counts `n - 1`, and a convolution
+  counts only the taps that touch real data.
+- `FlopsCounter.count` raises `FlopsUnavailableError` (a `ValueError`) when the
+  function contains a custom call XLA has no cost model for, instead of counting it
+  as zero with a warning.
+
 ## [0.1.2] - 2026-08-29
 
 ### Changed

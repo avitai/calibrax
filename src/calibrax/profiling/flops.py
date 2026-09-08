@@ -1,139 +1,110 @@
-"""FLOP counting via JAX's jaxpr tracing.
+"""FLOP counting through XLA's cost analysis.
 
-Provides FlopsCounter for estimating FLOPs of JAX functions
-by analyzing their Jaxpr intermediate representation.
+``FlopsCounter.count`` lowers the function with ``jax.jit`` from the shapes and
+dtypes of the example arguments (no data is copied and nothing is executed) and reads
+``jax.stages.Lowered.cost_analysis()``, XLA's ``HloCostAnalysis`` of the unoptimised
+HLO. It is the estimate ``flax.nnx.tabulate(..., compute_flops=True)`` reports and
+JAX's ahead-of-time documentation shows, so the numbers agree across the stack and
+follow jax's primitive set without a table here.
+
+Conventions of ``HloCostAnalysis`` a reader should know: a matmul ``(M, K) @ (K, N)``
+is ``2 * M * K * N``; an elementwise op is one FLOP per output element; ``sin``,
+``exp`` and friends are reported as transcendentals, not FLOPs; a reduction over
+``n`` elements is ``n - 1``; a conditional costs its most expensive branch; a loop body
+is counted once, because the trip count is not part of the HLO.
+
+The lowering targets the CPU backend when jax has one, so accelerator custom calls
+(a cuDNN convolution, for example) cannot hide the arithmetic behind a cost XLA does
+not estimate. When jax was started without a CPU backend (``JAX_PLATFORMS=cuda``) the
+function is lowered for the default device and, if that lowering carries no analysis,
+the compiled executable's analysis is used, as ``nnx.tabulate`` does.
 """
 
 from __future__ import annotations
 
-import logging
-import math
-from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 import jax
-from jax._src import core as jax_core
 
 
-logger = logging.getLogger(__name__)
+if TYPE_CHECKING:
+    from collections.abc import Callable, Mapping
 
-# Elementwise operations that take 1 FLOP per element
-_ELEMENTWISE_OPS = frozenset(
-    {
-        "add",
-        "sub",
-        "mul",
-        "div",
-        "neg",
-        "abs",
-        "max",
-        "min",
-        "sign",
-        "floor",
-        "ceil",
-        "round",
-        "clamp",
-        "rem",
-        "add_any",
-        "mul_p",
-        "integer_pow",
-    }
-)
 
-# Transcendental ops (also 1 FLOP per element for counting purposes)
-_TRANSCENDENTAL_OPS = frozenset(
-    {
-        "sin",
-        "cos",
-        "tan",
-        "exp",
-        "log",
-        "sqrt",
-        "tanh",
-        "sinh",
-        "cosh",
-        "asin",
-        "acos",
-        "atan",
-        "log1p",
-        "expm1",
-        "rsqrt",
-        "erf",
-        "erfc",
-        "logistic",
-    }
-)
+class FlopsUnavailableError(ValueError):
+    """XLA could not estimate the cost of the function.
 
-# Comparison ops (1 FLOP per element)
-_COMPARISON_OPS = frozenset(
-    {
-        "eq",
-        "ne",
-        "lt",
-        "le",
-        "gt",
-        "ge",
-        "select_n",
-    }
-)
-
-# Reduction ops (product of input shape)
-_REDUCTION_OPS = frozenset(
-    {
-        "reduce_sum",
-        "reduce_max",
-        "reduce_min",
-        "reduce_prod",
-        "reduce_and",
-        "reduce_or",
-    }
-)
-
-# Zero-FLOP structural operations
-_ZERO_FLOP_OPS = frozenset(
-    {
-        "broadcast_in_dim",
-        "convert_element_type",
-        "reshape",
-        "transpose",
-        "concatenate",
-        "slice",
-        "squeeze",
-        "iota",
-    }
-)
-
-# Operations with nested Jaxprs
-_NESTED_OPS = frozenset({"pjit", "xla_call", "scan", "while", "cond"})
+    Raised when the analysis is negative, which is how ``HloCostAnalysis`` reports a
+    custom call it has no model for (``jax.pure_callback``, some linear-algebra
+    kernels, Pallas kernels), or when no backend provides an analysis at all.
+    """
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class FlopsResult:
-    """Result of FLOP counting for a function.
+    """Cost of one function, as XLA estimates it.
 
     Attributes:
-        total_flops: Total estimated FLOPs.
-        flops_by_operation: Breakdown by primitive operation name.
-        num_operations: Number of JAX primitives in the trace.
+        total_flops: Floating-point operations, excluding transcendentals.
+        transcendentals: Transcendental operations (``sin``, ``exp``, ``tanh``, ...).
         function_name: Name of the analyzed function.
     """
 
     total_flops: int
-    flops_by_operation: dict[str, int]
-    num_operations: int
+    transcendentals: int
     function_name: str
 
 
+def _abstract(leaf: Any) -> Any:
+    """Replace an array-like leaf by its shape and dtype; leave other leaves as they are."""
+    if hasattr(leaf, "shape") and hasattr(leaf, "dtype"):
+        return jax.ShapeDtypeStruct(leaf.shape, leaf.dtype)
+    return leaf
+
+
+def _cost_field(cost: Mapping[str, float], key: str) -> int:
+    """Read one field of a cost analysis; a missing field is a zero cost."""
+    value = cost.get(key)
+    return 0 if value is None else int(value)
+
+
+def _analyse(jitted: Any, spec: tuple[Any, ...]) -> Mapping[str, float]:
+    """Return XLA's cost analysis for ``jitted`` applied to ``spec``.
+
+    Prefers the analysis of the HLO lowered for the CPU backend. Without a CPU
+    backend, or when that lowering carries no analysis, falls back to the default
+    device and then to the compiled executable.
+
+    Raises:
+        FlopsUnavailableError: If no analysis is available on any path.
+    """
+    try:
+        cpu = jax.devices("cpu")[0]
+    except RuntimeError:  # jax was started without a CPU backend
+        cpu = None
+    if cpu is not None:
+        with jax.default_device(cpu):
+            cost = jitted.lower(*spec).cost_analysis()
+        if cost is not None:
+            return cost
+    lowered = jitted.lower(*spec)
+    cost = lowered.cost_analysis()
+    if cost is None:
+        cost = lowered.compile().cost_analysis()
+    if cost is None:
+        raise FlopsUnavailableError(
+            f"XLA returned no cost analysis on backend {jax.default_backend()!r}"
+        )
+    return cost
+
+
 class FlopsCounter:
-    """Count FLOPs of JAX functions via jaxpr analysis.
+    """Count the FLOPs of a JAX function from XLA's cost analysis of its lowering.
 
-    Uses ``jax.make_jaxpr`` to trace the function and counts FLOPs
-    for each primitive based on operation-specific rules.
-
-    For NNX models that use stochastic operations (dropout, etc.),
-    use ``flax.nnx.tabulate(model, *args, compute_flops=True)``
-    instead — it handles NNX state management internally.
+    Works for pure JAX functions and for functions that close over or take Flax NNX
+    state; nothing is executed, so stochastic modules are fine as long as their keys
+    are arguments or captured state.
     """
 
     def count(
@@ -146,178 +117,33 @@ class FlopsCounter:
 
         Args:
             fn: JAX function to analyze.
-            *args: Example arguments for tracing.
-            static_argnums: Argument indices to treat as static.
+            *args: Example arguments; only their shapes and dtypes are used, except
+                for the static ones.
+            static_argnums: Argument indices ``jax.jit`` treats as static.
 
         Returns:
-            FlopsResult with FLOP count and breakdown.
+            FlopsResult with the FLOP and transcendental counts.
+
+        Raises:
+            FlopsUnavailableError: If XLA cannot estimate the cost, typically because
+                the function contains a custom call it has no model for.
         """
-        trace_args = [arg for i, arg in enumerate(args) if i not in static_argnums]
-        static_vals = {i: args[i] for i in static_argnums}
-
-        if static_vals:
-
-            def wrapped(*dynamic_args: Any) -> Any:
-                """Re-insert static arguments and call the original function."""
-                full_args = list(dynamic_args)
-                for idx in sorted(static_vals.keys()):
-                    full_args.insert(idx, static_vals[idx])
-                return fn(*full_args)
-
-            jaxpr = jax.make_jaxpr(wrapped)(*trace_args)
-        else:
-            jaxpr = jax.make_jaxpr(fn)(*trace_args)
-
-        flops_by_op: dict[str, int] = {}
-        total = self._count_jaxpr(jaxpr.jaxpr, flops_by_op)
-
-        return FlopsResult(
-            total_flops=total,
-            flops_by_operation=dict(flops_by_op),
-            num_operations=len(jaxpr.jaxpr.eqns),
-            function_name=fn.__name__,
+        spec = tuple(
+            arg if index in static_argnums else jax.tree.map(_abstract, arg)
+            for index, arg in enumerate(args)
         )
-
-    def _count_jaxpr(
-        self,
-        jaxpr: jax_core.Jaxpr,
-        flops_by_op: dict[str, int],
-    ) -> int:
-        """Recursively count FLOPs in a Jaxpr.
-
-        Args:
-            jaxpr: The Jaxpr to analyze.
-            flops_by_op: Accumulator for per-operation FLOP counts.
-
-        Returns:
-            Total FLOPs in this Jaxpr.
-        """
-        total = 0
-        for eqn in jaxpr.eqns:
-            flops = self._count_eqn(eqn, flops_by_op)
-            total += flops
-        return total
-
-    def _count_eqn(
-        self,
-        eqn: jax_core.JaxprEqn,
-        flops_by_op: dict[str, int],
-    ) -> int:
-        """Count FLOPs for a single Jaxpr equation.
-
-        Args:
-            eqn: The equation to analyze.
-            flops_by_op: Accumulator for per-operation FLOP counts.
-
-        Returns:
-            FLOPs for this equation.
-        """
-        name = eqn.primitive.name
-        flops = self._classify_primitive_flops(name, eqn, flops_by_op)
-
-        if flops > 0:
-            flops_by_op[name] = flops_by_op.get(name, 0) + flops
-
-        return flops
-
-    def _classify_primitive_flops(
-        self,
-        name: str,
-        eqn: jax_core.JaxprEqn,
-        flops_by_op: dict[str, int],
-    ) -> int:
-        """Dispatch primitive to appropriate FLOP counting strategy.
-
-        Args:
-            name: Primitive operation name.
-            eqn: The Jaxpr equation.
-            flops_by_op: Accumulator for nested operations.
-
-        Returns:
-            Estimated FLOPs for this primitive.
-        """
-        if name == "dot_general":
-            return self._count_dot_general(eqn)
-        if name == "conv_general_dilated":
-            return self._count_conv(eqn)
-        if name in _ELEMENTWISE_OPS or name in _TRANSCENDENTAL_OPS or name in _COMPARISON_OPS:
-            return self._output_size(eqn)
-        if name in _REDUCTION_OPS:
-            return self._input_size(eqn)
-        if name in _ZERO_FLOP_OPS:
-            return 0
-        if name in _NESTED_OPS:
-            return self._count_nested_jaxpr(eqn, flops_by_op)
-        logger.warning("Unknown primitive '%s' — counting as 0 FLOPs", name)
-        return 0
-
-    def _count_dot_general(self, eqn: jax_core.JaxprEqn) -> int:
-        """Count FLOPs for dot_general (matmul).
-
-        For (M, K) @ (K, N) -> 2 * M * K * N.
-        """
-        out_aval = eqn.outvars[0].aval
-        if not hasattr(out_aval, "shape"):
-            return 0
-
-        dim_numbers = eqn.params.get("dimension_numbers")
-        if dim_numbers is None:
-            return 0
-
-        lhs_contract, rhs_contract = dim_numbers[0]
-        lhs_aval = eqn.invars[0].aval
-        if not hasattr(lhs_aval, "shape"):
-            return 0
-
-        k_dim = 1
-        for idx in lhs_contract:
-            k_dim *= lhs_aval.shape[idx]  # type: ignore[union-attr]
-
-        output_elements = math.prod(out_aval.shape)  # type: ignore[union-attr]
-        return 2 * k_dim * output_elements
-
-    def _count_conv(self, eqn: jax_core.JaxprEqn) -> int:
-        """Count FLOPs for conv_general_dilated."""
-        out_aval = eqn.outvars[0].aval
-        if not hasattr(out_aval, "shape"):
-            return 0
-
-        rhs_aval = eqn.invars[1].aval
-        if not hasattr(rhs_aval, "shape"):
-            return 0
-
-        output_elements = math.prod(out_aval.shape)  # type: ignore[union-attr]
-        kernel_elements = math.prod(rhs_aval.shape)  # type: ignore[union-attr]
-        return 2 * output_elements * kernel_elements
-
-    def _count_nested_jaxpr(
-        self,
-        eqn: jax_core.JaxprEqn,
-        flops_by_op: dict[str, int],
-    ) -> int:
-        """Count FLOPs in nested Jaxprs (pjit, scan, etc.)."""
-        total = 0
-        for sub in eqn.params.values():
-            if isinstance(sub, jax_core.Jaxpr):
-                total += self._count_jaxpr(sub, flops_by_op)
-            elif isinstance(sub, jax_core.ClosedJaxpr):
-                total += self._count_jaxpr(sub.jaxpr, flops_by_op)
-        return total
-
-    def _output_size(self, eqn: jax_core.JaxprEqn) -> int:
-        """Product of output shape dimensions."""
-        if not eqn.outvars:
-            return 0
-        aval = eqn.outvars[0].aval
-        if not hasattr(aval, "shape"):
-            return 0
-        return math.prod(aval.shape)  # type: ignore[union-attr]
-
-    def _input_size(self, eqn: jax_core.JaxprEqn) -> int:
-        """Product of first input shape dimensions."""
-        if not eqn.invars:
-            return 0
-        aval = eqn.invars[0].aval
-        if not hasattr(aval, "shape"):
-            return 0
-        return math.prod(aval.shape)  # type: ignore[union-attr]
+        cost = _analyse(jax.jit(fn, static_argnums=static_argnums), spec)
+        name = getattr(fn, "__name__", type(fn).__name__)
+        total_flops = _cost_field(cost, "flops")
+        transcendentals = _cost_field(cost, "transcendentals")
+        if total_flops < 0 or transcendentals < 0:
+            raise FlopsUnavailableError(
+                f"XLA cannot estimate the cost of {name!r}: it contains a custom call "
+                f"(a callback, a Pallas kernel or a library kernel) with no cost model "
+                f"(flops={total_flops}, transcendentals={transcendentals})."
+            )
+        return FlopsResult(
+            total_flops=total_flops,
+            transcendentals=transcendentals,
+            function_name=name,
+        )

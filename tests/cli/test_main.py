@@ -717,8 +717,7 @@ class TestProfileOutputHelpers:
         )
         flops_result = FlopsResult(
             total_flops=1234,
-            flops_by_operation={"add": 1000, "mul": 234},
-            num_operations=2,
+            transcendentals=7,
             function_name="bench_fn",
         )
         energy_summary = EnergySummary(
@@ -735,7 +734,8 @@ class TestProfileOutputHelpers:
         output = capsys.readouterr().out
         assert "Timing Results:" in output
         assert "FLOP Analysis (bench_fn):" in output
-        assert "Breakdown:" in output
+        assert "Total FLOPs: 1,234" in output
+        assert "Transcendentals: 7" in output
         assert "Energy Results:" in output
 
     def test_save_profile_run_persists_all_optional_metrics(
@@ -746,8 +746,7 @@ class TestProfileOutputHelpers:
         sample = SimpleNamespace(wall_clock_sec=1.5, per_batch_times=(0.5, 0.7))
         flops_result = FlopsResult(
             total_flops=5000,
-            flops_by_operation={},
-            num_operations=0,
+            transcendentals=0,
             function_name="bench_fn",
         )
         energy_summary = EnergySummary(
@@ -808,8 +807,7 @@ class TestProfileCommand:
         )
         flops_result = FlopsResult(
             total_flops=100,
-            flops_by_operation={"add": 100},
-            num_operations=1,
+            transcendentals=0,
             function_name="bench_fn",
         )
 

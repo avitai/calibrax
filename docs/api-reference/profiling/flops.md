@@ -1,7 +1,8 @@
 # calibrax.profiling.flops
 
-FLOP counting via jaxpr analysis. `FlopsCounter.count()` traces a JAX function
-and counts floating-point operations by operation type.
+FLOP counting through XLA's cost analysis. `FlopsCounter.count()` lowers a JAX
+function from its example arguments' shapes and reports the FLOPs and
+transcendentals XLA estimates for it.
 
 ::: calibrax.profiling.flops
     options:

@@ -318,15 +318,7 @@ def _print_profile_results(
     if isinstance(flops_result, FlopsResult):
         print(f"\nFLOP Analysis ({flops_result.function_name}):")
         print(f"  Total FLOPs: {flops_result.total_flops:,}")
-        print(f"  Operations: {flops_result.num_operations}")
-        if flops_result.flops_by_operation:
-            print("  Breakdown:")
-            for op, count in sorted(
-                flops_result.flops_by_operation.items(),
-                key=lambda x: x[1],
-                reverse=True,
-            )[:5]:
-                print(f"    {op}: {count:,}")
+        print(f"  Transcendentals: {flops_result.transcendentals:,}")
 
     _print_energy_results(energy_summary)
 
@@ -421,8 +413,8 @@ def profile(
         try:
             flops_result = counter.count(func)  # type: ignore[arg-type]
         except (AttributeError, TypeError, ValueError, RuntimeError) as exc:
-            # FlopsCounter traces via jax.make_jaxpr which can fail for many
-            # reasons (unsupported ops, tracing limitations). Degrade gracefully.
+            # Lowering can fail for many reasons (non-JAX code, tracing limits) and
+            # XLA has no cost model for some custom calls. Degrade gracefully.
             print(f"\n  FLOP counting failed: {exc}")
 
     _print_profile_results(sample, flops_result, energy_summary)
