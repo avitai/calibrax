@@ -185,6 +185,9 @@ nav:
           - Information: api-reference/metrics/information.md
           - Ranking: api-reference/metrics/ranking.md
           - Statistical: api-reference/metrics/statistical.md
+          - Forecasting: api-reference/metrics/forecasting.md
+          - Uncertainty: api-reference/metrics/uncertainty.md
+          - Generative: api-reference/metrics/generative.md
           - Clustering: api-reference/metrics/clustering.md
           - Fairness: api-reference/metrics/fairness.md
           - Image: api-reference/metrics/image.md

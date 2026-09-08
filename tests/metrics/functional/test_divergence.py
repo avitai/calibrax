@@ -6,6 +6,7 @@ from typing import Any
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 import pytest
 
 from calibrax.metrics.functional.divergence import (
@@ -424,6 +425,7 @@ class TestDivergenceMetricRegistration:
             "renyi_divergence",
             "f_divergence",
             "wasserstein_1d",
+            "kolmogorov_smirnov_distance",
             "mmd",
             "sinkhorn_divergence",
             "sliced_wasserstein",
@@ -437,7 +439,7 @@ class TestDivergenceMetricRegistration:
 
         registry = MetricRegistry()
         div_metrics = registry.list_by_domain("divergence")
-        assert len(div_metrics) == 13
+        assert len(div_metrics) == 14
 
     def test_all_direction_lower(self) -> None:
         from calibrax.core.models import MetricDirection
@@ -455,3 +457,28 @@ class TestDivergenceMetricRegistration:
         assert registry.get("js_divergence").properties.is_symmetric is True
         assert registry.get("kl_divergence").properties.is_symmetric is False
         assert registry.get("total_variation").properties.is_symmetric is True
+
+
+class TestKolmogorovSmirnovDistance:
+    def test_identical_samples_have_zero_distance(self) -> None:
+        from calibrax.metrics.functional.divergence import kolmogorov_smirnov_distance
+
+        sample = jnp.array([0.1, 0.5, 0.9, 1.3])
+        assert kolmogorov_smirnov_distance(sample, sample) == pytest.approx(0.0, abs=1e-6)
+
+    def test_disjoint_samples_have_distance_one(self) -> None:
+        from calibrax.metrics.functional.divergence import kolmogorov_smirnov_distance
+
+        assert kolmogorov_smirnov_distance(
+            jnp.array([0.0, 1.0]), jnp.array([5.0, 6.0])
+        ) == pytest.approx(1.0, abs=1e-6)
+
+    def test_matches_scipy(self) -> None:
+        from calibrax.metrics.functional.divergence import kolmogorov_smirnov_distance
+
+        stats = pytest.importorskip("scipy.stats")
+        rng = np.random.default_rng(0)
+        a, b = rng.standard_normal(40), rng.standard_normal(55) + 0.3
+        assert kolmogorov_smirnov_distance(jnp.asarray(a), jnp.asarray(b)) == pytest.approx(
+            stats.ks_2samp(a, b).statistic, abs=1e-6
+        )

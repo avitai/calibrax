@@ -497,3 +497,29 @@ def bregman_divergence(
     diff = x_arr - y_arr
 
     return psi_x - psi_y - jnp.dot(grad_y, diff)
+
+
+def kolmogorov_smirnov_distance(a: Any, b: Any) -> Any:
+    """Kolmogorov-Smirnov distance between two samples.
+
+    The largest absolute gap between the two empirical CDFs, evaluated at every
+    observed value. Both inputs are flattened; duplicates do not change the
+    maximum gap, which keeps the function free of ``jnp.unique`` and traceable.
+
+    Note:
+        Direction: LOWER (0.0 = identical empirical distributions).
+        Range: [0, 1].
+
+    Args:
+        a: Samples from the first distribution, any shape.
+        b: Samples from the second distribution, any shape.
+
+    Returns:
+        Scalar KS distance as a JAX array.
+    """
+    first = jnp.sort(jnp.asarray(a).reshape(-1))
+    second = jnp.sort(jnp.asarray(b).reshape(-1))
+    grid = jnp.sort(jnp.concatenate([first, second]))
+    first_cdf = jnp.searchsorted(first, grid, side="right") / first.shape[0]
+    second_cdf = jnp.searchsorted(second, grid, side="right") / second.shape[0]
+    return jnp.max(jnp.abs(first_cdf - second_cdf))

@@ -7,6 +7,22 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+### Added
+
+- Three metric domains, moved from the sibling packages with their tests and given
+  the Tier 0 conventions (positional inputs, scalar means, static shape checks):
+  `forecasting` (fair CRPS, energy score, rank and PIT histograms, spread-skill ratio,
+  ranked probability score with its ensemble and skill-score forms, event
+  reliability; from opifex), `uncertainty` (PICP, MPIW, interval and Winkler score,
+  Gaussian NLL, regression calibration error, predictive entropy, ensemble mutual
+  information, ANEES, non-credibility index, chi-squared credibility interval; from
+  opifex) and `generative` (k-NN manifold precision and recall, density-weighted
+  variants, distance to closest record, memorization rate; from artifex).
+  `relative_l2_error` and `per_sample_relative_l2` join the general domain (from
+  opifex) and `kolmogorov_smirnov_distance` the divergence domain (from artifex);
+  `matrix_sqrtm` is a shared helper. The registry holds 132 Tier 0 metrics across
+  20 domains.
+
 ### Changed
 
 - **Floors match what is tested.** `jax>=0.11.1`, `jaxlib>=0.11.1` and `flax>=0.12.9` are

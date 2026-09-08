@@ -14,38 +14,7 @@ from typing import Any
 
 import jax.numpy as jnp
 
-from calibrax.metrics._utils import _EPSILON, _prepare_arrays, safe_divide
-
-
-# Ensemble forecasts are (samples, members) with at least two members.
-_ENSEMBLE_NDIM = 2
-_MIN_ENSEMBLE_MEMBERS = 2
-
-
-def _prepare_ensemble_forecast_arrays(predictions: Any, targets: Any) -> tuple[Any, Any]:
-    """Prepare ensemble forecast arrays for probabilistic regression metrics."""
-    pred = jnp.asarray(predictions, dtype=jnp.float32)
-    target = jnp.asarray(targets, dtype=jnp.float32)
-
-    if pred.ndim != _ENSEMBLE_NDIM:
-        msg = f"predictions must be 2-dimensional, got shape {pred.shape}"
-        raise ValueError(msg)
-    if pred.shape[1] < _MIN_ENSEMBLE_MEMBERS:
-        msg = f"predictions must contain at least two ensemble members, got {pred.shape[1]}"
-        raise ValueError(msg)
-    if target.ndim == 0:
-        target = target[None]
-    if target.ndim != 1:
-        msg = f"targets must be scalar or 1-dimensional, got shape {target.shape}"
-        raise ValueError(msg)
-    if pred.shape[0] != target.shape[0]:
-        msg = (
-            "predictions and targets must have matching sample count: "
-            f"{pred.shape[0]} != {target.shape[0]}"
-        )
-        raise ValueError(msg)
-
-    return pred, target
+from calibrax.metrics._utils import _EPSILON, _prepare_arrays, _prepare_ensemble_arrays, safe_divide
 
 
 def mse(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _prepare_arrays
@@ -399,8 +368,61 @@ def crps(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _p
     Raises:
         ValueError: If inputs do not have compatible ensemble forecast shapes.
     """
-    pred, target = _prepare_ensemble_forecast_arrays(predictions, targets)
+    pred, target = _prepare_ensemble_arrays(predictions, targets)
     forecast_error = jnp.mean(jnp.abs(pred - target[:, None]), axis=1)
     pairwise = jnp.abs(pred[:, :, None] - pred[:, None, :])
     ensemble_spread = 0.5 * jnp.mean(pairwise, axis=(1, 2))
     return jnp.mean(forecast_error - ensemble_spread)
+
+
+def per_sample_relative_l2(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _prepare_arrays
+    """Relative L2 error of each sample, ``||pred_i - target_i|| / ||target_i||``.
+
+    Each leading-axis sample is flattened before the norms are taken (the PDEBench
+    convention for operator learning); a zero-norm target is guarded by the shared
+    epsilon.
+
+    Note:
+        Direction: LOWER (0.0 = perfect).
+        Range: [0, inf).
+        Returns one value per sample, so it is not a registered metric; see
+        ``relative_l2_error`` for the mean.
+
+    Args:
+        predictions: Predicted fields with shape ``(n_samples, *field_dims)``.
+        targets: Ground truth fields, same shape.
+
+    Returns:
+        Per-sample relative L2 errors with shape ``(n_samples,)``.
+
+    Raises:
+        ValueError: If shapes do not match.
+    """
+    pred, target = _prepare_arrays(predictions, targets)
+    batch = pred.shape[0]
+    numerator = jnp.linalg.norm((pred - target).reshape(batch, -1), axis=1)
+    denominator = jnp.linalg.norm(target.reshape(batch, -1), axis=1)
+    return safe_divide(numerator, denominator)
+
+
+def relative_l2_error(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _prepare_arrays
+    """Mean over samples of the per-sample relative L2 error.
+
+    Differs from ``relative_error``, which takes one global norm ratio over the
+    whole array: this is the batch mean of ``||pred_i - target_i|| / ||target_i||``.
+
+    Note:
+        Direction: LOWER (0.0 = perfect).
+        Range: [0, inf).
+
+    Args:
+        predictions: Predicted fields with shape ``(n_samples, *field_dims)``.
+        targets: Ground truth fields, same shape.
+
+    Returns:
+        Scalar mean relative L2 error as a JAX array.
+
+    Raises:
+        ValueError: If shapes do not match.
+    """
+    return jnp.mean(per_sample_relative_l2(predictions, targets))

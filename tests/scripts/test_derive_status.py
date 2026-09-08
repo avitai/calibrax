@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import re
 import sys
 from pathlib import Path
 from types import ModuleType
@@ -38,7 +39,11 @@ def test_the_registry_matches_the_readme(derive_status: ModuleType) -> None:
 
 def test_a_stale_readme_count_is_drift(derive_status: ModuleType, tmp_path: Path) -> None:
     readme = (REPO_ROOT / "README.md").read_text()
-    stale = readme.replace("(111 registered Tier 0 metrics", "(110 registered Tier 0 metrics", 1)
+    match = re.search(r"\((\d+) registered Tier 0 metrics", readme)
+    assert match is not None
+    stale = readme.replace(
+        match.group(0), f"({int(match.group(1)) + 1} registered Tier 0 metrics", 1
+    )
     edited = tmp_path / "README.md"
     edited.write_text(stale)
 

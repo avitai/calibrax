@@ -44,6 +44,7 @@ _FUSED_REGRESSION_NAMES = frozenset(
         "quantile_loss",
         "log_cosh_loss",
         "smape",
+        "relative_l2_error",
     }
 )
 
@@ -65,6 +66,7 @@ def _calculate_regression_fused(
         Dictionary mapping the 12 same-shape regression metric names to computed values.
     """
     from calibrax.metrics._utils import _EPSILON, _prepare_arrays, safe_divide
+    from calibrax.metrics.functional.regression import relative_l2_error
 
     p, t = _prepare_arrays(predictions, targets)
     diff = p - t
@@ -90,6 +92,7 @@ def _calculate_regression_fused(
         "quantile_loss": jnp.mean(jnp.where(diff <= 0, 0.5 * (-diff), 0.5 * diff)),
         "log_cosh_loss": jnp.mean(jnp.logaddexp(diff, -diff) - jnp.log(2.0)),
         "smape": jnp.mean(safe_divide(abs_diff, (jnp.abs(p) + jnp.abs(t)) / 2.0)),
+        "relative_l2_error": relative_l2_error(p, t),
     }
 
 
@@ -112,6 +115,9 @@ def _register_all_builtins() -> None:
     _register_image_metrics()
     _register_fairness_metrics()
     _register_clustering_metrics()
+    _register_forecasting_metrics()
+    _register_uncertainty_metrics()
+    _register_generative_metrics()
 
 
 def _register_regression_metrics() -> None:
@@ -129,6 +135,7 @@ def _register_regression_metrics() -> None:
         quantile_loss,
         r_squared,
         relative_error,
+        relative_l2_error,
         rmse,
         smape,
     )
@@ -176,6 +183,13 @@ def _register_regression_metrics() -> None:
             "Mean relative error (L2 norm ratio)",
             MetricDirection.LOWER,
             MetricProperties(is_differentiable=True),
+        ),
+        _BuiltinMetricSpec(
+            "relative_l2_error",
+            relative_l2_error,
+            "Mean per-sample relative L2 error",
+            MetricDirection.LOWER,
+            MetricProperties(is_differentiable=True, is_jit_compatible=True),
         ),
         _BuiltinMetricSpec(
             "explained_variance",
@@ -241,6 +255,264 @@ def _register_regression_metrics() -> None:
                 properties=spec.properties,
             )
             registry.register(spec.name, entry)
+
+
+def _register_forecasting_metrics() -> None:
+    """Register the scalar forecast verification scores.
+
+    Note: rank_histogram, pit_histogram and ranked_probability_skill_score are
+    NOT registered (they return arrays, not scalars).
+    """
+    from calibrax.metrics._registry import MetricRegistry
+    from calibrax.metrics.functional.forecasting import (
+        energy_score,
+        ensemble_ranked_probability_score,
+        event_reliability,
+        fair_crps,
+        ranked_probability_score,
+        spread_skill_ratio,
+    )
+
+    registry = MetricRegistry()
+    proper = MetricProperties(is_proper=True, is_differentiable=True, is_jit_compatible=True)
+    builtins = [
+        _BuiltinMetricSpec(
+            "fair_crps",
+            fair_crps,
+            "Fair (finite-ensemble bias-corrected) CRPS",
+            MetricDirection.LOWER,
+            proper,
+            signature=MetricSignature.ENSEMBLE_PREDICTIONS_TARGETS,
+            domain="forecasting",
+        ),
+        _BuiltinMetricSpec(
+            "energy_score",
+            energy_score,
+            "Energy score for multivariate ensemble forecasts",
+            MetricDirection.LOWER,
+            proper,
+            signature=MetricSignature.ENSEMBLE_PREDICTIONS_TARGETS,
+            domain="forecasting",
+        ),
+        _BuiltinMetricSpec(
+            "spread_skill_ratio",
+            spread_skill_ratio,
+            "Unbiased ensemble spread over ensemble-mean RMSE",
+            MetricDirection.INFO,
+            MetricProperties(is_differentiable=True, is_jit_compatible=True),
+            signature=MetricSignature.ENSEMBLE_PREDICTIONS_TARGETS,
+            domain="forecasting",
+        ),
+        _BuiltinMetricSpec(
+            "ranked_probability_score",
+            ranked_probability_score,
+            "Ranked probability score for ordered categories",
+            MetricDirection.LOWER,
+            proper,
+            signature=MetricSignature.PREDICTIONS_TARGETS,
+            domain="forecasting",
+        ),
+        _BuiltinMetricSpec(
+            "event_reliability",
+            event_reliability,
+            "Reliability component of the Brier decomposition",
+            MetricDirection.LOWER,
+            MetricProperties(is_differentiable=False, is_jit_compatible=True),
+            signature=MetricSignature.PREDICTIONS_TARGETS,
+            domain="forecasting",
+        ),
+        _BuiltinMetricSpec(
+            "ensemble_ranked_probability_score",
+            ensemble_ranked_probability_score,
+            "Fair ranked probability score of a continuous ensemble at thresholds",
+            MetricDirection.LOWER,
+            MetricProperties(is_proper=True, is_differentiable=False, is_jit_compatible=True),
+            signature=MetricSignature.CUSTOM,
+            domain="forecasting",
+        ),
+    ]
+    _register_specs(registry, builtins)
+
+
+def _register_uncertainty_metrics() -> None:
+    """Register the scalar uncertainty-quantification metrics.
+
+    Note: predictive_entropy and ensemble_mutual_information are per-sample,
+    winkler_score is interval_score under its older name, and
+    chi2_confidence_interval returns a pair; none is registered.
+    """
+    from calibrax.metrics._registry import MetricRegistry
+    from calibrax.metrics.functional.uncertainty import (
+        anees,
+        gaussian_nll,
+        interval_score,
+        mpiw,
+        non_credibility_index,
+        picp,
+        regression_calibration_error,
+    )
+
+    registry = MetricRegistry()
+    differentiable = MetricProperties(is_differentiable=True, is_jit_compatible=True)
+    counting = MetricProperties(is_differentiable=False, is_jit_compatible=True)
+    builtins = [
+        _BuiltinMetricSpec(
+            "picp",
+            picp,
+            "Prediction interval coverage probability",
+            MetricDirection.INFO,
+            counting,
+            signature=MetricSignature.CUSTOM,
+            domain="uncertainty",
+        ),
+        _BuiltinMetricSpec(
+            "mpiw",
+            mpiw,
+            "Mean prediction interval width",
+            MetricDirection.LOWER,
+            differentiable,
+            signature=MetricSignature.CUSTOM,
+            domain="uncertainty",
+        ),
+        _BuiltinMetricSpec(
+            "interval_score",
+            interval_score,
+            "Interval (Winkler) score of central prediction intervals",
+            MetricDirection.LOWER,
+            MetricProperties(is_proper=True, is_differentiable=True, is_jit_compatible=True),
+            signature=MetricSignature.CUSTOM,
+            domain="uncertainty",
+        ),
+        _BuiltinMetricSpec(
+            "gaussian_nll",
+            gaussian_nll,
+            "Mean Gaussian negative log-likelihood",
+            MetricDirection.LOWER,
+            MetricProperties(is_proper=True, is_differentiable=True, is_jit_compatible=True),
+            signature=MetricSignature.CUSTOM,
+            domain="uncertainty",
+        ),
+        _BuiltinMetricSpec(
+            "regression_calibration_error",
+            regression_calibration_error,
+            "Quantile calibration error of a Gaussian predictive",
+            MetricDirection.LOWER,
+            counting,
+            signature=MetricSignature.CUSTOM,
+            domain="uncertainty",
+        ),
+        _BuiltinMetricSpec(
+            "anees",
+            anees,
+            "Average normalised estimation error squared",
+            MetricDirection.INFO,
+            differentiable,
+            signature=MetricSignature.CUSTOM,
+            domain="uncertainty",
+        ),
+        _BuiltinMetricSpec(
+            "non_credibility_index",
+            non_credibility_index,
+            "Non-credibility index in decibels",
+            MetricDirection.INFO,
+            differentiable,
+            signature=MetricSignature.CUSTOM,
+            domain="uncertainty",
+        ),
+    ]
+    _register_specs(registry, builtins)
+
+
+def _register_generative_metrics() -> None:
+    """Register the sample-based generative-model metrics."""
+    from calibrax.metrics._registry import MetricRegistry
+    from calibrax.metrics.functional.generative import (
+        density_weighted_precision,
+        density_weighted_recall,
+        distance_to_closest_record,
+        manifold_precision,
+        manifold_recall,
+        memorization_rate,
+    )
+
+    registry = MetricRegistry()
+    counting = MetricProperties(is_differentiable=False, is_jit_compatible=True)
+    builtins = [
+        _BuiltinMetricSpec(
+            "manifold_precision",
+            manifold_precision,
+            "Fraction of generated samples inside the real k-NN manifold",
+            MetricDirection.HIGHER,
+            counting,
+            signature=MetricSignature.SAMPLES,
+            domain="generative",
+        ),
+        _BuiltinMetricSpec(
+            "manifold_recall",
+            manifold_recall,
+            "Fraction of real samples inside the generated k-NN manifold",
+            MetricDirection.HIGHER,
+            counting,
+            signature=MetricSignature.SAMPLES,
+            domain="generative",
+        ),
+        _BuiltinMetricSpec(
+            "density_weighted_precision",
+            density_weighted_precision,
+            "Manifold precision weighted by real-manifold density",
+            MetricDirection.HIGHER,
+            counting,
+            signature=MetricSignature.SAMPLES,
+            domain="generative",
+        ),
+        _BuiltinMetricSpec(
+            "density_weighted_recall",
+            density_weighted_recall,
+            "Manifold recall weighted by generated-manifold density",
+            MetricDirection.HIGHER,
+            counting,
+            signature=MetricSignature.SAMPLES,
+            domain="generative",
+        ),
+        _BuiltinMetricSpec(
+            "distance_to_closest_record",
+            distance_to_closest_record,
+            "Mean normalised distance from generated to closest real record",
+            MetricDirection.HIGHER,
+            MetricProperties(is_differentiable=True, is_jit_compatible=True),
+            signature=MetricSignature.SAMPLES,
+            domain="generative",
+        ),
+        _BuiltinMetricSpec(
+            "memorization_rate",
+            memorization_rate,
+            "Fraction of generated records identical to a real record",
+            MetricDirection.LOWER,
+            counting,
+            signature=MetricSignature.SAMPLES,
+            domain="generative",
+        ),
+    ]
+    _register_specs(registry, builtins)
+
+
+def _register_specs(registry: Any, specs: Sequence[_BuiltinMetricSpec]) -> None:
+    """Register every spec that is not already in the registry."""
+    for spec in specs:
+        if not registry.has(spec.name):
+            registry.register(
+                spec.name,
+                MetricEntry(
+                    name=spec.name,
+                    fn=spec.fn,
+                    tier=MetricTier.PURE_FUNCTION,
+                    domain=spec.domain,
+                    direction=spec.direction,
+                    description=spec.description,
+                    signature=spec.signature,
+                    properties=spec.properties,
+                ),
+            )
 
 
 def _register_classification_metrics() -> None:
@@ -634,6 +906,7 @@ def _register_divergence_metrics() -> None:
         hellinger_distance,
         js_divergence,
         kl_divergence,
+        kolmogorov_smirnov_distance,
         mmd,
         renyi_divergence,
         reverse_kl_divergence,
@@ -725,6 +998,15 @@ def _register_divergence_metrics() -> None:
             True,
             True,
             True,
+            MetricSignature.SAMPLES,
+        ),
+        (
+            "kolmogorov_smirnov_distance",
+            kolmogorov_smirnov_distance,
+            "Kolmogorov-Smirnov distance between two samples",
+            True,
+            True,
+            False,
             MetricSignature.SAMPLES,
         ),
         (

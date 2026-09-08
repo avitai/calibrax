@@ -52,7 +52,7 @@ Calibrax provides a JAX-native unified benchmarking framework with:
 - CI regression gates with git bisect automation
 - Production monitoring with alerting
 - CLI for all operations
-- Extensible metrics framework (111 registered Tier 0 metrics plus Tier 1-3 APIs, optional plugins, and metric-learning losses)
+- Extensible metrics framework (132 registered Tier 0 metrics plus Tier 1-3 APIs, optional plugins, and metric-learning losses)
 - Geometric distance hierarchy (Euclidean, Riemannian, Finsler, pseudo-Riemannian, graph)
 - Metric registry with axiom-based discovery and invariance-based selection
 
@@ -2659,7 +2659,7 @@ as a starting point for new examples.
 ## 18. Metrics Module Documentation Patterns
 
 The metrics module (`calibrax.metrics`) is the largest single module expansion in calibrax,
-adding 111 registered Tier 0 metrics across 17 functional domains, plus Tier 1-3
+adding 132 registered Tier 0 metrics across 20 functional domains, plus Tier 1-3
 APIs, optional plugins, and metric-learning losses. This
 section establishes documentation patterns specific to the metrics module.
 

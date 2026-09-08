@@ -2,7 +2,7 @@
 
 Calibrax provides a 4-tier metric system that covers everything from stateless
 pure functions to trainable embedding losses. The current `MetricRegistry`
-contains 111 Tier 0 pure-function metrics across 17 domains. Tier 1-3 APIs,
+contains 132 Tier 0 pure-function metrics across 20 domains. Tier 1-3 APIs,
 optional plugin metrics, and metric-learning losses are part of the package
 architecture, but they are not all registry entries today.
 
@@ -156,17 +156,17 @@ def weighted_mse(predictions, targets, *, weights=None):
 
 ## Domain Reference
 
-The registry organizes Tier 0 metrics into 17 domains. Each domain groups
+The registry organizes Tier 0 metrics into 20 domains. Each domain groups
 metrics with a shared evaluation context.
 
 | Domain | Count | Examples |
 |--------|-------|---------|
-| `general` | 12 | MSE, MAE, RMSE, R-squared, Huber, SMAPE |
+| `general` | 13 | MSE, MAE, RMSE, R-squared, Huber, SMAPE, relative L2 |
 | `classification` | 12 | Accuracy, F1, ROC-AUC, Matthews correlation |
 | `calibration` | 5 | Brier score, ECE, MCE, adaptive ECE |
 | `segmentation` | 3 | IoU, Dice coefficient, pixel accuracy |
 | `distance` | 11 | Euclidean, cosine, Poincare, Lorentz, Mahalanobis |
-| `divergence` | 13 | KL, JS, Wasserstein, MMD, Sinkhorn, Bregman |
+| `divergence` | 14 | KL, JS, Wasserstein, KS, MMD, Sinkhorn, Bregman |
 | `information` | 5 | Entropy, cross-entropy, mutual information |
 | `ranking` | 8 | NDCG, MAP, MRR, precision@k, recall@k |
 | `statistical` | 5 | Pearson, Spearman, Kendall, concordance |
@@ -178,6 +178,9 @@ metrics with a shared evaluation context.
 | `geometric` | 4 | Chamfer, Hausdorff, Earth Mover's distance |
 | `graph` | 4 | Spectral distance, resistance, shortest path, GED |
 | `manifold` | 5 | SPD affine-invariant, log-Euclidean, Grassmann, Stiefel |
+| `forecasting` | 6 | Fair CRPS, energy score, spread-skill, RPS, reliability |
+| `uncertainty` | 7 | PICP, MPIW, interval score, Gaussian NLL, ANEES, NCI |
+| `generative` | 6 | Manifold precision/recall, closest-record distance, memorization |
 
 !!! tip "Domain-Based Collection"
 

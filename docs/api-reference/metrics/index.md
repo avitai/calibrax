@@ -38,10 +38,13 @@ results = calculate_all(predictions, targets, metrics=["mse", "mae", "r_squared"
 - [Calibration](calibration.md) -- Brier score, ECE, MCE, adaptive ECE
 - [Segmentation](segmentation.md) -- IoU, Dice, pixel accuracy
 - [Distance](distance.md) -- Euclidean, cosine, Mahalanobis, Poincare, Lorentz
-- [Divergence](divergence.md) -- KL, JS, Wasserstein, Sinkhorn, MMD
+- [Divergence](divergence.md) -- KL, JS, Wasserstein, KS, Sinkhorn, MMD
 - [Information](information.md) -- entropy, cross-entropy, mutual information
 - [Ranking](ranking.md) -- NDCG, MAP, MRR, precision/recall at k
 - [Statistical](statistical.md) -- Pearson, Spearman, Kendall, concordance
+- [Forecasting](forecasting.md) -- fair CRPS, energy score, rank/PIT histograms, RPS, reliability
+- [Uncertainty](uncertainty.md) -- PICP, MPIW, interval score, Gaussian NLL, ANEES, NCI
+- [Generative](generative.md) -- manifold precision/recall, closest-record distance, memorization
 - [Clustering](clustering.md) -- ARI, NMI, silhouette, Davies-Bouldin
 - [Fairness](fairness.md) -- demographic parity, equalized odds, disparate impact
 - [Image](image.md) -- PSNR, SSIM, MS-SSIM, Vendi Score

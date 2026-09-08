@@ -59,6 +59,7 @@ from calibrax.metrics.functional.divergence import (
     hellinger_distance,
     js_divergence,
     kl_divergence,
+    kolmogorov_smirnov_distance,
     mmd,
     renyi_divergence,
     reverse_kl_divergence,
@@ -73,6 +74,26 @@ from calibrax.metrics.functional.fairness import (
     equal_opportunity_difference,
     equalized_odds_difference,
     group_metric_breakdown,
+)
+from calibrax.metrics.functional.forecasting import (
+    energy_score,
+    ensemble_ranked_probability_score,
+    event_reliability,
+    fair_crps,
+    pit_histogram,
+    rank_histogram,
+    ranked_probability_score,
+    ranked_probability_skill_score,
+    spread_skill_ratio,
+)
+from calibrax.metrics.functional.generative import (
+    density_weighted_precision,
+    density_weighted_recall,
+    distance_to_closest_record,
+    manifold_precision,
+    manifold_radii,
+    manifold_recall,
+    memorization_rate,
 )
 from calibrax.metrics.functional.geometric import (
     chamfer_distance,
@@ -126,9 +147,11 @@ from calibrax.metrics.functional.regression import (
     mape,
     max_error,
     mse,
+    per_sample_relative_l2,
     quantile_loss,
     r_squared,
     relative_error,
+    relative_l2_error,
     rmse,
     smape,
 )
@@ -150,6 +173,19 @@ from calibrax.metrics.functional.text import (
     perplexity,
     rouge_l,
     rouge_n,
+)
+from calibrax.metrics.functional.uncertainty import (
+    anees,
+    chi2_confidence_interval,
+    ensemble_mutual_information,
+    gaussian_nll,
+    interval_score,
+    mpiw,
+    non_credibility_index,
+    picp,
+    predictive_entropy,
+    regression_calibration_error,
+    winkler_score,
 )
 
 
@@ -288,4 +324,38 @@ __all__ = [
     "relative_error",
     "rmse",
     "smape",
+    # Forecasting
+    "energy_score",
+    "ensemble_ranked_probability_score",
+    "event_reliability",
+    "fair_crps",
+    "pit_histogram",
+    "rank_histogram",
+    "ranked_probability_score",
+    "ranked_probability_skill_score",
+    "spread_skill_ratio",
+    # Generative
+    "density_weighted_precision",
+    "density_weighted_recall",
+    "distance_to_closest_record",
+    "manifold_precision",
+    "manifold_radii",
+    "manifold_recall",
+    "memorization_rate",
+    # Uncertainty
+    "anees",
+    "chi2_confidence_interval",
+    "ensemble_mutual_information",
+    "gaussian_nll",
+    "interval_score",
+    "mpiw",
+    "non_credibility_index",
+    "picp",
+    "predictive_entropy",
+    "regression_calibration_error",
+    "winkler_score",
+    # Added to existing domains
+    "kolmogorov_smirnov_distance",
+    "per_sample_relative_l2",
+    "relative_l2_error",
 ]

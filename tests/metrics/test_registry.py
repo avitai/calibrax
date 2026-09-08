@@ -254,10 +254,11 @@ class TestCalculateAllFused:
         "quantile_loss",
         "log_cosh_loss",
         "smape",
+        "relative_l2_error",
     )
 
     def test_fused_returns_all_regression_metrics(self) -> None:
-        """Fused path must return the exact 12 same-shape regression metric names."""
+        """Fused path must return the exact 13 same-shape regression metric names."""
         predictions = jnp.array([1.0, 2.5, 3.2, 4.1, 5.8])
         targets = jnp.array([1.1, 2.0, 3.0, 4.0, 5.0])
         fused = calculate_all(predictions, targets, metrics=self._FUSED_NAMES)

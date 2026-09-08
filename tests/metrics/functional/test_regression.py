@@ -382,3 +382,41 @@ class TestShapeValidation:
         """Functions should work with scalar inputs."""
         result = mse(jnp.array(1.0), jnp.array(2.0))
         assert result == pytest.approx(1.0)
+
+
+class TestRelativeL2Error:
+    """The per-sample relative L2 of operator learning (PDEBench convention)."""
+
+    def test_per_sample_ratios(self) -> None:
+        from calibrax.metrics.functional.regression import per_sample_relative_l2, relative_l2_error
+
+        target = jnp.array([[3.0, 4.0], [6.0, 8.0]])  # norms 5 and 10
+        per_sample = per_sample_relative_l2(jnp.zeros((2, 2)), target)
+        assert per_sample.shape == (2,)
+        assert bool(jnp.allclose(per_sample, 1.0, atol=1e-4))
+        assert relative_l2_error(jnp.zeros((2, 2)), target) == pytest.approx(1.0, rel=1e-4)
+
+    def test_identical_fields_have_zero_error(self) -> None:
+        from calibrax.metrics.functional.regression import relative_l2_error
+
+        field = jnp.arange(12.0).reshape(3, 4)
+        assert relative_l2_error(field, field) == pytest.approx(0.0, abs=1e-6)
+
+    def test_flattens_trailing_axes_per_sample(self) -> None:
+        from calibrax.metrics.functional.regression import relative_l2_error
+
+        target = jnp.ones((4, 8, 8, 1))
+        assert relative_l2_error(target * 1.1, target) == pytest.approx(0.1, rel=1e-3)
+
+    def test_zero_target_is_guarded(self) -> None:
+        from calibrax.metrics.functional.regression import relative_l2_error
+
+        assert bool(jnp.isfinite(relative_l2_error(jnp.ones((1, 4)), jnp.zeros((1, 4)))))
+
+    def test_jit_grad_vmap(self) -> None:
+        from calibrax.metrics.functional.regression import per_sample_relative_l2, relative_l2_error
+
+        pred, target = jnp.full((6, 5), 0.5), jnp.ones((6, 5))
+        assert bool(jnp.isfinite(jax.jit(relative_l2_error)(pred, target)))
+        assert bool(jnp.all(jnp.isfinite(jax.grad(relative_l2_error)(pred, target))))
+        assert jax.vmap(per_sample_relative_l2)(pred[None], target[None]).shape == (1, 6)
