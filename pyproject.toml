@@ -67,11 +67,7 @@ codecarbon = [
   "codecarbon>=2.0"
 ]
 cuda-dev = [
-  "bandit[toml]>=1.8.6",
-  "calibrax[cuda12,dev]",
-  "import-linter>=2.0",
-  "pip-audit>=2.7",
-  "pydoclint>=0.5"
+  "calibrax[cuda12,dev]"
 ]
 cuda12 = [
   # Named for the CUDA major version, as JAX names its own extras (cuda12, cuda12-local,
@@ -99,13 +95,17 @@ cuda12 = [
   "pynvml>=11.5.0"
 ]
 dev = [
+  "bandit[toml]>=1.8.6",
   "build>=1.0.3",
   "coverage>=7",
+  "import-linter>=2.0",
   "interrogate>=1.5",
   "ipykernel>=6.29.5",
   "jupytext>=1.16.6",
+  "pip-audit>=2.7",
   "pre-commit>=4.2",
   "pydeps>=1.12.17",
+  "pydoclint>=0.5",
   "pygments>=2.20,<3.0",
   "pyright>=1.1.336",
   "pytest-asyncio>=0.23",
