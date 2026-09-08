@@ -76,6 +76,13 @@ def _analyse(jitted: Any, spec: tuple[Any, ...]) -> Mapping[str, float]:
     backend, or when that lowering carries no analysis, falls back to the default
     device and then to the compiled executable.
 
+    Args:
+        jitted: The ``jax.jit``-wrapped function.
+        spec: Abstract (or static) arguments to lower it with.
+
+    Returns:
+        The analysis mapping, with at least the keys XLA populated.
+
     Raises:
         FlopsUnavailableError: If no analysis is available on any path.
     """

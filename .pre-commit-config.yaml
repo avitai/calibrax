@@ -142,6 +142,13 @@ repos:
         pass_filenames: false
         files: ^src/calibrax/.*\.py$
 
+      - id: pydoclint
+        name: pydoclint (docstring sections match signatures)
+        entry: uv run --no-sync pydoclint src/
+        language: system
+        pass_filenames: false
+        files: ^src/calibrax/.*\.py$
+
   # Notebook linting via nbQA
   - repo: https://github.com/nbQA-dev/nbQA
     rev: 1.9.1

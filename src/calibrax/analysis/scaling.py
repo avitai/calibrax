@@ -73,7 +73,7 @@ def _fit_log_linear(
     return slope, intercept, r_squared
 
 
-def scaling_fit(sizes: list[float], values: list[float]) -> ScalingLaw:
+def scaling_fit(sizes: list[float], values: list[float]) -> ScalingLaw:  # noqa: DOC502  # raised by _validate_inputs
     """Fit power-law: value = a * size^b using log-linear regression.
 
     Takes log of both sides: log(value) = log(a) + b * log(size),

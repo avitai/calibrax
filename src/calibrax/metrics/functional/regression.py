@@ -48,7 +48,7 @@ def _prepare_ensemble_forecast_arrays(predictions: Any, targets: Any) -> tuple[A
     return pred, target
 
 
-def mse(predictions: Any, targets: Any) -> Any:
+def mse(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _prepare_arrays
     """Mean squared error.
 
     Computes the average of squared differences between predictions and
@@ -73,7 +73,7 @@ def mse(predictions: Any, targets: Any) -> Any:
     return jnp.mean((p - t) ** 2)
 
 
-def mae(predictions: Any, targets: Any) -> Any:
+def mae(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _prepare_arrays
     """Mean absolute error.
 
     Computes the average of absolute differences between predictions and
@@ -98,7 +98,7 @@ def mae(predictions: Any, targets: Any) -> Any:
     return jnp.mean(jnp.abs(p - t))
 
 
-def rmse(predictions: Any, targets: Any) -> Any:
+def rmse(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _prepare_arrays
     """Root mean squared error.
 
     Computes ``sqrt(mean((predictions - targets)^2))``.
@@ -121,7 +121,7 @@ def rmse(predictions: Any, targets: Any) -> Any:
     return jnp.sqrt(mse(predictions, targets))
 
 
-def r_squared(predictions: Any, targets: Any) -> Any:
+def r_squared(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _prepare_arrays
     """Coefficient of determination (R-squared).
 
     Computes ``1 - SS_res / SS_tot`` where SS_res is the residual sum of
@@ -148,7 +148,7 @@ def r_squared(predictions: Any, targets: Any) -> Any:
     return 1.0 - ss_res / (ss_tot + _EPSILON)
 
 
-def mape(predictions: Any, targets: Any) -> Any:
+def mape(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _prepare_arrays
     """Mean absolute percentage error.
 
     Computes ``mean(|targets - predictions| / |targets|)``.
@@ -173,7 +173,7 @@ def mape(predictions: Any, targets: Any) -> Any:
     return jnp.mean(jnp.abs((t - p) / (jnp.abs(t) + _EPSILON)))
 
 
-def relative_error(predictions: Any, targets: Any) -> Any:
+def relative_error(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _prepare_arrays
     """Mean relative error (L2 norm ratio).
 
     Computes ``||predictions - targets||_2 / ||targets||_2``.
@@ -198,7 +198,7 @@ def relative_error(predictions: Any, targets: Any) -> Any:
     return jnp.sqrt(jnp.sum((p - t) ** 2)) / (jnp.sqrt(jnp.sum(t**2)) + _EPSILON)
 
 
-def explained_variance(predictions: Any, targets: Any) -> Any:
+def explained_variance(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _prepare_arrays
     """Explained variance score.
 
     Computes ``1 - Var(targets - predictions) / Var(targets)``. Similar to
@@ -227,7 +227,7 @@ def explained_variance(predictions: Any, targets: Any) -> Any:
     return 1.0 - residual_var / (target_var + _EPSILON)
 
 
-def max_error(predictions: Any, targets: Any) -> Any:
+def max_error(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _prepare_arrays
     """Maximum absolute error.
 
     Computes ``max(|prediction_i - target_i|)`` -- the worst-case error.
@@ -252,7 +252,7 @@ def max_error(predictions: Any, targets: Any) -> Any:
     return jnp.max(jnp.abs(p - t))
 
 
-def huber_loss(
+def huber_loss(  # noqa: DOC502  # raised by _prepare_arrays
     predictions: Any,
     targets: Any,
     *,
@@ -289,7 +289,7 @@ def huber_loss(
     return jnp.mean(jnp.where(abs_err <= delta, quadratic, linear))
 
 
-def quantile_loss(
+def quantile_loss(  # noqa: DOC502  # raised by _prepare_arrays
     predictions: Any,
     targets: Any,
     *,
@@ -321,7 +321,7 @@ def quantile_loss(
     return jnp.mean(jnp.where(diff >= 0, quantile * diff, (quantile - 1.0) * diff))
 
 
-def log_cosh_loss(predictions: Any, targets: Any) -> Any:
+def log_cosh_loss(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _prepare_arrays
     """Log-cosh loss.
 
     Computes ``mean(log(cosh(predictions - targets)))``. Smooth approximation
@@ -350,7 +350,7 @@ def log_cosh_loss(predictions: Any, targets: Any) -> Any:
     return jnp.mean(jnp.logaddexp(err, -err) - jnp.log(2.0))
 
 
-def smape(predictions: Any, targets: Any) -> Any:
+def smape(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _prepare_arrays
     """Symmetric mean absolute percentage error.
 
     Computes ``mean(|p - t| / ((|p| + |t|) / 2))``. Unlike MAPE, SMAPE is
@@ -377,7 +377,7 @@ def smape(predictions: Any, targets: Any) -> Any:
     return jnp.mean(safe_divide(numerator, denominator))
 
 
-def crps(predictions: Any, targets: Any) -> Any:
+def crps(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _prepare_arrays
     """Continuous ranked probability score for ensemble forecasts.
 
     Computes the empirical ensemble CRPS:

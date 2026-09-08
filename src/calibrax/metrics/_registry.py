@@ -21,7 +21,7 @@ class MetricRegistry(SingletonRegistry[MetricEntry]):
         print(entry.tier, entry.domain)
     """
 
-    def get_function(self, name: str) -> Callable[..., float]:
+    def get_function(self, name: str) -> Callable[..., float]:  # noqa: DOC503  # KeyError is raised by get
         """Retrieve the callable for a Tier 0 metric.
 
         Args:

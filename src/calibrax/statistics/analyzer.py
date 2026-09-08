@@ -105,10 +105,6 @@ class StatisticalAnalyzer:
 
     Provides summary statistics with bootstrap confidence intervals,
     modified Z-score outlier detection, and stability assessment.
-
-    Args:
-        bootstrap_resamples: Number of bootstrap resamples for CI computation.
-        seed: Random seed for reproducible bootstrap sampling.
     """
 
     def __init__(self, bootstrap_resamples: int = 1000, seed: int = 42) -> None:

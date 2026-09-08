@@ -341,6 +341,9 @@ class ThresholdMetric:
         Returns:
             Dict with "value" (float), "passed" (bool), "threshold" (float),
             "metric_name" (str).
+
+        Raises:
+            ValueError: If the metric has no callable function.
         """
         if self._entry.fn is None:
             msg = f"Metric '{self._metric_name}' has no callable function"

@@ -44,12 +44,7 @@ class GuardResult:
 
 
 class CIGuard:
-    """Regression gate that compares runs against a stored baseline.
-
-    Args:
-        store: Storage backend containing runs and baselines.
-        threshold: Relative change threshold (e.g. 0.05 = 5%).
-    """
+    """Regression gate that compares runs against a stored baseline."""
 
     def __init__(self, store: Store, threshold: float = 0.05) -> None:
         """Initialize the CI guard."""

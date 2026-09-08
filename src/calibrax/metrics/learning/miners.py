@@ -17,7 +17,7 @@ from calibrax.metrics.learning._base import _pairwise_distances
 class MinedIndices:
     """Indices of mined triplets.
 
-    Args:
+    Attributes:
         anchors: Anchor sample indices.
         positives: Positive sample indices (same class as anchor).
         negatives: Negative sample indices (different class from anchor).
@@ -99,9 +99,6 @@ class SemiHardMiner:
     """Mines semi-hard negatives: farther than positive but within margin.
 
     Semi-hard negatives satisfy: d(a, p) < d(a, n) < d(a, p) + margin.
-
-    Args:
-        margin: Margin for semi-hard selection.
 
     Examples:
         >>> miner = SemiHardMiner(margin=1.0)

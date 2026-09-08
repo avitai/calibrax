@@ -86,13 +86,6 @@ class CarbonTracker:
     result = tracker.result()
     print(f"Emissions: {result.emissions_kg_co2:.6f} kg CO2")
     ```
-
-    Args:
-        country_iso_code: Optional ISO country code for regional carbon intensity.
-        log_level: Logging level for CodeCarbon (default: "warning").
-
-    Raises:
-        ImportError: If codecarbon is not installed.
     """
 
     def __init__(

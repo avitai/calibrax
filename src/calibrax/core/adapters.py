@@ -187,7 +187,7 @@ _default_registry = AdapterRegistry()
 _default_registry.register(NNXBenchmarkAdapter)
 
 
-def adapt(target: Any) -> Any:
+def adapt(target: Any) -> Any:  # noqa: DOC502  # raised by AdapterRegistry.adapt
     """Adapt a target using the default registry.
 
     Args:

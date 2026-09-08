@@ -62,6 +62,8 @@ class ResourceSample:
         rss_mb: Resident set size in MB.
         gpu_util: GPU utilization percentage (None if no GPU).
         gpu_mem_mb: GPU memory used in MB (None if no GPU).
+        gpu_clock_mhz: GPU SM clock in MHz (None if unavailable).
+        gpu_power_w: GPU power draw in watts (None if unavailable).
     """
 
     timestamp: float
@@ -85,6 +87,8 @@ class ResourceSummary:
         memory_growth_mb: Last RSS minus first RSS (positive = growth).
         num_samples: Total samples collected.
         duration_sec: Time span of monitoring.
+        mean_gpu_clock_mhz: Average GPU SM clock in MHz (None if unavailable).
+        mean_gpu_power_w: Average GPU power draw in watts (None if unavailable).
     """
 
     peak_rss_mb: float
@@ -158,10 +162,6 @@ class ResourceMonitor:
         # ... run benchmark ...
     summary = mon.summary
     ```
-
-    Args:
-        sample_interval_sec: Seconds between samples (default 0.1 = 10Hz).
-        gpu_profiler: Optional profiler satisfying GPUProfilerProtocol.
     """
 
     def __init__(

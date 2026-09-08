@@ -33,7 +33,7 @@ def _validate_shapes(predictions: Any, targets: Any) -> None:
         raise ValueError(msg)
 
 
-def _prepare_arrays(predictions: Any, targets: Any) -> tuple[jax.Array, jax.Array]:
+def _prepare_arrays(predictions: Any, targets: Any) -> tuple[jax.Array, jax.Array]:  # noqa: DOC502  # raised by _validate_shapes
     """Validate shapes and convert predictions/targets to JAX arrays.
 
     Combines shape validation with array conversion — the standard
@@ -53,7 +53,7 @@ def _prepare_arrays(predictions: Any, targets: Any) -> tuple[jax.Array, jax.Arra
     return jnp.asarray(predictions), jnp.asarray(targets)
 
 
-def _prepare_class_arrays(predictions: Any, targets: Any) -> tuple[Any, Any]:
+def _prepare_class_arrays(predictions: Any, targets: Any) -> tuple[Any, Any]:  # noqa: DOC502  # raised by _validate_shapes
     """Validate shapes and convert to int32 class index arrays.
 
     Standard preamble for classification, segmentation, and clustering

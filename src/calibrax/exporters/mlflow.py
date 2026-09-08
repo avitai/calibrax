@@ -35,13 +35,6 @@ class MLflowExporter(Exporter):
 
     Logs metrics, parameters, and artifacts to an MLflow tracking server.
     Each benchmark run becomes an MLflow run within the specified experiment.
-
-    Args:
-        experiment_name: MLflow experiment name.
-        tracking_uri: MLflow tracking server URI. Uses default if None.
-
-    Raises:
-        ImportError: If mlflow is not installed.
     """
 
     def __init__(

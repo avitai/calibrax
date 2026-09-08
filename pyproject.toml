@@ -257,6 +257,19 @@ ignore-init-method = true
 ignore-init-module = false
 ignore-magic = true
 
+[tool.pydoclint]
+allow-init-docstring = true
+arg-type-hints-in-docstring = false
+# Instance attributes are documented under Attributes per the Google style; pydoclint would
+# compare them with class-level attributes only.
+check-class-attributes = false
+# Annotations are the source of truth for types; docstrings carry the prose.
+check-return-types = false
+check-yield-types = false
+# `# noqa: DOC...` is read from the def line, where propagated exceptions are annotated.
+native-mode-noqa-location = "definition"
+style = "google"
+
 [tool.pylint."messages_control"]
 max-args = 10
 max-attributes = 12
@@ -331,6 +344,8 @@ quote-style = "double"
 skip-magic-trailing-comma = false
 
 [tool.ruff.lint]
+# pydoclint's codes, so a `# noqa: DOC...` is not reported as unknown.
+external = ["DOC"]
 fixable = [
   "E",
   "F",

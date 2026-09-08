@@ -22,11 +22,6 @@ class ProxyNCALoss(nnx.Module):
 
     L = -log(exp(-d(x, p+)) / sum(exp(-d(x, p-))))
 
-    Args:
-        num_classes: Number of classes.
-        embedding_dim: Dimensionality of embedding space.
-        rngs: RNG streams for parameter initialization.
-
     Examples:
         >>> loss_fn = ProxyNCALoss(num_classes=10, embedding_dim=128, rngs=nnx.Rngs(0))
         >>> loss = loss_fn(embeddings, labels)
@@ -88,13 +83,6 @@ class ProxyAnchorLoss(nnx.Module):
 
     Each proxy acts as an anchor. Aggregates positive/negative samples
     via LogSumExp for smooth hard mining with stable gradients.
-
-    Args:
-        num_classes: Number of classes.
-        embedding_dim: Dimensionality of embedding space.
-        margin: Angular margin. Defaults to 0.1.
-        scale: Logit scale factor. Defaults to 32.0.
-        rngs: RNG streams for parameter initialization.
 
     Examples:
         >>> loss_fn = ProxyAnchorLoss(num_classes=10, embedding_dim=128, rngs=nnx.Rngs(0))

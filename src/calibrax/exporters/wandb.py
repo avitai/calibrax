@@ -70,16 +70,7 @@ def _find_best_values(
 
 
 class WandBExporter(Exporter):
-    """Export benchmark results and analysis to Weights & Biases.
-
-    Args:
-        project: W&B project name.
-        entity: W&B entity (team or user). Uses default if None.
-        tags: Optional tags applied to all W&B runs.
-
-    Raises:
-        ImportError: If wandb is not installed.
-    """
+    """Export benchmark results and analysis to Weights & Biases."""
 
     def __init__(
         self,

@@ -226,6 +226,9 @@ def _precision_recall_fbeta(
 
     Returns:
         Tuple of (precision, recall, fbeta) as scalar values.
+
+    Raises:
+        ValueError: If ``average`` is not one of the supported modes.
     """
     p = _to_class_indices(predictions)
     p, t = _prepare_class_arrays(p, targets)

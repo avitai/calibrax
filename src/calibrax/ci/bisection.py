@@ -25,6 +25,9 @@ _ADJACENT_RANGE = 2
 def _git_executable() -> str:
     """Return the absolute path of ``git``, failing fast when it is not installed.
 
+    Returns:
+        The path ``shutil.which`` found.
+
     Raises:
         FileNotFoundError: If ``git`` is not on ``PATH``.
     """
@@ -66,15 +69,7 @@ class BisectionResult:
 
 
 class BisectionEngine:
-    """Binary search through git history to find regression-causing commit.
-
-    Args:
-        repo_path: Path to the git repository.
-        benchmark_fn: Function that checks out a commit and runs benchmarks.
-            Receives a commit hash string, returns a Run.
-        regression_fn: Function that checks if a Run exhibits regression.
-            Returns True if the run shows regression.
-    """
+    """Binary search through git history to find regression-causing commit."""
 
     def __init__(
         self,

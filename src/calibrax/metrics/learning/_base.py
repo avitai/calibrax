@@ -29,17 +29,16 @@ def _pairwise_distances(embeddings: jax.Array) -> jax.Array:
 
 
 class Reducer:
-    """Reduction strategy for per-element losses.
-
-    Args:
-        reduction: One of "mean" or "sum".
-    """
+    """Reduction strategy for per-element losses."""
 
     def __init__(self, reduction: str = "mean") -> None:
         """Initialize reducer.
 
         Args:
             reduction: Reduction method ("mean" or "sum").
+
+        Raises:
+            ValueError: If ``reduction`` is neither ``"mean"`` nor ``"sum"``.
         """
         if reduction not in ("mean", "sum"):
             raise ValueError(f"reduction must be 'mean' or 'sum', got '{reduction}'")
@@ -64,9 +63,6 @@ class MetricLearningLoss:
 
     Subclasses implement _compute_loss to return per-element losses,
     which are then reduced to a scalar via the Reducer.
-
-    Args:
-        reduction: Loss reduction strategy ("mean" or "sum").
 
     Examples:
         >>> class MyLoss(MetricLearningLoss):

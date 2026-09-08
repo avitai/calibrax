@@ -31,9 +31,6 @@ class FrozenBackboneMetric(MetricPlotMixin, ABC):
     The backbone model is frozen (no gradient updates). Subclasses load
     pretrained weights in __init__.
 
-    Args:
-        name: Unique metric identifier.
-
     Examples:
         >>> class MyMetric(FrozenBackboneMetric):
         ...     def __init__(self):
@@ -124,10 +121,6 @@ class LearnedMetric(MetricPlotMixin, nnx.Module):
     Subclasses should implement update/compute/reset following the
     StatefulMetricProtocol pattern, but with trainable parameters
     that can be optimized.
-
-    Args:
-        name: Metric name identifier.
-        rngs: RNG streams for parameter initialization.
 
     Examples:
         >>> class MyLearnedMetric(LearnedMetric):

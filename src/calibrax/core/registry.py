@@ -168,7 +168,7 @@ def register_benchmark(name: str) -> Callable[[_C], _C]:
     return decorator
 
 
-def get_benchmark(name: str) -> object:
+def get_benchmark(name: str) -> object:  # noqa: DOC502  # raised by BenchmarkRegistry.get
     """Retrieve a benchmark by name from the singleton registry.
 
     Args:

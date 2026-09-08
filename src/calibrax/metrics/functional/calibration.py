@@ -294,6 +294,9 @@ def classwise_ece(
 
     Returns:
         Mean classwise ECE as a scalar value.
+
+    Raises:
+        ValueError: If ``predictions`` is not two-dimensional.
     """
     p = jnp.asarray(predictions)
     t = jnp.asarray(targets).astype(jnp.int32)

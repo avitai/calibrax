@@ -110,11 +110,7 @@ def _build_run_result_data(run: Run) -> dict[str, dict[str, object]]:
 
 
 class Store:
-    """JSON-per-run file backend with baseline management.
-
-    Args:
-        path: Root directory for storing runs, baselines, and config.
-    """
+    """JSON-per-run file backend with baseline management."""
 
     def __init__(self, path: Path | str) -> None:
         """Initialize the store and create directory structure.

@@ -22,10 +22,6 @@ class ContrastiveLoss(MetricLearningLoss):
 
     where y=1 for positive pairs (same class) and y=0 for negative pairs.
 
-    Args:
-        margin: Margin for negative pairs. Defaults to 1.0.
-        reduction: Loss reduction ("mean" or "sum").
-
     Examples:
         >>> loss_fn = ContrastiveLoss(margin=1.0)
         >>> loss = loss_fn(embeddings, labels)
@@ -79,10 +75,6 @@ class TripletMarginLoss(MetricLearningLoss):
     L = max(0, d(anchor, positive) - d(anchor, negative) + margin)
 
     Mines all valid triplets from the batch.
-
-    Args:
-        margin: Triplet margin. Defaults to 0.2.
-        reduction: Loss reduction ("mean" or "sum").
 
     Examples:
         >>> loss_fn = TripletMarginLoss(margin=0.2)
@@ -146,10 +138,6 @@ class NTXentLoss(MetricLearningLoss):
     L = -log(exp(sim(a, p) / t) / sum(exp(sim(a, k) / t)))
 
     Temperature-scaled softmax cross-entropy on cosine similarities.
-
-    Args:
-        temperature: Temperature scaling factor. Defaults to 0.5.
-        reduction: Loss reduction ("mean" or "sum").
 
     Examples:
         >>> loss_fn = NTXentLoss(temperature=0.5)

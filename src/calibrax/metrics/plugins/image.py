@@ -36,10 +36,6 @@ class FIDMetric(FrozenBackboneMetric):
 
     Lower is better. FID = 0 means identical distributions.
 
-    Args:
-        feature_dim: Expected dimensionality of features.
-            Defaults to 2048 (InceptionV3 pool3 layer).
-
     Examples:
         >>> fid = FIDMetric()
         >>> fid.update(real=real_features, generated=gen_features)
@@ -206,11 +202,6 @@ class LPIPSMetric(LearnedMetric):
 
     The calibration weights are trainable -- unlike FID (Tier 1) which
     uses only frozen features.
-
-    Args:
-        feature_channels: Number of channels at each VGG layer.
-            Defaults to standard VGG16 configuration.
-        rngs: RNG streams for parameter initialization.
 
     Examples:
         >>> lpips = LPIPSMetric(rngs=nnx.Rngs(0))

@@ -20,9 +20,6 @@ class SamplingThread:
     thread.start()   # in __enter__
     thread.stop()    # in __exit__
     ```
-
-    Args:
-        target: The sampling loop callable (runs in the daemon thread).
     """
 
     def __init__(self, target: Callable[[], None]) -> None:

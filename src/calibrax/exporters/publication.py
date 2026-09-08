@@ -30,11 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 class PublicationGenerator:
-    """Generate publication-ready plots and tables from benchmark data.
-
-    Args:
-        output_dir: Directory where generated files are saved.
-    """
+    """Generate publication-ready plots and tables from benchmark data."""
 
     def __init__(self, output_dir: Path | str) -> None:
         """Initialize the publication generator."""

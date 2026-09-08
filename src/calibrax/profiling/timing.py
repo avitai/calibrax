@@ -100,15 +100,6 @@ class TimingCollector:
     sample = collector.measure_iteration(data_iter, num_batches=50, process_fn=run_step)
     # sample.per_batch_times excludes the first 2 batches
     ```
-
-    Args:
-        sync_fn: Synchronization function called with each batch result.
-            For JAX: ``lambda result: result.block_until_ready()``
-            For PyTorch: ``lambda _: torch.cuda.synchronize()``
-            For CPU-only: None (default, no-op)
-        warmup_iterations: Number of initial batches to exclude from
-            per_batch_times statistics. They are still executed (important
-            for JIT warm-up) but omitted from the timing result. Default: 0.
     """
 
     def __init__(
@@ -121,6 +112,9 @@ class TimingCollector:
         Args:
             sync_fn: Synchronization function called with each batch result.
             warmup_iterations: Number of initial batches to exclude from timing stats.
+
+        Raises:
+            ValueError: If ``warmup_iterations`` is negative.
         """
         if warmup_iterations < 0:
             raise ValueError("warmup_iterations must be >= 0")
@@ -149,6 +143,9 @@ class TimingCollector:
 
         Returns:
             TimingSample with timing measurements.
+
+        Raises:
+            ValueError: If ``num_batches`` is negative.
         """
         if num_batches is not None and num_batches < 0:
             raise ValueError("num_batches must be >= 0 or None")

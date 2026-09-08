@@ -11,9 +11,13 @@ import logging
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 import jax
+
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 
 logger = logging.getLogger(__name__)
@@ -75,7 +79,7 @@ class TraceLinker:
         run_id: str | None = None,
         create_perfetto_link: bool = False,
         create_perfetto_trace: bool = False,
-    ) -> Any:
+    ) -> Iterator[TraceReference]:
         """Start an XLA profiling session and record output metadata.
 
         Wraps ``jax.profiler.trace()`` and records the output directory

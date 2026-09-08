@@ -76,14 +76,14 @@ class Alert:
 
 
 class AlertManager:
-    """Thread-safe alert storage with callback handlers.
-
-    Args:
-        max_alerts: Maximum number of alerts to retain (oldest dropped first).
-    """
+    """Thread-safe alert storage with callback handlers."""
 
     def __init__(self, max_alerts: int = 1000) -> None:
-        """Initialize the alert manager."""
+        """Initialize the alert manager.
+
+        Args:
+            max_alerts: Maximum number of alerts to retain (oldest dropped first).
+        """
         self._alerts: deque[Alert] = deque(maxlen=max_alerts)
         self._handlers: list[Callable[[Alert], None]] = []
         self._lock = threading.Lock()
@@ -168,11 +168,6 @@ class AdvancedMonitor:
 
     Collects CPU, memory, and optional GPU metrics on a daemon thread.
     Triggers alerts when thresholds are exceeded.
-
-    Args:
-        alert_manager: Alert manager for dispatching alerts. Created if not provided.
-        gpu_profiler: Optional GPU profiler for GPU metrics.
-        resource_monitor: Optional ResourceMonitor for background sampling.
     """
 
     def __init__(
@@ -181,7 +176,13 @@ class AdvancedMonitor:
         gpu_profiler: GPUProfilerProtocol | None = None,
         resource_monitor: ResourceMonitor | None = None,
     ) -> None:
-        """Initialize the monitor."""
+        """Initialize the monitor.
+
+        Args:
+            alert_manager: Alert manager for dispatching alerts. Created if not provided.
+            gpu_profiler: Optional GPU profiler for GPU metrics.
+            resource_monitor: Optional ResourceMonitor for background sampling.
+        """
         self._alert_manager = alert_manager or AlertManager()
         self._gpu_profiler = gpu_profiler
         self._resource_monitor = resource_monitor

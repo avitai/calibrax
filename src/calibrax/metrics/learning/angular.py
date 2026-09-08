@@ -19,13 +19,6 @@ class ArcFaceLoss(nnx.Module):
     Adds an angular margin penalty to the target class logit in cosine space:
     cos(theta + m) for the target class, cos(theta) for other classes.
 
-    Args:
-        num_classes: Number of target classes.
-        embedding_dim: Dimensionality of input embeddings.
-        margin: Angular margin in radians. Defaults to 0.5.
-        scale: Logit scaling factor. Defaults to 64.0.
-        rngs: RNG streams for parameter initialization.
-
     Examples:
         >>> loss_fn = ArcFaceLoss(num_classes=10, embedding_dim=128, rngs=nnx.Rngs(0))
         >>> loss = loss_fn(embeddings, labels)
@@ -91,13 +84,6 @@ class CosFaceLoss(nnx.Module):
 
     Subtracts a margin from the target class cosine similarity:
     cos(theta) - m for the target class.
-
-    Args:
-        num_classes: Number of target classes.
-        embedding_dim: Dimensionality of input embeddings.
-        margin: Cosine margin. Defaults to 0.35.
-        scale: Logit scaling factor. Defaults to 64.0.
-        rngs: RNG streams for parameter initialization.
 
     Examples:
         >>> loss_fn = CosFaceLoss(num_classes=10, embedding_dim=128, rngs=nnx.Rngs(0))
