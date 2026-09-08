@@ -23,6 +23,14 @@ and uses semantic versioning while the public API stabilizes.
   `matrix_sqrtm` is a shared helper. The registry holds 132 Tier 0 metrics across
   20 domains.
 
+### Fixed
+
+- `HARDWARE_SPECS["tpu_v5e"]` carried a 1.6 TB/s memory bandwidth, the TPU v6e figure;
+  the v5e chip has 819 GB/s, so its ridge point is 240 FLOPs/byte rather than 123 and
+  the roofline classified memory-bound work on v5e as compute-bound. Each entry's
+  `critical_intensity` is now derived from its two published figures instead of typed
+  beside them, and the tests pin the figures to the vendor specifications.
+
 ### Changed
 
 - **Floors match what is tested.** `jax>=0.11.1`, `jaxlib>=0.11.1` and `flax>=0.12.9` are

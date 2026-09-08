@@ -32,17 +32,34 @@ class TestHardwareSpecs:
         assert "memory_bandwidth" in spec
         assert "critical_intensity" in spec
 
-    @pytest.mark.parametrize("spec_name", ["tpu_v5e", "a100_80g", "h100", "cpu_generic"])
-    def test_peak_flops_positive(self, spec_name: str) -> None:
-        assert HARDWARE_SPECS[spec_name]["peak_flops"] > 0
+    @pytest.mark.parametrize(
+        ("spec_name", "peak_flops", "memory_bandwidth"),
+        [
+            # Vendor figures: dense bf16 TFLOPS and HBM bandwidth per chip.
+            ("tpu_v5e", 197.0e12, 819.0e9),
+            ("a100_80g", 312.0e12, 2039.0e9),
+            ("h100", 989.0e12, 3350.0e9),
+            ("cpu_generic", 2.0e12, 200.0e9),
+        ],
+    )
+    def test_entries_carry_the_published_figures(
+        self, spec_name: str, peak_flops: float, memory_bandwidth: float
+    ) -> None:
+        spec = HARDWARE_SPECS[spec_name]
+        assert spec["peak_flops"] == peak_flops
+        assert spec["peak_flops_bf16"] == peak_flops
+        assert spec["memory_bandwidth"] == memory_bandwidth
 
     @pytest.mark.parametrize("spec_name", ["tpu_v5e", "a100_80g", "h100", "cpu_generic"])
-    def test_memory_bandwidth_positive(self, spec_name: str) -> None:
-        assert HARDWARE_SPECS[spec_name]["memory_bandwidth"] > 0
+    def test_critical_intensity_is_the_ridge_point(self, spec_name: str) -> None:
+        spec = HARDWARE_SPECS[spec_name]
+        assert spec["critical_intensity"] == pytest.approx(
+            spec["peak_flops"] / spec["memory_bandwidth"]
+        )
 
-    @pytest.mark.parametrize("spec_name", ["tpu_v5e", "a100_80g", "h100", "cpu_generic"])
-    def test_critical_intensity_positive(self, spec_name: str) -> None:
-        assert HARDWARE_SPECS[spec_name]["critical_intensity"] > 0
+    def test_tpu_v5e_ridge_point_matches_the_scaling_book(self) -> None:
+        # 197 TFLOPS over 819 GB/s: the 240 FLOPs/byte the JAX scaling book quotes.
+        assert HARDWARE_SPECS["tpu_v5e"]["critical_intensity"] == pytest.approx(240, rel=0.01)
 
     @pytest.mark.parametrize("spec_name", ["tpu_v5e", "a100_80g", "h100", "cpu_generic"])
     def test_entries_have_peak_flops_bf16(self, spec_name: str) -> None:

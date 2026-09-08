@@ -13,35 +13,39 @@ from typing import Any
 import jax
 
 
-# Hardware specifications for common accelerators
+def _spec(peak_flops: float, memory_bandwidth: float, **extra: Any) -> dict[str, Any]:
+    """Build one hardware entry from its two measured figures.
+
+    The ridge point of the roofline, ``critical_intensity`` in FLOPs per byte, is the
+    ratio of the two and is derived rather than typed so the three cannot disagree.
+
+    Args:
+        peak_flops: Dense bf16 peak in FLOP/s.
+        memory_bandwidth: HBM (or system memory) bandwidth in bytes/s.
+        **extra: Accelerator-specific fields such as tensor core shapes.
+
+    Returns:
+        The specification dictionary the roofline analyzer reads.
+    """
+    return {
+        "peak_flops": peak_flops,
+        "peak_flops_bf16": peak_flops,
+        "memory_bandwidth": memory_bandwidth,
+        "critical_intensity": peak_flops / memory_bandwidth,
+        **extra,
+    }
+
+
+# Dense bf16 peak and memory bandwidth per chip, from the vendors' published specifications:
+# TPU v5e: 197 TFLOPS, 819 GB/s HBM2 (cloud.google.com/tpu/docs/v5e).
+# A100 80GB SXM: 312 TFLOPS, 2039 GB/s (NVIDIA A100 datasheet).
+# H100 SXM: 989 TFLOPS, 3.35 TB/s (NVIDIA H100 datasheet).
+# cpu_generic is a stand-in for a modern server socket, not a measurement.
 HARDWARE_SPECS: dict[str, dict[str, Any]] = {
-    "tpu_v5e": {
-        "peak_flops": 197.0e12,  # 197 TFLOPS (bf16)
-        "peak_flops_bf16": 197.0e12,
-        "memory_bandwidth": 1600.0e9,  # 1.6 TB/s
-        "critical_intensity": 123.125,  # FLOPs/byte
-    },
-    "a100_80g": {
-        "peak_flops": 312.0e12,  # 312 TFLOPS (bf16/fp16)
-        "peak_flops_bf16": 312.0e12,
-        "memory_bandwidth": 2039.0e9,  # 2.0 TB/s
-        "critical_intensity": 153.0,
-        "tensor_core_shapes": [(16, 16, 16), (16, 16, 8)],
-    },
-    "h100": {
-        "peak_flops": 989.0e12,  # 989 TFLOPS (bf16/fp16)
-        "peak_flops_bf16": 989.0e12,
-        "memory_bandwidth": 3350.0e9,  # 3.35 TB/s
-        "critical_intensity": 295.0,
-        "tensor_core_shapes": [(16, 16, 16)],
-    },
-    "cpu_generic": {
-        "peak_flops": 2.0e12,  # ~2 TFLOPS (optimistic)
-        "peak_flops_bf16": 2.0e12,
-        "memory_bandwidth": 200.0e9,  # ~200 GB/s
-        "critical_intensity": 10.0,
-        "simd_width": 8,
-    },
+    "tpu_v5e": _spec(197.0e12, 819.0e9),
+    "a100_80g": _spec(312.0e12, 2039.0e9, tensor_core_shapes=[(16, 16, 16), (16, 16, 8)]),
+    "h100": _spec(989.0e12, 3350.0e9, tensor_core_shapes=[(16, 16, 16)]),
+    "cpu_generic": _spec(2.0e12, 200.0e9, simd_width=8),
 }
 
 
