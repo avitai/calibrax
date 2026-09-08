@@ -12,13 +12,13 @@
         <meta name="author" content="Mahdi Shafiei">
       
       
-        <link rel="canonical" href="https://calibrax.readthedocs.io/api-reference/metrics/manifold/">
+        <link rel="canonical" href="https://calibrax.readthedocs.io/api-reference/metrics/generative/">
       
       
-        <link rel="prev" href="../graph/">
+        <link rel="prev" href="../uncertainty/">
       
       
-        <link rel="next" href="../composition/">
+        <link rel="next" href="../clustering/">
       
       
         
@@ -29,7 +29,7 @@
     
     
       
-        <title>Manifold - Calibrax</title>
+        <title>Generative - Calibrax</title>
       
     
     
@@ -84,7 +84,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#calibraxmetricsfunctionalmanifold" class="md-skip">
+        <a href="#calibraxmetricsfunctionalgenerative" class="md-skip">
           Skip to content
         </a>
       
@@ -120,7 +120,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Manifold
+              Generative
             
           </span>
         </div>
@@ -2347,10 +2347,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../generative/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generative
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -2366,6 +2393,114 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.generative" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;generative
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.generative.manifold_radii" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;manifold_radii
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.generative.manifold_precision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;manifold_precision
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.generative.manifold_recall" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;manifold_recall
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.generative.density_weighted_precision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;density_weighted_precision
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.generative.density_weighted_recall" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;density_weighted_recall
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.generative.distance_to_closest_record" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;distance_to_closest_record
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.generative.memorization_rate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;memorization_rate
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -2599,37 +2734,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Manifold
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../manifold/" class="md-nav__link">
         
   
   
@@ -2645,92 +2753,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#calibrax.metrics.functional.manifold" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;manifold
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#calibrax.metrics.functional.manifold.spd_affine_invariant_distance" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;spd_affine_invariant_distance
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#calibrax.metrics.functional.manifold.spd_log_euclidean_distance" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;spd_log_euclidean_distance
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#calibrax.metrics.functional.manifold.grassmann_distance" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;grassmann_distance
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#calibrax.metrics.functional.manifold.stiefel_distance" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;stiefel_distance
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#calibrax.metrics.functional.manifold.ultrahyperbolic_distance" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;ultrahyperbolic_distance
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -3555,10 +3577,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#calibrax.metrics.functional.manifold" class="md-nav__link">
+  <a href="#calibrax.metrics.functional.generative" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;manifold
+        <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;generative
       
     </span>
   </a>
@@ -3566,10 +3588,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#calibrax.metrics.functional.manifold.spd_affine_invariant_distance" class="md-nav__link">
+  <a href="#calibrax.metrics.functional.generative.manifold_radii" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;spd_affine_invariant_distance
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;manifold_radii
       
     </span>
   </a>
@@ -3577,10 +3599,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#calibrax.metrics.functional.manifold.spd_log_euclidean_distance" class="md-nav__link">
+  <a href="#calibrax.metrics.functional.generative.manifold_precision" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;spd_log_euclidean_distance
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;manifold_precision
       
     </span>
   </a>
@@ -3588,10 +3610,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#calibrax.metrics.functional.manifold.grassmann_distance" class="md-nav__link">
+  <a href="#calibrax.metrics.functional.generative.manifold_recall" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;grassmann_distance
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;manifold_recall
       
     </span>
   </a>
@@ -3599,10 +3621,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#calibrax.metrics.functional.manifold.stiefel_distance" class="md-nav__link">
+  <a href="#calibrax.metrics.functional.generative.density_weighted_precision" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;stiefel_distance
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;density_weighted_precision
       
     </span>
   </a>
@@ -3610,10 +3632,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#calibrax.metrics.functional.manifold.ultrahyperbolic_distance" class="md-nav__link">
+  <a href="#calibrax.metrics.functional.generative.density_weighted_recall" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;ultrahyperbolic_distance
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;density_weighted_recall
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.generative.distance_to_closest_record" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;distance_to_closest_record
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.generative.memorization_rate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;memorization_rate
       
     </span>
   </a>
@@ -3706,42 +3750,34 @@
   
 
 
-<h1 id="calibraxmetricsfunctionalmanifold">calibrax.metrics.functional.manifold<a class="headerlink" href="#calibraxmetricsfunctionalmanifold" title="Permanent link">¤</a></h1>
-<p>Manifold distance metrics for structured matrix spaces. Includes the
-affine-invariant and log-Euclidean distances on symmetric positive
-definite (SPD) matrices, geodesic distance on Grassmann and Stiefel
-manifolds, and ultrahyperbolic distance on pseudo-hyperboloids.</p>
+<h1 id="calibraxmetricsfunctionalgenerative">calibrax.metrics.functional.generative<a class="headerlink" href="#calibraxmetricsfunctionalgenerative" title="Permanent link">¤</a></h1>
+<p>Sample-based evaluation of generative models on feature matrices: k-NN manifold
+precision and recall (Kynkaanniemi et al. 2019), their density-weighted variants,
+distance to closest record and the memorization rate.</p>
 
 
 <div class="doc doc-object doc-module">
 
 
 
-<a id="calibrax.metrics.functional.manifold"></a>
+<a id="calibrax.metrics.functional.generative"></a>
     <div class="doc doc-contents first">
 
-        <p>Manifold distance metrics -- Riemannian and pseudo-Riemannian geometry.</p>
-<p>Geometrically correct distances for structured mathematical objects that
-live on curved manifolds rather than flat Euclidean space. Using naive
-Euclidean distance on these objects produces geometrically meaningless
-results.</p>
-<p><strong>Manifold hierarchy</strong> (each level generalizes the previous):
-- Euclidean: flat space, standard L2 norm
-- Riemannian: curved space with positive-definite metric tensor
-- Pseudo-Riemannian: metric tensor may be indefinite (mixed signature)</p>
-<p><strong>Manifolds covered:</strong>
-- <strong>SPD(n)</strong>: Symmetric Positive Definite matrices (covariance matrices,
-  diffusion tensors). Two distances: affine-invariant (geometrically exact)
-  and log-Euclidean (faster approximation).
-- <strong>Gr(p,n)</strong>: Grassmann manifold of p-dimensional subspaces (PCA subspace
-  comparison, feature space analysis). Basis-independent.
-- <strong>St(p,n)</strong>: Stiefel manifold of orthonormal p-frames (orientation
-  comparison, orthogonal constraints). Basis-dependent.
-- <strong>Pseudo-hyperboloid</strong>: Mixed-curvature space for knowledge graph
-  embeddings. Generalizes Lorentz/hyperbolic to arbitrary signature.</p>
-<p>All implemented using JAX linear algebra. No external manifold libraries.
-Registered with <code>domain="manifold"</code>.</p>
+        <p>Sample-based evaluation of generative models: fidelity, diversity and privacy.</p>
+<p>All functions take feature matrices <code>(n_samples, n_features)</code> of real and
+generated samples (raw values or the output of a feature extractor) and are pure
+<code>jax.numpy</code> computations.</p>
 
+
+<details class="references" open>
+  <summary>References</summary>
+  <ul>
+<li>Kynkaanniemi et al. 2019, "Improved precision and recall metric for assessing
+  generative models": k-nearest-neighbour manifold precision and recall.</li>
+<li>Distance to closest record and exact-match rates are the standard privacy
+  checks for synthetic tabular data.</li>
+</ul>
+</details>
 
 
 
@@ -3765,22 +3801,17 @@ Registered with <code>domain="manifold"</code>.</p>
 <div class="doc doc-object doc-function">
 
 
-<h2 id="calibrax.metrics.functional.manifold.spd_affine_invariant_distance" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">spd_affine_invariant_distance</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<h2 id="calibrax.metrics.functional.generative.manifold_radii" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">manifold_radii</span><span class="p">(</span><span class="n">features</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
 
-<a href="#calibrax.metrics.functional.manifold.spd_affine_invariant_distance" class="headerlink" title="Permanent link">¤</a></h2>
+<a href="#calibrax.metrics.functional.generative.manifold_radii" class="headerlink" title="Permanent link">¤</a></h2>
 
 
     <div class="doc doc-contents ">
 
-        <p>Affine-invariant Riemannian distance between SPD matrices.</p>
-<p>Geodesic distance on the SPD manifold:
-<code>d(A, B) = ||log(A^{-1/2} B A^{-1/2})||_F</code></p>
-<p>Equivalent to <code>sqrt(sum(log(lambda_i)^2))</code> where lambda_i are the
-generalized eigenvalues of (B, A).</p>
-<p>Invariant under congruence: <code>d(A, B) = d(MAM^T, MBM^T)</code> for any
-invertible M. This is the natural distance for covariance matrices.</p>
-<p>Complexity: O(n^3) for generalized eigenvalue decomposition.</p>
+        <p>Distance from each point to its <code>k</code>-th nearest other point.</p>
+<p>The radius of the ball that approximates the data manifold around each point in
+Kynkaanniemi et al. 2019; the point itself (distance zero) is excluded.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -3796,14 +3827,14 @@ invertible M. This is the natural distance for covariance matrices.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                <code>a</code>
+                <code>features</code>
             </td>
             <td>
                   <code><span title="typing.Any">Any</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>First SPD matrix, shape (n, n).</p>
+                <p>Points with shape <code>(n_samples, n_features)</code>.</p>
               </div>
             </td>
             <td>
@@ -3812,14 +3843,14 @@ invertible M. This is the natural distance for covariance matrices.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>b</code>
+                <code>k</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="int">int</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Second SPD matrix, shape (n, n).</p>
+                <p>Neighbour order, at least 1 and below <code>n_samples</code>.</p>
               </div>
             </td>
             <td>
@@ -3845,20 +3876,12 @@ invertible M. This is the natural distance for covariance matrices.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Affine-invariant distance. Lower is better. 0.0 for identical matrices.</p>
+                <p>Radii with shape <code>(n_samples,)</code>.</p>
               </div>
             </td>
           </tr>
       </tbody>
     </table>
-
-
-<p><span class="doc-section-title">Examples:</span></p>
-    <div class="language-pycon highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">jax.numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">jnp</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">a</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="mf">2.0</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">spd_affine_invariant_distance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="go">0.0</span>
-</span></code></pre></div>
 
 
     </div>
@@ -3868,21 +3891,22 @@ invertible M. This is the natural distance for covariance matrices.</p>
 <div class="doc doc-object doc-function">
 
 
-<h2 id="calibrax.metrics.functional.manifold.spd_log_euclidean_distance" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">spd_log_euclidean_distance</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<h2 id="calibrax.metrics.functional.generative.manifold_precision" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">manifold_precision</span><span class="p">(</span><span class="n">real</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">generated</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
 
-<a href="#calibrax.metrics.functional.manifold.spd_log_euclidean_distance" class="headerlink" title="Permanent link">¤</a></h2>
+<a href="#calibrax.metrics.functional.generative.manifold_precision" class="headerlink" title="Permanent link">¤</a></h2>
 
 
     <div class="doc doc-contents ">
 
-        <p>Log-Euclidean distance between SPD matrices.</p>
-<p>Maps SPD matrices to Euclidean space via matrix logarithm:
-<code>d(A, B) = ||log(A) - log(B)||_F</code></p>
-<p>Faster than affine-invariant but less geometrically faithful.
-Invariant under orthogonal transformations but NOT affine-invariant.</p>
-<p>Complexity: O(n^3) for eigendecomposition (no matrix inverse).</p>
+        <p>Fraction of generated samples inside the real k-NN manifold (fidelity).</p>
 
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>Direction: HIGHER (1.0 = every generated sample looks real).
+Range: [0, 1].</p>
+</details>
 
 <p><span class="doc-section-title">Parameters:</span></p>
     <table>
@@ -3897,14 +3921,14 @@ Invariant under orthogonal transformations but NOT affine-invariant.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                <code>a</code>
+                <code>real</code>
             </td>
             <td>
                   <code><span title="typing.Any">Any</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>First SPD matrix, shape (n, n).</p>
+                <p>Real features with shape <code>(n_real, n_features)</code>.</p>
               </div>
             </td>
             <td>
@@ -3913,18 +3937,34 @@ Invariant under orthogonal transformations but NOT affine-invariant.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>b</code>
+                <code>generated</code>
             </td>
             <td>
                   <code><span title="typing.Any">Any</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Second SPD matrix, shape (n, n).</p>
+                <p>Generated features with shape <code>(n_generated, n_features)</code>.</p>
               </div>
             </td>
             <td>
                 <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>k</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Neighbour order of the manifold estimate.</p>
+              </div>
+            </td>
+            <td>
+                  <code>3</code>
             </td>
           </tr>
       </tbody>
@@ -3946,7 +3986,7 @@ Invariant under orthogonal transformations but NOT affine-invariant.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Log-Euclidean distance. Lower is better. 0.0 for identical matrices.</p>
+                <p>Scalar precision as a JAX array.</p>
               </div>
             </td>
           </tr>
@@ -3954,12 +3994,27 @@ Invariant under orthogonal transformations but NOT affine-invariant.</p>
     </table>
 
 
-<p><span class="doc-section-title">Examples:</span></p>
-    <div class="language-pycon highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">jax.numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">jnp</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">a</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="mf">2.0</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">spd_log_euclidean_distance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="go">0.0</span>
-</span></code></pre></div>
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If the feature matrices are not compatible.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
     </div>
@@ -3969,23 +4024,22 @@ Invariant under orthogonal transformations but NOT affine-invariant.</p>
 <div class="doc doc-object doc-function">
 
 
-<h2 id="calibrax.metrics.functional.manifold.grassmann_distance" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">grassmann_distance</span><span class="p">(</span><span class="n">u</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<h2 id="calibrax.metrics.functional.generative.manifold_recall" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">manifold_recall</span><span class="p">(</span><span class="n">real</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">generated</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
 
-<a href="#calibrax.metrics.functional.manifold.grassmann_distance" class="headerlink" title="Permanent link">¤</a></h2>
+<a href="#calibrax.metrics.functional.generative.manifold_recall" class="headerlink" title="Permanent link">¤</a></h2>
 
 
     <div class="doc doc-contents ">
 
-        <p>Geodesic distance on the Grassmann manifold Gr(p, n).</p>
-<p>Distance between two p-dimensional subspaces of R^n, based on
-principal angles. The principal angles theta_i = arccos(sigma_i)
-where sigma_i are singular values of U^T V.</p>
-<p>Distance = <code>sqrt(sum(theta_i^2))</code>.</p>
-<p>Basis-independent: same subspace with different orthonormal basis
-gives distance 0.</p>
-<p>Complexity: O(n*p^2) for SVD of the p x p matrix U^T V.</p>
+        <p>Fraction of real samples inside the generated k-NN manifold (diversity).</p>
 
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>Direction: HIGHER (1.0 = every real sample is covered).
+Range: [0, 1].</p>
+</details>
 
 <p><span class="doc-section-title">Parameters:</span></p>
     <table>
@@ -4000,14 +4054,14 @@ gives distance 0.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                <code>u</code>
+                <code>real</code>
             </td>
             <td>
                   <code><span title="typing.Any">Any</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>First orthonormal matrix, shape (n, p).</p>
+                <p>Real features with shape <code>(n_real, n_features)</code>.</p>
               </div>
             </td>
             <td>
@@ -4016,18 +4070,34 @@ gives distance 0.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>v</code>
+                <code>generated</code>
             </td>
             <td>
                   <code><span title="typing.Any">Any</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Second orthonormal matrix, shape (n, p).</p>
+                <p>Generated features with shape <code>(n_generated, n_features)</code>.</p>
               </div>
             </td>
             <td>
                 <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>k</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Neighbour order of the manifold estimate.</p>
+              </div>
+            </td>
+            <td>
+                  <code>3</code>
             </td>
           </tr>
       </tbody>
@@ -4049,17 +4119,7 @@ gives distance 0.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Grassmann distance. Lower is better. 0.0 for identical subspaces.</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="typing.Any">Any</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Maximum pi/2 * sqrt(p) for fully orthogonal subspaces.</p>
+                <p>Scalar recall as a JAX array.</p>
               </div>
             </td>
           </tr>
@@ -4067,12 +4127,27 @@ gives distance 0.</p>
     </table>
 
 
-<p><span class="doc-section-title">Examples:</span></p>
-    <div class="language-pycon highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">jax.numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">jnp</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">u</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">grassmann_distance</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="go">0.0</span>
-</span></code></pre></div>
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If the feature matrices are not compatible.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
     </div>
@@ -4082,20 +4157,24 @@ gives distance 0.</p>
 <div class="doc doc-object doc-function">
 
 
-<h2 id="calibrax.metrics.functional.manifold.stiefel_distance" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">stiefel_distance</span><span class="p">(</span><span class="n">u</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<h2 id="calibrax.metrics.functional.generative.density_weighted_precision" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">density_weighted_precision</span><span class="p">(</span><span class="n">real</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">generated</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
 
-<a href="#calibrax.metrics.functional.manifold.stiefel_distance" class="headerlink" title="Permanent link">¤</a></h2>
+<a href="#calibrax.metrics.functional.generative.density_weighted_precision" class="headerlink" title="Permanent link">¤</a></h2>
 
 
     <div class="doc doc-contents ">
 
-        <p>Extrinsic distance on the Stiefel manifold St(p, n).</p>
-<p>Frobenius distance between orthonormal p-frames: <code>||U - V||_F</code>.</p>
-<p>Unlike Grassmann distance, this is basis-DEPENDENT: the same subspace
-with a different orthonormal basis gives a nonzero distance.</p>
-<p>Complexity: O(n*p) for element-wise difference and norm.</p>
+        <p>Manifold precision weighted by the density of the real manifold.</p>
+<p>Generated samples whose nearest real point sits in a dense region weigh more,
+which makes the score robust to real outliers with large radii.</p>
 
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>Direction: HIGHER.
+Range: [0, 1].</p>
+</details>
 
 <p><span class="doc-section-title">Parameters:</span></p>
     <table>
@@ -4110,14 +4189,14 @@ with a different orthonormal basis gives a nonzero distance.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                <code>u</code>
+                <code>real</code>
             </td>
             <td>
                   <code><span title="typing.Any">Any</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>First orthonormal matrix, shape (n, p).</p>
+                <p>Real features with shape <code>(n_real, n_features)</code>.</p>
               </div>
             </td>
             <td>
@@ -4126,18 +4205,34 @@ with a different orthonormal basis gives a nonzero distance.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>v</code>
+                <code>generated</code>
             </td>
             <td>
                   <code><span title="typing.Any">Any</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Second orthonormal matrix, shape (n, p).</p>
+                <p>Generated features with shape <code>(n_generated, n_features)</code>.</p>
               </div>
             </td>
             <td>
                 <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>k</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Neighbour order of the density estimate.</p>
+              </div>
+            </td>
+            <td>
+                  <code>5</code>
             </td>
           </tr>
       </tbody>
@@ -4159,7 +4254,7 @@ with a different orthonormal basis gives a nonzero distance.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Stiefel distance. Lower is better. 0.0 for identical frames.</p>
+                <p>Scalar weighted precision as a JAX array.</p>
               </div>
             </td>
           </tr>
@@ -4167,12 +4262,27 @@ with a different orthonormal basis gives a nonzero distance.</p>
     </table>
 
 
-<p><span class="doc-section-title">Examples:</span></p>
-    <div class="language-pycon highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">jax.numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">jnp</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">u</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">stiefel_distance</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="go">0.0</span>
-</span></code></pre></div>
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If the feature matrices are not compatible.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
     </div>
@@ -4182,27 +4292,22 @@ with a different orthonormal basis gives a nonzero distance.</p>
 <div class="doc doc-object doc-function">
 
 
-<h2 id="calibrax.metrics.functional.manifold.ultrahyperbolic_distance" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">ultrahyperbolic_distance</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">signature</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<h2 id="calibrax.metrics.functional.generative.density_weighted_recall" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">density_weighted_recall</span><span class="p">(</span><span class="n">real</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">generated</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
 
-<a href="#calibrax.metrics.functional.manifold.ultrahyperbolic_distance" class="headerlink" title="Permanent link">¤</a></h2>
+<a href="#calibrax.metrics.functional.generative.density_weighted_recall" class="headerlink" title="Permanent link">¤</a></h2>
 
 
     <div class="doc doc-contents ">
 
-        <p>Geodesic distance on the pseudo-hyperboloid with given signature.</p>
-<p>Pseudo-Riemannian inner product:
-<code>&lt;a,b&gt;_{p,q} = -sum(a[:p]*b[:p]) + sum(a[p:]*b[p:])</code></p>
-<p>Points live on <code>&lt;x,x&gt;_{p,q} = -1</code>. Distance = <code>arccosh(-&lt;a,b&gt;_{p,q})</code>
-for timelike-separated points.</p>
-<p>Generalizes Lorentz distance (signature=(1,n)) to arbitrary
-mixed-curvature spaces (UltraE pattern, Xiong et al. KDD 2022).</p>
-<p>Special cases:
-- <code>signature=(1, n)</code>: Lorentz/hyperboloid (pure hyperbolic)
-- <code>signature=(0, n)</code>: Spherical (all spacelike)
-- <code>signature=(p, q)</code> with p,q &gt; 0: Mixed curvature</p>
-<p>Complexity: O(n) for inner product and arccosh.</p>
+        <p>Manifold recall weighted by the density of the generated manifold.</p>
 
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>Direction: HIGHER.
+Range: [0, 1].</p>
+</details>
 
 <p><span class="doc-section-title">Parameters:</span></p>
     <table>
@@ -4217,14 +4322,14 @@ mixed-curvature spaces (UltraE pattern, Xiong et al. KDD 2022).</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                <code>a</code>
+                <code>real</code>
             </td>
             <td>
                   <code><span title="typing.Any">Any</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>First point on the pseudo-hyperboloid.</p>
+                <p>Real features with shape <code>(n_real, n_features)</code>.</p>
               </div>
             </td>
             <td>
@@ -4233,14 +4338,14 @@ mixed-curvature spaces (UltraE pattern, Xiong et al. KDD 2022).</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>b</code>
+                <code>generated</code>
             </td>
             <td>
                   <code><span title="typing.Any">Any</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Second point on the pseudo-hyperboloid.</p>
+                <p>Generated features with shape <code>(n_generated, n_features)</code>.</p>
               </div>
             </td>
             <td>
@@ -4249,14 +4354,134 @@ mixed-curvature spaces (UltraE pattern, Xiong et al. KDD 2022).</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>signature</code>
+                <code>k</code>
             </td>
             <td>
-                  <code><span title="tuple">tuple</span>[<span title="int">int</span>, <span title="int">int</span>]</code>
+                  <code><span title="int">int</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Tuple (p, q) specifying p timelike and q spacelike dims.</p>
+                <p>Neighbour order of the density estimate.</p>
+              </div>
+            </td>
+            <td>
+                  <code>5</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Scalar weighted recall as a JAX array.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If the feature matrices are not compatible.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="calibrax.metrics.functional.generative.distance_to_closest_record" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">distance_to_closest_record</span><span class="p">(</span><span class="n">real</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">generated</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+
+<a href="#calibrax.metrics.functional.generative.distance_to_closest_record" class="headerlink" title="Permanent link">¤</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Mean squared distance from each generated record to its closest real record.</p>
+<p>Features are min-max normalised over the union of both sets first, so every
+feature contributes on the same scale. Larger values mean the generated records
+sit further from any real record, which is what a privacy check wants.</p>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>Direction: HIGHER (0.0 = every generated record copies a real one).
+Range: [0, n_features].</p>
+</details>
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>real</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Real records with shape <code>(n_real, n_features)</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>generated</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Generated records with shape <code>(n_generated, n_features)</code>.</p>
               </div>
             </td>
             <td>
@@ -4282,7 +4507,7 @@ mixed-curvature spaces (UltraE pattern, Xiong et al. KDD 2022).</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Pseudo-Riemannian distance. Lower is better. 0.0 for identical points.</p>
+                <p>Scalar mean closest-record distance as a JAX array.</p>
               </div>
             </td>
           </tr>
@@ -4290,12 +4515,144 @@ mixed-curvature spaces (UltraE pattern, Xiong et al. KDD 2022).</p>
     </table>
 
 
-<p><span class="doc-section-title">Examples:</span></p>
-    <div class="language-pycon highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">jax.numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">jnp</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">a</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">jnp</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.0</span><span class="p">),</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">])</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">ultrahyperbolic_distance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">signature</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="go">0.0</span>
-</span></code></pre></div>
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If the feature matrices are not compatible.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="calibrax.metrics.functional.generative.memorization_rate" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">memorization_rate</span><span class="p">(</span><span class="n">real</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">generated</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+
+<a href="#calibrax.metrics.functional.generative.memorization_rate" class="headerlink" title="Permanent link">¤</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Fraction of generated records that exactly equal some real record.</p>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>Direction: LOWER (0.0 = nothing copied).
+Range: [0, 1].</p>
+</details>
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>real</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Real records with shape <code>(n_real, n_features)</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>generated</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Generated records with shape <code>(n_generated, n_features)</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Scalar exact-match rate as a JAX array.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If the feature matrices are not compatible.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
     </div>

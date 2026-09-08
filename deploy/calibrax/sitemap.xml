@@ -97,6 +97,14 @@
          <lastmod>2026-09-08</lastmod>
     </url>
     <url>
+         <loc>https://calibrax.readthedocs.io/api-reference/metrics/forecasting/</loc>
+         <lastmod>2026-09-08</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/api-reference/metrics/generative/</loc>
+         <lastmod>2026-09-08</lastmod>
+    </url>
+    <url>
          <loc>https://calibrax.readthedocs.io/api-reference/metrics/geometric/</loc>
          <lastmod>2026-09-08</lastmod>
     </url>
@@ -150,6 +158,10 @@
     </url>
     <url>
          <loc>https://calibrax.readthedocs.io/api-reference/metrics/text/</loc>
+         <lastmod>2026-09-08</lastmod>
+    </url>
+    <url>
+         <loc>https://calibrax.readthedocs.io/api-reference/metrics/uncertainty/</loc>
          <lastmod>2026-09-08</lastmod>
     </url>
     <url>

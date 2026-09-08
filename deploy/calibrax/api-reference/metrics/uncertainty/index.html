@@ -12,13 +12,13 @@
         <meta name="author" content="Mahdi Shafiei">
       
       
-        <link rel="canonical" href="https://calibrax.readthedocs.io/api-reference/metrics/manifold/">
+        <link rel="canonical" href="https://calibrax.readthedocs.io/api-reference/metrics/uncertainty/">
       
       
-        <link rel="prev" href="../graph/">
+        <link rel="prev" href="../forecasting/">
       
       
-        <link rel="next" href="../composition/">
+        <link rel="next" href="../generative/">
       
       
         
@@ -29,7 +29,7 @@
     
     
       
-        <title>Manifold - Calibrax</title>
+        <title>Uncertainty - Calibrax</title>
       
     
     
@@ -84,7 +84,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#calibraxmetricsfunctionalmanifold" class="md-skip">
+        <a href="#calibraxmetricsfunctionaluncertainty" class="md-skip">
           Skip to content
         </a>
       
@@ -120,7 +120,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Manifold
+              Uncertainty
             
           </span>
         </div>
@@ -2319,10 +2319,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../uncertainty/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Uncertainty
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -2338,6 +2365,158 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.uncertainty" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;uncertainty
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.uncertainty.picp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;picp
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.uncertainty.mpiw" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;mpiw
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.uncertainty.interval_score" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;interval_score
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.uncertainty.winkler_score" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;winkler_score
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.uncertainty.gaussian_nll" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;gaussian_nll
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.uncertainty.regression_calibration_error" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;regression_calibration_error
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.uncertainty.predictive_entropy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;predictive_entropy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.uncertainty.ensemble_mutual_information" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;ensemble_mutual_information
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.uncertainty.anees" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;anees
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.uncertainty.non_credibility_index" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;non_credibility_index
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.uncertainty.chi2_confidence_interval" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;chi2_confidence_interval
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -2599,37 +2778,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Manifold
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../manifold/" class="md-nav__link">
         
   
   
@@ -2645,92 +2797,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#calibrax.metrics.functional.manifold" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;manifold
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#calibrax.metrics.functional.manifold.spd_affine_invariant_distance" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;spd_affine_invariant_distance
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#calibrax.metrics.functional.manifold.spd_log_euclidean_distance" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;spd_log_euclidean_distance
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#calibrax.metrics.functional.manifold.grassmann_distance" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;grassmann_distance
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#calibrax.metrics.functional.manifold.stiefel_distance" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;stiefel_distance
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#calibrax.metrics.functional.manifold.ultrahyperbolic_distance" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;ultrahyperbolic_distance
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -3555,10 +3621,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#calibrax.metrics.functional.manifold" class="md-nav__link">
+  <a href="#calibrax.metrics.functional.uncertainty" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;manifold
+        <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;uncertainty
       
     </span>
   </a>
@@ -3566,10 +3632,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#calibrax.metrics.functional.manifold.spd_affine_invariant_distance" class="md-nav__link">
+  <a href="#calibrax.metrics.functional.uncertainty.picp" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;spd_affine_invariant_distance
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;picp
       
     </span>
   </a>
@@ -3577,10 +3643,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#calibrax.metrics.functional.manifold.spd_log_euclidean_distance" class="md-nav__link">
+  <a href="#calibrax.metrics.functional.uncertainty.mpiw" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;spd_log_euclidean_distance
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;mpiw
       
     </span>
   </a>
@@ -3588,10 +3654,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#calibrax.metrics.functional.manifold.grassmann_distance" class="md-nav__link">
+  <a href="#calibrax.metrics.functional.uncertainty.interval_score" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;grassmann_distance
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;interval_score
       
     </span>
   </a>
@@ -3599,10 +3665,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#calibrax.metrics.functional.manifold.stiefel_distance" class="md-nav__link">
+  <a href="#calibrax.metrics.functional.uncertainty.winkler_score" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;stiefel_distance
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;winkler_score
       
     </span>
   </a>
@@ -3610,10 +3676,76 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#calibrax.metrics.functional.manifold.ultrahyperbolic_distance" class="md-nav__link">
+  <a href="#calibrax.metrics.functional.uncertainty.gaussian_nll" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;ultrahyperbolic_distance
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;gaussian_nll
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.uncertainty.regression_calibration_error" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;regression_calibration_error
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.uncertainty.predictive_entropy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;predictive_entropy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.uncertainty.ensemble_mutual_information" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;ensemble_mutual_information
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.uncertainty.anees" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;anees
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.uncertainty.non_credibility_index" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;non_credibility_index
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.uncertainty.chi2_confidence_interval" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;chi2_confidence_interval
       
     </span>
   </a>
@@ -3706,42 +3838,40 @@
   
 
 
-<h1 id="calibraxmetricsfunctionalmanifold">calibrax.metrics.functional.manifold<a class="headerlink" href="#calibraxmetricsfunctionalmanifold" title="Permanent link">¤</a></h1>
-<p>Manifold distance metrics for structured matrix spaces. Includes the
-affine-invariant and log-Euclidean distances on symmetric positive
-definite (SPD) matrices, geodesic distance on Grassmann and Stiefel
-manifolds, and ultrahyperbolic distance on pseudo-hyperboloids.</p>
+<h1 id="calibraxmetricsfunctionaluncertainty">calibrax.metrics.functional.uncertainty<a class="headerlink" href="#calibraxmetricsfunctionaluncertainty" title="Permanent link">¤</a></h1>
+<p>Uncertainty quantification: prediction interval coverage and width, the interval
+(Winkler) score, Gaussian negative log-likelihood, regression calibration error,
+ensemble predictive entropy and BALD mutual information, ANEES, the non-credibility
+index and the chi-squared credibility interval.</p>
 
 
 <div class="doc doc-object doc-module">
 
 
 
-<a id="calibrax.metrics.functional.manifold"></a>
+<a id="calibrax.metrics.functional.uncertainty"></a>
     <div class="doc doc-contents first">
 
-        <p>Manifold distance metrics -- Riemannian and pseudo-Riemannian geometry.</p>
-<p>Geometrically correct distances for structured mathematical objects that
-live on curved manifolds rather than flat Euclidean space. Using naive
-Euclidean distance on these objects produces geometrically meaningless
-results.</p>
-<p><strong>Manifold hierarchy</strong> (each level generalizes the previous):
-- Euclidean: flat space, standard L2 norm
-- Riemannian: curved space with positive-definite metric tensor
-- Pseudo-Riemannian: metric tensor may be indefinite (mixed signature)</p>
-<p><strong>Manifolds covered:</strong>
-- <strong>SPD(n)</strong>: Symmetric Positive Definite matrices (covariance matrices,
-  diffusion tensors). Two distances: affine-invariant (geometrically exact)
-  and log-Euclidean (faster approximation).
-- <strong>Gr(p,n)</strong>: Grassmann manifold of p-dimensional subspaces (PCA subspace
-  comparison, feature space analysis). Basis-independent.
-- <strong>St(p,n)</strong>: Stiefel manifold of orthonormal p-frames (orientation
-  comparison, orthogonal constraints). Basis-dependent.
-- <strong>Pseudo-hyperboloid</strong>: Mixed-curvature space for knowledge graph
-  embeddings. Generalizes Lorentz/hyperbolic to arbitrary signature.</p>
-<p>All implemented using JAX linear algebra. No external manifold libraries.
-Registered with <code>domain="manifold"</code>.</p>
+        <p>Uncertainty quantification: interval coverage, proper scores and credibility.</p>
+<p>Every function is a pure <code>jax.numpy</code> computation. Shape checks happen on the
+static shapes only, so all of them trace under <code>jax.jit</code>, <code>jax.grad</code> and
+<code>jax.vmap</code>; data-dependent conditions such as inverted intervals are not
+checked.</p>
 
+
+<details class="references" open>
+  <summary>References</summary>
+  <ul>
+<li>Gneiting &amp; Raftery 2007: the interval (Winkler) score.</li>
+<li>Kuleshov, Fenner &amp; Ermon 2018, "Accurate uncertainties for deep learning using
+  calibrated regression": regression calibration error.</li>
+<li>Gal &amp; Ghahramani 2016 and Houlsby et al. 2011: predictive entropy and the
+  BALD mutual-information decomposition.</li>
+<li>Bar-Shalom, Li &amp; Kirubarajan 2002: the average normalised estimation error
+  squared (ANEES).</li>
+<li>Li &amp; Zhao 2006, "Measuring estimator's credibility": the non-credibility index.</li>
+</ul>
+</details>
 
 
 
@@ -3765,23 +3895,24 @@ Registered with <code>domain="manifold"</code>.</p>
 <div class="doc doc-object doc-function">
 
 
-<h2 id="calibrax.metrics.functional.manifold.spd_affine_invariant_distance" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">spd_affine_invariant_distance</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<h2 id="calibrax.metrics.functional.uncertainty.picp" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">picp</span><span class="p">(</span><span class="n">lower</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">upper</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
 
-<a href="#calibrax.metrics.functional.manifold.spd_affine_invariant_distance" class="headerlink" title="Permanent link">¤</a></h2>
+<a href="#calibrax.metrics.functional.uncertainty.picp" class="headerlink" title="Permanent link">¤</a></h2>
 
 
     <div class="doc doc-contents ">
 
-        <p>Affine-invariant Riemannian distance between SPD matrices.</p>
-<p>Geodesic distance on the SPD manifold:
-<code>d(A, B) = ||log(A^{-1/2} B A^{-1/2})||_F</code></p>
-<p>Equivalent to <code>sqrt(sum(log(lambda_i)^2))</code> where lambda_i are the
-generalized eigenvalues of (B, A).</p>
-<p>Invariant under congruence: <code>d(A, B) = d(MAM^T, MBM^T)</code> for any
-invertible M. This is the natural distance for covariance matrices.</p>
-<p>Complexity: O(n^3) for generalized eigenvalue decomposition.</p>
+        <p>Prediction interval coverage probability.</p>
+<p>The fraction of targets inside <code>[lower, upper]</code>. Compare it with the nominal
+level <code>1 - alpha</code> the intervals were built for.</p>
 
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>Direction: INFO; the goal is the nominal coverage, not 1.0.
+Range: [0, 1].</p>
+</details>
 
 <p><span class="doc-section-title">Parameters:</span></p>
     <table>
@@ -3796,14 +3927,14 @@ invertible M. This is the natural distance for covariance matrices.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                <code>a</code>
+                <code>lower</code>
             </td>
             <td>
                   <code><span title="typing.Any">Any</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>First SPD matrix, shape (n, n).</p>
+                <p>Lower interval bounds, any shape.</p>
               </div>
             </td>
             <td>
@@ -3812,14 +3943,30 @@ invertible M. This is the natural distance for covariance matrices.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>b</code>
+                <code>upper</code>
             </td>
             <td>
                   <code><span title="typing.Any">Any</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Second SPD matrix, shape (n, n).</p>
+                <p>Upper interval bounds, same shape.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>targets</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Observed values, same shape.</p>
               </div>
             </td>
             <td>
@@ -3845,7 +3992,7 @@ invertible M. This is the natural distance for covariance matrices.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Affine-invariant distance. Lower is better. 0.0 for identical matrices.</p>
+                <p>Scalar coverage as a JAX array.</p>
               </div>
             </td>
           </tr>
@@ -3853,12 +4000,27 @@ invertible M. This is the natural distance for covariance matrices.</p>
     </table>
 
 
-<p><span class="doc-section-title">Examples:</span></p>
-    <div class="language-pycon highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">jax.numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">jnp</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">a</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="mf">2.0</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">spd_affine_invariant_distance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="go">0.0</span>
-</span></code></pre></div>
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If the shapes differ.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
     </div>
@@ -3868,21 +4030,22 @@ invertible M. This is the natural distance for covariance matrices.</p>
 <div class="doc doc-object doc-function">
 
 
-<h2 id="calibrax.metrics.functional.manifold.spd_log_euclidean_distance" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">spd_log_euclidean_distance</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<h2 id="calibrax.metrics.functional.uncertainty.mpiw" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">mpiw</span><span class="p">(</span><span class="n">lower</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">upper</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
 
-<a href="#calibrax.metrics.functional.manifold.spd_log_euclidean_distance" class="headerlink" title="Permanent link">¤</a></h2>
+<a href="#calibrax.metrics.functional.uncertainty.mpiw" class="headerlink" title="Permanent link">¤</a></h2>
 
 
     <div class="doc doc-contents ">
 
-        <p>Log-Euclidean distance between SPD matrices.</p>
-<p>Maps SPD matrices to Euclidean space via matrix logarithm:
-<code>d(A, B) = ||log(A) - log(B)||_F</code></p>
-<p>Faster than affine-invariant but less geometrically faithful.
-Invariant under orthogonal transformations but NOT affine-invariant.</p>
-<p>Complexity: O(n^3) for eigendecomposition (no matrix inverse).</p>
+        <p>Mean prediction interval width, <code>mean(upper - lower)</code>.</p>
 
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>Direction: LOWER, at a fixed coverage; sharper intervals are better.
+Range: (-inf, inf); negative for inverted intervals.</p>
+</details>
 
 <p><span class="doc-section-title">Parameters:</span></p>
     <table>
@@ -3897,14 +4060,14 @@ Invariant under orthogonal transformations but NOT affine-invariant.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                <code>a</code>
+                <code>lower</code>
             </td>
             <td>
                   <code><span title="typing.Any">Any</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>First SPD matrix, shape (n, n).</p>
+                <p>Lower interval bounds, any shape.</p>
               </div>
             </td>
             <td>
@@ -3913,14 +4076,14 @@ Invariant under orthogonal transformations but NOT affine-invariant.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>b</code>
+                <code>upper</code>
             </td>
             <td>
                   <code><span title="typing.Any">Any</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Second SPD matrix, shape (n, n).</p>
+                <p>Upper interval bounds, same shape.</p>
               </div>
             </td>
             <td>
@@ -3946,7 +4109,7 @@ Invariant under orthogonal transformations but NOT affine-invariant.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Log-Euclidean distance. Lower is better. 0.0 for identical matrices.</p>
+                <p>Scalar mean width as a JAX array.</p>
               </div>
             </td>
           </tr>
@@ -3954,12 +4117,27 @@ Invariant under orthogonal transformations but NOT affine-invariant.</p>
     </table>
 
 
-<p><span class="doc-section-title">Examples:</span></p>
-    <div class="language-pycon highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">jax.numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">jnp</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">a</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="mf">2.0</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">spd_log_euclidean_distance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="go">0.0</span>
-</span></code></pre></div>
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If the shapes differ.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
     </div>
@@ -3969,23 +4147,25 @@ Invariant under orthogonal transformations but NOT affine-invariant.</p>
 <div class="doc doc-object doc-function">
 
 
-<h2 id="calibrax.metrics.functional.manifold.grassmann_distance" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">grassmann_distance</span><span class="p">(</span><span class="n">u</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<h2 id="calibrax.metrics.functional.uncertainty.interval_score" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">interval_score</span><span class="p">(</span><span class="n">lower</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">upper</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
 
-<a href="#calibrax.metrics.functional.manifold.grassmann_distance" class="headerlink" title="Permanent link">¤</a></h2>
+<a href="#calibrax.metrics.functional.uncertainty.interval_score" class="headerlink" title="Permanent link">¤</a></h2>
 
 
     <div class="doc doc-contents ">
 
-        <p>Geodesic distance on the Grassmann manifold Gr(p, n).</p>
-<p>Distance between two p-dimensional subspaces of R^n, based on
-principal angles. The principal angles theta_i = arccos(sigma_i)
-where sigma_i are singular values of U^T V.</p>
-<p>Distance = <code>sqrt(sum(theta_i^2))</code>.</p>
-<p>Basis-independent: same subspace with different orthonormal basis
-gives distance 0.</p>
-<p>Complexity: O(n*p^2) for SVD of the p x p matrix U^T V.</p>
+        <p>Interval score of central <code>(1 - alpha)</code> prediction intervals.</p>
+<p><code>IS = (u - l) + (2 / alpha) (l - y)_+ + (2 / alpha) (y - u)_+</code>, averaged over
+the elements: the width plus a <code>2 / alpha</code> multiple of the miscoverage gap.</p>
 
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>Direction: LOWER.
+Range: [0, inf).
+Proper scoring rule for central prediction intervals (Gneiting &amp; Raftery).</p>
+</details>
 
 <p><span class="doc-section-title">Parameters:</span></p>
     <table>
@@ -4000,14 +4180,14 @@ gives distance 0.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                <code>u</code>
+                <code>lower</code>
             </td>
             <td>
                   <code><span title="typing.Any">Any</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>First orthonormal matrix, shape (n, p).</p>
+                <p>Lower interval bounds, any shape.</p>
               </div>
             </td>
             <td>
@@ -4016,14 +4196,46 @@ gives distance 0.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>v</code>
+                <code>upper</code>
             </td>
             <td>
                   <code><span title="typing.Any">Any</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Second orthonormal matrix, shape (n, p).</p>
+                <p>Upper interval bounds, same shape.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>targets</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Observed values, same shape.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>alpha</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Miscoverage level in <code>(0, 1)</code>.</p>
               </div>
             </td>
             <td>
@@ -4049,17 +4261,7 @@ gives distance 0.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Grassmann distance. Lower is better. 0.0 for identical subspaces.</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="typing.Any">Any</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Maximum pi/2 * sqrt(p) for fully orthogonal subspaces.</p>
+                <p>Scalar mean interval score as a JAX array.</p>
               </div>
             </td>
           </tr>
@@ -4067,12 +4269,27 @@ gives distance 0.</p>
     </table>
 
 
-<p><span class="doc-section-title">Examples:</span></p>
-    <div class="language-pycon highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">jax.numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">jnp</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">u</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">grassmann_distance</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="go">0.0</span>
-</span></code></pre></div>
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If the shapes differ.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
     </div>
@@ -4082,19 +4299,15 @@ gives distance 0.</p>
 <div class="doc doc-object doc-function">
 
 
-<h2 id="calibrax.metrics.functional.manifold.stiefel_distance" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">stiefel_distance</span><span class="p">(</span><span class="n">u</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<h2 id="calibrax.metrics.functional.uncertainty.winkler_score" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">winkler_score</span><span class="p">(</span><span class="n">lower</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">upper</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
 
-<a href="#calibrax.metrics.functional.manifold.stiefel_distance" class="headerlink" title="Permanent link">¤</a></h2>
+<a href="#calibrax.metrics.functional.uncertainty.winkler_score" class="headerlink" title="Permanent link">¤</a></h2>
 
 
     <div class="doc doc-contents ">
 
-        <p>Extrinsic distance on the Stiefel manifold St(p, n).</p>
-<p>Frobenius distance between orthonormal p-frames: <code>||U - V||_F</code>.</p>
-<p>Unlike Grassmann distance, this is basis-DEPENDENT: the same subspace
-with a different orthonormal basis gives a nonzero distance.</p>
-<p>Complexity: O(n*p) for element-wise difference and norm.</p>
+        <p>Winkler's 1972 name for :func:<code>interval_score</code>; same value.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -4110,14 +4323,14 @@ with a different orthonormal basis gives a nonzero distance.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                <code>u</code>
+                <code>lower</code>
             </td>
             <td>
                   <code><span title="typing.Any">Any</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>First orthonormal matrix, shape (n, p).</p>
+                <p>Lower interval bounds, any shape.</p>
               </div>
             </td>
             <td>
@@ -4126,14 +4339,46 @@ with a different orthonormal basis gives a nonzero distance.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>v</code>
+                <code>upper</code>
             </td>
             <td>
                   <code><span title="typing.Any">Any</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Second orthonormal matrix, shape (n, p).</p>
+                <p>Upper interval bounds, same shape.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>targets</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Observed values, same shape.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>alpha</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Miscoverage level in <code>(0, 1)</code>.</p>
               </div>
             </td>
             <td>
@@ -4159,20 +4404,12 @@ with a different orthonormal basis gives a nonzero distance.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Stiefel distance. Lower is better. 0.0 for identical frames.</p>
+                <p>Scalar mean interval score as a JAX array.</p>
               </div>
             </td>
           </tr>
       </tbody>
     </table>
-
-
-<p><span class="doc-section-title">Examples:</span></p>
-    <div class="language-pycon highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">jax.numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">jnp</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">u</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">stiefel_distance</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="go">0.0</span>
-</span></code></pre></div>
 
 
     </div>
@@ -4182,27 +4419,24 @@ with a different orthonormal basis gives a nonzero distance.</p>
 <div class="doc doc-object doc-function">
 
 
-<h2 id="calibrax.metrics.functional.manifold.ultrahyperbolic_distance" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">ultrahyperbolic_distance</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">signature</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<h2 id="calibrax.metrics.functional.uncertainty.gaussian_nll" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">gaussian_nll</span><span class="p">(</span><span class="n">means</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">variances</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
 
-<a href="#calibrax.metrics.functional.manifold.ultrahyperbolic_distance" class="headerlink" title="Permanent link">¤</a></h2>
+<a href="#calibrax.metrics.functional.uncertainty.gaussian_nll" class="headerlink" title="Permanent link">¤</a></h2>
 
 
     <div class="doc doc-contents ">
 
-        <p>Geodesic distance on the pseudo-hyperboloid with given signature.</p>
-<p>Pseudo-Riemannian inner product:
-<code>&lt;a,b&gt;_{p,q} = -sum(a[:p]*b[:p]) + sum(a[p:]*b[p:])</code></p>
-<p>Points live on <code>&lt;x,x&gt;_{p,q} = -1</code>. Distance = <code>arccosh(-&lt;a,b&gt;_{p,q})</code>
-for timelike-separated points.</p>
-<p>Generalizes Lorentz distance (signature=(1,n)) to arbitrary
-mixed-curvature spaces (UltraE pattern, Xiong et al. KDD 2022).</p>
-<p>Special cases:
-- <code>signature=(1, n)</code>: Lorentz/hyperboloid (pure hyperbolic)
-- <code>signature=(0, n)</code>: Spherical (all spacelike)
-- <code>signature=(p, q)</code> with p,q &gt; 0: Mixed curvature</p>
-<p>Complexity: O(n) for inner product and arccosh.</p>
+        <p>Mean negative log-likelihood of the targets under a diagonal Gaussian.</p>
+<p><code>mean(0.5 (log(2 pi variance) + (target - mean)^2 / variance))</code>.</p>
 
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>Direction: LOWER.
+Range: (-inf, inf).
+Proper scoring rule; non-positive variances give non-finite values.</p>
+</details>
 
 <p><span class="doc-section-title">Parameters:</span></p>
     <table>
@@ -4217,14 +4451,14 @@ mixed-curvature spaces (UltraE pattern, Xiong et al. KDD 2022).</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                <code>a</code>
+                <code>means</code>
             </td>
             <td>
                   <code><span title="typing.Any">Any</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>First point on the pseudo-hyperboloid.</p>
+                <p>Predictive means, any shape.</p>
               </div>
             </td>
             <td>
@@ -4233,14 +4467,14 @@ mixed-curvature spaces (UltraE pattern, Xiong et al. KDD 2022).</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>b</code>
+                <code>variances</code>
             </td>
             <td>
                   <code><span title="typing.Any">Any</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Second point on the pseudo-hyperboloid.</p>
+                <p>Predictive variances, same shape, strictly positive.</p>
               </div>
             </td>
             <td>
@@ -4249,14 +4483,14 @@ mixed-curvature spaces (UltraE pattern, Xiong et al. KDD 2022).</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>signature</code>
+                <code>targets</code>
             </td>
             <td>
-                  <code><span title="tuple">tuple</span>[<span title="int">int</span>, <span title="int">int</span>]</code>
+                  <code><span title="typing.Any">Any</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Tuple (p, q) specifying p timelike and q spacelike dims.</p>
+                <p>Observed values, same shape.</p>
               </div>
             </td>
             <td>
@@ -4282,7 +4516,7 @@ mixed-curvature spaces (UltraE pattern, Xiong et al. KDD 2022).</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Pseudo-Riemannian distance. Lower is better. 0.0 for identical points.</p>
+                <p>Scalar mean NLL as a JAX array.</p>
               </div>
             </td>
           </tr>
@@ -4290,12 +4524,746 @@ mixed-curvature spaces (UltraE pattern, Xiong et al. KDD 2022).</p>
     </table>
 
 
-<p><span class="doc-section-title">Examples:</span></p>
-    <div class="language-pycon highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">jax.numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">jnp</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">a</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">jnp</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.0</span><span class="p">),</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">])</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">ultrahyperbolic_distance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">signature</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="go">0.0</span>
-</span></code></pre></div>
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If the shapes differ.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="calibrax.metrics.functional.uncertainty.regression_calibration_error" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">regression_calibration_error</span><span class="p">(</span><span class="n">means</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">variances</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">quantile_levels</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+
+<a href="#calibrax.metrics.functional.uncertainty.regression_calibration_error" class="headerlink" title="Permanent link">¤</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Regression calibration error of a Gaussian predictive (Kuleshov et al. 2018).</p>
+<p>For each nominal level <code>q</code> the empirical fraction of targets below the
+predictive <code>q</code>-quantile is compared with <code>q</code>; the metric is the mean
+absolute gap over the levels, the regression analogue of ECE.</p>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>Direction: LOWER (0.0 = calibrated).
+Range: [0, 1].</p>
+</details>
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>means</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Predictive means, any shape.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>variances</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Predictive variances, same shape, strictly positive.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>targets</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Observed values, same shape.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>quantile_levels</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Nominal levels in <code>(0, 1)</code> with shape <code>(n_levels,)</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Scalar mean absolute miscalibration as a JAX array.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If the shapes differ.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="calibrax.metrics.functional.uncertainty.predictive_entropy" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">predictive_entropy</span><span class="p">(</span><span class="n">ensemble_probabilities</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+
+<a href="#calibrax.metrics.functional.uncertainty.predictive_entropy" class="headerlink" title="Permanent link">¤</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Entropy of the ensemble-averaged categorical distribution, per sample.</p>
+<p><code>H(mean_m p_m)</code> with the ensemble on the leading axis and the classes on the
+last axis; the total predictive uncertainty of Gal &amp; Ghahramani 2016.</p>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>Direction: INFO; higher means more uncertain.
+Range: [0, log(n_classes)].
+Returns one value per sample, so it is not a registered metric.</p>
+</details>
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>ensemble_probabilities</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Probabilities with shape
+<code>(n_members, *batch, n_classes)</code>, summing to one on the last axis.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Entropies with shape <code>(*batch,)</code>.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="calibrax.metrics.functional.uncertainty.ensemble_mutual_information" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">ensemble_mutual_information</span><span class="p">(</span><span class="n">ensemble_probabilities</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+
+<a href="#calibrax.metrics.functional.uncertainty.ensemble_mutual_information" class="headerlink" title="Permanent link">¤</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Epistemic uncertainty of an ensemble, per sample (BALD, Houlsby et al. 2011).</p>
+<p><code>H(mean_m p_m) - mean_m H(p_m)</code>: the predictive entropy minus the expected
+member entropy. Zero when every member agrees. Not the joint-table mutual
+information of the information domain.</p>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>Direction: INFO; higher means more disagreement between members.
+Range: [0, log(n_classes)].
+Returns one value per sample, so it is not a registered metric.</p>
+</details>
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>ensemble_probabilities</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Probabilities with shape
+<code>(n_members, *batch, n_classes)</code>, summing to one on the last axis.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Mutual information with shape <code>(*batch,)</code>.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="calibrax.metrics.functional.uncertainty.anees" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">anees</span><span class="p">(</span><span class="n">predicted_means</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">predicted_covariances</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">references</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+
+<a href="#calibrax.metrics.functional.uncertainty.anees" class="headerlink" title="Permanent link">¤</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Average normalised estimation error squared (Bar-Shalom et al. 2002).</p>
+<p><code>(1 / (N d)) sum_t (r_t - m_t)^T P_t^{-1} (r_t - m_t)</code> for predictions
+<code>(m_t, P_t)</code> and references <code>r_t</code> of dimension <code>d</code>.</p>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>Direction: INFO; 1.0 is calibrated, above 1 over-confident, below 1
+under-confident.
+Range: [0, inf).</p>
+</details>
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>predicted_means</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Predicted means with shape <code>(n_steps, d)</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>predicted_covariances</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Predicted covariances with shape <code>(n_steps, d, d)</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>references</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Reference values with shape <code>(n_steps, d)</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Scalar ANEES as a JAX array.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If the means and references differ in shape.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="calibrax.metrics.functional.uncertainty.non_credibility_index" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">non_credibility_index</span><span class="p">(</span><span class="n">predicted_means</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">predicted_covariances</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">references</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">reference_covariances</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+
+<a href="#calibrax.metrics.functional.uncertainty.non_credibility_index" class="headerlink" title="Permanent link">¤</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Non-credibility index of Li &amp; Zhao 2006, in decibels.</p>
+<p><code>(10 / N) sum_t log10( e_t^T P_t^{-1} e_t / e_t^T S_t^{-1} e_t )</code> with the
+predicted covariance <code>P_t</code> and the reference error covariance <code>S_t</code>.</p>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>Direction: INFO; 0.0 is credible, positive means the predicted covariance
+underestimates the true error covariance.
+Range: (-inf, inf).</p>
+</details>
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>predicted_means</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Predicted means with shape <code>(n_steps, d)</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>predicted_covariances</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Predicted covariances with shape <code>(n_steps, d, d)</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>references</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Reference values with shape <code>(n_steps, d)</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>reference_covariances</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Reference error covariances, shape <code>(n_steps, d, d)</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Scalar NCI as a JAX array.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If the means and references differ in shape.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="calibrax.metrics.functional.uncertainty.chi2_confidence_interval" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">chi2_confidence_interval</span><span class="p">(</span><span class="n">dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">percentile</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.99</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span></code>
+
+<a href="#calibrax.metrics.functional.uncertainty.chi2_confidence_interval" class="headerlink" title="Permanent link">¤</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Symmetric confidence interval of the chi-squared distribution with <code>dim</code> degrees.</p>
+<p>The <code>((1 - percentile) / 2, 1 - (1 - percentile) / 2)</code> quantiles: the band an
+ANEES-style statistic of a calibrated estimator falls in. Needs the <code>stats</code>
+extra (SciPy).</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>dim</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Degrees of freedom.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>percentile</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Interval coverage in <code>(0, 1)</code>.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0.99</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="tuple">tuple</span>[<span title="typing.Any">Any</span>, <span title="typing.Any">Any</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p><code>(lower, upper)</code> quantiles as JAX scalars.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If <code>percentile</code> is not strictly between 0 and 1.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
     </div>
