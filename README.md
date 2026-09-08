@@ -125,51 +125,6 @@ uv pip install "calibrax[text]"
 uv pip install "calibrax[publication]"
 ```
 
-## Development Setup
-
-The recommended way to set up a development environment is with the included `setup.sh` script. It auto-detects your platform (Linux CUDA, macOS Intel, Apple Silicon), creates a virtual environment, installs all dependencies, and generates an activation script.
-
-```bash
-git clone https://github.com/avitai/calibrax.git
-cd calibrax
-
-# Standard setup with automatic GPU detection
-./setup.sh
-
-# Activate the environment
-source ./activate.sh
-```
-
-### setup.sh Options
-
-| Flag | Description |
-|------|-------------|
-| `--cpu-only` | Force CPU-only setup, skip GPU/Metal detection |
-| `--metal` | Enable Metal acceleration on Apple Silicon Macs |
-| `--deep-clean` | Clear JAX cache, pip cache, pytest cache, and other artifacts |
-| `--force` | Force reinstallation even if environment exists |
-| `--verbose`, `-v` | Show detailed output during setup |
-
-```bash
-# Examples
-./setup.sh --cpu-only         # CPU-only development
-./setup.sh --metal            # Apple Silicon with Metal
-./setup.sh --force --verbose  # Force reinstall with full output
-./setup.sh --deep-clean       # Clean everything and start fresh
-```
-
-### Manual Setup
-
-If you prefer to set up manually:
-
-```bash
-git clone https://github.com/avitai/calibrax.git
-cd calibrax
-uv venv
-uv pip install -e ".[dev,test,stats]"
-uv run pre-commit install
-```
-
 ## Architecture
 
 ```
@@ -210,31 +165,11 @@ Runnable examples are in `examples/metrics/`, available as both Python scripts a
 | [07_metric_learning.py](examples/metrics/07_metric_learning.py) | Advanced | Contrastive, triplet, NTXent, ArcFace, mining |
 | [08_manifold_graph.py](examples/metrics/08_manifold_graph.py) | Advanced | SPD, Grassmann, spectral distance, Floyd-Warshall |
 
-## Development
+## Contributing
 
-```bash
-# Activate the local environment first
-source activate.sh
-
-# Run tests
-uv run pytest tests/ -v --cov=calibrax --cov-report=term-missing
-
-# Lint & format
-uv run ruff check src/ tests/ --fix
-uv run ruff format src/ tests/
-
-# Type check
-uv run pyright src/
-
-# All quality checks
-uv run pre-commit run --all-files
-
-# Build documentation
-uv run mkdocs build --strict --clean
-
-# Convert examples to Jupyter notebooks
-uv run python scripts/jupytext_converter.py batch-py-to-nb examples/metrics/
-```
+Development setup, the `setup.sh` flags, and the verification commands are in
+[CONTRIBUTING.md](CONTRIBUTING.md); the contributor documentation starts at
+[docs/contributing](docs/contributing/index.md).
 
 ## License
 
