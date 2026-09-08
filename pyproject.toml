@@ -153,6 +153,7 @@ test = [
   "beartype>=0.14.1",
   "codecarbon>=2.0",
   "coverage>=7",
+  "hypothesis>=6.100",
   "matplotlib>=3.8",
   "mlflow>=2.0",
   "pytest-asyncio>=0.23",
