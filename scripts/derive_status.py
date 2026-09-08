@@ -22,8 +22,11 @@ This file ends in ``.tmpl`` because the CONFIG block carries
 from __future__ import annotations
 
 import argparse
+import functools
 import logging
+import os
 import re
+import subprocess
 import sys
 import tomllib
 from collections.abc import Callable
@@ -100,19 +103,42 @@ def measure_modules(root: Path, package: str) -> str:
     return str(_count(root / "src" / package, "*.py"))
 
 
+_REGISTRY_PROBE = (
+    "from calibrax.metrics import MetricRegistry, MetricTier\n"
+    "registry = MetricRegistry()\n"
+    "names = registry.list_names()\n"
+    "print(len(registry.list_by_tier(MetricTier.PURE_FUNCTION)))\n"
+    "print(len({registry.get(name).domain for name in names}))\n"
+)
+
+
+@functools.cache
+def _registry_facts() -> tuple[str, str]:
+    """Count the Tier 0 metrics and their domains in a fresh interpreter.
+
+    The registry is a process-wide singleton that tests register into, so an
+    in-process count would depend on what ran before it; a subprocess measures the
+    package as shipped.
+    """
+    result = subprocess.run(  # noqa: S603  # a fixed probe under the running interpreter
+        [sys.executable, "-c", _REGISTRY_PROBE],
+        capture_output=True,
+        text=True,
+        check=True,
+        env={**os.environ, "JAX_PLATFORMS": "cpu"},
+    )
+    tier0, domains = result.stdout.split()
+    return tier0, domains
+
+
 def measure_tier0_metrics(_root: Path, _package: str) -> str:
     """Count the Tier 0 (pure-function) metrics the registry holds after import."""
-    from calibrax.metrics import MetricRegistry, MetricTier
-
-    return str(len(MetricRegistry().list_by_tier(MetricTier.PURE_FUNCTION)))
+    return _registry_facts()[0]
 
 
 def measure_metric_domains(_root: Path, _package: str) -> str:
     """Count the distinct domains of the registered metrics."""
-    from calibrax.metrics import MetricRegistry
-
-    registry = MetricRegistry()
-    return str(len({registry.get(name).domain for name in registry.list_names()}))
+    return _registry_facts()[1]
 
 
 def measure_subpackages(root: Path, package: str) -> str:
