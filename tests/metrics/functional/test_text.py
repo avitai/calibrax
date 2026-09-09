@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+
 import jax
 import jax.numpy as jnp
 import pytest
@@ -101,8 +103,6 @@ class TestPerplexity:
     def test_known_value(self) -> None:
         # exp(-mean([-1, -1])) = exp(1) ≈ 2.718
         log_probs = jnp.array([-1.0, -1.0])
-        import math
-
         assert perplexity(log_probs) == pytest.approx(math.e, abs=1e-4)
 
     def test_higher_entropy(self) -> None:
@@ -114,6 +114,43 @@ class TestPerplexity:
         """Result should be a JAX scalar array."""
         result = perplexity(jnp.array([-1.0]))
         assert isinstance(result, jax.Array)
+
+
+class TestMaskedPerplexity:
+    """Tests for perplexity over a token mask."""
+
+    def test_mask_selects_the_scored_positions(self) -> None:
+        log_probs = jnp.array([[-1.0, -2.0, -9.0], [-0.5, -9.0, -9.0]])
+        mask = jnp.array([[1, 1, 0], [1, 0, 0]])
+        expected = perplexity(jnp.array([-1.0, -2.0, -0.5]))
+        assert perplexity(log_probs, mask=mask) == pytest.approx(float(expected), abs=1e-5)
+
+    def test_full_mask_equals_no_mask(self) -> None:
+        log_probs = jnp.array([-0.3, -1.7, -2.2])
+        assert perplexity(log_probs, mask=jnp.ones(3)) == pytest.approx(
+            float(perplexity(log_probs)), abs=1e-6
+        )
+
+    def test_boolean_mask_is_accepted(self) -> None:
+        log_probs = jnp.array([-1.0, -3.0])
+        assert perplexity(log_probs, mask=jnp.array([True, False])) == pytest.approx(
+            math.e, abs=1e-5
+        )
+
+    def test_empty_mask_is_infinite(self) -> None:
+        assert perplexity(jnp.array([-1.0, -2.0]), mask=jnp.zeros(2)) == jnp.inf
+
+    def test_mask_shape_must_match(self) -> None:
+        with pytest.raises(ValueError, match="mask"):
+            perplexity(jnp.array([-1.0, -2.0]), mask=jnp.ones(3))
+
+    def test_jit_compatible(self) -> None:
+        scored = jax.jit(perplexity)
+        log_probs = jnp.array([-1.0, -2.0, -9.0])
+        mask = jnp.array([1.0, 1.0, 0.0])
+        assert scored(log_probs, mask=mask) == pytest.approx(
+            float(perplexity(log_probs, mask=mask)), abs=1e-5
+        )
 
 
 class TestDistinctN:

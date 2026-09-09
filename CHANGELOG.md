@@ -7,6 +7,13 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+### Added
+
+- `text.perplexity` takes a `mask` so padding and prompt positions stay out of the mean;
+  a mask that keeps nothing scores as infinite perplexity. Language-model evaluations in
+  artifex score masked token log-probabilities through it instead of carrying their own
+  masked mean.
+
 ## [0.1.4] - 2026-09-09
 
 ### Added

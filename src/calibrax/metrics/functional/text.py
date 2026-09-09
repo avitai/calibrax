@@ -216,24 +216,41 @@ def rouge_l(
     return (1 + beta_sq) * precision * recall / (beta_sq * precision + recall + 1e-12)
 
 
-def perplexity(log_probabilities: Any) -> Any:
+def perplexity(log_probabilities: Any, *, mask: Any | None = None) -> Any:
     """Perplexity from log-probabilities.
 
-    Computes exp(-mean(log_probs)). Lower perplexity = better model.
+    Computes ``exp(-mean(log_probs))`` over the scored positions. Lower is better.
+    With a ``mask``, only positions whose mask is non-zero count, so padding and
+    prompt tokens can be left out of the mean; a mask that keeps nothing has no
+    tokens to score and the perplexity is infinite.
 
     Args:
         log_probabilities: Array of log-probabilities from a language model.
+        mask: Optional weights with the same shape, non-zero where a position
+            counts. Booleans and 0/1 floats are both accepted.
 
     Returns:
-        Perplexity value >= 1.0.
+        Perplexity value >= 1.0 as a JAX scalar.
+
+    Raises:
+        ValueError: If ``mask`` does not have the shape of ``log_probabilities``.
 
     Examples:
         >>> import jax.numpy as jnp
         >>> perplexity(jnp.array([0.0, 0.0, 0.0]))  # Perfect model
         1.0
+        >>> perplexity(jnp.array([-1.0, -9.0]), mask=jnp.array([1, 0]))  # e
     """
     log_probs = jnp.asarray(log_probabilities, dtype=jnp.float32)
-    return jnp.exp(-jnp.mean(log_probs))
+    if mask is None:
+        return jnp.exp(-jnp.mean(log_probs))
+    weights = jnp.asarray(mask, dtype=jnp.float32)
+    if weights.shape != log_probs.shape:
+        msg = f"mask shape {weights.shape} must match log_probabilities shape {log_probs.shape}"
+        raise ValueError(msg)
+    count = jnp.sum(weights)
+    scored = jnp.sum(log_probs * weights)
+    return jnp.where(count > 0, jnp.exp(-scored / jnp.maximum(count, 1.0)), jnp.inf)
 
 
 def distinct_n(tokens: list[str], *, n: int = 1) -> float:
