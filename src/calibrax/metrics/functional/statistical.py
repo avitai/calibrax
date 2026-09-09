@@ -4,8 +4,9 @@ Pure functions for measuring statistical relationships between
 variables. Covers linear correlation, rank correlation, and
 agreement measures.
 
-Includes 5 functions: pearson_correlation, spearman_rank_correlation,
-kendall_tau, concordance_correlation, r_squared_adjusted.
+Includes 8 functions: pearson_correlation, spearman_rank_correlation,
+kendall_tau, concordance_correlation, r_squared_adjusted, correlation_preservation,
+autocorrelation, skewness.
 """
 
 from __future__ import annotations
@@ -189,3 +190,102 @@ def r_squared_adjusted(
     r2 = 1.0 - ss_res / (ss_tot + _EPSILON)
 
     return 1.0 - (1.0 - r2) * (n - 1) / (n - num_predictors - 1 + _EPSILON)
+
+
+def correlation_preservation(real: Any, generated: Any) -> Any:
+    """How closely generated data reproduces the feature correlations of real data.
+
+    One minus the mean absolute difference of the two Pearson correlation
+    matrices over their off-diagonal entries, clipped to ``[0, 1]``. A constant
+    feature has an undefined correlation, which counts as zero.
+
+    Note:
+        Direction: HIGHER (1.0 = identical correlation structure).
+        Range: [0, 1].
+
+    Args:
+        real: Real records with shape ``(n_real, n_features)``.
+        generated: Generated records with shape ``(n_generated, n_features)``.
+
+    Returns:
+        Scalar preservation score as a JAX array; ``1.0`` below two features.
+
+    Raises:
+        ValueError: If either input is not two-dimensional or the feature
+            dimensions differ.
+    """
+    real_matrix = jnp.asarray(real, dtype=jnp.float32)
+    generated_matrix = jnp.asarray(generated, dtype=jnp.float32)
+    if real_matrix.ndim != 2 or generated_matrix.ndim != 2:  # noqa: PLR2004
+        msg = f"records must be 2-dimensional, got {real_matrix.shape} and {generated_matrix.shape}"
+        raise ValueError(msg)
+    if real_matrix.shape[1] != generated_matrix.shape[1]:
+        msg = (
+            "real and generated records must share their feature dimension: "
+            f"{real_matrix.shape[1]} != {generated_matrix.shape[1]}"
+        )
+        raise ValueError(msg)
+    n_features = real_matrix.shape[1]
+    if n_features < 2:  # noqa: PLR2004
+        return jnp.asarray(1.0, dtype=jnp.float32)
+    real_corr = jnp.nan_to_num(jnp.corrcoef(real_matrix, rowvar=False))
+    generated_corr = jnp.nan_to_num(jnp.corrcoef(generated_matrix, rowvar=False))
+    off_diagonal = 1.0 - jnp.eye(n_features)
+    mean_abs_diff = jnp.sum(jnp.abs(real_corr - generated_corr) * off_diagonal) / jnp.sum(
+        off_diagonal
+    )
+    return 1.0 - jnp.clip(mean_abs_diff, 0.0, 1.0)
+
+
+def autocorrelation(series: Any, *, max_lag: int) -> Any:
+    """Autocorrelation function of a batch of sequences, averaged over batch and features.
+
+    Sequences are centred per sequence; the lag-``k`` value is the mean product of
+    the series with itself shifted by ``k``, normalised by the lag-0 value so the
+    function starts at 1.
+
+    Args:
+        series: Sequences with shape ``(batch, sequence, features)``.
+        max_lag: Number of lags to return, lag 0 included.
+
+    Returns:
+        Autocorrelation values with shape ``(max_lag,)``.
+
+    Raises:
+        ValueError: If ``max_lag`` exceeds the sequence length or is not positive.
+    """
+    data = jnp.asarray(series, dtype=jnp.float32)
+    if data.ndim != 3:  # noqa: PLR2004
+        msg = f"series must have shape (batch, sequence, features), got {data.shape}"
+        raise ValueError(msg)
+    sequence_length = data.shape[1]
+    if max_lag < 1 or max_lag > sequence_length:
+        msg = (
+            f"max_lag must be between 1 and the sequence length ({sequence_length}), got {max_lag}"
+        )
+        raise ValueError(msg)
+    centred = data - jnp.mean(data, axis=1, keepdims=True)
+    values = [jnp.mean(centred**2)]
+    values.extend(jnp.mean(centred[:, :-lag, :] * centred[:, lag:, :]) for lag in range(1, max_lag))
+    function = jnp.stack(values)
+    return jnp.where(function[0] > 0.0, function / (function[0] + _EPSILON), function)
+
+
+def skewness(data: Any) -> Any:
+    """Skewness of a sample: the third standardised moment.
+
+    Note:
+        Direction: INFO (0 for a symmetric sample; positive for a right tail).
+        Range: (-inf, inf).
+
+    Args:
+        data: Sample values of any shape; all elements are pooled.
+
+    Returns:
+        Scalar skewness as a JAX array; ``0.0`` for a constant sample.
+    """
+    values = jnp.asarray(data, dtype=jnp.float32).ravel()
+    mean = jnp.mean(values)
+    std = jnp.std(values)
+    standardised = (values - mean) / jnp.where(std > 0.0, std, 1.0)
+    return jnp.where(std > 0.0, jnp.mean(standardised**3), 0.0)

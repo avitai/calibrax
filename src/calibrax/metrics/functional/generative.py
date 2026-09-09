@@ -255,3 +255,118 @@ def memorization_rate(real: Any, generated: Any) -> Any:  # noqa: DOC502  # rais
     real_features, generated_features = _prepare_feature_arrays(real, generated)
     matches = jnp.all(generated_features[:, None, :] == real_features[None, :, :], axis=-1)
     return jnp.mean(jnp.any(matches, axis=1).astype(jnp.float32))
+
+
+def frechet_distance(mean_a: Any, cov_a: Any, mean_b: Any, cov_b: Any) -> Any:
+    """Fréchet distance between two Gaussians given their means and covariances.
+
+    ``|mu_a - mu_b|^2 + Tr(S_a + S_b - 2 (S_a^{1/2} S_b S_a^{1/2})^{1/2})``. The
+    cross term is computed through the symmetric sandwich and the
+    eigendecomposition-based :func:`calibrax.metrics._utils.matrix_sqrtm`, which
+    stays on backends where ``jax.scipy.linalg.sqrtm`` has no kernel. This is the
+    core of the Fréchet Inception Distance once features have been extracted.
+
+    Note:
+        Direction: LOWER (0.0 = identical Gaussians).
+        Range: [0, inf).
+
+    Args:
+        mean_a: Mean of the first Gaussian with shape ``(d,)``.
+        cov_a: Covariance of the first Gaussian with shape ``(d, d)``.
+        mean_b: Mean of the second Gaussian with shape ``(d,)``.
+        cov_b: Covariance of the second Gaussian with shape ``(d, d)``.
+
+    Returns:
+        Scalar distance as a JAX array, floored at zero.
+    """
+    from calibrax.metrics._utils import matrix_sqrtm
+
+    def _symmetrize(matrix: Any) -> Any:
+        return 0.5 * (matrix + matrix.T)
+
+    cov_a = _symmetrize(jnp.asarray(cov_a, dtype=jnp.float32))
+    cov_b = _symmetrize(jnp.asarray(cov_b, dtype=jnp.float32))
+    diff = jnp.asarray(mean_a, dtype=jnp.float32) - jnp.asarray(mean_b, dtype=jnp.float32)
+    sqrt_cov_a = matrix_sqrtm(cov_a)
+    cross = matrix_sqrtm(_symmetrize(sqrt_cov_a @ cov_b @ sqrt_cov_a))
+    distance = jnp.sum(diff**2) + jnp.trace(cov_a) + jnp.trace(cov_b) - 2.0 * jnp.trace(cross)
+    return jnp.maximum(distance, 0.0)
+
+
+def frechet_feature_distance(real: Any, generated: Any) -> Any:  # noqa: DOC502  # raised by _prepare_feature_arrays
+    """Fréchet distance between the Gaussians fitted to two feature matrices.
+
+    With Inception features this is the Fréchet Inception Distance; with any
+    other extractor it is the same fidelity measure in that feature space.
+
+    Note:
+        Direction: LOWER (0.0 = identical feature distributions).
+        Range: [0, inf).
+
+    Args:
+        real: Real features with shape ``(n_real, n_features)``.
+        generated: Generated features with shape ``(n_generated, n_features)``.
+
+    Returns:
+        Scalar distance as a JAX array.
+
+    Raises:
+        ValueError: If the feature matrices are not compatible.
+    """
+    real_features, generated_features = _prepare_feature_arrays(real, generated)
+    return frechet_distance(
+        jnp.mean(real_features, axis=0),
+        jnp.cov(real_features, rowvar=False),
+        jnp.mean(generated_features, axis=0),
+        jnp.cov(generated_features, rowvar=False),
+    )
+
+
+def inception_score_per_split(probabilities: Any, *, splits: int = 10) -> Any:
+    """Inception score of each of ``splits`` equal chunks of class probabilities.
+
+    Each chunk's score is ``exp(E_x KL(p(y|x) || p(y)))`` with ``p(y)`` the chunk's
+    marginal; the spread across chunks is the score's usual error bar.
+
+    Args:
+        probabilities: Class probabilities with shape ``(n_samples, n_classes)``.
+        splits: Number of equal chunks; rows beyond ``splits * (n // splits)`` are dropped.
+
+    Returns:
+        Per-chunk scores with shape ``(splits,)``.
+
+    Raises:
+        ValueError: If ``splits`` is not between 1 and the number of samples.
+    """
+    p = jnp.asarray(probabilities, dtype=jnp.float32)
+    n_samples = p.shape[0]
+    if splits < 1 or splits > n_samples:
+        msg = f"splits must be between 1 and the number of samples ({n_samples}), got {splits}"
+        raise ValueError(msg)
+    split_size = n_samples // splits
+    chunks = p[: splits * split_size].reshape(splits, split_size, -1)
+    safe = jnp.maximum(chunks, _EPSILON)
+    marginal = jnp.maximum(jnp.mean(chunks, axis=1, keepdims=True), _EPSILON)
+    kl = jnp.sum(safe * (jnp.log(safe) - jnp.log(marginal)), axis=-1)
+    return jnp.exp(jnp.mean(kl, axis=1))
+
+
+def inception_score(probabilities: Any, *, splits: int = 10) -> Any:  # noqa: DOC502  # raised by inception_score_per_split
+    """Inception score: mean over ``splits`` chunks of ``exp(E KL(p(y|x) || p(y)))``.
+
+    Note:
+        Direction: HIGHER (up to the number of classes, reached by confident and
+        evenly spread predictions).
+        Range: [1, n_classes].
+
+    Args:
+        probabilities: Class probabilities with shape ``(n_samples, n_classes)``.
+        splits: Number of equal chunks the score is averaged over.
+
+    Returns:
+        Scalar score as a JAX array.
+
+    Raises:
+        ValueError: If ``splits`` is not between 1 and the number of samples.
+    """
+    return jnp.mean(inception_score_per_split(probabilities, splits=splits))

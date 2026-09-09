@@ -430,14 +430,45 @@ def _register_generative_metrics() -> None:
         density_weighted_precision,
         density_weighted_recall,
         distance_to_closest_record,
+        frechet_feature_distance,
+        inception_score,
         manifold_precision,
         manifold_recall,
         memorization_rate,
     )
+    from calibrax.metrics.functional.statistical import correlation_preservation
 
     registry = MetricRegistry()
     counting = MetricProperties(is_differentiable=False, is_jit_compatible=True)
+    smooth = MetricProperties(is_differentiable=True, is_jit_compatible=True)
     builtins = [
+        _BuiltinMetricSpec(
+            "frechet_feature_distance",
+            frechet_feature_distance,
+            "Frechet distance between the Gaussians fitted to real and generated features (FID core)",
+            MetricDirection.LOWER,
+            MetricProperties(is_symmetric=True, is_differentiable=True, is_jit_compatible=True),
+            signature=MetricSignature.SAMPLES,
+            domain="generative",
+        ),
+        _BuiltinMetricSpec(
+            "inception_score",
+            inception_score,
+            "exp of the mean KL between conditional and marginal class probabilities",
+            MetricDirection.HIGHER,
+            smooth,
+            signature=MetricSignature.SINGLE_INPUT,
+            domain="generative",
+        ),
+        _BuiltinMetricSpec(
+            "correlation_preservation",
+            correlation_preservation,
+            "One minus the mean absolute difference of real and generated feature correlations",
+            MetricDirection.HIGHER,
+            smooth,
+            signature=MetricSignature.SAMPLES,
+            domain="generative",
+        ),
         _BuiltinMetricSpec(
             "manifold_precision",
             manifold_precision,
@@ -1179,6 +1210,7 @@ def _register_statistical_metrics() -> None:
         kendall_tau,
         pearson_correlation,
         r_squared_adjusted,
+        skewness,
         spearman_rank_correlation,
     )
 
@@ -1203,6 +1235,20 @@ def _register_statistical_metrics() -> None:
                 properties=MetricProperties(is_symmetric=True),
             )
             registry.register(name, entry)
+    _register_specs(
+        registry,
+        [
+            _BuiltinMetricSpec(
+                "skewness",
+                skewness,
+                "Third standardised moment of a sample",
+                MetricDirection.INFO,
+                MetricProperties(is_differentiable=True, is_jit_compatible=True),
+                signature=MetricSignature.SINGLE_INPUT,
+                domain="statistical",
+            )
+        ],
+    )
 
 
 def _register_text_metrics() -> None:
@@ -1302,12 +1348,14 @@ def _register_geometric_metrics() -> None:
         directed_hausdorff,
         earth_movers_distance_1d,
         hausdorff_distance,
+        rmsd,
     )
 
     registry = MetricRegistry()
     # (name, fn, description, is_true_metric, is_symmetric)
     builtins: list[tuple[str, Any, str, bool, bool]] = [
         ("chamfer_distance", chamfer_distance, "Chamfer distance between point sets", False, True),
+        ("rmsd", rmsd, "RMSD between centred conformations over their shared atoms", True, True),
         (
             "earth_movers_distance_1d",
             earth_movers_distance_1d,

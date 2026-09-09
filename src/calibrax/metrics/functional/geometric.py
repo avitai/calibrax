@@ -4,7 +4,7 @@ Distance metrics for comparing point sets and shapes. All operations
 are pure mathematical -- no pretrained models or external libraries.
 
 Includes: chamfer_distance, earth_movers_distance_1d, directed_hausdorff,
-hausdorff_distance.
+hausdorff_distance, rmsd, pairwise_rmsd.
 Registered with ``domain="geometric"``.
 """
 
@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from typing import Any
 
+import jax
 import jax.numpy as jnp
 
 from calibrax.metrics._utils import _EPSILON
@@ -128,3 +129,67 @@ def hausdorff_distance(set_a: Any, set_b: Any) -> Any:
         directed_hausdorff(set_a, set_b),
         directed_hausdorff(set_b, set_a),
     )
+
+
+def rmsd(
+    coords_a: Any,
+    coords_b: Any,
+    *,
+    mask_a: Any | None = None,
+    mask_b: Any | None = None,
+) -> Any:
+    """Root-mean-square deviation between two conformations after centring.
+
+    Both conformations are translated to their centroid over the atoms present in
+    both masks; no rotation is fitted, so this is the RMSD of pre-aligned
+    structures.
+
+    Note:
+        Direction: LOWER (0.0 = identical conformations up to translation).
+        Range: [0, inf); ``inf`` when the masks share no atom.
+
+    Args:
+        coords_a: Coordinates with shape ``(n_atoms, dims)``.
+        coords_b: Coordinates with shape ``(n_atoms, dims)``.
+        mask_a: Boolean presence mask with shape ``(n_atoms,)``; ``None`` keeps all.
+        mask_b: Boolean presence mask with shape ``(n_atoms,)``; ``None`` keeps all.
+
+    Returns:
+        Scalar deviation as a JAX array.
+    """
+    a = jnp.asarray(coords_a, dtype=jnp.float32)
+    b = jnp.asarray(coords_b, dtype=jnp.float32)
+    present_a = (
+        jnp.ones(a.shape[0], dtype=bool) if mask_a is None else jnp.asarray(mask_a, dtype=bool)
+    )
+    present_b = (
+        jnp.ones(b.shape[0], dtype=bool) if mask_b is None else jnp.asarray(mask_b, dtype=bool)
+    )
+    weights = (present_a & present_b).astype(jnp.float32)[:, None]
+    count = jnp.sum(weights)
+    safe_count = jnp.where(count > 0.0, count, 1.0)
+    centred_a = a - jnp.sum(a * weights, axis=0) / safe_count
+    centred_b = b - jnp.sum(b * weights, axis=0) / safe_count
+    squared = jnp.sum(weights[:, 0] * jnp.sum((centred_a - centred_b) ** 2, axis=-1)) / safe_count
+    return jnp.where(count > 0.0, jnp.sqrt(squared), jnp.inf)
+
+
+def pairwise_rmsd(coordinates: Any, mask: Any) -> Any:
+    """Symmetric matrix of :func:`rmsd` between every pair of conformations.
+
+    Args:
+        coordinates: Conformations with shape ``(n_conformations, n_atoms, dims)``.
+        mask: Boolean presence masks with shape ``(n_conformations, n_atoms)``.
+
+    Returns:
+        Deviations with shape ``(n_conformations, n_conformations)`` and a zero diagonal.
+    """
+    coords = jnp.asarray(coordinates, dtype=jnp.float32)
+    masks = jnp.asarray(mask, dtype=bool)
+
+    def against_all(coords_i: Any, mask_i: Any) -> Any:
+        return jax.vmap(
+            lambda coords_j, mask_j: rmsd(coords_i, coords_j, mask_a=mask_i, mask_b=mask_j)
+        )(coords, masks)
+
+    return jax.vmap(against_all)(coords, masks)

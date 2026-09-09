@@ -2,7 +2,7 @@
 
 Calibrax provides a 4-tier metric system that covers everything from stateless
 pure functions to trainable embedding losses. The current `MetricRegistry`
-contains 132 Tier 0 pure-function metrics across 20 domains. Tier 1-3 APIs,
+contains 137 Tier 0 pure-function metrics across 20 domains. Tier 1-3 APIs,
 optional plugin metrics, and metric-learning losses are part of the package
 architecture, but they are not all registry entries today.
 

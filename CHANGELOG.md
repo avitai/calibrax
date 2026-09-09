@@ -7,6 +7,18 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+### Added
+
+- `generative.frechet_distance` (from Gaussian statistics) and `frechet_feature_distance`
+  (from feature matrices), the core of the Fréchet Inception Distance on the
+  eigendecomposition square root; `generative.inception_score` with
+  `inception_score_per_split` for its error bar; `statistical.correlation_preservation`
+  for synthetic-data fidelity, `statistical.autocorrelation` for sequence batches and
+  `statistical.skewness`; `geometric.rmsd` over the atoms two masked conformations share and
+  `geometric.pairwise_rmsd`. Moved from artifex's evaluation helpers with their behaviour
+  pinned by tests, so artifex's metric classes can wrap calibrax instead of carrying copies.
+  Five of them register as Tier 0 metrics.
+
 ## [0.1.3] - 2026-09-09
 
 ### Added

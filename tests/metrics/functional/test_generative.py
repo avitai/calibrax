@@ -13,6 +13,10 @@ from calibrax.metrics.functional.generative import (
     density_weighted_precision,
     density_weighted_recall,
     distance_to_closest_record,
+    frechet_distance,
+    frechet_feature_distance,
+    inception_score,
+    inception_score_per_split,
     manifold_precision,
     manifold_radii,
     manifold_recall,
@@ -106,3 +110,69 @@ class TestPrivacy:
         real_records = jnp.array([[1.0, 2.0], [3.0, 4.0]])
         generated = jnp.array([[1.0, 2.0], [9.0, 9.0], [3.0, 4.0], [0.0, 0.0]])
         assert memorization_rate(real_records, generated) == pytest.approx(0.5, abs=1e-6)
+
+
+class TestFrechetDistance:
+    """Tests for frechet_distance and frechet_feature_distance."""
+
+    def test_identical_gaussians_are_zero(self) -> None:
+        mean = jnp.array([1.0, -2.0])
+        cov = jnp.array([[2.0, 0.3], [0.3, 1.0]])
+        assert frechet_distance(mean, cov, mean, cov) == pytest.approx(0.0, abs=1e-5)
+
+    def test_diagonal_closed_form(self) -> None:
+        # For diagonal covariances the trace term is sum (sqrt s1 - sqrt s2)^2.
+        mean_a, mean_b = jnp.array([0.0, 0.0]), jnp.array([1.0, 2.0])
+        cov_a, cov_b = jnp.diag(jnp.array([1.0, 4.0])), jnp.diag(jnp.array([4.0, 1.0]))
+        expected = (1.0 + 4.0) + ((1.0 - 2.0) ** 2 + (2.0 - 1.0) ** 2)
+        assert frechet_distance(mean_a, cov_a, mean_b, cov_b) == pytest.approx(expected, abs=1e-4)
+
+    def test_symmetric(self) -> None:
+        rng = np.random.default_rng(3)
+        a = jnp.asarray(rng.standard_normal((50, 3)))
+        b = jnp.asarray(rng.standard_normal((60, 3)) + 1.0)
+        assert frechet_feature_distance(a, b) == pytest.approx(
+            float(frechet_feature_distance(b, a)), abs=1e-4
+        )
+
+    def test_feature_distance_matches_statistics(self) -> None:
+        rng = np.random.default_rng(4)
+        a = jnp.asarray(rng.standard_normal((80, 4)))
+        b = jnp.asarray(2.0 * rng.standard_normal((70, 4)) + 0.5)
+        expected = frechet_distance(
+            jnp.mean(a, axis=0),
+            jnp.cov(a, rowvar=False),
+            jnp.mean(b, axis=0),
+            jnp.cov(b, rowvar=False),
+        )
+        assert frechet_feature_distance(a, b) == pytest.approx(float(expected), abs=1e-4)
+        assert float(frechet_feature_distance(a, b)) > 0.0
+
+    def test_mismatched_features_raise(self) -> None:
+        with pytest.raises(ValueError, match="feature dimension"):
+            frechet_feature_distance(jnp.ones((5, 2)), jnp.ones((5, 3)))
+
+
+class TestInceptionScore:
+    """Tests for inception_score and inception_score_per_split."""
+
+    def test_uniform_predictions_score_one(self) -> None:
+        probabilities = jnp.full((20, 5), 0.2)
+        assert inception_score(probabilities, splits=4) == pytest.approx(1.0, abs=1e-5)
+
+    def test_confident_distinct_classes_score_the_class_count(self) -> None:
+        probabilities = jnp.tile(jnp.eye(4), (5, 1))  # 20 one-hot rows over 4 classes
+        assert inception_score(probabilities, splits=1) == pytest.approx(4.0, rel=1e-4)
+
+    def test_per_split_has_one_score_per_split(self) -> None:
+        probabilities = jnp.tile(jnp.eye(4), (5, 1))
+        scores = inception_score_per_split(probabilities, splits=5)
+        assert scores.shape == (5,)
+        assert float(jnp.std(scores)) == pytest.approx(0.0, abs=1e-5)
+
+    def test_invalid_splits_raise(self) -> None:
+        probabilities = jnp.full((4, 3), 1 / 3)
+        with pytest.raises(ValueError, match="splits must be between 1"):
+            inception_score(probabilities, splits=0)
+        with pytest.raises(ValueError, match="splits must be between 1"):
+            inception_score(probabilities, splits=5)

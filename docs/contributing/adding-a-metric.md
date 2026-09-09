@@ -1,7 +1,7 @@
 # Adding a Metric
 
 Metric changes should keep the registry, tests, and documentation aligned. The
-current registry contains 132 Tier 0 pure-function metrics across 20 domains;
+current registry contains 137 Tier 0 pure-function metrics across 20 domains;
 Tier 1-3 APIs and losses use separate patterns.
 
 ## Choose the Tier

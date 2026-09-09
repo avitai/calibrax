@@ -7,10 +7,13 @@ import jax.numpy as jnp
 import pytest
 
 from calibrax.metrics.functional.statistical import (
+    autocorrelation,
     concordance_correlation,
+    correlation_preservation,
     kendall_tau,
     pearson_correlation,
     r_squared_adjusted,
+    skewness,
     spearman_rank_correlation,
 )
 
@@ -147,6 +150,7 @@ class TestStatisticalMetricRegistration:
             "kendall_tau",
             "concordance_correlation",
             "r_squared_adjusted",
+            "skewness",
         ]
         for name in expected:
             assert registry.has(name), f"Metric '{name}' not registered"
@@ -156,12 +160,68 @@ class TestStatisticalMetricRegistration:
 
         registry = MetricRegistry()
         stat_metrics = registry.list_by_domain("statistical")
-        assert len(stat_metrics) == 5
+        assert len(stat_metrics) == 6
 
-    def test_all_direction_higher(self) -> None:
+    def test_correlations_are_higher_and_skewness_is_informational(self) -> None:
         from calibrax.core.models import MetricDirection
         from calibrax.metrics import MetricRegistry
 
         registry = MetricRegistry()
         for m in registry.list_by_domain("statistical"):
-            assert m.direction == MetricDirection.HIGHER
+            expected = MetricDirection.INFO if m.name == "skewness" else MetricDirection.HIGHER
+            assert m.direction == expected, m.name
+
+
+class TestCorrelationPreservation:
+    """Tests for correlation_preservation."""
+
+    def test_identical_matrices_score_one(self) -> None:
+        real = jnp.array([[1.0, 2.0, 3.0], [2.0, 4.1, 5.9], [3.0, 5.9, 9.2], [4.0, 8.2, 12.0]])
+        assert correlation_preservation(real, real) == pytest.approx(1.0, abs=1e-5)
+
+    def test_flipped_correlation_scores_low(self) -> None:
+        real = jnp.array([[1.0, 1.0], [2.0, 2.0], [3.0, 3.0], [4.0, 4.0]])
+        generated = jnp.array([[1.0, 4.0], [2.0, 3.0], [3.0, 2.0], [4.0, 1.0]])
+        assert correlation_preservation(real, generated) == pytest.approx(0.0, abs=1e-5)
+
+    def test_constant_feature_yields_a_finite_score(self) -> None:
+        real = jnp.array([[1.0, 5.0], [2.0, 5.0], [3.0, 5.0]])
+        generated = jnp.array([[1.0, 5.0], [2.0, 6.0], [3.0, 7.0]])
+        assert bool(jnp.isfinite(correlation_preservation(real, generated)))
+
+    def test_mismatched_features_raise(self) -> None:
+        with pytest.raises(ValueError, match="feature dimension"):
+            correlation_preservation(jnp.ones((4, 2)), jnp.ones((4, 3)))
+
+
+class TestAutocorrelation:
+    """Tests for autocorrelation."""
+
+    def test_lag_zero_is_one_and_length_is_max_lag(self) -> None:
+        series = jnp.sin(jnp.linspace(0.0, 12.0, 64)).reshape(1, 64, 1)
+        result = autocorrelation(series, max_lag=8)
+        assert result.shape == (8,)
+        assert result[0] == pytest.approx(1.0, abs=1e-5)
+
+    def test_periodic_series_recovers_its_period(self) -> None:
+        period = 8
+        series = jnp.tile(jnp.sin(jnp.linspace(0.0, 2 * jnp.pi, period, endpoint=False)), 16)
+        result = autocorrelation(series.reshape(1, -1, 1), max_lag=period + 1)
+        assert result[period] == pytest.approx(1.0, abs=1e-2)
+
+    def test_constant_series_is_finite(self) -> None:
+        result = autocorrelation(jnp.ones((2, 16, 3)), max_lag=4)
+        assert bool(jnp.all(jnp.isfinite(result)))
+
+
+class TestSkewness:
+    """Tests for skewness."""
+
+    def test_symmetric_data_has_zero_skew(self) -> None:
+        assert skewness(jnp.array([-2.0, -1.0, 0.0, 1.0, 2.0])) == pytest.approx(0.0, abs=1e-6)
+
+    def test_right_tail_is_positive(self) -> None:
+        assert float(skewness(jnp.array([0.0, 0.0, 0.0, 1.0, 10.0]))) > 0.0
+
+    def test_constant_data_is_zero(self) -> None:
+        assert skewness(jnp.full((6,), 3.0)) == pytest.approx(0.0, abs=1e-6)

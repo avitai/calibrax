@@ -11,6 +11,8 @@ from calibrax.metrics.functional.geometric import (
     directed_hausdorff,
     earth_movers_distance_1d,
     hausdorff_distance,
+    pairwise_rmsd,
+    rmsd,
 )
 
 
@@ -136,6 +138,7 @@ class TestGeometricMetricRegistration:
             "earth_movers_distance_1d",
             "directed_hausdorff",
             "hausdorff_distance",
+            "rmsd",
         ]
         for name in expected:
             assert registry.has(name), f"Metric '{name}' not registered"
@@ -145,7 +148,7 @@ class TestGeometricMetricRegistration:
 
         registry = MetricRegistry()
         geo_metrics = registry.list_by_domain("geometric")
-        assert len(geo_metrics) == 4
+        assert len(geo_metrics) == 5
 
     def test_hausdorff_is_true_metric(self) -> None:
         from calibrax.metrics import MetricRegistry
@@ -161,3 +164,42 @@ class TestGeometricMetricRegistration:
         registry = MetricRegistry()
         dh = registry.get("directed_hausdorff")
         assert dh.properties.is_symmetric is False
+
+
+class TestRmsd:
+    """Tests for rmsd and pairwise_rmsd."""
+
+    def test_identical_conformations_are_zero(self) -> None:
+        coords = jnp.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]])
+        assert rmsd(coords, coords) == pytest.approx(0.0, abs=1e-6)
+
+    def test_translation_invariant(self) -> None:
+        coords = jnp.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]])
+        assert rmsd(coords, coords + 5.0) == pytest.approx(0.0, abs=1e-5)
+
+    def test_known_value(self) -> None:
+        a = jnp.array([[0.0, 0.0, 0.0], [2.0, 0.0, 0.0]])
+        b = jnp.array([[0.0, 0.0, 0.0], [4.0, 0.0, 0.0]])
+        # After centering: a = (-1, 1), b = (-2, 2); squared diffs 1 and 1.
+        assert rmsd(a, b) == pytest.approx(1.0, abs=1e-6)
+
+    def test_mask_restricts_to_common_atoms(self) -> None:
+        a = jnp.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [9.0, 9.0, 9.0]])
+        b = jnp.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [-9.0, -9.0, -9.0]])
+        mask = jnp.array([True, True, False])
+        assert rmsd(a, b, mask_a=mask, mask_b=mask) == pytest.approx(0.0, abs=1e-6)
+
+    def test_no_common_atoms_is_infinite(self) -> None:
+        a = jnp.zeros((2, 3))
+        result = rmsd(a, a, mask_a=jnp.array([True, False]), mask_b=jnp.array([False, True]))
+        assert bool(jnp.isinf(result))
+
+    def test_pairwise_matrix_is_symmetric_with_zero_diagonal(self) -> None:
+        rng = jax.random.key(0)
+        coords = jax.random.normal(rng, (4, 6, 3))
+        mask = jnp.ones((4, 6), dtype=bool)
+        matrix = pairwise_rmsd(coords, mask)
+        assert matrix.shape == (4, 4)
+        assert bool(jnp.allclose(matrix, matrix.T, atol=1e-5))
+        assert bool(jnp.allclose(jnp.diag(matrix), 0.0, atol=1e-5))
+        assert matrix[0, 1] == pytest.approx(float(rmsd(coords[0], coords[1])), abs=1e-5)
