@@ -33,6 +33,7 @@ dependencies = [
   "jaxtyping>=0.2.20",
   "numpy>=2.1",
   "psutil>=5.9.5",
+  "substrax>=0.1.0",
   "typing_extensions>=4.5"
 ]
 description = "Calibrax: Unified benchmarking framework for the JAX scientific ML ecosystem"

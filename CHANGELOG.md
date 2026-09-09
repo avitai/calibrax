@@ -33,6 +33,10 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Changed
 
+- Depends on `substrax>=0.1.0`. Hardware identity (`detect_hardware_specs`, the
+  adaptive-operation platform choice) is read from `substrax.devices.detect_devices()`
+  rather than from `jax.default_backend()` and `jax.devices()` directly; the spec table
+  and the returned dictionary shape are unchanged.
 - **Floors match what is tested.** `jax>=0.11.1`, `jaxlib>=0.11.1` and `flax>=0.12.9` are
   the versions every release since 0.1.2 has resolved and run CI against; the previous
   `>=0.4.0` and `>=0.12.1` floors promised compatibility nothing checked. `numpy` is

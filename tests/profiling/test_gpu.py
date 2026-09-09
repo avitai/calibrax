@@ -12,6 +12,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+from substrax.devices import DeviceInfo, DeviceKind
 
 from calibrax.profiling.gpu import (
     AdaptiveOperation,
@@ -40,68 +41,63 @@ class TestHardwareConfig:
 class TestAdaptiveOperation:
     """Tests for AdaptiveOperation hardware detection + shape optimization."""
 
-    @patch("calibrax.profiling.gpu.jax")
-    def test_cpu_default_config(self, mock_jax: MagicMock) -> None:
-        mock_jax.default_backend.return_value = "cpu"
+    @staticmethod
+    def _snapshot(platform: str, *device_kinds: str) -> DeviceInfo:
+        return DeviceInfo(
+            platform=platform,
+            kind=DeviceKind.from_platform(platform),
+            count=len(device_kinds),
+            device_kinds=device_kinds,
+        )
+
+    @patch("calibrax.profiling.gpu.detect_devices")
+    def test_cpu_default_config(self, mock_detect: MagicMock) -> None:
+        mock_detect.return_value = self._snapshot("cpu", "cpu")
         op = AdaptiveOperation()
         assert op.config.platform == "cpu"
         assert op.config.precision == "float32"
         assert op.config.tile_size == 64
 
-    @patch("calibrax.profiling.gpu.jax")
-    def test_tpu_config(self, mock_jax: MagicMock) -> None:
-        mock_jax.default_backend.return_value = "tpu"
+    @patch("calibrax.profiling.gpu.detect_devices")
+    def test_tpu_config(self, mock_detect: MagicMock) -> None:
+        mock_detect.return_value = self._snapshot("tpu", "TPU v5 lite")
         op = AdaptiveOperation()
         assert op.config.platform == "tpu"
         assert op.config.precision == "bfloat16"
         assert op.config.tile_size == 128
         assert op.config.use_vmem_optimization is True
 
-    @patch("calibrax.profiling.gpu.jax")
-    def test_gpu_modern_a100(self, mock_jax: MagicMock) -> None:
-        mock_jax.default_backend.return_value = "gpu"
-        mock_dev = MagicMock()
-        mock_dev.device_kind = "NVIDIA A100"
-        mock_jax.devices.return_value = [mock_dev]
+    @patch("calibrax.profiling.gpu.detect_devices")
+    def test_gpu_modern_a100(self, mock_detect: MagicMock) -> None:
+        mock_detect.return_value = self._snapshot("gpu", "NVIDIA A100")
         op = AdaptiveOperation()
         assert op.config.platform == "gpu_modern"
         assert op.config.precision == "bfloat16"
         assert op.config.tile_size == 16
 
-    @patch("calibrax.profiling.gpu.jax")
-    def test_gpu_modern_h100(self, mock_jax: MagicMock) -> None:
-        mock_jax.default_backend.return_value = "gpu"
-        mock_dev = MagicMock()
-        mock_dev.device_kind = "NVIDIA H100"
-        mock_jax.devices.return_value = [mock_dev]
+    @patch("calibrax.profiling.gpu.detect_devices")
+    def test_gpu_modern_h100(self, mock_detect: MagicMock) -> None:
+        mock_detect.return_value = self._snapshot("gpu", "NVIDIA H100")
         op = AdaptiveOperation()
         assert op.config.platform == "gpu_modern"
 
-    @patch("calibrax.profiling.gpu.jax")
-    def test_gpu_legacy(self, mock_jax: MagicMock) -> None:
-        mock_jax.default_backend.return_value = "gpu"
-        mock_dev = MagicMock()
-        mock_dev.device_kind = "NVIDIA RTX 3090"
-        mock_jax.devices.return_value = [mock_dev]
+    @patch("calibrax.profiling.gpu.detect_devices")
+    def test_gpu_legacy(self, mock_detect: MagicMock) -> None:
+        mock_detect.return_value = self._snapshot("gpu", "NVIDIA RTX 3090")
         op = AdaptiveOperation()
         assert op.config.platform == "gpu_legacy"
         assert op.config.precision == "float32"
         assert op.config.tile_size == 32
 
-    @patch("calibrax.profiling.gpu.jax")
-    def test_gpu_detection_exception_falls_back(
-        self,
-        mock_jax: MagicMock,
-    ) -> None:
-        mock_jax.default_backend.return_value = "gpu"
-        mock_jax.devices.side_effect = RuntimeError("no GPU")
+    @patch("calibrax.profiling.gpu.detect_devices")
+    def test_gpu_detection_exception_falls_back(self, mock_detect: MagicMock) -> None:
+        mock_detect.side_effect = RuntimeError("no GPU")
         op = AdaptiveOperation()
         assert op.config.platform == "cpu"
 
-    @patch("calibrax.profiling.gpu.jax")
-    def test_gpu_backend_with_no_devices_falls_back_to_cpu(self, mock_jax: MagicMock) -> None:
-        mock_jax.default_backend.return_value = "gpu"
-        mock_jax.devices.return_value = []
+    @patch("calibrax.profiling.gpu.detect_devices")
+    def test_gpu_backend_with_no_devices_falls_back_to_cpu(self, mock_detect: MagicMock) -> None:
+        mock_detect.return_value = self._snapshot("gpu")
 
         op = AdaptiveOperation()
 

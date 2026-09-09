@@ -9,6 +9,7 @@ from unittest.mock import MagicMock, patch
 
 import jax.numpy as jnp
 import pytest
+from substrax.devices import DeviceInfo, DeviceKind
 
 from calibrax.profiling.hardware import (
     _block_until_ready,
@@ -76,19 +77,19 @@ class TestHardwareSpecs:
 
 
 class TestDetectHardwareSpecs:
-    """Tests for detect_hardware_specs with mocked backends.
-
-    Replaces the ``jax`` reference on the hardware module with a mock
-    to avoid corrupting JAX's internal backend state.
-    """
+    """Tests for detect_hardware_specs against a fake device snapshot."""
 
     def _detect_with_backend(self, backend: str, monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
-        """Run detect_hardware_specs with a fake jax.default_backend."""
+        """Run detect_hardware_specs against a fake substrax device snapshot."""
         import calibrax.profiling.hardware as hw_module
 
-        mock_jax = MagicMock()
-        mock_jax.default_backend.return_value = backend
-        monkeypatch.setattr(hw_module, "jax", mock_jax)
+        info = DeviceInfo(
+            platform=backend,
+            kind=DeviceKind.from_platform(backend),
+            count=1,
+            device_kinds=(backend,),
+        )
+        monkeypatch.setattr(hw_module, "detect_devices", lambda: info)
         return detect_hardware_specs()
 
     def test_returns_cpu_generic_on_cpu_backend(self, monkeypatch: pytest.MonkeyPatch) -> None:

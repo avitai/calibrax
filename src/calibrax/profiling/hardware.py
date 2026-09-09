@@ -11,6 +11,7 @@ from collections.abc import Callable
 from typing import Any
 
 import jax
+from substrax.devices import detect_devices, DeviceKind
 
 
 def _spec(peak_flops: float, memory_bandwidth: float, **extra: Any) -> dict[str, Any]:
@@ -52,18 +53,18 @@ HARDWARE_SPECS: dict[str, dict[str, Any]] = {
 def detect_hardware_specs() -> dict[str, Any]:
     """Detect current hardware and return appropriate specifications.
 
-    Uses ``jax.default_backend()`` to determine the accelerator type
-    and returns pre-configured specs for that platform.
+    Reads the accelerator class from ``substrax.devices.detect_devices`` and
+    returns the pre-configured specs for that platform.
 
     Returns:
         Hardware specification dictionary with peak_flops, memory_bandwidth,
         and critical_intensity keys (among others).
     """
-    backend = jax.default_backend()
+    kind = detect_devices().kind
 
-    if backend == "tpu":
+    if kind is DeviceKind.TPU:
         return HARDWARE_SPECS["tpu_v5e"]
-    if backend == "gpu":
+    if kind is DeviceKind.GPU:
         return HARDWARE_SPECS["a100_80g"]
 
     return HARDWARE_SPECS["cpu_generic"]

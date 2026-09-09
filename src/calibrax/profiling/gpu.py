@@ -15,6 +15,7 @@ from typing import Any
 
 import jax
 import psutil  # pyright: ignore[reportMissingModuleSource]
+from substrax.devices import detect_devices, DeviceInfo, DeviceKind
 
 
 try:
@@ -105,11 +106,15 @@ class AdaptiveOperation:
         """Detect hardware and return optimal configuration.
 
         Returns:
-            HardwareConfig for the detected platform.
+            HardwareConfig for the detected platform, or the CPU default when the
+            runtime cannot report its devices.
         """
-        backend = jax.default_backend()
+        try:
+            info = detect_devices()
+        except RuntimeError:
+            return _CPU_DEFAULT
 
-        if backend == "tpu":
+        if info.kind is DeviceKind.TPU:
             return HardwareConfig(
                 platform="tpu",
                 precision="bfloat16",
@@ -119,28 +124,24 @@ class AdaptiveOperation:
                 use_vmem_optimization=True,
             )
 
-        if backend == "gpu":
-            return self._detect_gpu_config()
+        if info.kind is DeviceKind.GPU:
+            return self._detect_gpu_config(info)
 
         return _CPU_DEFAULT
 
-    def _detect_gpu_config(self) -> HardwareConfig:
-        """Detect GPU variant and return config.
+    @staticmethod
+    def _detect_gpu_config(info: DeviceInfo) -> HardwareConfig:
+        """Return the config for the GPU generation the runtime reports.
+
+        Args:
+            info: The device snapshot, whose first ``device_kinds`` entry names the GPU.
 
         Returns:
-            HardwareConfig for the detected GPU, or CPU default on failure.
+            HardwareConfig for the detected GPU, or CPU default without a device.
         """
-        try:
-            devices = jax.devices()
-        except RuntimeError:
+        if not info.device_kinds:
             return _CPU_DEFAULT
-        if not devices:
-            return _CPU_DEFAULT
-        device_kind = getattr(
-            devices[0],
-            "device_kind",
-            "unknown",
-        ).lower()
+        device_kind = info.device_kinds[0].lower()
         if "h100" in device_kind or "a100" in device_kind:
             return HardwareConfig(
                 platform="gpu_modern",
