@@ -2688,6 +2688,28 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.geometric.rmsd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;rmsd
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.geometric.pairwise_rmsd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;pairwise_rmsd
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -3626,6 +3648,28 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.geometric.rmsd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;rmsd
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.geometric.pairwise_rmsd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;pairwise_rmsd
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -3729,7 +3773,7 @@ and 1D Earth Mover's Distance (Wasserstein-1).</p>
 <p>Distance metrics for comparing point sets and shapes. All operations
 are pure mathematical -- no pretrained models or external libraries.</p>
 <p>Includes: chamfer_distance, earth_movers_distance_1d, directed_hausdorff,
-hausdorff_distance.
+hausdorff_distance, rmsd, pairwise_rmsd.
 Registered with <code>domain="geometric"</code>.</p>
 
 
@@ -4138,6 +4182,223 @@ A true metric on non-empty compact subsets.</p>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">hausdorff_distance</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="n">pts</span><span class="p">)</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="go">0.0</span>
 </span></code></pre></div>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="calibrax.metrics.functional.geometric.rmsd" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">rmsd</span><span class="p">(</span><span class="n">coords_a</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">coords_b</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">mask_a</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">mask_b</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+
+<a href="#calibrax.metrics.functional.geometric.rmsd" class="headerlink" title="Permanent link">¤</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Root-mean-square deviation between two conformations after centring.</p>
+<p>Both conformations are translated to their centroid over the atoms present in
+both masks; no rotation is fitted, so this is the RMSD of pre-aligned
+structures.</p>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>Direction: LOWER (0.0 = identical conformations up to translation).
+Range: [0, inf); <code>inf</code> when the masks share no atom.</p>
+</details>
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>coords_a</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Coordinates with shape <code>(n_atoms, dims)</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>coords_b</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Coordinates with shape <code>(n_atoms, dims)</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>mask_a</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Boolean presence mask with shape <code>(n_atoms,)</code>; <code>None</code> keeps all.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>mask_b</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Boolean presence mask with shape <code>(n_atoms,)</code>; <code>None</code> keeps all.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Scalar deviation as a JAX array.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="calibrax.metrics.functional.geometric.pairwise_rmsd" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">pairwise_rmsd</span><span class="p">(</span><span class="n">coordinates</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+
+<a href="#calibrax.metrics.functional.geometric.pairwise_rmsd" class="headerlink" title="Permanent link">¤</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Symmetric matrix of :func:<code>rmsd</code> between every pair of conformations.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>coordinates</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Conformations with shape <code>(n_conformations, n_atoms, dims)</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>mask</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Boolean presence masks with shape <code>(n_conformations, n_atoms)</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Deviations with shape <code>(n_conformations, n_conformations)</code> and a zero diagonal.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
     </div>

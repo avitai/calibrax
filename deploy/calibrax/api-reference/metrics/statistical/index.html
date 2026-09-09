@@ -2419,6 +2419,39 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.statistical.correlation_preservation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;correlation_preservation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.statistical.autocorrelation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;autocorrelation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.statistical.skewness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;skewness
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -3648,6 +3681,39 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.statistical.correlation_preservation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;correlation_preservation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.statistical.autocorrelation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;autocorrelation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.statistical.skewness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;skewness
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -3751,8 +3817,9 @@ coefficient, and adjusted R-squared.</p>
 <p>Pure functions for measuring statistical relationships between
 variables. Covers linear correlation, rank correlation, and
 agreement measures.</p>
-<p>Includes 5 functions: pearson_correlation, spearman_rank_correlation,
-kendall_tau, concordance_correlation, r_squared_adjusted.</p>
+<p>Includes 8 functions: pearson_correlation, spearman_rank_correlation,
+kendall_tau, concordance_correlation, r_squared_adjusted, correlation_preservation,
+autocorrelation, skewness.</p>
 
 
 
@@ -4291,6 +4358,319 @@ Range: (-inf, 1].</p>
             <td>
               <div class="doc-md-description">
                 <p>Adjusted R-squared as a scalar value.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="calibrax.metrics.functional.statistical.correlation_preservation" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">correlation_preservation</span><span class="p">(</span><span class="n">real</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">generated</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+
+<a href="#calibrax.metrics.functional.statistical.correlation_preservation" class="headerlink" title="Permanent link">¤</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>How closely generated data reproduces the feature correlations of real data.</p>
+<p>One minus the mean absolute difference of the two Pearson correlation
+matrices over their off-diagonal entries, clipped to <code>[0, 1]</code>. A constant
+feature has an undefined correlation, which counts as zero.</p>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>Direction: HIGHER (1.0 = identical correlation structure).
+Range: [0, 1].</p>
+</details>
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>real</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Real records with shape <code>(n_real, n_features)</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>generated</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Generated records with shape <code>(n_generated, n_features)</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Scalar preservation score as a JAX array; <code>1.0</code> below two features.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If either input is not two-dimensional or the feature
+dimensions differ.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="calibrax.metrics.functional.statistical.autocorrelation" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">autocorrelation</span><span class="p">(</span><span class="n">series</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">max_lag</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+
+<a href="#calibrax.metrics.functional.statistical.autocorrelation" class="headerlink" title="Permanent link">¤</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Autocorrelation function of a batch of sequences, averaged over batch and features.</p>
+<p>Sequences are centred per sequence; the lag-<code>k</code> value is the mean product of
+the series with itself shifted by <code>k</code>, normalised by the lag-0 value so the
+function starts at 1.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>series</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Sequences with shape <code>(batch, sequence, features)</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>max_lag</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of lags to return, lag 0 included.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Autocorrelation values with shape <code>(max_lag,)</code>.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If <code>max_lag</code> exceeds the sequence length or is not positive.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="calibrax.metrics.functional.statistical.skewness" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">skewness</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+
+<a href="#calibrax.metrics.functional.statistical.skewness" class="headerlink" title="Permanent link">¤</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Skewness of a sample: the third standardised moment.</p>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>Direction: INFO (0 for a symmetric sample; positive for a right tail).
+Range: (-inf, inf).</p>
+</details>
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>data</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Sample values of any shape; all elements are pooled.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Scalar skewness as a JAX array; <code>0.0</code> for a constant sample.</p>
               </div>
             </td>
           </tr>
