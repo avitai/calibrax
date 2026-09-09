@@ -4133,7 +4133,7 @@ and are NOT JAX-traceable. Perplexity operates on JAX arrays.</p>
 
 
 <h2 id="calibrax.metrics.functional.text.perplexity" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">perplexity</span><span class="p">(</span><span class="n">log_probabilities</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">perplexity</span><span class="p">(</span><span class="n">log_probabilities</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
 
 <a href="#calibrax.metrics.functional.text.perplexity" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4141,7 +4141,10 @@ and are NOT JAX-traceable. Perplexity operates on JAX arrays.</p>
     <div class="doc doc-contents ">
 
         <p>Perplexity from log-probabilities.</p>
-<p>Computes exp(-mean(log_probs)). Lower perplexity = better model.</p>
+<p>Computes <code>exp(-mean(log_probs))</code> over the scored positions. Lower is better.
+With a <code>mask</code>, only positions whose mask is non-zero count, so padding and
+prompt tokens can be left out of the mean; a mask that keeps nothing has no
+tokens to score and the perplexity is infinite.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -4171,6 +4174,23 @@ and are NOT JAX-traceable. Perplexity operates on JAX arrays.</p>
                 <em>required</em>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>mask</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Optional weights with the same shape, non-zero where a position
+counts. Booleans and 0/1 floats are both accepted.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -4190,7 +4210,30 @@ and are NOT JAX-traceable. Perplexity operates on JAX arrays.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Perplexity value &gt;= 1.0.</p>
+                <p>Perplexity value &gt;= 1.0 as a JAX scalar.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If <code>mask</code> does not have the shape of <code>log_probabilities</code>.</p>
               </div>
             </td>
           </tr>
@@ -4202,6 +4245,7 @@ and are NOT JAX-traceable. Perplexity operates on JAX arrays.</p>
     <div class="language-pycon highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">jax.numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">jnp</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">perplexity</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]))</span>  <span class="c1"># Perfect model</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="go">1.0</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">perplexity</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">9.0</span><span class="p">]),</span> <span class="n">mask</span><span class="o">=</span><span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]))</span>  <span class="c1"># e</span>
 </span></code></pre></div>
 
 
