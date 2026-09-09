@@ -7,6 +7,8 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-09-09
+
 ### Added
 
 - `generative.frechet_distance` (from Gaussian statistics) and `frechet_feature_distance`
