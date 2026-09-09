@@ -3718,8 +3718,8 @@ functions for hardware detection and synchronized execution timing.</p>
     <div class="doc doc-contents ">
 
         <p>Detect current hardware and return appropriate specifications.</p>
-<p>Uses <code>jax.default_backend()</code> to determine the accelerator type
-and returns pre-configured specs for that platform.</p>
+<p>Reads the accelerator class from <code>substrax.devices.detect_devices</code> and
+returns the pre-configured specs for that platform.</p>
 
 
     <p><span class="doc-section-title">Returns:</span></p>
