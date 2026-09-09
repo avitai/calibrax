@@ -7,6 +7,8 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-09-09
+
 ### Added
 
 - Three metric domains, moved from the sibling packages with their tests and given
