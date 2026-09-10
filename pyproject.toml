@@ -36,7 +36,7 @@ dependencies = [
   "substrax>=0.1.0",
   "typing_extensions>=4.5"
 ]
-description = "Calibrax: Unified benchmarking framework for the JAX scientific ML ecosystem"
+description = "JAX benchmarking, profiling and evaluation metrics for Flax NNX: a metric registry across regression, classification, calibration, uncertainty, forecasting, generative, image, text, audio, graph and fairness domains, XLA FLOP counting, roofline analysis, GPU and energy monitoring, regression detection, publication exports, W&B and MLflow"
 dynamic = ["version"]
 keywords = [
   "benchmarking",
