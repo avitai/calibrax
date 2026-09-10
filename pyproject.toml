@@ -326,12 +326,12 @@ python_files = "test_*.py"
 python_functions = "test_*"
 testpaths = ["tests"]
 
-[tool.pytest-env]
-"D:JAX_PLATFORMS" = "cpu"
-"D:TF_CPP_MIN_LOG_LEVEL" = "1"
-"D:WANDB_DIR" = "/tmp/calibrax-test-wandb"
-"D:WANDB_MODE" = "offline"
-"D:XLA_PYTHON_CLIENT_PREALLOCATE" = "false"
+[tool.pytest_env]
+JAX_PLATFORMS = {skip_if_set = true, value = "cpu"}
+TF_CPP_MIN_LOG_LEVEL = {skip_if_set = true, value = "1"}
+WANDB_DIR = {skip_if_set = true, value = "/tmp/calibrax-test-wandb"}
+WANDB_MODE = {skip_if_set = true, value = "offline"}
+XLA_PYTHON_CLIENT_PREALLOCATE = {skip_if_set = true, value = "false"}
 
 [tool.ruff]
 extend-include = ["*.ipynb"]
