@@ -7,6 +7,19 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+### Fixed
+
+- `FIDMetric` took the square root of the eigenvalues of the plain product of the two
+  covariance matrices. That product is not symmetric, so the trace term was wrong whenever
+  the covariances did not commute: between 2.8% and 21.7% high on 4- to 64-dimensional
+  features and 49.5% high on 2048-dimensional Inception features. The plugin now computes
+  through `generative.frechet_feature_distance`, and `InceptionScoreMetric` through
+  `generative.inception_score` with a single split, so each score has one implementation.
+- `BERTScoreMetric` reported F1 of the averaged precision and recall. It now averages
+  per-pair F1, as the reference BERTScore does; the two differ whenever pairs differ.
+- `generative.frechet_feature_distance` returned NaN when a side had one sample. It raises
+  `ValueError`, and so does `FIDMetric.compute()` with fewer than two accumulated samples.
+
 ## [0.1.5] - 2026-09-09
 
 ### Added

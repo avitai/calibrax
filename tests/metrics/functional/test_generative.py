@@ -152,6 +152,12 @@ class TestFrechetDistance:
         with pytest.raises(ValueError, match="feature dimension"):
             frechet_feature_distance(jnp.ones((5, 2)), jnp.ones((5, 3)))
 
+    @pytest.mark.parametrize(("n_real", "n_generated"), [(1, 5), (5, 1), (1, 1)])
+    def test_fewer_than_two_samples_raise(self, n_real: int, n_generated: int) -> None:
+        # One sample has no covariance; the distance would otherwise come back as NaN.
+        with pytest.raises(ValueError, match="at least two samples"):
+            frechet_feature_distance(jnp.ones((n_real, 3)), jnp.ones((n_generated, 3)))
+
 
 class TestInceptionScore:
     """Tests for inception_score and inception_score_per_split."""

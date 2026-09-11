@@ -20,7 +20,9 @@ class BERTScoreMetric(FrozenBackboneMetric):
     """BERTScore using frozen BERT token embeddings.
 
     Computes precision, recall, and F1 based on cosine similarity
-    between token embeddings from candidate and reference texts.
+    between token embeddings from candidate and reference texts. Corpus
+    scores average each pair's precision, recall and F1, as the reference
+    BERTScore does.
 
     For testing, accepts pre-computed token embeddings directly.
 
@@ -31,7 +33,7 @@ class BERTScoreMetric(FrozenBackboneMetric):
         ...     reference_embeddings=ref_emb,   # (seq_len_r, hidden_dim)
         ... )
         >>> result = bertscore.compute()
-        >>> # {"bertscore_precision": 0.92, "bertscore_recall": 0.88, "bertscore_f1": 0.90}
+        >>> # {"bertscore_precision": 0.92, "bertscore_recall": 0.88, "bertscore_f1": 0.89}
     """
 
     def __init__(self) -> None:
@@ -39,11 +41,13 @@ class BERTScoreMetric(FrozenBackboneMetric):
         super().__init__(name="bertscore")
         self._precisions: list[float] = []
         self._recalls: list[float] = []
+        self._f1_scores: list[float] = []
 
     def reset(self) -> None:
-        """Reset accumulated precision and recall values."""
+        """Reset accumulated precision, recall and F1 values."""
         self._precisions = []
         self._recalls = []
+        self._f1_scores = []
 
     def _extract_features(self, **kwargs: Any) -> dict[str, Any]:
         """Accept pre-extracted embeddings.
@@ -81,9 +85,12 @@ class BERTScoreMetric(FrozenBackboneMetric):
 
         self._precisions.append(precision)
         self._recalls.append(recall)
+        self._f1_scores.append(2 * precision * recall / (precision + recall + _EPSILON))
 
     def _compute_from_accumulated(self) -> dict[str, float]:
         """Compute average BERTScore across accumulated pairs.
+
+        F1 is the mean of per-pair F1, not F1 of the mean precision and recall.
 
         Returns:
             Dictionary with bertscore_precision, bertscore_recall, bertscore_f1.
@@ -95,12 +102,9 @@ class BERTScoreMetric(FrozenBackboneMetric):
                 "bertscore_f1": 0.0,
             }
 
-        avg_p = sum(self._precisions) / len(self._precisions)
-        avg_r = sum(self._recalls) / len(self._recalls)
-        f1 = 2 * avg_p * avg_r / (avg_p + avg_r + _EPSILON)
-
+        count = len(self._precisions)
         return {
-            "bertscore_precision": avg_p,
-            "bertscore_recall": avg_r,
-            "bertscore_f1": f1,
+            "bertscore_precision": sum(self._precisions) / count,
+            "bertscore_recall": sum(self._recalls) / count,
+            "bertscore_f1": sum(self._f1_scores) / count,
         }

@@ -15,7 +15,7 @@ from typing import Any
 import jax.numpy as jnp
 from flax import nnx
 
-from calibrax.metrics._utils import _EPSILON
+from calibrax.metrics.functional.generative import frechet_feature_distance, inception_score
 from calibrax.metrics.stateful._base import FrozenBackboneMetric, LearnedMetric
 
 
@@ -29,8 +29,9 @@ logger = logging.getLogger(__name__)
 class FIDMetric(FrozenBackboneMetric):
     """Frechet Inception Distance using InceptionV3 features.
 
-    Accumulates per-batch feature statistics (mean, covariance), then
-    computes the Frechet distance between real and generated distributions.
+    Accumulates real and generated feature batches, then computes the
+    Fréchet distance between the Gaussians fitted to them through
+    ``generative.frechet_feature_distance``.
 
     FID = |mu_r - mu_g|^2 + Tr(Sigma_r + Sigma_g - 2(Sigma_r Sigma_g)^0.5)
 
@@ -93,41 +94,21 @@ class FIDMetric(FrozenBackboneMetric):
         self._real_features.append(features["real"])
         self._gen_features.append(features["generated"])
 
-    def _compute_from_accumulated(self) -> dict[str, float]:
+    def _compute_from_accumulated(self) -> dict[str, float]:  # noqa: DOC502  # raised by frechet_feature_distance
         """Compute FID from accumulated features.
 
         Returns:
             {"fid": <value>} or {"fid": inf} if no features accumulated.
+
+        Raises:
+            ValueError: If either side accumulated fewer than two samples.
         """
         if not self._real_features or not self._gen_features:
             return {"fid": float("inf")}
 
         real_all = jnp.concatenate(self._real_features, axis=0)
         gen_all = jnp.concatenate(self._gen_features, axis=0)
-
-        mu_real = jnp.mean(real_all, axis=0)
-        mu_gen = jnp.mean(gen_all, axis=0)
-
-        real_centered = real_all - mu_real
-        gen_centered = gen_all - mu_gen
-
-        n_real = max(real_all.shape[0] - 1, 1)
-        n_gen = max(gen_all.shape[0] - 1, 1)
-        cov_real = (real_centered.T @ real_centered) / n_real
-        cov_gen = (gen_centered.T @ gen_centered) / n_gen
-
-        diff = mu_real - mu_gen
-        mean_diff_sq = float(jnp.sum(diff**2))
-
-        # Matrix square root via eigendecomposition
-        product = cov_real @ cov_gen
-        eigvals = jnp.linalg.eigvalsh(product)
-        eigvals = jnp.maximum(eigvals, 0.0)
-        sqrt_product_trace = float(jnp.sum(jnp.sqrt(eigvals)))
-
-        trace_sum = float(jnp.trace(cov_real) + jnp.trace(cov_gen))
-        fid = mean_diff_sq + trace_sum - 2.0 * sqrt_product_trace
-        return {"fid": max(fid, 0.0)}
+        return {"fid": float(frechet_feature_distance(real_all, gen_all))}
 
 
 class InceptionScoreMetric(FrozenBackboneMetric):
@@ -183,15 +164,7 @@ class InceptionScoreMetric(FrozenBackboneMetric):
             return {"inception_score": 0.0}
 
         all_probs = jnp.concatenate(self._all_probs, axis=0)
-
-        marginal = jnp.mean(all_probs, axis=0, keepdims=True)
-
-        kl = all_probs * (jnp.log(all_probs + _EPSILON) - jnp.log(marginal + _EPSILON))
-        kl_per_sample = jnp.sum(kl, axis=1)
-        mean_kl = jnp.mean(kl_per_sample)
-
-        inception_score = float(jnp.exp(mean_kl))
-        return {"inception_score": inception_score}
+        return {"inception_score": float(inception_score(all_probs, splits=1))}
 
 
 class LPIPSMetric(LearnedMetric):

@@ -7,11 +7,24 @@ requiring InceptionV3 weights in CI.
 from __future__ import annotations
 
 import jax.numpy as jnp
+import numpy as np
 import pytest
 from flax import nnx
 
 from calibrax.core.protocols import StatefulMetricProtocol
+from calibrax.metrics.functional.generative import inception_score
 from calibrax.metrics.plugins.image import FIDMetric, InceptionScoreMetric, LPIPSMetric
+
+
+def _class_probabilities(kind: str) -> np.ndarray:
+    """Seeded class probabilities: dense, with exact zeros, or one-hot."""
+    rng = np.random.default_rng(3)
+    if kind == "one_hot":
+        return np.eye(10, dtype=np.float32)[rng.integers(0, 10, 64)]
+    probabilities = rng.dirichlet(np.full(10, 0.05), 64).astype(np.float32)
+    if kind == "with_zeros":
+        probabilities[probabilities < 1e-3] = 0.0
+    return probabilities / probabilities.sum(axis=1, keepdims=True)
 
 
 class TestFIDMetric:
@@ -78,6 +91,19 @@ class TestInceptionScoreMetric:
         is_metric.update(probabilities=probs)
         result = is_metric.compute()
         assert result["inception_score"] == pytest.approx(1.0, abs=0.1)
+
+    @pytest.mark.parametrize("kind", ["dense", "with_zeros", "one_hot"])
+    def test_matches_functional_single_split(self, kind: str) -> None:
+        """Accumulated batches score as one split of the functional inception score.
+
+        Measured agreement is within 2.2e-6 relative, exact zeros included.
+        """
+        probabilities = _class_probabilities(kind)
+        is_metric = InceptionScoreMetric()
+        is_metric.update(probabilities=jnp.asarray(probabilities[:40]))
+        is_metric.update(probabilities=jnp.asarray(probabilities[40:]))
+        expected = float(inception_score(jnp.asarray(probabilities), splits=1))
+        assert is_metric.compute()["inception_score"] == pytest.approx(expected, rel=1e-5)
 
     def test_reset(self) -> None:
         is_metric = InceptionScoreMetric()

@@ -20,6 +20,10 @@ import jax.numpy as jnp
 from calibrax.metrics._utils import _EPSILON
 
 
+# A sample covariance needs at least two samples; with one, the estimate divides by zero.
+_MIN_COVARIANCE_SAMPLES = 2
+
+
 def _prepare_feature_arrays(real: Any, generated: Any) -> tuple[Any, Any]:
     """Validate two feature matrices share their feature dimension and convert them.
 
@@ -293,7 +297,7 @@ def frechet_distance(mean_a: Any, cov_a: Any, mean_b: Any, cov_b: Any) -> Any:
     return jnp.maximum(distance, 0.0)
 
 
-def frechet_feature_distance(real: Any, generated: Any) -> Any:  # noqa: DOC502  # raised by _prepare_feature_arrays
+def frechet_feature_distance(real: Any, generated: Any) -> Any:
     """Fréchet distance between the Gaussians fitted to two feature matrices.
 
     With Inception features this is the Fréchet Inception Distance; with any
@@ -311,9 +315,17 @@ def frechet_feature_distance(real: Any, generated: Any) -> Any:  # noqa: DOC502 
         Scalar distance as a JAX array.
 
     Raises:
-        ValueError: If the feature matrices are not compatible.
+        ValueError: If the feature matrices are not compatible, or either has fewer
+            than two samples.
     """
     real_features, generated_features = _prepare_feature_arrays(real, generated)
+    n_real, n_generated = real_features.shape[0], generated_features.shape[0]
+    if min(n_real, n_generated) < _MIN_COVARIANCE_SAMPLES:
+        msg = (
+            "frechet_feature_distance needs at least two samples per side to estimate a "
+            f"covariance, got {n_real} real and {n_generated} generated"
+        )
+        raise ValueError(msg)
     return frechet_distance(
         jnp.mean(real_features, axis=0),
         jnp.cov(real_features, rowvar=False),
