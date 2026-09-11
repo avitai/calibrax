@@ -97,19 +97,37 @@ def test_distance_and_divergence_metrics_match_scipy_references() -> None:
     _assert_close(js_divergence(p, q), float(jensenshannon(p, q, base=np.e) ** 2))
 
 
-@pytest.mark.parametrize("dim", [16, 64])
-def test_fid_metric_matches_scipy_reference(dim: int) -> None:
-    """FIDMetric matches the float64 SciPy Fréchet distance on non-commuting covariances.
-
-    The functional form is within 1.43e-5 relative of this reference over dims 16 and 64 and
-    seeds 0 to 2; the tolerance sits above that bound. Covariances that do not commute are the
-    case an eigendecomposition of their plain product gets wrong.
-    """
+def _fid_features(case: str) -> tuple[np.ndarray, np.ndarray]:
+    """Seeded real and generated feature matrices for the Fréchet distance cases."""
     rng = np.random.default_rng(0)
-    real = (rng.standard_normal((400, dim)) @ rng.standard_normal((dim, dim))).astype(np.float32)
-    generated = (rng.standard_normal((300, dim)) @ rng.standard_normal((dim, dim)) + 0.5).astype(
-        np.float32
-    )
-    fid = FIDMetric(feature_dim=dim)
+    if case in {"non_commuting_16", "non_commuting_64"}:
+        dim = int(case.rsplit("_", 1)[1])
+        real = rng.standard_normal((400, dim)) @ rng.standard_normal((dim, dim))
+        generated = rng.standard_normal((300, dim)) @ rng.standard_normal((dim, dim)) + 0.5
+    elif case == "near_rank_deficient":
+        real = rng.standard_normal((500, 8)) @ rng.standard_normal((8, 64))
+        real = real + 1e-3 * rng.standard_normal((500, 64))
+        generated = rng.standard_normal((500, 8)) @ rng.standard_normal((8, 64))
+        generated = generated + 1e-3 * rng.standard_normal((500, 64))
+    else:
+        real = rng.standard_normal((40, 64))
+        generated = rng.standard_normal((50, 64)) + 0.2
+    return real.astype(np.float32), generated.astype(np.float32)
+
+
+@pytest.mark.parametrize(
+    "case",
+    ["non_commuting_16", "non_commuting_64", "near_rank_deficient", "fewer_samples_than_features"],
+)
+def test_fid_metric_matches_scipy_reference(case: str) -> None:
+    """FIDMetric matches the float64 SciPy Fréchet distance, including ill-conditioned features.
+
+    Correlated features give covariances with condition numbers near 1e7, where a float32
+    eigendecomposition of the covariances depends on the LAPACK build: its result moved by up
+    to 4.3e-04 relative under float32-scale input noise. The tolerance is set against that
+    noise sensitivity, not against one platform's error.
+    """
+    real, generated = _fid_features(case)
+    fid = FIDMetric()
     fid.update(real=real, generated=generated)
-    assert fid.compute()["fid"] == pytest.approx(_scipy_frechet_distance(real, generated), rel=1e-4)
+    assert fid.compute()["fid"] == pytest.approx(_scipy_frechet_distance(real, generated), rel=1e-5)

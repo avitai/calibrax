@@ -13,6 +13,7 @@ References:
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 import jax.numpy as jnp
@@ -269,6 +270,8 @@ def frechet_distance(mean_a: Any, cov_a: Any, mean_b: Any, cov_b: Any) -> Any:
     eigendecomposition-based :func:`calibrax.metrics._utils.matrix_sqrtm`, which
     stays on backends where ``jax.scipy.linalg.sqrtm`` has no kernel. This is the
     core of the Fréchet Inception Distance once features have been extracted.
+    In float32 this form loses digits when the covariances are ill-conditioned;
+    from feature matrices, :func:`frechet_feature_distance` avoids forming them.
 
     Note:
         Direction: LOWER (0.0 = identical Gaussians).
@@ -303,6 +306,14 @@ def frechet_feature_distance(real: Any, generated: Any) -> Any:
     With Inception features this is the Fréchet Inception Distance; with any
     other extractor it is the same fidelity measure in that feature space.
 
+    The covariances are never formed. With thin QR factors ``X - mean = Q R`` of
+    each feature matrix, ``Tr(S) = ||R||_F^2 / (n - 1)``, and the cross term
+    ``Tr((S_r S_g)^{1/2})`` is the sum of the singular values of ``R_r R_g^T``
+    divided by ``sqrt((n_r - 1)(n_g - 1))``. Correlated features give covariances
+    with condition numbers near 1e7, where float32 square roots of covariance
+    matrices lose digits and differ between LAPACK builds; the factored form
+    stays within about 1e-6 of a float64 reference.
+
     Note:
         Direction: LOWER (0.0 = identical feature distributions).
         Range: [0, inf).
@@ -326,12 +337,19 @@ def frechet_feature_distance(real: Any, generated: Any) -> Any:
             f"covariance, got {n_real} real and {n_generated} generated"
         )
         raise ValueError(msg)
-    return frechet_distance(
-        jnp.mean(real_features, axis=0),
-        jnp.cov(real_features, rowvar=False),
-        jnp.mean(generated_features, axis=0),
-        jnp.cov(generated_features, rowvar=False),
+    real_mean = jnp.mean(real_features, axis=0)
+    generated_mean = jnp.mean(generated_features, axis=0)
+    real_factor = jnp.linalg.qr(real_features - real_mean, mode="r")
+    generated_factor = jnp.linalg.qr(generated_features - generated_mean, mode="r")
+    real_dof, generated_dof = n_real - 1, n_generated - 1
+    cross = jnp.sum(jnp.linalg.svd(real_factor @ generated_factor.T, compute_uv=False))
+    distance = (
+        jnp.sum((real_mean - generated_mean) ** 2)
+        + jnp.sum(real_factor**2) / real_dof
+        + jnp.sum(generated_factor**2) / generated_dof
+        - 2.0 * cross / math.sqrt(real_dof * generated_dof)
     )
+    return jnp.maximum(distance, 0.0)
 
 
 def inception_score_per_split(probabilities: Any, *, splits: int = 10) -> Any:

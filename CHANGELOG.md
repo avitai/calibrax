@@ -19,6 +19,12 @@ and uses semantic versioning while the public API stabilizes.
   per-pair F1, as the reference BERTScore does; the two differ whenever pairs differ.
 - `generative.frechet_feature_distance` returned NaN when a side had one sample. It raises
   `ValueError`, and so does `FIDMetric.compute()` with fewer than two accumulated samples.
+- `generative.frechet_feature_distance` took float32 square roots of the covariance matrices,
+  which lose digits when features are correlated: on near-rank-deficient features, or fewer
+  samples than features, it was up to 5.4e-4 relative off, and the result moved between
+  LAPACK builds (macOS and Linux disagreed). It now factors the centred features with a thin
+  QR and reads the cross term from singular values, staying within 1.2e-6 of a float64
+  reference on 16- to 2048-dimensional features.
 
 ## [0.1.5] - 2026-09-09
 
