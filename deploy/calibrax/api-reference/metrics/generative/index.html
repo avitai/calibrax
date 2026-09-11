@@ -4791,7 +4791,9 @@ Range: [0, 1].</p>
 cross term is computed through the symmetric sandwich and the
 eigendecomposition-based :func:<code>calibrax.metrics._utils.matrix_sqrtm</code>, which
 stays on backends where <code>jax.scipy.linalg.sqrtm</code> has no kernel. This is the
-core of the Fréchet Inception Distance once features have been extracted.</p>
+core of the Fréchet Inception Distance once features have been extracted.
+In float32 this form loses digits when the covariances are ill-conditioned;
+from feature matrices, :func:<code>frechet_feature_distance</code> avoids forming them.</p>
 
 
 <details class="note" open>
@@ -4920,6 +4922,13 @@ Range: [0, inf).</p>
         <p>Fréchet distance between the Gaussians fitted to two feature matrices.</p>
 <p>With Inception features this is the Fréchet Inception Distance; with any
 other extractor it is the same fidelity measure in that feature space.</p>
+<p>The covariances are never formed. With thin QR factors <code>X - mean = Q R</code> of
+each feature matrix, <code>Tr(S) = ||R||_F^2 / (n - 1)</code>, and the cross term
+<code>Tr((S_r S_g)^{1/2})</code> is the sum of the singular values of <code>R_r R_g^T</code>
+divided by <code>sqrt((n_r - 1)(n_g - 1))</code>. Correlated features give covariances
+with condition numbers near 1e7, where float32 square roots of covariance
+matrices lose digits and differ between LAPACK builds; the factored form
+stays within about 1e-6 of a float64 reference.</p>
 
 
 <details class="note" open>
