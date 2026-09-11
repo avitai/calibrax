@@ -7,6 +7,8 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-09-11
+
 ### Changed
 
 - The README names calibrax's one Avitai dependency, substrax, instead of saying it depends on
