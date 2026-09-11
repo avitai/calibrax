@@ -83,17 +83,9 @@ jobs:
           uv run pytest tests/ \
             --cov=calibrax \
             --cov-report=term-missing \
-            --cov-report=xml:coverage.xml \
             --cov-fail-under=80 \
             --timeout=300 \
             -v
-
-      - name: Upload coverage
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
-        uses: codecov/codecov-action@v7
-        with:
-          file: coverage.xml
-          fail_ci_if_error: false
 
   build:
     name: Build
