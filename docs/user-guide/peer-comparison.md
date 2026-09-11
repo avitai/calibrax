@@ -10,7 +10,7 @@ package.
 | Tool | Primary focus | Where Calibrax differs |
 |------|---------------|------------------------|
 | [TorchMetrics](https://lightning.ai/docs/torchmetrics/stable/) | PyTorch metric implementations with functional and module APIs, broad domains, wrappers, plotting, and distributed support | Calibrax targets JAX first, adds benchmark storage, profiling, statistical comparison, CI regression gates, and geometry-heavy metric metadata |
-| [jax_metrics](https://cgarciae.github.io/jax_metrics/) | JAX metric and loss abstractions with pytree state, distributed-friendly accumulation, and numerical-equivalence discipline | Calibrax has a broader benchmarking system, 137 registered Tier 0 metrics, registry metadata, exporters, storage, and regression analysis |
+| [jax_metrics](https://cgarciae.github.io/jax_metrics/) | JAX metric and loss abstractions with pytree state, distributed-friendly accumulation, and numerical-equivalence discipline; last release 0.2.5 on 2023-03-16 | Calibrax has a broader benchmarking system, 137 registered Tier 0 metrics, registry metadata, exporters, storage, and regression analysis |
 | [ASV](https://asv.readthedocs.io/en/stable/) | Benchmarking Python packages over time with runtime, memory, custom values, and static web output | Calibrax stores JSON-per-run benchmark results inside the project workflow and adds JAX-specific profiling, statistical tests, and CI gates |
 | [CodSpeed](https://codspeed.io/docs) | Hosted and CI-oriented performance testing with PR checks, profiling, and benchmark reports | Calibrax now includes a focused CodSpeed workflow for PR benchmark checks while keeping local storage and analysis in Calibrax |
 | [metrax](https://github.com/google/metrax) | Google's JAX evaluation metrics on CLU: accuracy, AUC, F-beta, MSE/MAE/RMSE, R-squared, Spearman, ranking at k, BLEU/ROUGE/WER/perplexity, PSNR/SSIM/IoU/Dice, SNR, with an `nnx` subpackage | Calibrax covers those as Tier 0 functions plus fourteen more domains (distance, divergence, information, geometric, graph, manifold, fairness, forecasting, uncertainty, generative, ...), registry metadata (direction, signature, invariances, properness), composition, and the benchmarking stack; metrax accumulates distributed state, which Calibrax leaves to the caller |
@@ -35,7 +35,8 @@ than a core dependency.
 
 ## jax_metrics
 
-`jax_metrics` is closest to Calibrax on framework choice. It provides
+`jax_metrics` is closest to Calibrax on framework choice, though its last release
+(0.2.5) was published on 2023-03-16. It provides
 Keras-like metric and loss abstractions, pytree-friendly state, distributed
 accumulation, and notes that metrics are usually checked against Keras or
 TorchMetrics references.

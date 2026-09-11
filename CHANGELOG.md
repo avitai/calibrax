@@ -7,6 +7,18 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+### Changed
+
+- The README names calibrax's one Avitai dependency, substrax, instead of saying it depends on
+  none of the others, and no longer claims configurable severity levels for regression
+  detection, which compares each metric against a threshold.
+- `scripts/derive_status.py` checks every documented copy of the Tier 0 metric count and domain
+  count across the README and the documentation, the README's domain list, and the per-domain
+  table in the metrics overview, and fails when a listed document drops its claim. The copies
+  that had drifted are corrected: `docs/contributing/index.md` said 17 domains, the README's
+  domain list named `regression` and omitted `general`, `forecasting`, `uncertainty` and
+  `generative`, and the metrics-overview table summed to 131 rather than 137.
+
 ### Fixed
 
 - `FIDMetric` took the square root of the eigenvalues of the plain product of the two
