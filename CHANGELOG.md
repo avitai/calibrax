@@ -19,12 +19,44 @@ and uses semantic versioning while the public API stabilizes.
   per-pair F1, as the reference BERTScore does; the two differ whenever pairs differ.
 - `generative.frechet_feature_distance` returned NaN when a side had one sample. It raises
   `ValueError`, and so does `FIDMetric.compute()` with fewer than two accumulated samples.
-- `generative.frechet_feature_distance` took float32 square roots of the covariance matrices,
-  which lose digits when features are correlated: on near-rank-deficient features, or fewer
-  samples than features, it was up to 5.4e-4 relative off, and the result moved between
-  LAPACK builds (macOS and Linux disagreed). It now factors the centred features with a thin
-  QR and reads the cross term from singular values, staying within 1.2e-6 of a float64
-  reference on 16- to 2048-dimensional features.
+- `generative.frechet_feature_distance` lost precision on correlated features, and its result
+  depended on the LAPACK build.
+  - **Cause.** It formed both covariance matrices in float32 and took eigendecomposition
+    square roots of one covariance and of the product `S_r^{1/2} S_g S_r^{1/2}`. Forming a
+    covariance from a feature matrix squares that matrix's condition number, and correlated
+    features give covariances with condition numbers up to about 5e7. Their smallest
+    eigenvalues then sit below float32 resolution, so the square roots of those eigenvalues are
+    rounding noise. On such features the result moved by up to 4.3e-4 relative under
+    float32-scale input noise, and by up to 4.7e-5 between LAPACK's symmetric eigensolvers.
+    The new equivalence test passed on Linux (4.3e-7 off) and failed on both macOS lanes
+    (1.3e-4 off). Near-rank-deficient features, and fewer samples than features, were up to
+    5.4e-4 off on every platform.
+  - **Identity.** The cross term equals the trace norm of `S_r^{1/2} S_g^{1/2}`, the sum of its
+    singular values: `tr (S_r^{1/2} S_g S_r^{1/2})^{1/2} = ||S_r^{1/2} S_g^{1/2}||_*`
+    (Bhatia, Jain and Lim, "On the Bures-Wasserstein distance between positive definite
+    matrices", Expositiones Mathematicae, 2019, arXiv:1712.01504, Remark 1). Mathiasen and
+    Hvilshøj, "Fast Fréchet Inception Distance" (arXiv:2009.14075), compute this term from the
+    centred feature matrices instead of the covariances. In 32-bit precision they report errors
+    at least 1000 times smaller than `scipy.linalg.sqrtm`.
+  - **Computation.** Each centred feature matrix is factored with a thin QR, `X - mean = Q R`.
+    Since `X_r X_g^T = Q_r (R_r R_g^T) Q_g^T` and each `Q` has orthonormal columns, the cross
+    term is the sum of the singular values of `R_r R_g^T` divided by `sqrt((n_r - 1)(n_g - 1))`,
+    and `tr S = ||R||_F^2 / (n - 1)`. No covariance is formed. This differs from Fast FID in two
+    ways, neither taken from a published method.
+    - The QR keeps the matrix at most d x d, whatever the sample count.
+    - Singular values are taken directly, rather than eigenvalues of the Gram matrix
+      `(C_r^T C_g)(C_g^T C_r)`, which would square the condition number again. This is the same
+      reason least-squares solvers prefer QR to the normal equations.
+  - **Evidence and its limits.** The float64 reference is SciPy's `sqrtm`, cross-checked
+    against the float64 identity.
+    - The new form stayed within 1.2e-6 relative of that reference on synthetic Gaussian
+      features of 16 to 2048 dimensions, including near-rank-deficient features and fewer
+      samples than features.
+    - It moved by at most 1e-6 under the same input noise, and between LAPACK's SVD drivers.
+    - These measurements used CPU LAPACK on Linux. Real Inception features and GPU backends
+      were not measured separately.
+    - `generative.frechet_distance`, which receives covariances rather than features, keeps
+      the eigendecomposition form and its float32 limit.
 
 ## [0.1.5] - 2026-09-09
 
