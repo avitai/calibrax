@@ -161,7 +161,7 @@ metrics with a shared evaluation context.
 
 | Domain | Count | Examples |
 |--------|-------|---------|
-| `general` | 13 | MSE, MAE, RMSE, R-squared, Huber, SMAPE, relative L2 |
+| `general` | 14 | MSE, MAE, RMSE, R-squared, Huber, SMAPE, relative L2 |
 | `classification` | 12 | Accuracy, F1, ROC-AUC, Matthews correlation |
 | `calibration` | 5 | Brier score, ECE, MCE, adaptive ECE |
 | `segmentation` | 3 | IoU, Dice coefficient, pixel accuracy |
@@ -169,18 +169,18 @@ metrics with a shared evaluation context.
 | `divergence` | 14 | KL, JS, Wasserstein, KS, MMD, Sinkhorn, Bregman |
 | `information` | 5 | Entropy, cross-entropy, mutual information |
 | `ranking` | 8 | NDCG, MAP, MRR, precision@k, recall@k |
-| `statistical` | 5 | Pearson, Spearman, Kendall, concordance |
+| `statistical` | 6 | Pearson, Spearman, Kendall, concordance, skewness |
 | `clustering` | 7 | Adjusted Rand, silhouette, Davies-Bouldin |
 | `fairness` | 4 | Demographic parity, equalized odds, disparate impact |
 | `image` | 4 | PSNR, SSIM, MS-SSIM, Vendi score |
 | `text` | 5 | BLEU, ROUGE-N, ROUGE-L, perplexity, distinct-N |
 | `audio` | 3 | Spectral convergence, MCD, SNR |
-| `geometric` | 4 | Chamfer, Hausdorff, Earth Mover's distance |
+| `geometric` | 5 | Chamfer, Hausdorff, Earth Mover's distance, RMSD |
 | `graph` | 4 | Spectral distance, resistance, shortest path, GED |
 | `manifold` | 5 | SPD affine-invariant, log-Euclidean, Grassmann, Stiefel |
 | `forecasting` | 6 | Fair CRPS, energy score, spread-skill, RPS, reliability |
 | `uncertainty` | 7 | PICP, MPIW, interval score, Gaussian NLL, ANEES, NCI |
-| `generative` | 6 | Manifold precision/recall, closest-record distance, memorization |
+| `generative` | 9 | Fréchet distance, inception score, manifold precision/recall, memorization |
 
 !!! tip "Domain-Based Collection"
 

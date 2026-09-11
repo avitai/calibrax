@@ -17,8 +17,8 @@
 ---
 
 > **Research preview.** The API will change while we iterate toward v1.0, so pin a version if you
-> need stability. Calibrax is the most standalone library in the Avitai stack: it depends on none
-> of the others, so it is a low-commitment way to try one piece.
+> need stability. Calibrax depends on one other Avitai package, substrax, which it uses for device
+> detection, so it is a low-commitment way to try one piece.
 >
 > This is public this early on purpose. Issues, questions and pull requests genuinely steer
 > what gets built next, and a star tells us which layer to push on.
@@ -46,7 +46,7 @@ package architecture but are not all registered metric entries today.
 | 2 | Learned | `nnx.Module` with trainable weights | LPIPS |
 | 3 | Metric Learning | Differentiable embedding loss | Contrastive, Triplet, ArcFace |
 
-**Functional domains:** regression, classification, calibration, segmentation, distance, divergence, information, ranking, statistical, clustering, fairness, image, text, audio, geometric, graph, manifold
+**Functional domains:** general, classification, calibration, segmentation, distance, divergence, information, ranking, statistical, clustering, fairness, forecasting, uncertainty, generative, image, text, audio, geometric, graph, manifold
 
 **Key capabilities:**
 
@@ -71,7 +71,7 @@ package architecture but are not all registered metric entries today.
 ### Analysis & Infrastructure
 
 - **Statistical analysis** - Bootstrap confidence intervals, hypothesis testing, effect sizes, outlier detection
-- **Regression detection** - Direction-aware detection with configurable severity levels
+- **Regression detection** - Direction-aware threshold checks against a stored baseline
 - **Comparison & ranking** - Cross-configuration comparison, Pareto front analysis, aggregate scoring
 - **Validation** - Convergence analysis and accuracy assessment
 - **Storage** - JSON-per-run file backend with baseline management

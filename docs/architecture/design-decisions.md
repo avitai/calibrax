@@ -7,7 +7,7 @@ reasoning that led to each, and their implications.
 
 **Problem:** Scientific ML practitioners working with JAX-based frameworks face
 fragmented benchmarking tooling. General-purpose benchmark suites like `pytest-benchmark`
-or `airspeed velocity` lack domain-specific concepts — they do not understand that
+or `airspeed velocity` lack domain-specific concepts: they do not understand that
 throughput should be maximized while latency should be minimized, cannot track GPU
 memory or energy consumption, and have no built-in support for regression detection
 across model training pipelines. Teams end up writing ad-hoc benchmarking scripts
@@ -26,7 +26,7 @@ measurement through statistical analysis to CI gating.
   benchmark data across any JAX-based project
 - Domain-specific metric semantics (direction, units, confidence intervals) are
   built into the data model rather than bolted on
-- Projects adopt Calibrax as a dependency and focus on their domain logic — the
+- Projects adopt Calibrax as a dependency and focus on their domain logic; the
   benchmarking infrastructure is handled
 
 ## 2. Composition over Inheritance
@@ -43,7 +43,7 @@ Each concern is modeled by a separate, independent dataclass.
 **Implications:**
 
 - New profiling dimensions can be added without modifying existing types
-- Partial results are natural — not every benchmark needs GPU profiling
+- Partial results are natural: not every benchmark needs GPU profiling
 - Serialization is straightforward: each component handles its own `to_dict()`
 
 ## 3. Protocol-Driven Design
@@ -57,7 +57,7 @@ matching methods satisfies the protocol via structural subtyping.
 
 **Implications:**
 
-- No base class required — third-party code works without modification
+- No base class required: third-party code works without modification
 - `isinstance()` checks work at runtime for validation
 - Type checkers verify protocol conformance statically
 
@@ -66,7 +66,7 @@ matching methods satisfies the protocol via structural subtyping.
 **Problem:** Regression detection and ranking code frequently has bugs where
 higher-is-better and lower-is-better metrics are compared with the wrong
 inequality. In scientific ML, throughput should increase while latency, loss,
-and energy consumption should decrease — getting this wrong invalidates results.
+and energy consumption should decrease, and getting this wrong invalidates results.
 
 **Decision:** Every metric declares its direction via `MetricDef.direction`
 (`HIGHER`, `LOWER`, or `INFO`). All analysis functions read this field to
@@ -88,8 +88,8 @@ requires the adapter itself to be an `nnx.Module`. But non-JAX targets
 
 **Decision:** Two adapter base classes:
 
-- `BenchmarkAdapter(ABC)` — for non-NNX targets, using standard inheritance
-- `NNXBenchmarkAdapter(nnx.Module)` — inherits from NNX, participates in JAX
+- `BenchmarkAdapter(ABC)`: for non-NNX targets, using standard inheritance
+- `NNXBenchmarkAdapter(nnx.Module)`: inherits from NNX, participates in JAX
   transformations
 
 **Implications:**
@@ -128,7 +128,8 @@ the module level, setting availability flags like `WANDB_AVAILABLE`,
 
 **Implications:**
 
-- Base install is lightweight (JAX + standard library)
+- The base install is JAX, Flax, NumPy, jaxtyping, click, psutil, typing_extensions and
+  substrax; every heavier dependency is an extra
 - Users install only the extras they need (`calibrax[stats]`, `calibrax[wandb]`,
   `calibrax[mlflow]`, `calibrax[codecarbon]`, `calibrax[changepoint]`)
 - Heavy optional modules (`WandBExporter`, `MLflowExporter`) are not re-exported
@@ -138,7 +139,7 @@ the module level, setting availability flags like `WANDB_AVAILABLE`,
 
 ## 8. Frozen Dataclasses
 
-**Problem:** Mutable benchmark results are error-prone — accidental mutation
+**Problem:** Mutable benchmark results are error-prone: accidental mutation
 during analysis or export can corrupt data and produce non-reproducible results.
 
 **Decision:** All data model classes use `@dataclass(frozen=True, slots=True,
@@ -176,8 +177,8 @@ external tools:
   Calibrax's data model and the external tool's API
 - Users benefit from active upstream development and bug fixes
 - Optional dependencies keep the base install clean
-- Calibrax focuses on the orchestration layer — connecting measurement, analysis,
-  and export — rather than reimplementing domain-specific algorithms
+- Calibrax focuses on the orchestration layer (connecting measurement, analysis,
+  and export) rather than reimplementing domain-specific algorithms
 
 ## 10. Hardware Abstraction Layer
 
@@ -194,7 +195,7 @@ auto-detects the active JAX backend.
 **Implications:**
 
 - Roofline analyzer, compilation profiler, and complexity analysis all share
-  the same hardware specs — no duplication
+  the same hardware specs, with no duplication
 - Adding support for new hardware requires a single dictionary entry
 - `detect_hardware_specs()` returns sensible defaults for unknown platforms,
   so profiling works everywhere (with reduced accuracy on unrecognized hardware)

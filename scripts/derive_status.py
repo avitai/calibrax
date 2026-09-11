@@ -1,28 +1,25 @@
 #!/usr/bin/env python3
-"""Derive a repo's status from its source tree and check it against the docs.
+"""Derive calibrax's documented status from the package and check every copy against it.
 
-Copy this template to ``scripts/derive_status.py`` in a sibling Avitai repo
-and edit only the CONFIG block below. Two run modes::
+Two run modes::
 
     uv run python scripts/derive_status.py            # print the derived table
     uv run python scripts/derive_status.py --check     # exit 1 on any drift (CI)
 
-Rationale: README / INDEX / badge claims rot as the code evolves. This makes
-the claims falsifiable — it walks ``src/`` plus manifests, emits the numbers
-the docs assert, and fails loudly when an asserted value disagrees with the
-measured one. Wire ``--check`` into CI so drift can never land silently.
-
-See ``audits/UNIFIED-AUDIT-2026-06-01.md`` (Theme 3) in the avitai-portfolio
-repo for the cross-cutting rationale this template implements.
-
-This file ends in ``.tmpl`` because the CONFIG block carries
-``<placeholders>`` that must be substituted per repo.
+The README and the documentation repeat the metric registry's size in many places.
+Each claim is measured from a fresh interpreter and compared with every copy listed
+in ``README_CLAIMS`` and ``DOCUMENT_SOURCES``, so a metric or domain added to the
+registry fails CI until every document reflects it. A listed document that no longer
+carries one of its claims is drift as well: a claim that cannot be found cannot be
+checked. Documents are read with whitespace collapsed, so a sentence wrapped across
+lines is still found.
 """
 
 from __future__ import annotations
 
 import argparse
 import functools
+import json
 import logging
 import os
 import re
@@ -37,33 +34,98 @@ from pathlib import Path
 logger = logging.getLogger("derive_status")
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+PACKAGE_NAME = "calibrax"
 VENDOR_PARTS = frozenset({".venv", "site-packages", "node_modules", ".git", "test_venv"})
-
-# === CONFIG — the only block to edit when stamping this template ============
-PACKAGE_NAME = "calibrax"  # directory under src/, e.g. "datarax"
-README_PATH = REPO_ROOT / "README.md"
-# label -> regex with ONE capture group pulling the asserted value out of the
-# README. Drop entries you do not assert; the derived value is still printed.
-ASSERTIONS: dict[str, str] = {
-    # The README's metrics headline: "(<n> registered Tier 0 metrics, <m> domains, ...)".
-    "tier0_metrics": r"\((\d+) registered Tier 0 metrics, \d+ domains",
-    "metric_domains": r"\(\d+ registered Tier 0 metrics, (\d+) domains",
-}
-# ===========================================================================
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Metric:
-    """A derived metric paired with whatever the docs assert for it."""
+    """A derived value paired with what the documents assert for it."""
 
     label: str
     measured: str
     asserted: str | None
+    missing: tuple[str, ...] = ()
 
     @property
     def is_drifted(self) -> bool:
-        """Whether an asserted value exists and disagrees with measurement."""
+        """Whether a document lost its claim or asserts a value measurement disagrees with."""
+        if self.missing:
+            return True
         return self.asserted is not None and self.asserted != self.measured
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Claim:
+    """How one kind of documented claim is read out of a document."""
+
+    patterns: tuple[str, ...]
+    reader: Callable[[str, tuple[str, ...]], str | None]
+
+
+def _flatten(text: str) -> str:
+    """Collapse every run of whitespace to one space, joining wrapped lines."""
+    return " ".join(text.split())
+
+
+def _read_counts(text: str, patterns: tuple[str, ...]) -> str | None:
+    """Return every distinct number the patterns capture, comma-joined in numeric order."""
+    flat = _flatten(text)
+    values = {value for pattern in patterns for value in re.findall(pattern, flat)}
+    return ",".join(sorted(values, key=int)) if values else None
+
+
+def _read_name_list(text: str, patterns: tuple[str, ...]) -> str | None:
+    """Return the first comma-separated name list the patterns capture, sorted."""
+    flat = _flatten(text)
+    for pattern in patterns:
+        match = re.search(pattern, flat)
+        if match:
+            return ",".join(sorted(name.strip() for name in match.group(1).split(",")))
+    return None
+
+
+def _read_table_rows(text: str, patterns: tuple[str, ...]) -> str | None:
+    """Return every ``name=count`` row the patterns capture, sorted by name."""
+    rows = [row for pattern in patterns for row in re.findall(pattern, text, flags=re.MULTILINE)]
+    return ",".join(sorted(f"{name}={count}" for name, count in rows)) if rows else None
+
+
+CLAIMS: dict[str, Claim] = {
+    "tier0_metrics": Claim(
+        patterns=(
+            r"\b(\d+) (?:registered )?Tier 0 (?:pure-function metrics|pure functions|metrics)",
+            r"\| (\d+) registered \|",
+        ),
+        reader=_read_counts,
+    ),
+    "metric_domains": Claim(
+        patterns=(r"\b(\d+) (?:functional )?domains\b",),
+        reader=_read_counts,
+    ),
+    "domain_names": Claim(
+        patterns=(r"\*\*Functional domains:\*\* ([a-z_]+(?:, [a-z_]+)*)",),
+        reader=_read_name_list,
+    ),
+    "domain_counts": Claim(
+        patterns=(r"^\| `([a-z_]+)` \| (\d+) \|",),
+        reader=_read_table_rows,
+    ),
+}
+
+README_CLAIMS: tuple[str, ...] = ("tier0_metrics", "metric_domains", "domain_names")
+
+# Repository-relative document -> the claims it must carry.
+DOCUMENT_SOURCES: dict[str, tuple[str, ...]] = {
+    "docs/architecture/module-map.md": ("tier0_metrics", "metric_domains"),
+    "docs/contributing/adding-a-metric.md": ("tier0_metrics", "metric_domains"),
+    "docs/contributing/example_documentation_design.md": ("tier0_metrics", "metric_domains"),
+    "docs/contributing/index.md": ("tier0_metrics", "metric_domains"),
+    "docs/user-guide/index.md": ("tier0_metrics", "metric_domains"),
+    "docs/user-guide/metrics-overview.md": ("tier0_metrics", "metric_domains", "domain_counts"),
+    "docs/user-guide/overview.md": ("tier0_metrics", "metric_domains"),
+    "docs/user-guide/peer-comparison.md": ("tier0_metrics",),
+}
 
 
 def _is_vendored(path: Path) -> bool:
@@ -104,17 +166,16 @@ def measure_modules(root: Path, package: str) -> str:
 
 
 _REGISTRY_PROBE = (
+    "import collections, json\n"
     "from calibrax.metrics import MetricRegistry, MetricTier\n"
-    "registry = MetricRegistry()\n"
-    "names = registry.list_names()\n"
-    "print(len(registry.list_by_tier(MetricTier.PURE_FUNCTION)))\n"
-    "print(len({registry.get(name).domain for name in names}))\n"
+    "entries = MetricRegistry().list_by_tier(MetricTier.PURE_FUNCTION)\n"
+    "print(json.dumps(collections.Counter(entry.domain for entry in entries)))\n"
 )
 
 
 @functools.cache
-def _registry_facts() -> tuple[str, str]:
-    """Count the Tier 0 metrics and their domains in a fresh interpreter.
+def _tier0_domain_counts() -> tuple[tuple[str, int], ...]:
+    """Count the Tier 0 metrics per domain in a fresh interpreter.
 
     The registry is a process-wide singleton that tests register into, so an
     in-process count would depend on what ran before it; a subprocess measures the
@@ -127,18 +188,28 @@ def _registry_facts() -> tuple[str, str]:
         check=True,
         env={**os.environ, "JAX_PLATFORMS": "cpu"},
     )
-    tier0, domains = result.stdout.split()
-    return tier0, domains
+    counts: dict[str, int] = json.loads(result.stdout)
+    return tuple(sorted(counts.items()))
 
 
 def measure_tier0_metrics(_root: Path, _package: str) -> str:
     """Count the Tier 0 (pure-function) metrics the registry holds after import."""
-    return _registry_facts()[0]
+    return str(sum(count for _, count in _tier0_domain_counts()))
 
 
 def measure_metric_domains(_root: Path, _package: str) -> str:
-    """Count the distinct domains of the registered metrics."""
-    return _registry_facts()[1]
+    """Count the distinct domains of the Tier 0 metrics."""
+    return str(len(_tier0_domain_counts()))
+
+
+def measure_domain_names(_root: Path, _package: str) -> str:
+    """List the Tier 0 domains, comma-joined and sorted."""
+    return ",".join(domain for domain, _ in _tier0_domain_counts())
+
+
+def measure_domain_counts(_root: Path, _package: str) -> str:
+    """List ``domain=count`` for every Tier 0 domain, sorted by domain."""
+    return ",".join(f"{domain}={count}" for domain, count in _tier0_domain_counts())
 
 
 def measure_subpackages(root: Path, package: str) -> str:
@@ -166,7 +237,6 @@ def measure_todos(root: Path, package: str) -> str:
     return str(total)
 
 
-# label -> measure function. Extend per repo as the README asserts more.
 MEASUREMENTS: dict[str, Callable[[Path, str], str]] = {
     "version": measure_version,
     "tests": measure_tests,
@@ -174,50 +244,79 @@ MEASUREMENTS: dict[str, Callable[[Path, str], str]] = {
     "subpackages": measure_subpackages,
     "tier0_metrics": measure_tier0_metrics,
     "metric_domains": measure_metric_domains,
+    "domain_names": measure_domain_names,
+    "domain_counts": measure_domain_counts,
     "todos": measure_todos,
 }
 
 
-def _asserted_value(label: str, readme_text: str) -> str | None:
-    """Extract the asserted value for ``label`` from the README, if declared."""
-    pattern = ASSERTIONS.get(label)
-    if pattern is None:
-        return None
-    matches = re.findall(pattern, readme_text, flags=re.MULTILINE)
-    return ",".join(sorted(matches)) if matches else None
+def _documents(root: Path, readme: Path) -> dict[str, tuple[Path, tuple[str, ...]]]:
+    """Map each checked document's display name to its path and required claims."""
+    documents = {"README.md": (readme, README_CLAIMS)}
+    for relative, labels in DOCUMENT_SOURCES.items():
+        documents[relative] = (root / relative, labels)
+    return documents
 
 
-def collect_metrics(root: Path, package: str, readme: Path = README_PATH) -> list[Metric]:
-    """Run every measurement and pair it with its asserted value (if any)."""
-    readme_text = readme.read_text() if readme.is_file() else ""
-    return [
-        Metric(
-            label=label,
-            measured=measure(root, package),
-            asserted=_asserted_value(label, readme_text),
+def _asserted(
+    label: str, documents: dict[str, tuple[Path, tuple[str, ...]]]
+) -> tuple[str | None, tuple[str, ...]]:
+    """Read ``label`` from every document that must carry it.
+
+    Returns:
+        The asserted value (distinct per-document readings joined with `` | ``, so any
+        disagreement differs from the measurement) and the documents that lack it.
+    """
+    claim = CLAIMS.get(label)
+    if claim is None:
+        return None, ()
+    readings: set[str] = set()
+    missing: list[str] = []
+    for name, (path, labels) in documents.items():
+        if label not in labels:
+            continue
+        reading = claim.reader(path.read_text(), claim.patterns) if path.is_file() else None
+        if reading is None:
+            missing.append(name)
+        else:
+            readings.add(reading)
+    asserted = " | ".join(sorted(readings)) if readings else None
+    return asserted, tuple(missing)
+
+
+def collect_metrics(root: Path, package: str, readme: Path | None = None) -> list[Metric]:
+    """Run every measurement and pair it with what the documents under ``root`` assert."""
+    documents = _documents(root, readme if readme is not None else root / "README.md")
+    metrics: list[Metric] = []
+    for label, measure in MEASUREMENTS.items():
+        asserted, missing = _asserted(label, documents)
+        metrics.append(
+            Metric(label=label, measured=measure(root, package), asserted=asserted, missing=missing)
         )
-        for label, measure in MEASUREMENTS.items()
-    ]
+    return metrics
 
 
 def render_table(metrics: list[Metric]) -> str:
     """Format the metrics as a fixed-width table for human reading."""
-    header = f"{'metric':<12} {'measured':<16} {'asserted':<16} drift"
-    rows = [
-        f"{m.label:<12} {m.measured:<16} {(m.asserted or '—'):<16} "
-        f"{'DRIFT' if m.is_drifted else 'ok'}"
-        for m in metrics
-    ]
+    header = f"{'metric':<15} {'drift':<6} measured / asserted"
+    rows = []
+    for metric in metrics:
+        status = "DRIFT" if metric.is_drifted else "ok"
+        rows.append(f"{metric.label:<15} {status:<6} {metric.measured}")
+        if metric.asserted is not None and metric.asserted != metric.measured:
+            rows.append(f"{'':<22} asserted: {metric.asserted}")
+        if metric.missing:
+            rows.append(f"{'':<22} missing from: {', '.join(metric.missing)}")
     return "\n".join([header, "-" * len(header), *rows])
 
 
 def main() -> int:
     """Print the derived table; with ``--check``, exit non-zero on drift."""
-    parser = argparse.ArgumentParser(description="Derive and verify repo status.")
+    parser = argparse.ArgumentParser(description="Derive and verify calibrax's documented status.")
     parser.add_argument(
         "--check",
         action="store_true",
-        help="exit non-zero if any asserted value disagrees with measurement",
+        help="exit non-zero if any document's claim is missing or disagrees with measurement",
     )
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -225,14 +324,15 @@ def main() -> int:
     metrics = collect_metrics(REPO_ROOT, PACKAGE_NAME)
     print(render_table(metrics))
 
-    drifted = [m for m in metrics if m.is_drifted]
+    drifted = [metric for metric in metrics if metric.is_drifted]
     if args.check and drifted:
         for metric in drifted:
             logger.error(
-                "drift: %s asserted=%s measured=%s",
+                "drift: %s asserted=%s measured=%s missing=%s",
                 metric.label,
                 metric.asserted,
                 metric.measured,
+                ",".join(metric.missing) or "-",
             )
         return 1
     return 0
