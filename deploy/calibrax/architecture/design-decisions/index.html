@@ -3808,7 +3808,7 @@ reasoning that led to each, and their implications.</p>
 <h2 id="1-a-dedicated-benchmarking-framework-for-sciml">1. A Dedicated Benchmarking Framework for SciML<a class="headerlink" href="#1-a-dedicated-benchmarking-framework-for-sciml" title="Permanent link">¤</a></h2>
 <p><strong>Problem:</strong> Scientific ML practitioners working with JAX-based frameworks face
 fragmented benchmarking tooling. General-purpose benchmark suites like <code>pytest-benchmark</code>
-or <code>airspeed velocity</code> lack domain-specific concepts — they do not understand that
+or <code>airspeed velocity</code> lack domain-specific concepts: they do not understand that
 throughput should be maximized while latency should be minimized, cannot track GPU
 memory or energy consumption, and have no built-in support for regression detection
 across model training pipelines. Teams end up writing ad-hoc benchmarking scripts
@@ -3825,7 +3825,7 @@ measurement through statistical analysis to CI gating.</p>
   benchmark data across any JAX-based project</li>
 <li>Domain-specific metric semantics (direction, units, confidence intervals) are
   built into the data model rather than bolted on</li>
-<li>Projects adopt Calibrax as a dependency and focus on their domain logic — the
+<li>Projects adopt Calibrax as a dependency and focus on their domain logic; the
   benchmarking infrastructure is handled</li>
 </ul>
 <h2 id="2-composition-over-inheritance">2. Composition over Inheritance<a class="headerlink" href="#2-composition-over-inheritance" title="Permanent link">¤</a></h2>
@@ -3839,7 +3839,7 @@ Each concern is modeled by a separate, independent dataclass.</p>
 <p><strong>Implications:</strong></p>
 <ul>
 <li>New profiling dimensions can be added without modifying existing types</li>
-<li>Partial results are natural — not every benchmark needs GPU profiling</li>
+<li>Partial results are natural: not every benchmark needs GPU profiling</li>
 <li>Serialization is straightforward: each component handles its own <code>to_dict()</code></li>
 </ul>
 <h2 id="3-protocol-driven-design">3. Protocol-Driven Design<a class="headerlink" href="#3-protocol-driven-design" title="Permanent link">¤</a></h2>
@@ -3850,7 +3850,7 @@ Calibrax and makes wrapping third-party code tedious.</p>
 matching methods satisfies the protocol via structural subtyping.</p>
 <p><strong>Implications:</strong></p>
 <ul>
-<li>No base class required — third-party code works without modification</li>
+<li>No base class required: third-party code works without modification</li>
 <li><code>isinstance()</code> checks work at runtime for validation</li>
 <li>Type checkers verify protocol conformance statically</li>
 </ul>
@@ -3858,7 +3858,7 @@ matching methods satisfies the protocol via structural subtyping.</p>
 <p><strong>Problem:</strong> Regression detection and ranking code frequently has bugs where
 higher-is-better and lower-is-better metrics are compared with the wrong
 inequality. In scientific ML, throughput should increase while latency, loss,
-and energy consumption should decrease — getting this wrong invalidates results.</p>
+and energy consumption should decrease, and getting this wrong invalidates results.</p>
 <p><strong>Decision:</strong> Every metric declares its direction via <code>MetricDef.direction</code>
 (<code>HIGHER</code>, <code>LOWER</code>, or <code>INFO</code>). All analysis functions read this field to
 determine comparison semantics automatically.</p>
@@ -3876,8 +3876,8 @@ requires the adapter itself to be an <code>nnx.Module</code>. But non-JAX target
 (PyTorch, scikit-learn) should not depend on NNX.</p>
 <p><strong>Decision:</strong> Two adapter base classes:</p>
 <ul>
-<li><code>BenchmarkAdapter(ABC)</code> — for non-NNX targets, using standard inheritance</li>
-<li><code>NNXBenchmarkAdapter(nnx.Module)</code> — inherits from NNX, participates in JAX
+<li><code>BenchmarkAdapter(ABC)</code>: for non-NNX targets, using standard inheritance</li>
+<li><code>NNXBenchmarkAdapter(nnx.Module)</code>: inherits from NNX, participates in JAX
   transformations</li>
 </ul>
 <p><strong>Implications:</strong></p>
@@ -3910,7 +3910,8 @@ the module level, setting availability flags like <code>WANDB_AVAILABLE</code>,
 <code>ImportError</code> on instantiation when their dependency is missing.</p>
 <p><strong>Implications:</strong></p>
 <ul>
-<li>Base install is lightweight (JAX + standard library)</li>
+<li>The base install is JAX, Flax, NumPy, jaxtyping, click, psutil, typing_extensions and
+  substrax; every heavier dependency is an extra</li>
 <li>Users install only the extras they need (<code>calibrax[stats]</code>, <code>calibrax[wandb]</code>,
   <code>calibrax[mlflow]</code>, <code>calibrax[codecarbon]</code>, <code>calibrax[changepoint]</code>)</li>
 <li>Heavy optional modules (<code>WandBExporter</code>, <code>MLflowExporter</code>) are not re-exported
@@ -3919,7 +3920,7 @@ the module level, setting availability flags like <code>WANDB_AVAILABLE</code>,
   the same pattern: import guard at module top, <code>ImportError</code> on use</li>
 </ul>
 <h2 id="8-frozen-dataclasses">8. Frozen Dataclasses<a class="headerlink" href="#8-frozen-dataclasses" title="Permanent link">¤</a></h2>
-<p><strong>Problem:</strong> Mutable benchmark results are error-prone — accidental mutation
+<p><strong>Problem:</strong> Mutable benchmark results are error-prone: accidental mutation
 during analysis or export can corrupt data and produce non-reproducible results.</p>
 <p><strong>Decision:</strong> All data model classes use <code>@dataclass(frozen=True, slots=True,
 kw_only=True)</code>. Results are immutable after construction.</p>
@@ -3953,8 +3954,8 @@ external tools:</p>
   Calibrax's data model and the external tool's API</li>
 <li>Users benefit from active upstream development and bug fixes</li>
 <li>Optional dependencies keep the base install clean</li>
-<li>Calibrax focuses on the orchestration layer — connecting measurement, analysis,
-  and export — rather than reimplementing domain-specific algorithms</li>
+<li>Calibrax focuses on the orchestration layer (connecting measurement, analysis,
+  and export) rather than reimplementing domain-specific algorithms</li>
 </ul>
 <h2 id="10-hardware-abstraction-layer">10. Hardware Abstraction Layer<a class="headerlink" href="#10-hardware-abstraction-layer" title="Permanent link">¤</a></h2>
 <p><strong>Problem:</strong> Profiling features like roofline analysis, compilation efficiency
@@ -3968,7 +3969,7 @@ auto-detects the active JAX backend.</p>
 <p><strong>Implications:</strong></p>
 <ul>
 <li>Roofline analyzer, compilation profiler, and complexity analysis all share
-  the same hardware specs — no duplication</li>
+  the same hardware specs, with no duplication</li>
 <li>Adding support for new hardware requires a single dictionary entry</li>
 <li><code>detect_hardware_specs()</code> returns sensible defaults for unknown platforms,
   so profiling works everywhere (with reduced accuracy on unrecognized hardware)</li>
