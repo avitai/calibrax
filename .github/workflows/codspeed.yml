@@ -19,7 +19,10 @@ jobs:
       contents: read
       id-token: write
     env:
-      CODSPEED_TOKEN: ${{ secrets.CODSPEED_TOKEN }}
+      # Only whether a token exists, never the token itself: the CodSpeed runner reads
+      # CODSPEED_TOKEN from the environment, and a set-but-empty value counts as a static
+      # token, so it skips OIDC and uploads with an empty key (401 "Missing API key").
+      HAS_CODSPEED_TOKEN: ${{ secrets.CODSPEED_TOKEN != '' }}
       CODSPEED_OIDC_ENABLED: ${{ vars.CODSPEED_OIDC_ENABLED }}
     steps:
       - uses: actions/checkout@v7
@@ -39,26 +42,26 @@ jobs:
         run: uv sync --locked --extra test --extra performance
 
       - name: Run performance smoke tests
-        if: env.CODSPEED_TOKEN == '' && env.CODSPEED_OIDC_ENABLED != 'true'
+        if: env.HAS_CODSPEED_TOKEN != 'true' && env.CODSPEED_OIDC_ENABLED != 'true'
         run: uv run pytest tests/performance/ --no-cov
 
       - name: Run CodSpeed benchmarks with token
-        if: env.CODSPEED_TOKEN != ''
-        uses: CodSpeedHQ/action@v4
+        if: env.HAS_CODSPEED_TOKEN == 'true'
+        uses: CodSpeedHQ/action@v5
         with:
           mode: simulation
-          token: ${{ env.CODSPEED_TOKEN }}
+          token: ${{ secrets.CODSPEED_TOKEN }}
           run: uv run pytest tests/performance/ --codspeed --no-cov
 
       - name: Run CodSpeed benchmarks with OIDC
-        if: env.CODSPEED_TOKEN == '' && env.CODSPEED_OIDC_ENABLED == 'true'
-        uses: CodSpeedHQ/action@v4
+        if: env.HAS_CODSPEED_TOKEN != 'true' && env.CODSPEED_OIDC_ENABLED == 'true'
+        uses: CodSpeedHQ/action@v5
         with:
           mode: simulation
           run: uv run pytest tests/performance/ --codspeed --no-cov
 
       - name: Explain skipped CodSpeed upload
-        if: env.CODSPEED_TOKEN == '' && env.CODSPEED_OIDC_ENABLED != 'true'
+        if: env.HAS_CODSPEED_TOKEN != 'true' && env.CODSPEED_OIDC_ENABLED != 'true'
         run: |
           echo "CodSpeed upload skipped because neither CODSPEED_TOKEN nor CODSPEED_OIDC_ENABLED=true is configured."
           echo "Performance smoke tests still ran and remain required."
