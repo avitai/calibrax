@@ -9,9 +9,12 @@ Supports warm-up iteration exclusion and JIT compilation time measurement.
 from __future__ import annotations
 
 import time
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass
 from typing import Any
+
+import numpy as np
+from jax import block_until_ready
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -110,7 +113,8 @@ class TimingCollector:
         """Initialize TimingCollector.
 
         Args:
-            sync_fn: Synchronization function called with each batch result.
+            sync_fn: Synchronization function called with each batch result;
+                ``None`` waits for the whole result with ``jax.block_until_ready``.
             warmup_iterations: Number of initial batches to exclude from timing stats.
 
         Raises:
@@ -118,7 +122,7 @@ class TimingCollector:
         """
         if warmup_iterations < 0:
             raise ValueError("warmup_iterations must be >= 0")
-        self._sync_fn = sync_fn or (lambda _result: None)
+        self._sync_fn = sync_fn or _wait_for_result
         self._warmup_iterations = warmup_iterations
 
     def measure_iteration(
@@ -211,3 +215,97 @@ class TimingCollector:
         jax.jit(fn).lower(*args).compile()
         end = time.perf_counter()
         return end - start
+
+
+_PERCENTILE_MAX = 100
+
+
+def _wait_for_result(result: Any) -> None:
+    """Wait for every array in ``result`` with ``jax.block_until_ready``."""
+    block_until_ready(result)
+
+
+@dataclass(frozen=True, kw_only=True, slots=True)
+class CallTiming:
+    """Timing of repeated calls to one function: the samples, their median and percentiles.
+
+    Attributes:
+        samples_sec: Wall-clock seconds of each timed call, warm-up excluded, in call order.
+        median_sec: Median of ``samples_sec``.
+        percentiles_sec: Percentile (0-100) to seconds, for the percentiles requested.
+        warmup: Calls made and discarded before timing.
+    """
+
+    samples_sec: tuple[float, ...]
+    median_sec: float
+    percentiles_sec: dict[int, float]
+    warmup: int
+
+    def to_dict(self) -> dict[str, Any]:
+        """JSON-ready form; percentile keys become strings."""
+        return {
+            "samples_sec": [float(sample) for sample in self.samples_sec],
+            "median_sec": float(self.median_sec),
+            "percentiles_sec": {str(k): float(v) for k, v in self.percentiles_sec.items()},
+            "warmup": int(self.warmup),
+        }
+
+
+def time_calls(
+    func: Callable[..., Any],
+    *args: Any,
+    warmup: int = 3,
+    iterations: int = 10,
+    percentiles: Sequence[int] = (50, 90, 99),
+    sync: Callable[[Any], object] | None = None,
+    **kwargs: Any,
+) -> CallTiming:
+    """Time ``func(*args, **kwargs)`` and report the median and percentiles.
+
+    Each call is followed by ``sync(result)``, ``jax.block_until_ready`` over the whole
+    result pytree by default, so asynchronous dispatch is inside the measurement. The
+    function is timed as given: pass ``jax.jit(f)`` to time the compiled program, and the
+    warm-up calls then absorb its compilation. The median is the reported figure because
+    a mean is moved by one slow call.
+
+    Args:
+        func: The callable to time.
+        *args: Positional arguments for every call.
+        warmup: Calls made and discarded before timing.
+        iterations: Timed calls.
+        percentiles: Percentiles (0-100) to report beside the median.
+        sync: Called with each result before the clock stops; ``None`` waits for the
+            whole result with ``jax.block_until_ready``.
+        **kwargs: Keyword arguments for every call.
+
+    Returns:
+        The samples, median and percentiles.
+
+    Raises:
+        ValueError: If ``iterations`` is below 1, ``warmup`` is negative, or a percentile
+            is outside 0-100.
+    """
+    if iterations < 1:
+        raise ValueError(f"iterations must be at least 1, got {iterations}")
+    if warmup < 0:
+        raise ValueError(f"warmup must be >= 0, got {warmup}")
+    if any(not 0 <= p <= _PERCENTILE_MAX for p in percentiles):
+        raise ValueError(f"every percentile must be within 0-100, got {tuple(percentiles)}")
+    wait = _wait_for_result if sync is None else sync
+
+    for _ in range(warmup):
+        wait(func(*args, **kwargs))
+
+    samples: list[float] = []
+    for _ in range(iterations):
+        start = time.perf_counter()
+        wait(func(*args, **kwargs))
+        samples.append(time.perf_counter() - start)
+
+    values = np.asarray(samples)
+    return CallTiming(
+        samples_sec=tuple(samples),
+        median_sec=float(np.median(values)),
+        percentiles_sec={int(p): float(np.percentile(values, p)) for p in percentiles},
+        warmup=warmup,
+    )

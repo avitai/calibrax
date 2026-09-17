@@ -37,7 +37,7 @@ Run everything after `source activate.sh`, from the repository root. CI runs the
 commands.
 
 ```bash
-uv run pytest tests/ --cov=calibrax --cov-report=term-missing   # tests, with coverage
+uv run pytest tests/ --cov=src/calibrax --cov-report=term-missing   # tests, with coverage
 uv run ruff check src/ tests/ && uv run ruff format --check src/ tests/
 uv run pyright --warnings src/
 uv run pre-commit run --all-files      # every gate, including import-linter, pydoclint,

@@ -8,9 +8,11 @@ warm-up exclusion, compilation time measurement, and edge cases.
 import dataclasses
 from unittest.mock import MagicMock, patch
 
+import jax.numpy as jnp
+import numpy as np
 import pytest
 
-from calibrax.profiling.timing import TimingCollector, TimingSample
+from calibrax.profiling.timing import CallTiming, time_calls, TimingCollector, TimingSample
 from tests.factories import make_default_timing_sample
 
 
@@ -466,3 +468,76 @@ class TestCompilationTime:
         mock_jitted.lower.assert_called_once_with("dummy_arg")
         mock_lowered.compile.assert_called_once()
         assert comp_time >= 0
+
+
+class TestTimeCalls:
+    """``time_calls`` times a callable and reports the median and percentiles."""
+
+    def test_reports_median_and_percentiles_over_the_timed_iterations(self) -> None:
+        timing = time_calls(lambda a: a + 1, jnp.ones((4,)), warmup=2, iterations=7)
+
+        assert isinstance(timing, CallTiming)
+        assert len(timing.samples_sec) == 7
+        assert timing.warmup == 2
+        assert timing.median_sec == pytest.approx(float(np.median(timing.samples_sec)))
+        assert set(timing.percentiles_sec) == {50, 90, 99}
+        assert timing.percentiles_sec[50] == pytest.approx(timing.median_sec)
+        assert timing.percentiles_sec[99] >= timing.percentiles_sec[50] > 0.0
+
+    def test_syncs_every_call_result_with_block_until_ready(self) -> None:
+        with patch("calibrax.profiling.timing.block_until_ready") as sync:
+            time_calls(lambda a: a * 2, jnp.ones((2,)), warmup=2, iterations=3)
+
+        assert sync.call_count == 5  # warmup and timed calls alike
+        assert all(call.args[0].shape == (2,) for call in sync.call_args_list)
+
+    def test_custom_sync_and_keyword_arguments(self) -> None:
+        seen: list[object] = []
+
+        def sync(result: object) -> None:
+            seen.append(result)
+
+        timing = time_calls(
+            lambda a, *, scale: a * scale,
+            jnp.ones((3,)),
+            scale=2.0,
+            warmup=0,
+            iterations=2,
+            percentiles=(50,),
+            sync=sync,
+        )
+
+        assert len(seen) == 2
+        assert set(timing.percentiles_sec) == {50}
+
+    @pytest.mark.parametrize(
+        ("kwargs", "message"),
+        [
+            ({"iterations": 0}, "iterations"),
+            ({"warmup": -1}, "warmup"),
+            ({"percentiles": (50, 101)}, "percentile"),
+        ],
+    )
+    def test_rejects_invalid_arguments(self, kwargs: dict, message: str) -> None:
+        with pytest.raises(ValueError, match=message):
+            time_calls(lambda a: a, jnp.ones((1,)), **kwargs)
+
+    def test_to_dict_is_json_ready(self) -> None:
+        timing = time_calls(lambda a: a, jnp.ones((1,)), warmup=0, iterations=2)
+        payload = timing.to_dict()
+
+        assert set(payload) == {"samples_sec", "median_sec", "percentiles_sec", "warmup"}
+        assert all(isinstance(v, float) for v in payload["samples_sec"])
+        assert all(isinstance(k, str) for k in payload["percentiles_sec"])
+
+
+class TestTimingCollectorDefaultSync:
+    """A collector without ``sync_fn`` waits for each result with ``block_until_ready``."""
+
+    def test_default_sync_blocks_on_each_result(self) -> None:
+        collector = TimingCollector()
+        with patch("calibrax.profiling.timing.block_until_ready") as sync:
+            collector.measure_iteration(iter([1, 2, 3]), process_fn=lambda b: jnp.ones((b,)))
+
+        assert sync.call_count == 3
+        assert [call.args[0].shape for call in sync.call_args_list] == [(1,), (2,), (3,)]

@@ -63,3 +63,26 @@ def test_ci_uploads_no_coverage_to_codecov() -> None:
 
     assert any(action.startswith("actions/checkout@") for action in uses)
     assert [action for action in uses if action.startswith("codecov/")] == []
+
+
+def _cov_sources(command_line: str) -> list[str]:
+    return re.findall(r"--cov=(\S+)", command_line)
+
+
+def test_pytest_measures_coverage_by_source_directory() -> None:
+    """Every ``--cov``, in addopts and in the CI test command, names a directory.
+
+    coverage treats a ``--cov`` value that is not a directory as a package and matches executed
+    code to it by module name, so a package file run as a script (``__main__``, no module spec)
+    never counts toward the package and reports 0%.
+    """
+    pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text())
+    addopts = pyproject["tool"]["pytest"]["ini_options"].get("addopts", "")
+    addopts = " ".join(addopts) if isinstance(addopts, list) else addopts
+    workflow = _load_workflow(WORKFLOWS / "ci.yml")
+    job = workflow["jobs"]["test"]
+    command = next(step["run"] for step in job["steps"] if "pytest" in step.get("run", ""))
+
+    for where, sources in (("addopts", _cov_sources(addopts)), ("ci.yml", _cov_sources(command))):
+        assert sources, f"{where} measures no coverage source"
+        assert [source for source in sources if not (ROOT / source).is_dir()] == [], where

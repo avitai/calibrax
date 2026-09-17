@@ -14,7 +14,8 @@ from typing import Any
 
 import jax
 
-from calibrax.profiling.hardware import detect_hardware_specs, measure_execution_time
+from calibrax.profiling.hardware import detect_hardware_specs
+from calibrax.profiling.timing import time_calls
 
 
 # Attained-over-attainable fractions behind the recommendations.
@@ -154,7 +155,7 @@ class RooflineAnalyzer:
         Returns:
             RooflineResult with bottleneck classification and recommendations.
         """
-        execution_time = measure_execution_time(func, inputs)
+        execution_time = time_calls(jax.jit(func), *inputs).median_sec
         theoretical_flops = flops_override or self._estimate_flops(func, inputs)
         memory_traffic = self._estimate_memory_traffic(func, inputs)
 

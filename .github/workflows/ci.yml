@@ -81,7 +81,7 @@ jobs:
       - name: Run tests
         run: |
           uv run pytest tests/ \
-            --cov=calibrax \
+            --cov=src/calibrax \
             --cov-report=term-missing \
             --cov-fail-under=80 \
             --timeout=300 \

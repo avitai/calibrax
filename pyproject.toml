@@ -33,7 +33,7 @@ dependencies = [
   "jaxtyping>=0.2.20",
   "numpy>=2.1",
   "psutil>=5.9.5",
-  "substrax>=0.1.0",
+  "substrax>=0.1.9",
   "typing_extensions>=4.5"
 ]
 description = "JAX benchmarking, profiling and evaluation metrics for Flax NNX: a metric registry across regression, classification, calibration, uncertainty, forecasting, generative, image, text, audio, graph and fairness domains, XLA FLOP counting, roofline analysis, GPU and energy monitoring, regression detection, publication exports, W&B and MLflow"
@@ -293,7 +293,7 @@ reportMissingTypeStubs = false
 typeCheckingMode = "standard"
 
 [tool.pytest.ini_options]
-addopts = "--strict-markers --strict-config --verbose --tb=short --color=yes --durations=10 --disable-warnings --cov=calibrax --cov-report=term-missing --cov-report=html --cov-fail-under=80 --timeout=300 --json-report --json-report-file=temp/test-results.json --json-report-indent=2"
+addopts = "--strict-markers --strict-config --verbose --tb=short --color=yes --durations=10 --disable-warnings --cov=src/calibrax --cov-report=term-missing --cov-report=html --cov-fail-under=80 --timeout=300 --json-report --json-report-file=temp/test-results.json --json-report-indent=2"
 cache_dir = ".pytest_cache"
 console_output_style = "progress"
 filterwarnings = [

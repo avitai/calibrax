@@ -5,17 +5,13 @@ execution time measurement, and synchronization barriers.
 """
 
 from typing import Any
-from unittest.mock import MagicMock, patch
 
-import jax.numpy as jnp
 import pytest
 from substrax.devices import DeviceInfo, DeviceKind
 
 from calibrax.profiling.hardware import (
-    _block_until_ready,
     detect_hardware_specs,
     HARDWARE_SPECS,
-    measure_execution_time,
 )
 
 
@@ -107,74 +103,3 @@ class TestDetectHardwareSpecs:
     def test_returns_cpu_generic_on_unknown_backend(self, monkeypatch: pytest.MonkeyPatch) -> None:
         result = self._detect_with_backend("metal", monkeypatch)
         assert result is HARDWARE_SPECS["cpu_generic"]
-
-
-class TestMeasureExecutionTime:
-    """Tests for measure_execution_time."""
-
-    def test_returns_positive_float(self) -> None:
-        x = jnp.ones((4, 4))
-        result = measure_execution_time(lambda a: a + 1, [x])
-
-        assert isinstance(result, float)
-        assert result > 0
-
-    def test_custom_warmup_and_iterations(self) -> None:
-        x = jnp.ones((2, 2))
-        result = measure_execution_time(lambda a: a * 2, [x], warmup=1, iterations=5)
-
-        assert isinstance(result, float)
-        assert result > 0
-
-    @patch("calibrax.profiling.hardware._block_until_ready")
-    def test_calls_block_until_ready(self, mock_block: MagicMock) -> None:
-        x = jnp.ones((2,))
-        measure_execution_time(lambda a: a + 1, [x], warmup=2, iterations=3)
-
-        # warmup (2) + iterations (3) = 5 calls
-        assert mock_block.call_count == 5
-
-    def test_returns_average_time(self) -> None:
-        x = jnp.ones((8, 8))
-        t1 = measure_execution_time(lambda a: a + 1, [x], warmup=1, iterations=20)
-        t2 = measure_execution_time(lambda a: a + 1, [x], warmup=1, iterations=20)
-
-        # Both should be small and roughly similar magnitude
-        assert t1 > 0
-        assert t2 > 0
-
-
-class TestBlockUntilReady:
-    """Tests for the _block_until_ready helper."""
-
-    def test_calls_block_until_ready_on_array(self) -> None:
-        mock_result = MagicMock()
-        mock_result.block_until_ready = MagicMock()
-        _block_until_ready(mock_result)
-        mock_result.block_until_ready.assert_called_once()
-
-    def test_handles_tuple_of_arrays(self) -> None:
-        mock_a = MagicMock()
-        mock_b = MagicMock()
-        _block_until_ready((mock_a, mock_b))
-        mock_a.block_until_ready.assert_called_once()
-        mock_b.block_until_ready.assert_called_once()
-
-    def test_handles_list_of_arrays(self) -> None:
-        mock_a = MagicMock()
-        mock_b = MagicMock()
-        _block_until_ready([mock_a, mock_b])
-        mock_a.block_until_ready.assert_called_once()
-        mock_b.block_until_ready.assert_called_once()
-
-    def test_handles_non_array_result(self) -> None:
-        # Should not raise for plain Python values
-        _block_until_ready(42)
-        _block_until_ready("hello")
-        _block_until_ready(None)
-
-    def test_handles_mixed_tuple(self) -> None:
-        mock_arr = MagicMock()
-        plain_val = 42  # No block_until_ready attribute
-        _block_until_ready((mock_arr, plain_val))
-        mock_arr.block_until_ready.assert_called_once()
