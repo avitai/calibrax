@@ -18,7 +18,6 @@ from calibrax.profiling.gpu import (
 from calibrax.profiling.hardware import (
     detect_hardware_specs,
     HARDWARE_SPECS,
-    measure_execution_time,
 )
 from calibrax.profiling.resources import (
     GPUProfilerProtocol,
@@ -27,7 +26,7 @@ from calibrax.profiling.resources import (
     ResourceSummary,
 )
 from calibrax.profiling.roofline import RooflineAnalyzer, RooflineResult
-from calibrax.profiling.timing import TimingCollector, TimingSample
+from calibrax.profiling.timing import CallTiming, time_calls, TimingCollector, TimingSample
 from calibrax.profiling.tracing import TraceLinker, TraceReference
 
 
@@ -55,7 +54,6 @@ __all__ = [
     # hardware
     "HARDWARE_SPECS",
     "detect_hardware_specs",
-    "measure_execution_time",
     # resources
     "GPUProfilerProtocol",
     "ResourceMonitor",
@@ -65,8 +63,10 @@ __all__ = [
     "RooflineAnalyzer",
     "RooflineResult",
     # timing
+    "CallTiming",
     "TimingCollector",
     "TimingSample",
+    "time_calls",
     # tracing
     "TraceLinker",
     "TraceReference",

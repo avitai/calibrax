@@ -23,6 +23,18 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Changed
 
+- `time_calls(func, *args, warmup=3, iterations=10, percentiles=(50, 90, 99), sync=..., **kwargs)`
+  times a callable and reports the median and percentiles of its timed calls (`CallTiming`),
+  with `jax.block_until_ready` over the whole result pytree as the default sync; pass
+  `jax.jit(f)` to time the compiled program. `RooflineAnalyzer` measures through it and reports
+  the median. `TimingCollector` built without `sync_fn` now waits for each batch result with
+  `jax.block_until_ready` where it waited for nothing, so timings it records are not comparable
+  with baselines recorded before this release; `TimingSample.to_dict` keeps its fields, which
+  the JSON run store persists.
+- pytest measures coverage by source directory, `--cov=src/calibrax` in addopts and in the CI
+  test command; a package name matched executed code by module, so a package file run as a
+  script reported 0%. `tests/ci/test_ci_coverage.py` fails on a `--cov` that is not a directory.
+- Requires `substrax>=0.1.9`, the latest release; the lock moves from 0.1.0.
 - `fbeta_score` and `f1_score` with `average="macro"` or `"weighted"` return the mean (or
   support-weighted mean) of the per-class F-beta, as scikit-learn and torchmetrics define it. They
   returned the F-beta of the averaged precision and recall, which is not the same number, so
@@ -31,6 +43,11 @@ and uses semantic versioning while the public API stabilizes.
 - `MetricCollection.from_registry` admits only metrics with the `PREDICTIONS_TARGETS` signature,
   because `compute_functional` calls every member with that pair; `crps` (ensemble signature)
   no longer joins a `general` collection that would have called it with plain predictions.
+
+### Removed
+
+- `calibrax.profiling.measure_execution_time`; `time_calls` replaces it and reports the median
+  rather than a mean, which one slow call moves.
 
 ## [0.1.6] - 2026-09-11
 

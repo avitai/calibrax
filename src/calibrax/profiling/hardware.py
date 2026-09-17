@@ -6,11 +6,8 @@ functions for hardware detection and synchronized execution timing.
 
 from __future__ import annotations
 
-import time
-from collections.abc import Callable
 from typing import Any
 
-import jax
 from substrax.devices import detect_devices, DeviceKind
 
 
@@ -68,54 +65,3 @@ def detect_hardware_specs() -> dict[str, Any]:
         return HARDWARE_SPECS["a100_80g"]
 
     return HARDWARE_SPECS["cpu_generic"]
-
-
-def measure_execution_time(
-    func: Callable[..., Any],
-    inputs: list[jax.Array],
-    warmup: int = 3,
-    iterations: int = 10,
-) -> float:
-    """Measure execution time of a JAX function with synchronization.
-
-    JIT-compiles the function, runs warmup iterations, then times
-    ``iterations`` executions with ``block_until_ready()`` barriers.
-
-    Args:
-        func: JAX function to benchmark.
-        inputs: Input arguments as a list of arrays.
-        warmup: Number of warmup iterations (for JIT compilation).
-        iterations: Number of timed iterations.
-
-    Returns:
-        Average execution time in seconds.
-    """
-    compiled_func = jax.jit(func)
-
-    for _ in range(warmup):
-        result = compiled_func(*inputs)
-        _block_until_ready(result)
-
-    start_time = time.perf_counter()
-    for _ in range(iterations):
-        result = compiled_func(*inputs)
-        _block_until_ready(result)
-
-    total_time = time.perf_counter() - start_time
-    return total_time / iterations
-
-
-def _block_until_ready(result: Any) -> None:
-    """Block until a JAX result is materialized.
-
-    Handles single arrays, tuples, and lists of arrays.
-
-    Args:
-        result: JAX computation result.
-    """
-    if hasattr(result, "block_until_ready"):
-        result.block_until_ready()
-    elif isinstance(result, tuple | list):
-        for r in result:
-            if hasattr(r, "block_until_ready"):
-                r.block_until_ready()
