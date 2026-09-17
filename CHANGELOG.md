@@ -12,6 +12,16 @@ and uses semantic versioning while the public API stabilizes.
 - Requires `substrax>=0.1.10`; the lock moves it from 0.1.9. Calibrax uses substrax's device
   detection only, which 0.1.10 leaves as it was.
 
+### Security
+
+- The lock moves cryptography from 49.0.0 to 50.0.1 for GHSA-g6cj-pr64-35w5. mlflow 3.15.2
+  required cryptography below 50, so mlflow (the `mlflow` extra, with its skinny and tracing
+  wheels) moves to 3.16.1, which also leaves the affected range of GHSA-h7x2-h6g9-p789 (the
+  AI gateway's `api_base` flaw, affected through 3.15.2). The exporter calls the tracking
+  client only (`start_run`, `set_tracking_uri`, `set_experiment`, `log_metric`, `log_params`,
+  `log_param`, `log_artifact`), which 3.16 leaves as it was; its breaking changes are the
+  server's basic-auth default, pyspark below 3.4.4 and the gateway's static prefix.
+
 ## [0.1.8] - 2026-09-17
 
 ### Added
