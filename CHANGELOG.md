@@ -7,6 +7,14 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+### Added
+
+- `reduce_values(values, *, mask, weights, reduction, axis)` is public, from `calibrax.metrics`
+  and `calibrax.metrics.functional`: the reduction every calibrax loss uses (a mask excludes
+  elements, weights give the weighted mean, an empty selection is `0.0`, `"none"`, `"mean"`,
+  `"sum"` and `"batch_sum"`), so a consumer reduces its own element-wise losses the same way
+  instead of keeping a reducer of its own.
+
 ## [0.1.7] - 2026-09-17
 
 ### Added

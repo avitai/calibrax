@@ -16,6 +16,7 @@ exports registry infrastructure, types, composition, and wrapper classes.
 from calibrax.metrics._builtin_registrations import _register_all_builtins, calculate_all
 from calibrax.metrics._registry import MetricRegistry, register_metric
 from calibrax.metrics._types import MetricEntry, MetricProperties, MetricSignature, MetricTier
+from calibrax.metrics._utils import reduce_values
 from calibrax.metrics.composition import (
     MetricCollection,
     MetricSuite,
@@ -35,6 +36,7 @@ from calibrax.metrics.wrappers import (
 _register_all_builtins()
 
 __all__ = [
+    "reduce_values",
     # Composition
     "MetricCollection",
     "MetricSuite",
