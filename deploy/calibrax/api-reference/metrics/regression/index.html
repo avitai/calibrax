@@ -2240,6 +2240,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.regression.charbonnier_loss" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;charbonnier_loss
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#calibrax.metrics.functional.regression.quantile_loss" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3803,6 +3814,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.regression.charbonnier_loss" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;charbonnier_loss
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#calibrax.metrics.functional.regression.quantile_loss" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3971,9 +3993,13 @@ SMAPE), robust losses (Huber, log-cosh), and goodness-of-fit measures
         <p>Regression metrics for benchmark result comparison.</p>
 <p>Pure functions for computing standard regression metrics between predictions
 and targets. All functions accept JAX arrays and return scalar values.</p>
-<p>Includes 13 metrics: MSE, MAE, RMSE, R-squared, MAPE, relative error,
-explained variance, max error, Huber loss, quantile loss, log-cosh loss,
-SMAPE, and CRPS.</p>
+<p>Includes 14 metrics: MSE, MAE, RMSE, R-squared, MAPE, relative error,
+explained variance, max error, Huber loss, Charbonnier loss, quantile loss,
+log-cosh loss, SMAPE, and CRPS.</p>
+<p>The losses (MSE, MAE, Huber, Charbonnier, relative L2) take keyword-only
+<code>mask</code>, <code>weights</code>, <code>reduction</code> and <code>axis</code>, reduced by
+<code>calibrax.metrics._utils.reduce_values</code>, so a masked or weighted evaluation
+means the same thing in every one of them.</p>
 
 
 
@@ -3999,7 +4025,7 @@ SMAPE, and CRPS.</p>
 
 
 <h2 id="calibrax.metrics.functional.regression.mse" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">mse</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">mse</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">weights</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">reduction</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
 
 <a href="#calibrax.metrics.functional.regression.mse" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4061,6 +4087,70 @@ Not a true metric -- violates the triangle inequality.</p>
                 <em>required</em>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>mask</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Elements to keep (boolean, broadcastable), or <code>None</code> for all.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>weights</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Element weights (broadcastable), or <code>None</code> for unit weights.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>reduction</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p><code>"none"</code>, <code>"mean"</code>, <code>"sum"</code> or <code>"batch_sum"</code>.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;mean&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>axis</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span> | <span title="tuple">tuple</span>[<span title="int">int</span>, ...] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Axis or axes for <code>"mean"</code> and <code>"sum"</code>.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -4080,7 +4170,7 @@ Not a true metric -- violates the triangle inequality.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Mean squared error as a scalar value.</p>
+                <p>Mean squared error as a scalar value, or the reduced values.</p>
               </div>
             </td>
           </tr>
@@ -4119,7 +4209,7 @@ Not a true metric -- violates the triangle inequality.</p>
 
 
 <h2 id="calibrax.metrics.functional.regression.mae" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">mae</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">mae</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">weights</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">reduction</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
 
 <a href="#calibrax.metrics.functional.regression.mae" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4181,6 +4271,70 @@ True metric -- satisfies identity, symmetry, and triangle inequality.</p>
                 <em>required</em>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>mask</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Elements to keep (boolean, broadcastable), or <code>None</code> for all.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>weights</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Element weights (broadcastable), or <code>None</code> for unit weights.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>reduction</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p><code>"none"</code>, <code>"mean"</code>, <code>"sum"</code> or <code>"batch_sum"</code>.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;mean&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>axis</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span> | <span title="tuple">tuple</span>[<span title="int">int</span>, ...] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Axis or axes for <code>"mean"</code> and <code>"sum"</code>.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -4200,7 +4354,7 @@ True metric -- satisfies identity, symmetry, and triangle inequality.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Mean absolute error as a scalar value.</p>
+                <p>Mean absolute error as a scalar value, or the reduced values.</p>
               </div>
             </td>
           </tr>
@@ -4960,7 +5114,7 @@ not on distribution distance).</p>
 
 
 <h2 id="calibrax.metrics.functional.regression.huber_loss" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">huber_loss</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">delta</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">huber_loss</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">delta</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">weights</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">reduction</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
 
 <a href="#calibrax.metrics.functional.regression.huber_loss" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -5040,6 +5194,70 @@ errors. More robust to outliers than MSE.</p>
                   <code>1.0</code>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>mask</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Elements to keep (boolean, broadcastable), or <code>None</code> for all.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>weights</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Element weights (broadcastable), or <code>None</code> for unit weights.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>reduction</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p><code>"none"</code>, <code>"mean"</code>, <code>"sum"</code> or <code>"batch_sum"</code>.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;mean&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>axis</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span> | <span title="tuple">tuple</span>[<span title="int">int</span>, ...] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Axis or axes for <code>"mean"</code> and <code>"sum"</code>.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -5059,7 +5277,222 @@ errors. More robust to outliers than MSE.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Mean Huber loss as a scalar value.</p>
+                <p>Mean Huber loss as a scalar value, or the reduced values.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If shapes do not match.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="calibrax.metrics.functional.regression.charbonnier_loss" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">charbonnier_loss</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">weights</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">reduction</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+
+<a href="#calibrax.metrics.functional.regression.charbonnier_loss" class="headerlink" title="Permanent link">¤</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Charbonnier loss, a differentiable L1: <code>(e^2 + epsilon^2)^(alpha / 2)</code>.</p>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>Direction: LOWER (<code>epsilon^alpha</code> = perfect).
+Range: [epsilon^alpha, inf).
+Not a true metric. Smooth at zero error, unlike MAE, so its gradient is
+finite everywhere; the usual choice for image restoration losses.</p>
+</details>
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>predictions</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Predicted values.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>targets</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Ground truth values.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>epsilon</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Smoothing constant; the loss at zero error.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0.001</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>alpha</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Exponent applied to the smoothed absolute error.</p>
+              </div>
+            </td>
+            <td>
+                  <code>1.0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>mask</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Elements to keep (boolean, broadcastable), or <code>None</code> for all.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>weights</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Element weights (broadcastable), or <code>None</code> for unit weights.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>reduction</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p><code>"none"</code>, <code>"mean"</code>, <code>"sum"</code> or <code>"batch_sum"</code>.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;mean&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>axis</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span> | <span title="tuple">tuple</span>[<span title="int">int</span>, ...] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Axis or axes for <code>"mean"</code> and <code>"sum"</code>.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Mean Charbonnier loss as a scalar value, or the reduced values.</p>
               </div>
             </td>
           </tr>
@@ -5719,7 +6152,7 @@ Returns one value per sample, so it is not a registered metric; see
 
 
 <h2 id="calibrax.metrics.functional.regression.relative_l2_error" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">relative_l2_error</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">relative_l2_error</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">weights</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">reduction</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
 
 <a href="#calibrax.metrics.functional.regression.relative_l2_error" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -5780,6 +6213,70 @@ Range: [0, inf).</p>
                 <em>required</em>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>mask</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Samples to keep (boolean, shape <code>(n_samples,)</code>), or <code>None</code> for all.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>weights</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Per-sample weights, or <code>None</code> for unit weights.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>reduction</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p><code>"none"</code>, <code>"mean"</code>, <code>"sum"</code> or <code>"batch_sum"</code>.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;mean&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>axis</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span> | <span title="tuple">tuple</span>[<span title="int">int</span>, ...] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Axis for <code>"mean"</code> and <code>"sum"</code>.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -5799,7 +6296,7 @@ Range: [0, inf).</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Scalar mean relative L2 error as a JAX array.</p>
+                <p>Scalar mean relative L2 error as a JAX array, or the reduced values.</p>
               </div>
             </td>
           </tr>

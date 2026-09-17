@@ -1631,6 +1631,45 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#calibrax.profiling.timing.CallTiming" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;CallTiming
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" CallTiming">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#calibrax.profiling.timing.CallTiming.to_dict" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;to_dict
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.profiling.timing.time_calls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;time_calls
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -3694,6 +3733,45 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#calibrax.profiling.timing.CallTiming" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;CallTiming
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" CallTiming">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#calibrax.profiling.timing.CallTiming.to_dict" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;to_dict
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.profiling.timing.time_calls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;time_calls
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -4118,7 +4196,8 @@ to wait for device completion before recording the timestamp.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Synchronization function called with each batch result.</p>
+                <p>Synchronization function called with each batch result;
+<code>None</code> waits for the whole result with <code>jax.block_until_ready</code>.</p>
               </div>
             </td>
             <td>
@@ -4437,6 +4516,333 @@ This measures the XLA compilation step only, not execution.</p>
 
 </div>
 
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="calibrax.profiling.timing.CallTiming" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>              <code class="highlight language-python"><span class="n">CallTiming</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">samples_sec</span><span class="p">,</span> <span class="n">median_sec</span><span class="p">,</span> <span class="n">percentiles_sec</span><span class="p">,</span> <span class="n">warmup</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+<a href="#calibrax.profiling.timing.CallTiming" class="headerlink" title="Permanent link">¤</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+
+
+        <p>Timing of repeated calls to one function: the samples, their median and percentiles.</p>
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="calibrax.profiling.timing.CallTiming.samples_sec">samples_sec</span></code></td>
+            <td>
+                  <code><span title="tuple">tuple</span>[<span title="float">float</span>, ...]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Wall-clock seconds of each timed call, warm-up excluded, in call order.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="calibrax.profiling.timing.CallTiming.median_sec">median_sec</span></code></td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Median of <code>samples_sec</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="calibrax.profiling.timing.CallTiming.percentiles_sec">percentiles_sec</span></code></td>
+            <td>
+                  <code><span title="dict">dict</span>[<span title="int">int</span>, <span title="float">float</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Percentile (0-100) to seconds, for the percentiles requested.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="calibrax.profiling.timing.CallTiming.warmup">warmup</span></code></td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Calls made and discarded before timing.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="calibrax.profiling.timing.CallTiming.to_dict" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">to_dict</span><span class="p">()</span></code>
+
+<a href="#calibrax.profiling.timing.CallTiming.to_dict" class="headerlink" title="Permanent link">¤</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>JSON-ready form; percentile keys become strings.</p>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="calibrax.profiling.timing.time_calls" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">time_calls</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">warmup</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">iterations</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">percentiles</span><span class="o">=</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="mi">90</span><span class="p">,</span> <span class="mi">99</span><span class="p">),</span> <span class="n">sync</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
+
+<a href="#calibrax.profiling.timing.time_calls" class="headerlink" title="Permanent link">¤</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Time <code>func(*args, **kwargs)</code> and report the median and percentiles.</p>
+<p>Each call is followed by <code>sync(result)</code>, <code>jax.block_until_ready</code> over the whole
+result pytree by default, so asynchronous dispatch is inside the measurement. The
+function is timed as given: pass <code>jax.jit(f)</code> to time the compiled program, and the
+warm-up calls then absorb its compilation. The median is the reported figure because
+a mean is moved by one slow call.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>func</code>
+            </td>
+            <td>
+                  <code><span title="collections.abc.Callable">Callable</span>[..., <span title="typing.Any">Any</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The callable to time.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>*args</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Positional arguments for every call.</p>
+              </div>
+            </td>
+            <td>
+                  <code>()</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>warmup</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Calls made and discarded before timing.</p>
+              </div>
+            </td>
+            <td>
+                  <code>3</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>iterations</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Timed calls.</p>
+              </div>
+            </td>
+            <td>
+                  <code>10</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>percentiles</code>
+            </td>
+            <td>
+                  <code><span title="collections.abc.Sequence">Sequence</span>[<span title="int">int</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Percentiles (0-100) to report beside the median.</p>
+              </div>
+            </td>
+            <td>
+                  <code>(50, 90, 99)</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>sync</code>
+            </td>
+            <td>
+                  <code><span title="collections.abc.Callable">Callable</span>[[<span title="typing.Any">Any</span>], <span title="object">object</span>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Called with each result before the clock stops; <code>None</code> waits for the
+whole result with <code>jax.block_until_ready</code>.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>**kwargs</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Keyword arguments for every call.</p>
+              </div>
+            </td>
+            <td>
+                  <code>{}</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;              &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;CallTiming&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;samples_sec&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;median_sec&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;percentiles_sec&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;warmup&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;
+
+  &lt;span class=&quot;doc doc-labels&quot;&gt;
+      &lt;small class=&quot;doc doc-label doc-label-dataclass&quot;&gt;&lt;code&gt;dataclass&lt;/code&gt;&lt;/small&gt;
+  &lt;/span&gt; (&lt;code&gt;calibrax.profiling.timing.CallTiming&lt;/code&gt;)" href="#calibrax.profiling.timing.CallTiming">CallTiming</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The samples, median and percentiles.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If <code>iterations</code> is below 1, <code>warmup</code> is negative, or a percentile
+is outside 0-100.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
 
 
 

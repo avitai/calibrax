@@ -2235,6 +2235,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.classification.softmax_cross_entropy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;softmax_cross_entropy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#calibrax.metrics.functional.classification.roc_auc" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3759,6 +3770,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.classification.softmax_cross_entropy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;softmax_cross_entropy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#calibrax.metrics.functional.classification.roc_auc" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4182,7 +4204,7 @@ Rows are true classes, columns are predicted classes.</p>
 
 
 <h2 id="calibrax.metrics.functional.classification.precision" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">precision</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">average</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;binary&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">precision</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">average</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;binary&#39;</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
 
 <a href="#calibrax.metrics.functional.classification.precision" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4259,6 +4281,23 @@ Range: [0, 1].</p>
                   <code>&#39;binary&#39;</code>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>num_classes</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of classes for the per-class averages; passed statically
+it makes the metric jit-compatible, <code>None</code> reads it from the data.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -4294,7 +4333,7 @@ Range: [0, 1].</p>
 
 
 <h2 id="calibrax.metrics.functional.classification.recall" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">recall</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">average</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;binary&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">recall</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">average</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;binary&#39;</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
 
 <a href="#calibrax.metrics.functional.classification.recall" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4369,6 +4408,23 @@ Range: [0, 1].</p>
                   <code>&#39;binary&#39;</code>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>num_classes</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of classes for the per-class averages; passed statically
+it makes the metric jit-compatible, <code>None</code> reads it from the data.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -4404,7 +4460,7 @@ Range: [0, 1].</p>
 
 
 <h2 id="calibrax.metrics.functional.classification.fbeta_score" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">fbeta_score</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">beta</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">average</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;binary&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">fbeta_score</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">beta</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">average</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;binary&#39;</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
 
 <a href="#calibrax.metrics.functional.classification.fbeta_score" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4497,6 +4553,23 @@ beta &lt; 1 weights precision more; beta &gt; 1 weights recall more.</p>
                   <code>&#39;binary&#39;</code>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>num_classes</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of classes for the per-class averages; passed statically
+it makes the metric jit-compatible, <code>None</code> reads it from the data.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -4532,7 +4605,7 @@ beta &lt; 1 weights precision more; beta &gt; 1 weights recall more.</p>
 
 
 <h2 id="calibrax.metrics.functional.classification.f1_score" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">f1_score</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">average</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;binary&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">f1_score</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">average</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;binary&#39;</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
 
 <a href="#calibrax.metrics.functional.classification.f1_score" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4608,6 +4681,23 @@ Range: [0, 1].</p>
                   <code>&#39;binary&#39;</code>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>num_classes</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of classes for the per-class averages; passed statically
+it makes the metric jit-compatible, <code>None</code> reads it from the data.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -4628,6 +4718,192 @@ Range: [0, 1].</p>
             <td>
               <div class="doc-md-description">
                 <p>F1 score as a scalar value.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="calibrax.metrics.functional.classification.softmax_cross_entropy" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">softmax_cross_entropy</span><span class="p">(</span><span class="n">logits</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">labels</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">weights</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">reduction</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+
+<a href="#calibrax.metrics.functional.classification.softmax_cross_entropy" class="headerlink" title="Permanent link">¤</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Cross-entropy of integer labels under the softmax of <code>logits</code>.</p>
+<p>The per-element loss is <code>-log_softmax(logits)[label]</code>, with the class axis last;
+the class count is the size of that axis. Reduced through the shared
+<code>reduce_values</code>, so <code>mask</code>, <code>weights</code>, <code>reduction</code> and <code>axis</code> mean what they
+mean in every other loss.</p>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>Direction: LOWER (0.0 = perfect).
+Range: [0, inf).
+Not a true metric.</p>
+</details>
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>logits</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Unnormalised scores with shape <code>(..., num_classes)</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>labels</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Integer class labels with shape <code>(...)</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>mask</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Elements to keep (boolean, broadcastable to <code>labels</code>), or <code>None</code>.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>weights</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Element weights (broadcastable to <code>labels</code>), or <code>None</code>.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>reduction</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p><code>"none"</code>, <code>"mean"</code>, <code>"sum"</code> or <code>"batch_sum"</code>.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;mean&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>axis</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span> | <span title="tuple">tuple</span>[<span title="int">int</span>, ...] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Axis or axes for <code>"mean"</code> and <code>"sum"</code>.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Mean cross-entropy as a scalar value, or the reduced values.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If <code>labels</code> does not have the shape of <code>logits</code> without its class axis.</p>
               </div>
             </td>
           </tr>

@@ -1704,17 +1704,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#calibrax.profiling.hardware.measure_execution_time" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;measure_execution_time
-      
-    </span>
-  </a>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -3571,17 +3560,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#calibrax.profiling.hardware.measure_execution_time" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;measure_execution_time
-      
-    </span>
-  </a>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -3748,128 +3726,6 @@ returns the pre-configured specs for that platform.</p>
             <td>
               <div class="doc-md-description">
                 <p>and critical_intensity keys (among others).</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-function">
-
-
-<h2 id="calibrax.profiling.hardware.measure_execution_time" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">measure_execution_time</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">warmup</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">iterations</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span></code>
-
-<a href="#calibrax.profiling.hardware.measure_execution_time" class="headerlink" title="Permanent link">¤</a></h2>
-
-
-    <div class="doc doc-contents ">
-
-        <p>Measure execution time of a JAX function with synchronization.</p>
-<p>JIT-compiles the function, runs warmup iterations, then times
-<code>iterations</code> executions with <code>block_until_ready()</code> barriers.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>func</code>
-            </td>
-            <td>
-                  <code><span title="collections.abc.Callable">Callable</span>[..., <span title="typing.Any">Any</span>]</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>JAX function to benchmark.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>inputs</code>
-            </td>
-            <td>
-                  <code><span title="list">list</span>[<span title="jax.Array">Array</span>]</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Input arguments as a list of arrays.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>warmup</code>
-            </td>
-            <td>
-                  <code><span title="int">int</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Number of warmup iterations (for JIT compilation).</p>
-              </div>
-            </td>
-            <td>
-                  <code>3</code>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>iterations</code>
-            </td>
-            <td>
-                  <code><span title="int">int</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Number of timed iterations.</p>
-              </div>
-            </td>
-            <td>
-                  <code>10</code>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="float">float</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Average execution time in seconds.</p>
               </div>
             </td>
           </tr>

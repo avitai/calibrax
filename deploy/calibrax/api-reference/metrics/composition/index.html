@@ -4649,6 +4649,11 @@ results = collection.compute_functional(predictions, targets)</p>
     <div class="doc doc-contents ">
 
         <p>Create a collection from all registered metrics matching filters.</p>
+<p>Only metrics with the <code>PREDICTIONS_TARGETS</code> signature join, because
+:meth:<code>compute_functional</code> calls every member with exactly that pair; an
+ensemble metric such as <code>crps</code> or a logits-and-labels loss such as
+<code>softmax_cross_entropy</code> is registered with its own signature and is left
+out.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
