@@ -257,22 +257,46 @@ def reduce_values(
         msg = f"Unknown reduction: {reduction!r}. Use one of {_REDUCTIONS}."
         raise ValueError(msg)
     values = jnp.asarray(values)
-    scale = jnp.ones_like(values)
-    if weights is not None:
-        scale = scale * jnp.asarray(weights)
+    if mask is None and weights is None:
+        # The plain reductions: no scale array, no guarded division, so a loss without a
+        # mask or weights costs what the bare formula costs.
+        return _plain_reduction(values, reduction, axis)
+    scale = jnp.ones_like(values) if weights is None else jnp.broadcast_to(weights, values.shape)
     if mask is not None:
         scale = jnp.where(jnp.asarray(mask), scale, jnp.zeros_like(scale))
-    scaled = values * scale
+    return _scaled_reduction(values * scale, scale, reduction, axis)
+
+
+def _plain_reduction(values: Any, reduction: str, axis: int | tuple[int, ...] | None) -> Any:
+    """Reduce unscaled values."""
+    if reduction == "none":
+        return values
+    if reduction == "sum":
+        return jnp.sum(values, axis=axis)
+    if reduction == "batch_sum":
+        return _batch_sum(values)
+    return jnp.mean(values, axis=axis)
+
+
+def _scaled_reduction(
+    scaled: Any, scale: Any, reduction: str, axis: int | tuple[int, ...] | None
+) -> Any:
+    """Reduce masked or weighted values; a mean divides by the scale that survived the mask."""
     if reduction == "none":
         return scaled
     if reduction == "sum":
         return jnp.sum(scaled, axis=axis)
     if reduction == "batch_sum":
-        if scaled.ndim <= 1:
-            return _mean_of_scaled(scaled, scale, axis=None)
-        batch = scaled.shape[0]
-        return jnp.mean(jnp.sum(scaled.reshape(batch, -1), axis=-1))
+        return _batch_sum(scaled) if scaled.ndim > 1 else _mean_of_scaled(scaled, scale, axis=None)
     return _mean_of_scaled(scaled, scale, axis=axis)
+
+
+def _batch_sum(values: Any) -> Any:
+    """Sum over the non-batch axes, mean over the leading batch axis."""
+    if values.ndim <= 1:
+        return jnp.mean(values)
+    batch = values.shape[0]
+    return jnp.mean(jnp.sum(values.reshape(batch, -1), axis=-1))
 
 
 def _mean_of_scaled(scaled: Any, scale: Any, *, axis: int | tuple[int, ...] | None) -> Any:
