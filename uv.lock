@@ -956,7 +956,7 @@ requires-dist = [
     { name = "scipy", marker = "extra == 'all-cpu'", specifier = ">=1.10" },
     { name = "scipy", marker = "extra == 'all-macos'", specifier = ">=1.10" },
     { name = "scipy", marker = "extra == 'stats'", specifier = ">=1.10" },
-    { name = "substrax", specifier = ">=0.1.9" },
+    { name = "substrax", specifier = ">=0.1.10" },
     { name = "twine", marker = "extra == 'all'", specifier = ">=4.0.2" },
     { name = "twine", marker = "extra == 'all-cpu'", specifier = ">=4.0.2" },
     { name = "twine", marker = "extra == 'all-macos'", specifier = ">=4.0.2" },
@@ -5518,7 +5518,7 @@ wheels = [
 
 [[package]]
 name = "substrax"
-version = "0.1.9"
+version = "0.1.10"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "flax" },
@@ -5528,9 +5528,9 @@ dependencies = [
     { name = "optax" },
     { name = "orbax-checkpoint" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/25/63/35bd881e604b00d8d7be067b001de821b05cb8a7d7cabd6ced2709d2557e/substrax-0.1.9.tar.gz", hash = "sha256:3a9bea6c822cde9a05a41f3a1a4d89ba83e1bb28dbabfff41d211f19767dfa0b", size = 71666, upload-time = "2026-09-17T06:21:27.981Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/78/b0/2ec3718f2b996706586e8e8b062240130b7f63422d9ded69c4802285f8f1/substrax-0.1.10.tar.gz", hash = "sha256:a56d702b7c79eca72a9f789da46bac8a2be79ca93f4ec2b90bc2da0065b6956a", size = 77962, upload-time = "2026-09-17T17:29:23.894Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/2d/3d/361d8640ea900f1be273dc3b956c0fbff96e996f24fcefe497f3dd14e5de/substrax-0.1.9-py3-none-any.whl", hash = "sha256:725df3ae30fc6944ac5d97a4479a79fd43b6ed1aead476d6e69cc201ff6ecc72", size = 85092, upload-time = "2026-09-17T06:21:26.2Z" },
+    { url = "https://files.pythonhosted.org/packages/ae/fb/34a5433973ff530b6a2f39fedda9348ee02683ff61500ceffa67f75c20c3/substrax-0.1.10-py3-none-any.whl", hash = "sha256:293c163320ef829c18330296de82ef354db1491f446046a64b9042563b08e5d2", size = 95322, upload-time = "2026-09-17T17:29:22.297Z" },
 ]
 
 [[package]]
