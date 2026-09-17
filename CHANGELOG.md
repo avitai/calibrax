@@ -7,6 +7,8 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+## [0.1.8] - 2026-09-17
+
 ### Added
 
 - `reduce_values(values, *, mask, weights, reduction, axis)` is public, from `calibrax.metrics`
