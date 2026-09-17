@@ -7,6 +7,8 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-09-17
+
 ### Added
 
 - `charbonnier_loss`, the differentiable L1 ``(e^2 + eps^2)^(alpha / 2)``, registered as a
