@@ -2,7 +2,7 @@
 
 Calibrax provides a 4-tier metric system that covers everything from stateless
 pure functions to trainable embedding losses. The current `MetricRegistry`
-contains 137 Tier 0 pure-function metrics across 20 domains. Tier 1-3 APIs,
+contains 139 Tier 0 pure-function metrics across 20 domains. Tier 1-3 APIs,
 optional plugin metrics, and metric-learning losses are part of the package
 architecture, but they are not all registry entries today.
 
@@ -161,8 +161,8 @@ metrics with a shared evaluation context.
 
 | Domain | Count | Examples |
 |--------|-------|---------|
-| `general` | 14 | MSE, MAE, RMSE, R-squared, Huber, SMAPE, relative L2 |
-| `classification` | 12 | Accuracy, F1, ROC-AUC, Matthews correlation |
+| `general` | 15 | MSE, MAE, RMSE, R-squared, Huber, Charbonnier, SMAPE, relative L2 |
+| `classification` | 13 | Accuracy, F1, ROC-AUC, Matthews correlation, softmax cross-entropy |
 | `calibration` | 5 | Brier score, ECE, MCE, adaptive ECE |
 | `segmentation` | 3 | IoU, Dice coefficient, pixel accuracy |
 | `distance` | 11 | Euclidean, cosine, Poincare, Lorentz, Mahalanobis |

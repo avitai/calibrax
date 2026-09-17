@@ -122,6 +122,20 @@ class TestMetricRegistry:
         registered = set(registry.list_names())
         assert expected.issubset(registered)
 
+    def test_softmax_cross_entropy_registered_with_its_own_signature(self) -> None:
+        """The logits-and-labels loss is registered, but not as a (predictions, targets) metric."""
+        entry = MetricRegistry().get("softmax_cross_entropy")
+        assert entry.domain == "classification"
+        assert entry.direction == MetricDirection.LOWER
+        assert entry.properties.is_differentiable is True
+        assert entry.signature == MetricSignature.CUSTOM
+
+    def test_charbonnier_registered_as_a_regression_loss(self) -> None:
+        entry = MetricRegistry().get("charbonnier_loss")
+        assert entry.domain == "general"
+        assert entry.direction == MetricDirection.LOWER
+        assert entry.signature == MetricSignature.PREDICTIONS_TARGETS
+
     def test_crps_registered_as_proper_ensemble_metric(self) -> None:
         """CRPS should expose proper-scoring metadata without joining default batches."""
         registry = MetricRegistry()

@@ -32,10 +32,10 @@
 
 ## Features
 
-### Metrics (137 registered Tier 0 metrics, 20 domains, 4-tier architecture)
+### Metrics (139 registered Tier 0 metrics, 20 domains, 4-tier architecture)
 
 Calibrax provides a 4-tier metric system covering the full spectrum of ML
-evaluation. The current registry contains 137 Tier 0 pure-function metrics;
+evaluation. The current registry contains 139 Tier 0 pure-function metrics;
 Tier 1-3 APIs, optional plugins, and metric-learning losses are part of the
 package architecture but are not all registered metric entries today.
 
@@ -54,6 +54,7 @@ package architecture but are not all registered metric entries today.
 - **Geometric distance hierarchy** - Euclidean, Riemannian (SPD, Grassmann, Stiefel), pseudo-Riemannian (ultrahyperbolic), Finsler (Randers)
 - **Graph metrics** - spectral distance, resistance distance, Floyd-Warshall shortest paths
 - **Reference checks** - representative Tier 0 metrics are tested against scikit-learn and SciPy references with `1e-6` tolerance; see [Peer Comparison](docs/user-guide/peer-comparison.md)
+- **Losses with masks and weights** - MSE, MAE, Huber, Charbonnier, relative L2 and softmax cross-entropy take `mask`, `weights`, `reduction` and `axis`, reduced one way
 - **Composition** - `MetricCollection`, `WeightedMetric`, `MetricSuite`, `ThresholdMetric`
 - **Wrappers** - `BootstrapMetric` (confidence intervals), `ClasswiseWrapper`, `MetricTracker`, `MinMaxTracker`
 - **Metric learning losses** - contrastive, triplet margin, NTXent, ArcFace, CosFace, ProxyNCA, ProxyAnchor, with hard/semi-hard negative mining
@@ -139,7 +140,7 @@ src/calibrax/
 ├── storage/       JSON store, baselines
 ├── exporters/     W&B, MLflow, publication-ready output
 ├── metrics/
-│   ├── functional/   137 Tier 0 pure functions across 20 domains
+│   ├── functional/   139 Tier 0 pure functions across 20 domains
 │   ├── stateful/     Tier 1-2 base classes (FrozenBackboneMetric, LearnedMetric)
 │   ├── learning/     Tier 3 metric learning losses and miners
 │   ├── plugins/      Optional-dependency metrics (FID, BERTScore, LPIPS)

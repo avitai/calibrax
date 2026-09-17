@@ -28,6 +28,7 @@ from calibrax.metrics.functional.classification import (
     recall,
     roc_auc,
     sensitivity,
+    softmax_cross_entropy,
     specificity,
 )
 from calibrax.metrics.functional.clustering import (
@@ -145,6 +146,7 @@ from calibrax.metrics.functional.ranking import (
     recall_at_k,
 )
 from calibrax.metrics.functional.regression import (
+    charbonnier_loss,
     crps,
     explained_variance,
     huber_loss,
@@ -261,6 +263,7 @@ __all__ = [
     "hausdorff_distance",
     "hellinger_distance",
     "hit_rate",
+    "charbonnier_loss",
     "huber_loss",
     "inception_score",
     "inception_score_per_split",
@@ -343,6 +346,7 @@ __all__ = [
     "spd_affine_invariant_distance",
     "spd_log_euclidean_distance",
     "spearman_rank_correlation",
+    "softmax_cross_entropy",
     "specificity",
     "spectral_convergence",
     "spectral_distance",

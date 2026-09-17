@@ -16,7 +16,7 @@ from typing import Any
 import jax
 import jax.numpy as jnp
 
-from calibrax.metrics._utils import _EPSILON, _prepare_class_arrays, safe_divide
+from calibrax.metrics._utils import _EPSILON, _prepare_class_arrays, reduce_values, safe_divide
 
 
 # Predictions are class indices (1D) or per-class scores (2D).
@@ -113,6 +113,7 @@ def precision(
     targets: Any,
     *,
     average: str = "binary",
+    num_classes: int | None = None,
 ) -> Any:
     """Precision: TP / (TP + FP).
 
@@ -126,11 +127,15 @@ def precision(
         average: Averaging method. "binary" for binary classification,
             "micro" sums globally, "macro" averages per-class,
             "weighted" weights by class frequency.
+        num_classes: Number of classes for the per-class averages; passed statically
+            it makes the metric jit-compatible, ``None`` reads it from the data.
 
     Returns:
         Precision as a scalar value.
     """
-    return _precision_recall_fbeta(predictions, targets, beta=0.0, average=average)[0]
+    return _precision_recall_fbeta(
+        predictions, targets, beta=0.0, average=average, num_classes=num_classes
+    )[0]
 
 
 def recall(
@@ -138,6 +143,7 @@ def recall(
     targets: Any,
     *,
     average: str = "binary",
+    num_classes: int | None = None,
 ) -> Any:
     """Recall (sensitivity): TP / (TP + FN).
 
@@ -150,10 +156,15 @@ def recall(
         targets: Ground truth class indices.
         average: Averaging method. "binary", "micro", "macro", "weighted".
 
+        num_classes: Number of classes for the per-class averages; passed statically
+            it makes the metric jit-compatible, ``None`` reads it from the data.
+
     Returns:
         Recall as a scalar value.
     """
-    return _precision_recall_fbeta(predictions, targets, beta=0.0, average=average)[1]
+    return _precision_recall_fbeta(
+        predictions, targets, beta=0.0, average=average, num_classes=num_classes
+    )[1]
 
 
 def fbeta_score(
@@ -162,6 +173,7 @@ def fbeta_score(
     *,
     beta: float = 1.0,
     average: str = "binary",
+    num_classes: int | None = None,
 ) -> Any:
     """Generalized F-measure with configurable beta.
 
@@ -178,10 +190,15 @@ def fbeta_score(
         beta: Weight of recall vs precision. 1.0 = F1, 2.0 = F2.
         average: Averaging method. "binary", "micro", "macro", "weighted".
 
+        num_classes: Number of classes for the per-class averages; passed statically
+            it makes the metric jit-compatible, ``None`` reads it from the data.
+
     Returns:
         F-beta score as a scalar value.
     """
-    return _precision_recall_fbeta(predictions, targets, beta=beta, average=average)[2]
+    return _precision_recall_fbeta(
+        predictions, targets, beta=beta, average=average, num_classes=num_classes
+    )[2]
 
 
 def f1_score(
@@ -189,6 +206,7 @@ def f1_score(
     targets: Any,
     *,
     average: str = "binary",
+    num_classes: int | None = None,
 ) -> Any:
     """F1 score: harmonic mean of precision and recall.
 
@@ -202,11 +220,26 @@ def f1_score(
         predictions: Predicted class indices or probability array.
         targets: Ground truth class indices.
         average: Averaging method. "binary", "micro", "macro", "weighted".
+        num_classes: Number of classes for the per-class averages; passed statically
+            it makes the metric jit-compatible, ``None`` reads it from the data.
 
     Returns:
         F1 score as a scalar value.
     """
-    return fbeta_score(predictions, targets, beta=1.0, average=average)
+    return fbeta_score(predictions, targets, beta=1.0, average=average, num_classes=num_classes)
+
+
+def _fbeta_of(precision_value: Any, recall_value: Any, beta: float) -> Any:
+    """F-beta from precision and recall; ``precision`` itself when ``beta`` is 0."""
+    beta_sq = beta**2
+    if beta_sq == 0:
+        return precision_value
+    return (
+        (1 + beta_sq)
+        * precision_value
+        * recall_value
+        / (beta_sq * precision_value + recall_value + _EPSILON)
+    )
 
 
 def _precision_recall_fbeta(
@@ -215,14 +248,22 @@ def _precision_recall_fbeta(
     *,
     beta: float,
     average: str,
+    num_classes: int | None = None,
 ) -> tuple[Any, Any, Any]:
     """Compute precision, recall, and F-beta together.
+
+    ``"macro"`` and ``"weighted"`` average the per-class values, F-beta included:
+    macro F-beta is the mean of the per-class F-betas and weighted F-beta their
+    support-weighted mean, as scikit-learn and torchmetrics define them, not the
+    F-beta of the averaged precision and recall.
 
     Args:
         predictions: Predicted class indices or probability array.
         targets: Ground truth class indices.
         beta: F-beta weight parameter.
         average: Averaging method.
+        num_classes: Number of classes for the per-class averages; ``None`` reads
+            it from the data, which is not jit-compatible.
 
     Returns:
         Tuple of (precision, recall, fbeta) as scalar values.
@@ -237,35 +278,84 @@ def _precision_recall_fbeta(
         tp, fp, fn, _tn = _binary_confusion_counts(p, t)
         prec = safe_divide(tp, tp + fp)
         rec = safe_divide(tp, tp + fn)
-    elif average == "micro":
-        cm = confusion_matrix(p, t)
+        return prec, rec, _fbeta_of(prec, rec, beta)
+    if average == "micro":
+        cm = confusion_matrix(p, t, num_classes=num_classes)
         tp = jnp.trace(cm)
         total_pred = jnp.sum(cm)
         prec = safe_divide(tp, total_pred)
         rec = safe_divide(tp, total_pred)
-    elif average in ("macro", "weighted"):
-        num_classes = int(jnp.maximum(jnp.max(p), jnp.max(t))) + 1
-        cm = confusion_matrix(p, t, num_classes=num_classes)
-        per_class_tp = jnp.diag(cm)
-        per_class_pred = jnp.sum(cm, axis=0)
-        per_class_true = jnp.sum(cm, axis=1)
-        per_class_prec = safe_divide(per_class_tp, per_class_pred)
-        per_class_rec = safe_divide(per_class_tp, per_class_true)
-
-        if average == "macro":
-            prec = jnp.mean(per_class_prec)
-            rec = jnp.mean(per_class_rec)
-        else:  # weighted
-            weights = per_class_true / (jnp.sum(per_class_true) + _EPSILON)
-            prec = jnp.sum(per_class_prec * weights)
-            rec = jnp.sum(per_class_rec * weights)
-    else:
+        return prec, rec, _fbeta_of(prec, rec, beta)
+    if average not in ("macro", "weighted"):
         msg = f"Unknown average mode: {average!r}. Use 'binary', 'micro', 'macro', or 'weighted'."
         raise ValueError(msg)
 
-    beta_sq = beta**2
-    fb = prec if beta_sq == 0 else (1 + beta_sq) * prec * rec / (beta_sq * prec + rec + _EPSILON)
-    return prec, rec, fb
+    if num_classes is None:
+        num_classes = int(jnp.maximum(jnp.max(p), jnp.max(t))) + 1
+    cm = confusion_matrix(p, t, num_classes=num_classes)
+    per_class_tp = jnp.diag(cm)
+    per_class_pred = jnp.sum(cm, axis=0)
+    per_class_true = jnp.sum(cm, axis=1)
+    per_class_prec = safe_divide(per_class_tp, per_class_pred)
+    per_class_rec = safe_divide(per_class_tp, per_class_true)
+    per_class_fb = _fbeta_of(per_class_prec, per_class_rec, beta)
+
+    if average == "macro":
+        return jnp.mean(per_class_prec), jnp.mean(per_class_rec), jnp.mean(per_class_fb)
+    weights = per_class_true / (jnp.sum(per_class_true) + _EPSILON)
+    return (
+        jnp.sum(per_class_prec * weights),
+        jnp.sum(per_class_rec * weights),
+        jnp.sum(per_class_fb * weights),
+    )
+
+
+def softmax_cross_entropy(
+    logits: Any,
+    labels: Any,
+    *,
+    mask: Any | None = None,
+    weights: Any | None = None,
+    reduction: str = "mean",
+    axis: int | tuple[int, ...] | None = None,
+) -> Any:
+    """Cross-entropy of integer labels under the softmax of ``logits``.
+
+    The per-element loss is ``-log_softmax(logits)[label]``, with the class axis last;
+    the class count is the size of that axis. Reduced through the shared
+    ``reduce_values``, so ``mask``, ``weights``, ``reduction`` and ``axis`` mean what they
+    mean in every other loss.
+
+    Note:
+        Direction: LOWER (0.0 = perfect).
+        Range: [0, inf).
+        Not a true metric.
+
+    Args:
+        logits: Unnormalised scores with shape ``(..., num_classes)``.
+        labels: Integer class labels with shape ``(...)``.
+        mask: Elements to keep (boolean, broadcastable to ``labels``), or ``None``.
+        weights: Element weights (broadcastable to ``labels``), or ``None``.
+        reduction: ``"none"``, ``"mean"``, ``"sum"`` or ``"batch_sum"``.
+        axis: Axis or axes for ``"mean"`` and ``"sum"``.
+
+    Returns:
+        Mean cross-entropy as a scalar value, or the reduced values.
+
+    Raises:
+        ValueError: If ``labels`` does not have the shape of ``logits`` without its class axis.
+    """
+    scores = jnp.asarray(logits)
+    targets = jnp.asarray(labels).astype(jnp.int32)
+    if targets.shape != scores.shape[:-1]:
+        msg = (
+            f"labels must have the shape of logits without the class axis: "
+            f"logits {scores.shape}, labels {targets.shape}"
+        )
+        raise ValueError(msg)
+    log_probs = jax.nn.log_softmax(scores, axis=-1)
+    picked = jnp.take_along_axis(log_probs, targets[..., None], axis=-1)[..., 0]
+    return reduce_values(-picked, mask=mask, weights=weights, reduction=reduction, axis=axis)
 
 
 def roc_auc(predictions: Any, targets: Any) -> Any:
