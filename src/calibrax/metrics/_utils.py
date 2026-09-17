@@ -209,3 +209,78 @@ def matrix_sqrtm(matrix: Any, *, eps: float = _EPSILON) -> jax.Array:
     eigenvalues, eigenvectors = jnp.linalg.eigh(jnp.asarray(matrix))
     sqrt_eigenvalues = jnp.sqrt(jnp.maximum(eigenvalues, eps))
     return eigenvectors @ jnp.diag(sqrt_eigenvalues) @ eigenvectors.T
+
+
+_REDUCTIONS = ("none", "mean", "sum", "batch_sum")
+
+
+def reduce_values(
+    values: Any,
+    *,
+    mask: Any | None = None,
+    weights: Any | None = None,
+    reduction: str = "mean",
+    axis: int | tuple[int, ...] | None = None,
+) -> Any:
+    """Reduce element-wise loss values under an optional mask and weights.
+
+    Every loss in the functional tier reduces through this one function, so a mask,
+    weights, a reduction and an axis mean the same thing everywhere:
+
+    - ``mask`` (boolean, broadcastable to ``values``) excludes elements: they contribute
+      nothing to a sum and are not counted in a mean;
+    - ``weights`` (broadcastable to ``values``) scale elements, and a mean is the weighted
+      mean ``sum(w * x) / sum(w)`` over the unmasked elements;
+    - ``reduction`` is ``"none"`` (element-wise, masked elements are 0), ``"mean"``,
+      ``"sum"`` or ``"batch_sum"`` (sum over the non-batch axes, mean over the leading
+      batch axis; ``axis`` is ignored);
+    - ``axis`` restricts ``"mean"`` and ``"sum"`` to the given axes.
+
+    A mean over no unmasked element (an all-false mask, or weights that sum to zero) is
+    ``0.0``: one documented, finite result, so a caller that treats an empty selection as
+    an error can check the mask at the host boundary instead of finding a NaN later.
+
+    Args:
+        values: Element-wise loss values.
+        mask: Elements to keep, or ``None`` for all of them.
+        weights: Element weights, or ``None`` for unit weights.
+        reduction: One of ``"none"``, ``"mean"``, ``"sum"``, ``"batch_sum"``.
+        axis: Axis or axes for ``"mean"`` and ``"sum"``.
+
+    Returns:
+        The reduced value(s).
+
+    Raises:
+        ValueError: If ``reduction`` is not one of the supported modes.
+    """
+    if reduction not in _REDUCTIONS:
+        msg = f"Unknown reduction: {reduction!r}. Use one of {_REDUCTIONS}."
+        raise ValueError(msg)
+    values = jnp.asarray(values)
+    scale = jnp.ones_like(values)
+    if weights is not None:
+        scale = scale * jnp.asarray(weights)
+    if mask is not None:
+        scale = jnp.where(jnp.asarray(mask), scale, jnp.zeros_like(scale))
+    scaled = values * scale
+    if reduction == "none":
+        return scaled
+    if reduction == "sum":
+        return jnp.sum(scaled, axis=axis)
+    if reduction == "batch_sum":
+        if scaled.ndim <= 1:
+            return _mean_of_scaled(scaled, scale, axis=None)
+        batch = scaled.shape[0]
+        return jnp.mean(jnp.sum(scaled.reshape(batch, -1), axis=-1))
+    return _mean_of_scaled(scaled, scale, axis=axis)
+
+
+def _mean_of_scaled(scaled: Any, scale: Any, *, axis: int | tuple[int, ...] | None) -> Any:
+    """``sum(scaled) / sum(scale)`` with ``0.0`` where the scale sums to zero."""
+    numerator = jnp.sum(scaled, axis=axis)
+    denominator = jnp.sum(scale, axis=axis)
+    empty = denominator == 0
+    # The guarded operand goes inside the select too, so the gradient of the empty
+    # branch is finite rather than the derivative of a division by zero.
+    safe_denominator = jnp.where(empty, jnp.ones_like(denominator), denominator)
+    return jnp.where(empty, jnp.zeros_like(numerator), numerator / safe_denominator)

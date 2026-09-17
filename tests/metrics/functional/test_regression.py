@@ -7,6 +7,7 @@ import jax.numpy as jnp
 import pytest
 
 from calibrax.metrics.functional.regression import (
+    charbonnier_loss,
     crps,
     explained_variance,
     huber_loss,
@@ -18,6 +19,7 @@ from calibrax.metrics.functional.regression import (
     quantile_loss,
     r_squared,
     relative_error,
+    relative_l2_error,
     rmse,
     smape,
 )
@@ -420,3 +422,95 @@ class TestRelativeL2Error:
         assert bool(jnp.isfinite(jax.jit(relative_l2_error)(pred, target)))
         assert bool(jnp.all(jnp.isfinite(jax.grad(relative_l2_error)(pred, target))))
         assert jax.vmap(per_sample_relative_l2)(pred[None], target[None]).shape == (1, 6)
+
+
+class TestMaskedWeightedReduction:
+    """The losses take a mask, weights, a reduction and an axis, and agree with hand computations."""
+
+    predictions = jnp.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0], [1.0, 1.0, 1.0]])
+    targets = jnp.array([[1.0, 1.0, 1.0], [4.0, 4.0, 4.0], [0.0, 0.0, 0.0], [2.0, 2.0, 2.0]])
+    row_mask = jnp.array([True, True, False, True])
+
+    def test_masked_mean_equals_the_mean_over_valid_rows(self) -> None:
+        masked = mse(self.predictions, self.targets, mask=self.row_mask[:, None])
+        valid = mse(self.predictions[self.row_mask], self.targets[self.row_mask])
+        assert jnp.allclose(masked, valid)
+
+    def test_weights_match_a_hand_computation(self) -> None:
+        weights = jnp.array([1.0, 2.0, 0.5, 4.0])[:, None]
+        squared = (self.predictions - self.targets) ** 2
+        expected = jnp.sum(weights * squared) / jnp.sum(jnp.broadcast_to(weights, squared.shape))
+        assert jnp.allclose(mse(self.predictions, self.targets, weights=weights), expected)
+
+    def test_an_all_false_mask_gives_zero(self) -> None:
+        """One documented result, finite, so a caller can check it at the host boundary."""
+        nothing = jnp.zeros_like(self.predictions, dtype=bool)
+        for loss in (mse, mae, huber_loss):
+            value = loss(self.predictions, self.targets, mask=nothing)
+            assert jnp.isfinite(value)
+            assert value == 0.0
+
+    def test_reductions_and_axis(self) -> None:
+        squared = (self.predictions - self.targets) ** 2
+        assert jnp.allclose(mse(self.predictions, self.targets, reduction="none"), squared)
+        assert jnp.allclose(mse(self.predictions, self.targets, reduction="sum"), jnp.sum(squared))
+        assert jnp.allclose(mse(self.predictions, self.targets, axis=0), jnp.mean(squared, axis=0))
+        masked_none = mse(
+            self.predictions, self.targets, mask=self.row_mask[:, None], reduction="none"
+        )
+        assert jnp.all(masked_none[2] == 0.0)
+
+    def test_rejects_an_unknown_reduction(self) -> None:
+        with pytest.raises(ValueError, match="reduction"):
+            mse(self.predictions, self.targets, reduction="median")
+
+    def test_jit_and_grad_work_through_the_mask(self) -> None:
+        mask = self.row_mask[:, None]
+
+        def loss(p: jax.Array) -> jax.Array:
+            return mae(p, self.targets, mask=mask)
+
+        eager = loss(self.predictions)
+        assert jnp.allclose(jax.jit(loss)(self.predictions), eager)
+        gradient = jax.grad(loss)(self.predictions)
+        assert jnp.all(jnp.isfinite(gradient))
+        assert jnp.all(gradient[2] == 0.0)
+
+    def test_huber_and_relative_l2_take_the_same_keywords(self) -> None:
+        huber_masked = huber_loss(self.predictions, self.targets, mask=self.row_mask[:, None])
+        huber_valid = huber_loss(self.predictions[self.row_mask], self.targets[self.row_mask])
+        assert jnp.allclose(huber_masked, huber_valid)
+        per_sample_weights = jnp.array([1.0, 1.0, 0.0, 1.0])
+        weighted = relative_l2_error(self.predictions, self.targets, weights=per_sample_weights)
+        unweighted = relative_l2_error(self.predictions[self.row_mask], self.targets[self.row_mask])
+        assert jnp.allclose(weighted, unweighted)
+
+
+class TestCharbonnierLoss:
+    """Charbonnier loss, ``(e^2 + eps^2)^(alpha/2)``, a differentiable L1."""
+
+    def test_perfect_predictions_give_epsilon(self) -> None:
+        x = jnp.array([1.0, 2.0, 3.0])
+        assert jnp.allclose(charbonnier_loss(x, x, epsilon=1e-3), 1e-3)
+
+    def test_known_value(self) -> None:
+        predictions = jnp.array([1.0, 2.0, 3.0])
+        targets = jnp.array([0.0, 0.0, 0.0])
+        expected = jnp.mean(jnp.sqrt(predictions**2 + 1e-3**2))
+        assert jnp.allclose(charbonnier_loss(predictions, targets), expected)
+
+    def test_alpha_and_reduction(self) -> None:
+        predictions = jnp.array([[3.0, 0.0], [0.0, 4.0]])
+        targets = jnp.zeros_like(predictions)
+        elementwise = charbonnier_loss(
+            predictions, targets, epsilon=0.0, alpha=2.0, reduction="none"
+        )
+        assert jnp.allclose(elementwise, predictions**2)
+        assert jnp.allclose(
+            charbonnier_loss(predictions, targets, epsilon=0.0, reduction="sum"), 7.0
+        )
+
+    def test_is_differentiable_at_zero_error(self) -> None:
+        x = jnp.array([0.0, 0.0])
+        gradient = jax.grad(lambda p: charbonnier_loss(p, x))(x)
+        assert jnp.all(jnp.isfinite(gradient))

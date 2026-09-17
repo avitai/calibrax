@@ -121,9 +121,10 @@ def _register_all_builtins() -> None:
 
 
 def _register_regression_metrics() -> None:
-    """Register all 13 regression metrics at import time."""
+    """Register all 14 regression metrics at import time."""
     from calibrax.metrics._registry import MetricRegistry
     from calibrax.metrics.functional.regression import (
+        charbonnier_loss,
         crps,
         explained_variance,
         huber_loss,
@@ -211,6 +212,13 @@ def _register_regression_metrics() -> None:
             "Huber loss (robust regression)",
             MetricDirection.LOWER,
             MetricProperties(is_symmetric=True, is_differentiable=True),
+        ),
+        _BuiltinMetricSpec(
+            "charbonnier_loss",
+            charbonnier_loss,
+            "Charbonnier loss (differentiable L1)",
+            MetricDirection.LOWER,
+            MetricProperties(is_symmetric=True, is_differentiable=True, is_jit_compatible=True),
         ),
         _BuiltinMetricSpec(
             "quantile_loss",
@@ -547,7 +555,7 @@ def _register_specs(registry: Any, specs: Sequence[_BuiltinMetricSpec]) -> None:
 
 
 def _register_classification_metrics() -> None:
-    """Register 13 classification metrics at import time.
+    """Register 14 classification metrics at import time.
 
     Note: confusion_matrix is NOT registered (returns array, not float).
     """
@@ -564,6 +572,7 @@ def _register_classification_metrics() -> None:
         recall,
         roc_auc,
         sensitivity,
+        softmax_cross_entropy,
         specificity,
     )
 
@@ -688,6 +697,25 @@ def _register_classification_metrics() -> None:
                 ),
             )
             registry.register(name, entry)
+
+    # Logits and labels, not (predictions, targets): registered with its own signature so a
+    # registry-driven collection computed on class indices leaves it out.
+    if not registry.has("softmax_cross_entropy"):
+        registry.register(
+            "softmax_cross_entropy",
+            MetricEntry(
+                name="softmax_cross_entropy",
+                fn=softmax_cross_entropy,
+                tier=MetricTier.PURE_FUNCTION,
+                domain="classification",
+                direction=MetricDirection.LOWER,
+                description="Cross-entropy of integer labels under softmax logits",
+                signature=MetricSignature.CUSTOM,
+                properties=MetricProperties(
+                    is_proper=True, is_differentiable=True, is_jit_compatible=True
+                ),
+            ),
+        )
 
 
 def _register_calibration_metrics() -> None:

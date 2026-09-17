@@ -14,7 +14,7 @@ from collections.abc import Callable
 from typing import Any
 
 from calibrax.metrics._registry import MetricRegistry
-from calibrax.metrics._types import MetricTier
+from calibrax.metrics._types import MetricSignature, MetricTier
 
 
 class MetricCollection:
@@ -105,6 +105,12 @@ class MetricCollection:
     ) -> MetricCollection:
         """Create a collection from all registered metrics matching filters.
 
+        Only metrics with the ``PREDICTIONS_TARGETS`` signature join, because
+        :meth:`compute_functional` calls every member with exactly that pair; an
+        ensemble metric such as ``crps`` or a logits-and-labels loss such as
+        ``softmax_cross_entropy`` is registered with its own signature and is left
+        out.
+
         Args:
             domain: Filter by domain (None = all domains).
             tier: Filter by tier (default: PURE_FUNCTION).
@@ -113,7 +119,11 @@ class MetricCollection:
             MetricCollection with matching metrics.
         """
         registry = MetricRegistry()
-        entries = registry.list_by_tier(tier)
+        entries = [
+            e
+            for e in registry.list_by_tier(tier)
+            if e.signature == MetricSignature.PREDICTIONS_TARGETS
+        ]
         if domain is not None:
             entries = [e for e in entries if e.domain == domain]
         metrics = {e.name: e.fn for e in entries if e.fn is not None}

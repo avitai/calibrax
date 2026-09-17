@@ -46,6 +46,19 @@ class TestMetricCollection:
         collection = MetricCollection.from_registry(domain="general")
         assert len(collection.names) >= 6  # At least 6 regression metrics
 
+    def test_from_registry_holds_only_predictions_targets_metrics(self) -> None:
+        """A collection computed with (predictions, targets) admits only that signature."""
+        general = MetricCollection.from_registry(domain="general")
+        assert "mse" in general.names
+        assert "crps" not in general.names  # ensemble signature
+        classification = MetricCollection.from_registry(domain="classification")
+        assert "f1_score" in classification.names
+        assert "softmax_cross_entropy" not in classification.names  # logits and labels
+        predictions = jnp.array([1, 0, 1, 1, 0])
+        targets = jnp.array([1, 0, 0, 1, 0])
+        results = classification.compute_functional(predictions, targets)
+        assert set(results) == set(classification.names)
+
     def test_empty_collection(self) -> None:
         collection = MetricCollection({})
         predictions = jnp.array([1.0, 2.0])

@@ -3,9 +3,14 @@
 Pure functions for computing standard regression metrics between predictions
 and targets. All functions accept JAX arrays and return scalar values.
 
-Includes 13 metrics: MSE, MAE, RMSE, R-squared, MAPE, relative error,
-explained variance, max error, Huber loss, quantile loss, log-cosh loss,
-SMAPE, and CRPS.
+Includes 14 metrics: MSE, MAE, RMSE, R-squared, MAPE, relative error,
+explained variance, max error, Huber loss, Charbonnier loss, quantile loss,
+log-cosh loss, SMAPE, and CRPS.
+
+The losses (MSE, MAE, Huber, Charbonnier, relative L2) take keyword-only
+``mask``, ``weights``, ``reduction`` and ``axis``, reduced by
+``calibrax.metrics._utils.reduce_values``, so a masked or weighted evaluation
+means the same thing in every one of them.
 """
 
 from __future__ import annotations
@@ -14,10 +19,24 @@ from typing import Any
 
 import jax.numpy as jnp
 
-from calibrax.metrics._utils import _EPSILON, _prepare_arrays, _prepare_ensemble_arrays, safe_divide
+from calibrax.metrics._utils import (
+    _EPSILON,
+    _prepare_arrays,
+    _prepare_ensemble_arrays,
+    reduce_values,
+    safe_divide,
+)
 
 
-def mse(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _prepare_arrays
+def mse(  # noqa: DOC502  # raised by _prepare_arrays
+    predictions: Any,
+    targets: Any,
+    *,
+    mask: Any | None = None,
+    weights: Any | None = None,
+    reduction: str = "mean",
+    axis: int | tuple[int, ...] | None = None,
+) -> Any:
     """Mean squared error.
 
     Computes the average of squared differences between predictions and
@@ -31,18 +50,30 @@ def mse(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _pr
     Args:
         predictions: Predicted values.
         targets: Ground truth values.
+        mask: Elements to keep (boolean, broadcastable), or ``None`` for all.
+        weights: Element weights (broadcastable), or ``None`` for unit weights.
+        reduction: ``"none"``, ``"mean"``, ``"sum"`` or ``"batch_sum"``.
+        axis: Axis or axes for ``"mean"`` and ``"sum"``.
 
     Returns:
-        Mean squared error as a scalar value.
+        Mean squared error as a scalar value, or the reduced values.
 
     Raises:
         ValueError: If shapes do not match.
     """
     p, t = _prepare_arrays(predictions, targets)
-    return jnp.mean((p - t) ** 2)
+    return reduce_values((p - t) ** 2, mask=mask, weights=weights, reduction=reduction, axis=axis)
 
 
-def mae(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _prepare_arrays
+def mae(  # noqa: DOC502  # raised by _prepare_arrays
+    predictions: Any,
+    targets: Any,
+    *,
+    mask: Any | None = None,
+    weights: Any | None = None,
+    reduction: str = "mean",
+    axis: int | tuple[int, ...] | None = None,
+) -> Any:
     """Mean absolute error.
 
     Computes the average of absolute differences between predictions and
@@ -56,15 +87,19 @@ def mae(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _pr
     Args:
         predictions: Predicted values.
         targets: Ground truth values.
+        mask: Elements to keep (boolean, broadcastable), or ``None`` for all.
+        weights: Element weights (broadcastable), or ``None`` for unit weights.
+        reduction: ``"none"``, ``"mean"``, ``"sum"`` or ``"batch_sum"``.
+        axis: Axis or axes for ``"mean"`` and ``"sum"``.
 
     Returns:
-        Mean absolute error as a scalar value.
+        Mean absolute error as a scalar value, or the reduced values.
 
     Raises:
         ValueError: If shapes do not match.
     """
     p, t = _prepare_arrays(predictions, targets)
-    return jnp.mean(jnp.abs(p - t))
+    return reduce_values(jnp.abs(p - t), mask=mask, weights=weights, reduction=reduction, axis=axis)
 
 
 def rmse(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _prepare_arrays
@@ -226,6 +261,10 @@ def huber_loss(  # noqa: DOC502  # raised by _prepare_arrays
     targets: Any,
     *,
     delta: float = 1.0,
+    mask: Any | None = None,
+    weights: Any | None = None,
+    reduction: str = "mean",
+    axis: int | tuple[int, ...] | None = None,
 ) -> Any:
     """Huber loss (robust regression loss).
 
@@ -243,9 +282,13 @@ def huber_loss(  # noqa: DOC502  # raised by _prepare_arrays
         predictions: Predicted values.
         targets: Ground truth values.
         delta: Threshold where loss transitions from quadratic to linear.
+        mask: Elements to keep (boolean, broadcastable), or ``None`` for all.
+        weights: Element weights (broadcastable), or ``None`` for unit weights.
+        reduction: ``"none"``, ``"mean"``, ``"sum"`` or ``"batch_sum"``.
+        axis: Axis or axes for ``"mean"`` and ``"sum"``.
 
     Returns:
-        Mean Huber loss as a scalar value.
+        Mean Huber loss as a scalar value, or the reduced values.
 
     Raises:
         ValueError: If shapes do not match.
@@ -255,7 +298,53 @@ def huber_loss(  # noqa: DOC502  # raised by _prepare_arrays
     abs_err = jnp.abs(err)
     quadratic = 0.5 * err**2
     linear = delta * (abs_err - 0.5 * delta)
-    return jnp.mean(jnp.where(abs_err <= delta, quadratic, linear))
+    return reduce_values(
+        jnp.where(abs_err <= delta, quadratic, linear),
+        mask=mask,
+        weights=weights,
+        reduction=reduction,
+        axis=axis,
+    )
+
+
+def charbonnier_loss(  # noqa: DOC502  # raised by _prepare_arrays
+    predictions: Any,
+    targets: Any,
+    *,
+    epsilon: float = 1e-3,
+    alpha: float = 1.0,
+    mask: Any | None = None,
+    weights: Any | None = None,
+    reduction: str = "mean",
+    axis: int | tuple[int, ...] | None = None,
+) -> Any:
+    """Charbonnier loss, a differentiable L1: ``(e^2 + epsilon^2)^(alpha / 2)``.
+
+    Note:
+        Direction: LOWER (``epsilon^alpha`` = perfect).
+        Range: [epsilon^alpha, inf).
+        Not a true metric. Smooth at zero error, unlike MAE, so its gradient is
+        finite everywhere; the usual choice for image restoration losses.
+
+    Args:
+        predictions: Predicted values.
+        targets: Ground truth values.
+        epsilon: Smoothing constant; the loss at zero error.
+        alpha: Exponent applied to the smoothed absolute error.
+        mask: Elements to keep (boolean, broadcastable), or ``None`` for all.
+        weights: Element weights (broadcastable), or ``None`` for unit weights.
+        reduction: ``"none"``, ``"mean"``, ``"sum"`` or ``"batch_sum"``.
+        axis: Axis or axes for ``"mean"`` and ``"sum"``.
+
+    Returns:
+        Mean Charbonnier loss as a scalar value, or the reduced values.
+
+    Raises:
+        ValueError: If shapes do not match.
+    """
+    p, t = _prepare_arrays(predictions, targets)
+    smoothed = jnp.sqrt((p - t) ** 2 + epsilon**2) ** alpha
+    return reduce_values(smoothed, mask=mask, weights=weights, reduction=reduction, axis=axis)
 
 
 def quantile_loss(  # noqa: DOC502  # raised by _prepare_arrays
@@ -405,7 +494,15 @@ def per_sample_relative_l2(predictions: Any, targets: Any) -> Any:  # noqa: DOC5
     return safe_divide(numerator, denominator)
 
 
-def relative_l2_error(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _prepare_arrays
+def relative_l2_error(  # noqa: DOC502  # raised by _prepare_arrays
+    predictions: Any,
+    targets: Any,
+    *,
+    mask: Any | None = None,
+    weights: Any | None = None,
+    reduction: str = "mean",
+    axis: int | tuple[int, ...] | None = None,
+) -> Any:
     """Mean over samples of the per-sample relative L2 error.
 
     Differs from ``relative_error``, which takes one global norm ratio over the
@@ -418,11 +515,21 @@ def relative_l2_error(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  #
     Args:
         predictions: Predicted fields with shape ``(n_samples, *field_dims)``.
         targets: Ground truth fields, same shape.
+        mask: Samples to keep (boolean, shape ``(n_samples,)``), or ``None`` for all.
+        weights: Per-sample weights, or ``None`` for unit weights.
+        reduction: ``"none"``, ``"mean"``, ``"sum"`` or ``"batch_sum"``.
+        axis: Axis for ``"mean"`` and ``"sum"``.
 
     Returns:
-        Scalar mean relative L2 error as a JAX array.
+        Scalar mean relative L2 error as a JAX array, or the reduced values.
 
     Raises:
         ValueError: If shapes do not match.
     """
-    return jnp.mean(per_sample_relative_l2(predictions, targets))
+    return reduce_values(
+        per_sample_relative_l2(predictions, targets),
+        mask=mask,
+        weights=weights,
+        reduction=reduction,
+        axis=axis,
+    )

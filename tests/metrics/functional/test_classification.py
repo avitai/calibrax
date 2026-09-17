@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import jax
 import jax.numpy as jnp
 import pytest
 
@@ -18,6 +19,7 @@ from calibrax.metrics.functional.classification import (
     recall,
     roc_auc,
     sensitivity,
+    softmax_cross_entropy,
     specificity,
 )
 
@@ -269,4 +271,101 @@ class TestSpecificitySensitivity:
         targets = jnp.array([1, 0, 0, 1, 1])
         assert sensitivity(predictions, targets) == pytest.approx(
             recall(predictions, targets), rel=1e-5
+        )
+
+
+class TestSoftmaxCrossEntropy:
+    """Logits-and-labels cross-entropy with the shared mask, weights, reduction and axis."""
+
+    logits = jnp.array([[2.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 3.0, 0.0], [1.0, 1.0, 1.0]])
+    labels = jnp.array([0, 1, 2, 0])
+
+    def test_uniform_logits_cost_log_of_the_class_count(self) -> None:
+        value = softmax_cross_entropy(jnp.zeros((5, 4)), jnp.array([0, 1, 2, 3, 0]))
+        assert jnp.allclose(value, jnp.log(4.0))
+
+    def test_matches_the_log_softmax_of_the_true_class(self) -> None:
+        log_probs = jax.nn.log_softmax(self.logits, axis=-1)
+        expected = -jnp.mean(log_probs[jnp.arange(4), self.labels])
+        assert jnp.allclose(softmax_cross_entropy(self.logits, self.labels), expected)
+
+    def test_mask_weights_and_reduction(self) -> None:
+        mask = jnp.array([True, False, True, True])
+        per_element = softmax_cross_entropy(self.logits, self.labels, reduction="none")
+        assert per_element.shape == (4,)
+        masked = softmax_cross_entropy(self.logits, self.labels, mask=mask)
+        assert jnp.allclose(masked, jnp.mean(per_element[mask]))
+        weights = jnp.array([1.0, 0.0, 2.0, 1.0])
+        weighted = softmax_cross_entropy(self.logits, self.labels, weights=weights)
+        assert jnp.allclose(weighted, jnp.sum(weights * per_element) / jnp.sum(weights))
+        assert jnp.allclose(
+            softmax_cross_entropy(self.logits, self.labels, reduction="sum"), jnp.sum(per_element)
+        )
+
+    def test_rejects_a_label_shape_that_does_not_match_the_logits(self) -> None:
+        with pytest.raises(ValueError, match="labels"):
+            softmax_cross_entropy(self.logits, jnp.array([0, 1]))
+
+    def test_jit_and_grad(self) -> None:
+        def loss(logits: jax.Array) -> jax.Array:
+            return softmax_cross_entropy(
+                logits, self.labels, mask=jnp.array([True, True, False, True])
+            )
+
+        assert jnp.allclose(jax.jit(loss)(self.logits), loss(self.logits))
+        gradient = jax.grad(loss)(self.logits)
+        assert jnp.all(jnp.isfinite(gradient))
+        assert jnp.all(gradient[2] == 0.0)
+
+
+class TestFBetaAveraging:
+    """Macro and weighted F-beta are the mean of per-class F-beta, as sklearn defines them."""
+
+    @pytest.mark.parametrize(
+        ("targets", "predictions", "num_classes"),
+        [
+            ([0, 1, 1, 0, 1, 1], [0, 1, 0, 0, 1, 0], 2),
+            ([0, 0, 0, 1, 2, 2], [0, 1, 0, 1, 2, 0], 3),
+            ([0, 0, 0, 0, 0, 1, 2, 3, 4, 4], [0, 0, 1, 1, 0, 1, 2, 2, 4, 4], 5),
+            ([0, 1, 2, 2, 2, 2], [2, 2, 2, 2, 2, 2], 3),
+        ],
+    )
+    def test_matches_sklearn_on_a_grid(
+        self, targets: list[int], predictions: list[int], num_classes: int
+    ) -> None:
+        from sklearn.metrics import fbeta_score as sk_fbeta
+
+        labels = list(range(num_classes))
+        for average in ("macro", "weighted"):
+            for beta in (1.0, 2.0):
+                ours = fbeta_score(
+                    jnp.array(predictions),
+                    jnp.array(targets),
+                    beta=beta,
+                    average=average,
+                    num_classes=num_classes,
+                )
+                reference = sk_fbeta(
+                    targets, predictions, beta=beta, average=average, labels=labels, zero_division=0
+                )
+                assert jnp.allclose(ours, reference, atol=1e-6), (average, beta)
+
+    def test_f1_macro_is_the_mean_of_per_class_f1(self) -> None:
+        targets = jnp.array([0, 0, 1, 1, 2, 2])
+        predictions = jnp.array([0, 1, 1, 1, 2, 0])
+        per_class = [f1_score(predictions == c, targets == c, average="binary") for c in range(3)]
+        macro = f1_score(predictions, targets, average="macro", num_classes=3)
+        assert jnp.allclose(macro, jnp.mean(jnp.stack(per_class)))
+
+    def test_jit_compatible_with_a_static_class_count(self) -> None:
+        targets = jnp.array([0, 0, 1, 1, 2, 2])
+        predictions = jnp.array([0, 1, 1, 1, 2, 0])
+
+        @jax.jit
+        def macro_f1(p: jax.Array, t: jax.Array) -> jax.Array:
+            return f1_score(p, t, average="macro", num_classes=3)
+
+        assert jnp.allclose(
+            macro_f1(predictions, targets),
+            f1_score(predictions, targets, average="macro", num_classes=3),
         )

@@ -7,6 +7,31 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+### Added
+
+- `charbonnier_loss`, the differentiable L1 ``(e^2 + eps^2)^(alpha / 2)``, registered as a
+  regression loss; artifex's copy retires onto it.
+- `softmax_cross_entropy(logits, labels)`, the cross-entropy of integer labels under the softmax
+  of `logits` with the class axis last, registered under the classification domain with the
+  `CUSTOM` signature; DiffBio's `cross_entropy_loss` retires onto it.
+- Every loss (`mse`, `mae`, `huber_loss`, `charbonnier_loss`, `relative_l2_error`,
+  `softmax_cross_entropy`) takes keyword-only `mask`, `weights`, `reduction` (`"none"`, `"mean"`,
+  `"sum"`, `"batch_sum"`) and `axis`, reduced by one shared function: a mask excludes elements
+  from sums and means, weights give the weighted mean `sum(w x) / sum(w)`, and a mean over no
+  element (an all-false mask, weights summing to zero) is `0.0`, one documented finite result a
+  caller can check at the host boundary. jit and grad work through the mask.
+
+### Changed
+
+- `fbeta_score` and `f1_score` with `average="macro"` or `"weighted"` return the mean (or
+  support-weighted mean) of the per-class F-beta, as scikit-learn and torchmetrics define it. They
+  returned the F-beta of the averaged precision and recall, which is not the same number, so
+  published macro and weighted F scores change. `precision`, `recall`, `fbeta_score` and
+  `f1_score` take `num_classes`; passed statically it makes the per-class averages jit-compatible.
+- `MetricCollection.from_registry` admits only metrics with the `PREDICTIONS_TARGETS` signature,
+  because `compute_functional` calls every member with that pair; `crps` (ensemble signature)
+  no longer joins a `general` collection that would have called it with plain predictions.
+
 ## [0.1.6] - 2026-09-11
 
 ### Changed
