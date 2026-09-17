@@ -1,5 +1,6 @@
 """Tier 0 functional metrics -- pure functions with no model state."""
 
+from calibrax.metrics._utils import reduce_values
 from calibrax.metrics.functional.audio import (
     mel_cepstral_distortion,
     signal_to_noise_ratio,
@@ -325,6 +326,7 @@ __all__ = [
     "recall_at_k",
     "regression_calibration_error",
     "relative_error",
+    "reduce_values",
     "relative_l2_error",
     "reliability_diagram_bins",
     "renyi_divergence",
