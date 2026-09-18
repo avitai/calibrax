@@ -15,9 +15,9 @@ means the same thing in every one of them.
 
 from __future__ import annotations
 
-from typing import Any
-
+import jax
 import jax.numpy as jnp
+from jax.typing import ArrayLike
 
 from calibrax.metrics._utils import (
     _EPSILON,
@@ -31,14 +31,14 @@ from calibrax.metrics._utils import (
 
 
 def mse(  # noqa: DOC502  # raised by _prepare_arrays
-    predictions: Any,
-    targets: Any,
+    predictions: ArrayLike,
+    targets: ArrayLike,
     *,
-    mask: Any | None = None,
-    weights: Any | None = None,
+    mask: ArrayLike | None = None,
+    weights: ArrayLike | None = None,
     reduction: str = "mean",
     axis: int | tuple[int, ...] | None = None,
-) -> Any:
+) -> jax.Array:
     """Mean squared error.
 
     Computes the average of squared differences between predictions and
@@ -68,14 +68,14 @@ def mse(  # noqa: DOC502  # raised by _prepare_arrays
 
 
 def mae(  # noqa: DOC502  # raised by _prepare_arrays
-    predictions: Any,
-    targets: Any,
+    predictions: ArrayLike,
+    targets: ArrayLike,
     *,
-    mask: Any | None = None,
-    weights: Any | None = None,
+    mask: ArrayLike | None = None,
+    weights: ArrayLike | None = None,
     reduction: str = "mean",
     axis: int | tuple[int, ...] | None = None,
-) -> Any:
+) -> jax.Array:
     """Mean absolute error.
 
     Computes the average of absolute differences between predictions and
@@ -105,14 +105,14 @@ def mae(  # noqa: DOC502  # raised by _prepare_arrays
 
 
 def rmse(  # noqa: DOC502  # raised by _prepare_arrays
-    predictions: Any,
-    targets: Any,
+    predictions: ArrayLike,
+    targets: ArrayLike,
     *,
-    mask: Any | None = None,
-    weights: Any | None = None,
+    mask: ArrayLike | None = None,
+    weights: ArrayLike | None = None,
     reduction: str = "mean",
     axis: int | tuple[int, ...] | None = None,
-) -> Any:
+) -> jax.Array:
     """Root mean squared error.
 
     The root of the mean squared error over ``axis`` (every element when ``None``), after the
@@ -148,7 +148,7 @@ def rmse(  # noqa: DOC502  # raised by _prepare_arrays
     return reduce_values(roots, reduction=reduction)
 
 
-def r_squared(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _prepare_arrays
+def r_squared(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _prepare_arrays
     """Coefficient of determination (R-squared).
 
     Computes ``1 - SS_res / SS_tot`` where SS_res is the residual sum of
@@ -175,7 +175,7 @@ def r_squared(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised 
     return 1.0 - ss_res / (ss_tot + _EPSILON)
 
 
-def mape(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _prepare_arrays
+def mape(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _prepare_arrays
     """Mean absolute percentage error.
 
     Computes ``mean(|targets - predictions| / |targets|)``.
@@ -200,7 +200,7 @@ def mape(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _p
     return jnp.mean(jnp.abs((t - p) / (jnp.abs(t) + _EPSILON)))
 
 
-def relative_error(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _prepare_arrays
+def relative_error(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _prepare_arrays
     """Mean relative error (L2 norm ratio).
 
     Computes ``||predictions - targets||_2 / ||targets||_2``.
@@ -225,7 +225,7 @@ def relative_error(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # ra
     return safe_norm(p - t) / (safe_norm(t) + _EPSILON)
 
 
-def explained_variance(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _prepare_arrays
+def explained_variance(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _prepare_arrays
     """Explained variance score.
 
     Computes ``1 - Var(targets - predictions) / Var(targets)``. Similar to
@@ -254,7 +254,7 @@ def explained_variance(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  
     return 1.0 - residual_var / (target_var + _EPSILON)
 
 
-def max_error(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _prepare_arrays
+def max_error(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _prepare_arrays
     """Maximum absolute error.
 
     Computes ``max(|prediction_i - target_i|)`` -- the worst-case error.
@@ -280,15 +280,15 @@ def max_error(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised 
 
 
 def huber_loss(  # noqa: DOC502  # raised by _prepare_arrays
-    predictions: Any,
-    targets: Any,
+    predictions: ArrayLike,
+    targets: ArrayLike,
     *,
     delta: float = 1.0,
-    mask: Any | None = None,
-    weights: Any | None = None,
+    mask: ArrayLike | None = None,
+    weights: ArrayLike | None = None,
     reduction: str = "mean",
     axis: int | tuple[int, ...] | None = None,
-) -> Any:
+) -> jax.Array:
     """Huber loss (robust regression loss).
 
     Quadratic for small errors (``|e| <= delta``), linear for large errors.
@@ -331,16 +331,16 @@ def huber_loss(  # noqa: DOC502  # raised by _prepare_arrays
 
 
 def charbonnier_loss(  # noqa: DOC502  # raised by _prepare_arrays
-    predictions: Any,
-    targets: Any,
+    predictions: ArrayLike,
+    targets: ArrayLike,
     *,
     epsilon: float = 1e-3,
     alpha: float = 1.0,
-    mask: Any | None = None,
-    weights: Any | None = None,
+    mask: ArrayLike | None = None,
+    weights: ArrayLike | None = None,
     reduction: str = "mean",
     axis: int | tuple[int, ...] | None = None,
-) -> Any:
+) -> jax.Array:
     """Charbonnier loss, a differentiable L1: ``(e^2 + epsilon^2)^(alpha / 2)``.
 
     Note:
@@ -371,11 +371,11 @@ def charbonnier_loss(  # noqa: DOC502  # raised by _prepare_arrays
 
 
 def quantile_loss(  # noqa: DOC502  # raised by _prepare_arrays
-    predictions: Any,
-    targets: Any,
+    predictions: ArrayLike,
+    targets: ArrayLike,
     *,
     quantile: float = 0.5,
-) -> Any:
+) -> jax.Array:
     """Quantile (pinball) loss for quantile regression.
 
     Asymmetric loss: ``L = q * max(0, t - p) + (1 - q) * max(0, p - t)``.
@@ -402,7 +402,7 @@ def quantile_loss(  # noqa: DOC502  # raised by _prepare_arrays
     return jnp.mean(jnp.where(diff >= 0, quantile * diff, (quantile - 1.0) * diff))
 
 
-def log_cosh_loss(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _prepare_arrays
+def log_cosh_loss(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _prepare_arrays
     """Log-cosh loss.
 
     Computes ``mean(log(cosh(predictions - targets)))``. Smooth approximation
@@ -431,7 +431,7 @@ def log_cosh_loss(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # rai
     return jnp.mean(jnp.logaddexp(err, -err) - jnp.log(2.0))
 
 
-def smape(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _prepare_arrays
+def smape(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _prepare_arrays
     """Symmetric mean absolute percentage error.
 
     Computes ``mean(|p - t| / ((|p| + |t|) / 2))``. Unlike MAPE, SMAPE is
@@ -458,7 +458,7 @@ def smape(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _
     return jnp.mean(safe_divide(numerator, denominator))
 
 
-def crps(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _prepare_arrays
+def crps(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _prepare_arrays
     """Continuous ranked probability score for ensemble forecasts.
 
     Computes the empirical ensemble CRPS:
@@ -487,7 +487,7 @@ def crps(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _p
     return jnp.mean(forecast_error - ensemble_spread)
 
 
-def per_sample_relative_l2(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _prepare_arrays
+def per_sample_relative_l2(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _prepare_arrays
     """Relative L2 error of each sample, ``||pred_i - target_i|| / ||target_i||``.
 
     Each leading-axis sample is flattened before the norms are taken (the PDEBench
@@ -518,14 +518,14 @@ def per_sample_relative_l2(predictions: Any, targets: Any) -> Any:  # noqa: DOC5
 
 
 def relative_l2_error(  # noqa: DOC502  # raised by _prepare_arrays
-    predictions: Any,
-    targets: Any,
+    predictions: ArrayLike,
+    targets: ArrayLike,
     *,
-    mask: Any | None = None,
-    weights: Any | None = None,
+    mask: ArrayLike | None = None,
+    weights: ArrayLike | None = None,
     reduction: str = "mean",
     axis: int | tuple[int, ...] | None = None,
-) -> Any:
+) -> jax.Array:
     """Mean over samples of the per-sample relative L2 error.
 
     Differs from ``relative_error``, which takes one global norm ratio over the

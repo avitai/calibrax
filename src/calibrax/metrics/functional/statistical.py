@@ -11,14 +11,14 @@ autocorrelation, skewness.
 
 from __future__ import annotations
 
-from typing import Any
-
+import jax
 import jax.numpy as jnp
+from jax.typing import ArrayLike
 
 from calibrax.metrics._utils import _EPSILON
 
 
-def pearson_correlation(a: Any, b: Any) -> Any:
+def pearson_correlation(a: ArrayLike, b: ArrayLike) -> jax.Array:
     """Pearson correlation coefficient.
 
     Linear correlation: ``cov(a,b) / (std(a) * std(b))``.
@@ -51,7 +51,7 @@ def pearson_correlation(a: Any, b: Any) -> Any:
     return cov / (std_a * std_b + _EPSILON)
 
 
-def spearman_rank_correlation(a: Any, b: Any) -> Any:
+def spearman_rank_correlation(a: ArrayLike, b: ArrayLike) -> jax.Array:
     """Spearman's rank correlation coefficient.
 
     Pearson correlation computed on ranks. Measures monotonic association.
@@ -81,7 +81,7 @@ def spearman_rank_correlation(a: Any, b: Any) -> Any:
     return pearson_correlation(rank_a, rank_b)
 
 
-def kendall_tau(a: Any, b: Any) -> Any:
+def kendall_tau(a: ArrayLike, b: ArrayLike) -> jax.Array:
     """Kendall rank correlation coefficient (tau-b).
 
     ``(concordant - discordant) / (n*(n-1)/2)``.
@@ -122,7 +122,7 @@ def kendall_tau(a: Any, b: Any) -> Any:
     return (concordant - discordant) / (total_pairs + _EPSILON)
 
 
-def concordance_correlation(a: Any, b: Any) -> Any:
+def concordance_correlation(a: ArrayLike, b: ArrayLike) -> jax.Array:
     """Lin's concordance correlation coefficient.
 
     Measures agreement (not just correlation). Penalizes deviations
@@ -159,11 +159,11 @@ def concordance_correlation(a: Any, b: Any) -> Any:
 
 
 def r_squared_adjusted(
-    predictions: Any,
-    targets: Any,
+    predictions: ArrayLike,
+    targets: ArrayLike,
     *,
     num_predictors: int,
-) -> Any:
+) -> jax.Array:
     """Adjusted R-squared.
 
     ``1 - (1-R^2)(n-1)/(n-p-1)`` where p is number of predictors.
@@ -192,7 +192,7 @@ def r_squared_adjusted(
     return 1.0 - (1.0 - r2) * (n - 1) / (n - num_predictors - 1 + _EPSILON)
 
 
-def correlation_preservation(real: Any, generated: Any) -> Any:
+def correlation_preservation(real: ArrayLike, generated: ArrayLike) -> jax.Array:
     """How closely generated data reproduces the feature correlations of real data.
 
     One minus the mean absolute difference of the two Pearson correlation
@@ -237,7 +237,7 @@ def correlation_preservation(real: Any, generated: Any) -> Any:
     return 1.0 - jnp.clip(mean_abs_diff, 0.0, 1.0)
 
 
-def autocorrelation(series: Any, *, max_lag: int) -> Any:
+def autocorrelation(series: ArrayLike, *, max_lag: int) -> jax.Array:
     """Autocorrelation function of a batch of sequences, averaged over batch and features.
 
     Sequences are centred per sequence; the lag-``k`` value is the mean product of
@@ -271,7 +271,7 @@ def autocorrelation(series: Any, *, max_lag: int) -> Any:
     return jnp.where(function[0] > 0.0, function / (function[0] + _EPSILON), function)
 
 
-def skewness(data: Any) -> Any:
+def skewness(data: ArrayLike) -> jax.Array:
     """Skewness of a sample: the third standardised moment.
 
     Note:

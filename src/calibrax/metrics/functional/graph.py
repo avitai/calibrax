@@ -18,20 +18,19 @@ Registered with ``domain="graph"``.
 
 from __future__ import annotations
 
-from typing import Any
-
 import jax
 import jax.numpy as jnp
+from jax.typing import ArrayLike
 
 from calibrax.metrics._utils import safe_norm, safe_root
 
 
 def spectral_distance(
-    adj_a: Any,
-    adj_b: Any,
+    adj_a: ArrayLike,
+    adj_b: ArrayLike,
     *,
     num_eigenvalues: int | None = None,
-) -> Any:
+) -> jax.Array:
     """Distance between two graphs based on Laplacian eigenvalue spectra.
 
     Computes ``||lambda(L_G) - lambda(L_H)||_2`` where ``L = D - A`` is
@@ -80,7 +79,7 @@ def spectral_distance(
     return safe_norm(eig_a - eig_b)
 
 
-def resistance_distance(adjacency_matrix: Any) -> jnp.ndarray:
+def resistance_distance(adjacency_matrix: ArrayLike) -> jnp.ndarray:
     """Resistance distance matrix for a graph.
 
     The resistance distance between nodes i and j is the effective resistance
@@ -124,7 +123,7 @@ def resistance_distance(adjacency_matrix: Any) -> jnp.ndarray:
 
 
 def shortest_path_distance(
-    adjacency_matrix: Any,
+    adjacency_matrix: ArrayLike,
     *,
     weighted: bool = False,
 ) -> jnp.ndarray:
@@ -171,7 +170,7 @@ def shortest_path_distance(
     return jax.lax.fori_loop(0, n, body_fn, dist)
 
 
-def graph_edit_distance_approx(adj_a: Any, adj_b: Any) -> Any:
+def graph_edit_distance_approx(adj_a: ArrayLike, adj_b: ArrayLike) -> jax.Array:
     """Approximate graph edit distance via spectral relaxation.
 
     The exact GED is NP-hard. This spectral approximation computes:

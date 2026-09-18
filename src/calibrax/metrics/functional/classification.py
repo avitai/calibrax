@@ -11,10 +11,9 @@ cohen_kappa, balanced_accuracy, specificity, sensitivity.
 
 from __future__ import annotations
 
-from typing import Any
-
 import jax
 import jax.numpy as jnp
+from jax.typing import ArrayLike
 
 from calibrax.metrics._utils import _EPSILON, _prepare_class_arrays, reduce_values, safe_divide
 
@@ -23,7 +22,7 @@ from calibrax.metrics._utils import _EPSILON, _prepare_class_arrays, reduce_valu
 _CLASS_SCORES_NDIM = 2
 
 
-def _to_class_indices(predictions: Any) -> jax.Array:
+def _to_class_indices(predictions: ArrayLike) -> jax.Array:
     """Convert predictions to class indices.
 
     If 2D (probabilities), takes argmax along last axis.
@@ -42,7 +41,7 @@ def _to_class_indices(predictions: Any) -> jax.Array:
 
 
 def _binary_confusion_counts(
-    predictions: jax.Array, targets: jax.Array
+    predictions: ArrayLike, targets: ArrayLike
 ) -> tuple[jax.Array, jax.Array, jax.Array, jax.Array]:
     """Compute binary confusion matrix counts (TP, FP, FN, TN).
 
@@ -61,7 +60,7 @@ def _binary_confusion_counts(
     return tp, fp, fn, tn
 
 
-def accuracy(predictions: Any, targets: Any) -> Any:
+def accuracy(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:
     """Fraction of correct predictions.
 
     Note:
@@ -82,8 +81,8 @@ def accuracy(predictions: Any, targets: Any) -> Any:
 
 
 def confusion_matrix(
-    predictions: Any,
-    targets: Any,
+    predictions: ArrayLike,
+    targets: ArrayLike,
     *,
     num_classes: int | None = None,
 ) -> jax.Array:
@@ -109,12 +108,12 @@ def confusion_matrix(
 
 
 def precision(
-    predictions: Any,
-    targets: Any,
+    predictions: ArrayLike,
+    targets: ArrayLike,
     *,
     average: str = "binary",
     num_classes: int | None = None,
-) -> Any:
+) -> jax.Array:
     """Precision: TP / (TP + FP).
 
     Note:
@@ -139,12 +138,12 @@ def precision(
 
 
 def recall(
-    predictions: Any,
-    targets: Any,
+    predictions: ArrayLike,
+    targets: ArrayLike,
     *,
     average: str = "binary",
     num_classes: int | None = None,
-) -> Any:
+) -> jax.Array:
     """Recall (sensitivity): TP / (TP + FN).
 
     Note:
@@ -168,13 +167,13 @@ def recall(
 
 
 def fbeta_score(
-    predictions: Any,
-    targets: Any,
+    predictions: ArrayLike,
+    targets: ArrayLike,
     *,
     beta: float = 1.0,
     average: str = "binary",
     num_classes: int | None = None,
-) -> Any:
+) -> jax.Array:
     """Generalized F-measure with configurable beta.
 
     ``F_beta = (1 + beta^2) * (precision * recall) / (beta^2 * precision + recall)``
@@ -202,12 +201,12 @@ def fbeta_score(
 
 
 def f1_score(
-    predictions: Any,
-    targets: Any,
+    predictions: ArrayLike,
+    targets: ArrayLike,
     *,
     average: str = "binary",
     num_classes: int | None = None,
-) -> Any:
+) -> jax.Array:
     """F1 score: harmonic mean of precision and recall.
 
     Equivalent to ``fbeta_score(predictions, targets, beta=1.0)``.
@@ -229,7 +228,7 @@ def f1_score(
     return fbeta_score(predictions, targets, beta=1.0, average=average, num_classes=num_classes)
 
 
-def _fbeta_of(precision_value: Any, recall_value: Any, beta: float) -> Any:
+def _fbeta_of(precision_value: jax.Array, recall_value: jax.Array, beta: float) -> jax.Array:
     """F-beta from precision and recall; ``precision`` itself when ``beta`` is 0."""
     beta_sq = beta**2
     if beta_sq == 0:
@@ -243,13 +242,13 @@ def _fbeta_of(precision_value: Any, recall_value: Any, beta: float) -> Any:
 
 
 def _precision_recall_fbeta(
-    predictions: Any,
-    targets: Any,
+    predictions: ArrayLike,
+    targets: ArrayLike,
     *,
     beta: float,
     average: str,
     num_classes: int | None = None,
-) -> tuple[Any, Any, Any]:
+) -> tuple[jax.Array, jax.Array, jax.Array]:
     """Compute precision, recall, and F-beta together.
 
     ``"macro"`` and ``"weighted"`` average the per-class values, F-beta included:
@@ -311,14 +310,14 @@ def _precision_recall_fbeta(
 
 
 def softmax_cross_entropy(
-    logits: Any,
-    labels: Any,
+    logits: ArrayLike,
+    labels: ArrayLike,
     *,
-    mask: Any | None = None,
-    weights: Any | None = None,
+    mask: ArrayLike | None = None,
+    weights: ArrayLike | None = None,
     reduction: str = "mean",
     axis: int | tuple[int, ...] | None = None,
-) -> Any:
+) -> jax.Array:
     """Cross-entropy of integer labels under the softmax of ``logits``.
 
     The per-element loss is ``-log_softmax(logits)[label]``, with the class axis last;
@@ -358,7 +357,7 @@ def softmax_cross_entropy(
     return reduce_values(-picked, mask=mask, weights=weights, reduction=reduction, axis=axis)
 
 
-def roc_auc(predictions: Any, targets: Any) -> Any:
+def roc_auc(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:
     """Area under the ROC curve (binary classification only).
 
     Note:
@@ -396,7 +395,7 @@ def roc_auc(predictions: Any, targets: Any) -> Any:
     return jnp.trapezoid(tpr, fpr)
 
 
-def average_precision(predictions: Any, targets: Any) -> Any:
+def average_precision(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:
     """Area under precision-recall curve.
 
     Note:
@@ -425,11 +424,11 @@ def average_precision(predictions: Any, targets: Any) -> Any:
 
 
 def log_loss(
-    predictions: Any,
-    targets: Any,
+    predictions: ArrayLike,
+    targets: ArrayLike,
     *,
     eps: float = 1e-7,
-) -> Any:
+) -> jax.Array:
     """Logarithmic loss (cross-entropy).
 
     Note:
@@ -460,7 +459,7 @@ def log_loss(
     return -jnp.mean(log_probs)
 
 
-def matthews_corrcoef(predictions: Any, targets: Any) -> Any:
+def matthews_corrcoef(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:
     """Matthews correlation coefficient.
 
     Note:
@@ -489,7 +488,7 @@ def matthews_corrcoef(predictions: Any, targets: Any) -> Any:
     return safe_divide(numerator, denominator)
 
 
-def cohen_kappa(predictions: Any, targets: Any) -> Any:
+def cohen_kappa(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:
     """Cohen's kappa coefficient for inter-rater agreement.
 
     ``kappa = (accuracy - expected_accuracy) / (1 - expected_accuracy)``
@@ -522,7 +521,7 @@ def cohen_kappa(predictions: Any, targets: Any) -> Any:
     )
 
 
-def balanced_accuracy(predictions: Any, targets: Any) -> Any:
+def balanced_accuracy(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:
     """Balanced accuracy: average recall per class.
 
     Note:
@@ -549,7 +548,7 @@ def balanced_accuracy(predictions: Any, targets: Any) -> Any:
     return jnp.mean(per_class_recall)
 
 
-def specificity(predictions: Any, targets: Any) -> Any:
+def specificity(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:
     """Specificity (true negative rate): TN / (TN + FP).
 
     Note:
@@ -569,7 +568,7 @@ def specificity(predictions: Any, targets: Any) -> Any:
     return safe_divide(tn, tn + fp)
 
 
-def sensitivity(predictions: Any, targets: Any) -> Any:
+def sensitivity(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:
     """Sensitivity (true positive rate): TP / (TP + FN).
 
     Equivalent to recall for binary classification.

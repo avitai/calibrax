@@ -11,11 +11,12 @@ and add additional behavior without modifying the original.
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from typing import Any
 
 import jax
 import jax.numpy as jnp
+
+from calibrax.metrics._types import MetricFn
 
 
 class BootstrapMetric:
@@ -37,7 +38,7 @@ class BootstrapMetric:
 
     def __init__(
         self,
-        metric_fn: Callable[..., float],
+        metric_fn: MetricFn,
         *,
         num_bootstraps: int = 1000,
         confidence: float = 0.95,
@@ -63,7 +64,7 @@ class BootstrapMetric:
         self._seed = seed
 
     @property
-    def metric_fn(self) -> Callable[..., float]:
+    def metric_fn(self) -> MetricFn:
         """Get the wrapped metric function."""
         return self._metric_fn
 
@@ -138,7 +139,7 @@ class ClasswiseWrapper:
 
     def __init__(
         self,
-        metric_fn: Callable[..., float],
+        metric_fn: MetricFn,
         *,
         class_names: list[str] | None = None,
     ) -> None:
@@ -216,7 +217,7 @@ class MetricTracker:
 
     def __init__(
         self,
-        metric_fn: Callable[..., float],
+        metric_fn: MetricFn,
         *,
         direction: str = "lower",
     ) -> None:
@@ -304,7 +305,7 @@ class MinMaxTracker:
         print(tracker.max)      # Highest seen
     """
 
-    def __init__(self, metric_fn: Callable[..., float]) -> None:
+    def __init__(self, metric_fn: MetricFn) -> None:
         """Initialize min/max tracker.
 
         Args:

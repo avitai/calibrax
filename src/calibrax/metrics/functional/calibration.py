@@ -12,19 +12,18 @@ brier_decomposition, adaptive_calibration_error, classwise_ece.
 
 from __future__ import annotations
 
-from typing import Any
-
 import jax
 import jax.numpy as jnp
+from jax.typing import ArrayLike
 
 from calibrax.metrics._utils import _EPSILON, _prepare_arrays, safe_divide
 
 
 def _bin_predictions(
-    predictions: Any,
-    targets: Any,
+    predictions: ArrayLike,
+    targets: ArrayLike,
     num_bins: int,
-) -> tuple[Any, Any, Any, Any]:
+) -> tuple[jax.Array, jax.Array, jax.Array, jax.Array]:
     """Bin predictions into equal-width confidence bins.
 
     Args:
@@ -62,7 +61,7 @@ def _bin_predictions(
     return bin_accuracies, bin_confidences, bin_counts, bin_edges
 
 
-def brier_score(predictions: Any, targets: Any) -> Any:
+def brier_score(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:
     """Brier score: mean squared error between probabilities and outcomes.
 
     Note:
@@ -83,11 +82,11 @@ def brier_score(predictions: Any, targets: Any) -> Any:
 
 
 def expected_calibration_error(
-    predictions: Any,
-    targets: Any,
+    predictions: ArrayLike,
+    targets: ArrayLike,
     *,
     num_bins: int = 10,
-) -> Any:
+) -> jax.Array:
     """Expected calibration error (ECE).
 
     Weighted average of |accuracy - confidence| across equal-width bins.
@@ -113,11 +112,11 @@ def expected_calibration_error(
 
 
 def maximum_calibration_error(
-    predictions: Any,
-    targets: Any,
+    predictions: ArrayLike,
+    targets: ArrayLike,
     *,
     num_bins: int = 10,
-) -> Any:
+) -> jax.Array:
     """Maximum calibration error (MCE).
 
     Maximum |accuracy - confidence| across all non-empty bins.
@@ -143,11 +142,11 @@ def maximum_calibration_error(
 
 
 def reliability_diagram_bins(
-    predictions: Any,
-    targets: Any,
+    predictions: ArrayLike,
+    targets: ArrayLike,
     *,
     num_bins: int = 10,
-) -> dict[str, Any]:
+) -> dict[str, jax.Array]:
     """Compute binned statistics for reliability diagram plotting.
 
     Note:
@@ -173,11 +172,11 @@ def reliability_diagram_bins(
 
 
 def brier_decomposition(
-    predictions: Any,
-    targets: Any,
+    predictions: ArrayLike,
+    targets: ArrayLike,
     *,
     num_bins: int = 10,
-) -> dict[str, Any]:
+) -> dict[str, jax.Array]:
     """Decompose Brier score into calibration, resolution, uncertainty.
 
     Property: ``brier_score = calibration - resolution + uncertainty``.
@@ -217,11 +216,11 @@ def brier_decomposition(
 
 
 def adaptive_calibration_error(
-    predictions: Any,
-    targets: Any,
+    predictions: ArrayLike,
+    targets: ArrayLike,
     *,
     num_bins: int = 10,
-) -> Any:
+) -> float:
     """Adaptive calibration error (ACE) with equal-mass binning.
 
     Uses equal-mass bins (equal number of samples per bin) instead of
@@ -269,12 +268,12 @@ def adaptive_calibration_error(
 
 
 def classwise_ece(
-    predictions: Any,
-    targets: Any,
+    predictions: ArrayLike,
+    targets: ArrayLike,
     *,
     num_bins: int = 10,
     num_classes: int | None = None,
-) -> Any:
+) -> jax.Array:
     """Classwise expected calibration error for multiclass problems.
 
     Computes one-vs-rest ECE for each class, then averages. More
@@ -308,7 +307,7 @@ def classwise_ece(
     if num_classes is None:
         num_classes = p.shape[1]
 
-    def _ece_for_class(class_idx: Any) -> Any:
+    def _ece_for_class(class_idx: jax.Array) -> jax.Array:
         class_probs = p[:, class_idx]
         class_targets = (t == class_idx).astype(jnp.float32)
         return expected_calibration_error(class_probs, class_targets, num_bins=num_bins)

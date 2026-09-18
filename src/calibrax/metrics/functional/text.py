@@ -14,9 +14,10 @@ from __future__ import annotations
 
 import math
 from collections import Counter
-from typing import Any
 
+import jax
 import jax.numpy as jnp
+from jax.typing import ArrayLike
 
 
 def _tokenize(text: str | list[str]) -> list[str]:
@@ -216,7 +217,7 @@ def rouge_l(
     return (1 + beta_sq) * precision * recall / (beta_sq * precision + recall + 1e-12)
 
 
-def perplexity(log_probabilities: Any, *, mask: Any | None = None) -> Any:
+def perplexity(log_probabilities: ArrayLike, *, mask: ArrayLike | None = None) -> jax.Array:
     """Perplexity from log-probabilities.
 
     Computes ``exp(-mean(log_probs))`` over the scored positions. Lower is better.

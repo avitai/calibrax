@@ -10,15 +10,14 @@ Registered with ``domain="geometric"``.
 
 from __future__ import annotations
 
-from typing import Any
-
 import jax
 import jax.numpy as jnp
+from jax.typing import ArrayLike
 
 from calibrax.metrics._utils import _EPSILON, safe_root
 
 
-def chamfer_distance(set_a: Any, set_b: Any) -> Any:
+def chamfer_distance(set_a: ArrayLike, set_b: ArrayLike) -> jax.Array:
     """Chamfer distance between two point sets.
 
     Mean of nearest-neighbor distances in both directions.
@@ -51,7 +50,7 @@ def chamfer_distance(set_a: Any, set_b: Any) -> Any:
     return (mean_a_to_b + mean_b_to_a) / 2.0
 
 
-def earth_movers_distance_1d(a: Any, b: Any) -> Any:
+def earth_movers_distance_1d(a: ArrayLike, b: ArrayLike) -> jax.Array:
     """1D Earth Mover's Distance (Wasserstein-1).
 
     Delegates to wasserstein_1d from the divergence module (DRY).
@@ -73,7 +72,7 @@ def earth_movers_distance_1d(a: Any, b: Any) -> Any:
     return wasserstein_1d(a, b)
 
 
-def directed_hausdorff(set_a: Any, set_b: Any) -> Any:
+def directed_hausdorff(set_a: ArrayLike, set_b: ArrayLike) -> jax.Array:
     """Directed Hausdorff distance from set_a to set_b.
 
     max_{a in A} min_{b in B} d(a, b). NOT symmetric:
@@ -106,7 +105,7 @@ def directed_hausdorff(set_a: Any, set_b: Any) -> Any:
     return jnp.max(min_dists)
 
 
-def hausdorff_distance(set_a: Any, set_b: Any) -> Any:
+def hausdorff_distance(set_a: ArrayLike, set_b: ArrayLike) -> jax.Array:
     """Hausdorff distance (symmetric) between two point sets.
 
     max(directed_hausdorff(A, B), directed_hausdorff(B, A)).
@@ -132,12 +131,12 @@ def hausdorff_distance(set_a: Any, set_b: Any) -> Any:
 
 
 def rmsd(
-    coords_a: Any,
-    coords_b: Any,
+    coords_a: ArrayLike,
+    coords_b: ArrayLike,
     *,
-    mask_a: Any | None = None,
-    mask_b: Any | None = None,
-) -> Any:
+    mask_a: ArrayLike | None = None,
+    mask_b: ArrayLike | None = None,
+) -> jax.Array:
     """Root-mean-square deviation between two conformations after centring.
 
     Both conformations are translated to their centroid over the atoms present in
@@ -174,7 +173,7 @@ def rmsd(
     return jnp.where(count > 0.0, safe_root(squared), jnp.inf)
 
 
-def pairwise_rmsd(coordinates: Any, mask: Any) -> Any:
+def pairwise_rmsd(coordinates: ArrayLike, mask: ArrayLike) -> jax.Array:
     """Symmetric matrix of :func:`rmsd` between every pair of conformations.
 
     Args:
@@ -187,7 +186,7 @@ def pairwise_rmsd(coordinates: Any, mask: Any) -> Any:
     coords = jnp.asarray(coordinates, dtype=jnp.float32)
     masks = jnp.asarray(mask, dtype=bool)
 
-    def against_all(coords_i: Any, mask_i: Any) -> Any:
+    def against_all(coords_i: ArrayLike, mask_i: ArrayLike) -> jax.Array:
         return jax.vmap(
             lambda coords_j, mask_j: rmsd(coords_i, coords_j, mask_a=mask_i, mask_b=mask_j)
         )(coords, masks)

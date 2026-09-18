@@ -10,11 +10,10 @@ Provides higher-level abstractions for grouping and combining metrics:
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from typing import Any
 
 from calibrax.metrics._registry import MetricRegistry
-from calibrax.metrics._types import MetricSignature, MetricTier
+from calibrax.metrics._types import MetricFn, MetricSignature, MetricTier
 
 
 class MetricCollection:
@@ -36,14 +35,14 @@ class MetricCollection:
 
     def __init__(
         self,
-        metrics: dict[str, Callable[..., float]],
+        metrics: dict[str, MetricFn],
     ) -> None:
         """Initialize with a dictionary of named metric functions.
 
         Args:
             metrics: Mapping of metric names to callable functions.
         """
-        self._metrics: dict[str, Callable[..., float]] = dict(metrics)
+        self._metrics: dict[str, MetricFn] = dict(metrics)
 
     def compute_functional(
         self,
@@ -68,7 +67,7 @@ class MetricCollection:
             results[name] = float(fn(predictions, targets, **kwargs))
         return results
 
-    def add(self, name: str, metric: Callable[..., float]) -> None:
+    def add(self, name: str, metric: MetricFn) -> None:
         """Add a metric to the collection.
 
         Args:
