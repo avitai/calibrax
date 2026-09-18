@@ -179,20 +179,50 @@ class TestHitRate:
 
 
 class TestCoverage:
-    """Tests for coverage."""
+    """Catalog coverage: distinct recommended items over the catalog size (Ge et al. 2010)."""
 
     def test_full_coverage(self) -> None:
-        items = jnp.array([0, 1, 2, 3, 4])
-        assert coverage(items, items, catalog_size=5) == pytest.approx(1.0, abs=1e-5)
+        assert float(coverage(jnp.array([0, 1, 2, 3, 4]), catalog_size=5)) == pytest.approx(1.0)
 
-    def test_partial(self) -> None:
-        items = jnp.array([0, 0, 1, 1])
-        assert coverage(items, items, catalog_size=5) == pytest.approx(0.4, abs=1e-5)
+    def test_duplicates_count_once(self) -> None:
+        assert float(coverage(jnp.array([0, 0, 1, 1]), catalog_size=5)) == pytest.approx(0.4)
+
+    def test_a_batch_of_lists_is_covered_together(self) -> None:
+        lists = jnp.array([[0, 1, 2], [2, 3, 3]])
+        assert float(coverage(lists, catalog_size=8)) == pytest.approx(0.5)
+
+    def test_ids_outside_the_catalog_are_not_counted(self) -> None:
+        """jnp.bincount clips a negative id to item 0; it must not be counted as item 0."""
+        items = jnp.array([-1, 5, 7, 1])
+        assert float(coverage(items, catalog_size=5)) == pytest.approx(0.2)
+
+    def test_jit_traces_once_with_a_static_catalog_size(self) -> None:
+        from substrax.testing import TraceCounter
+
+        counter = TraceCounter()
+        compiled = jax.jit(counter.wrap(coverage), static_argnames=("catalog_size",))
+        with counter.expect(new_traces=1):
+            compiled(jnp.array([0, 1, 1]), catalog_size=4)
+        with counter.expect(new_traces=0):
+            result = compiled(jnp.array([3, 2, 2]), catalog_size=4)
+        assert float(result) == pytest.approx(0.5)
+
+    def test_vmap_gives_per_user_coverage(self) -> None:
+        per_user = jax.vmap(lambda items: coverage(items, catalog_size=4))(
+            jnp.array([[0, 0, 0], [0, 1, 2]])
+        )
+        assert per_user.tolist() == pytest.approx([0.25, 0.75])
 
     def test_returns_jax_scalar(self) -> None:
-        items = jnp.array([0, 1])
-        result = coverage(items, items, catalog_size=10)
+        result = coverage(jnp.array([0, 1]), catalog_size=10)
         assert isinstance(result, jax.Array)
+        assert result.shape == ()
+
+    def test_the_registry_marks_it_custom(self) -> None:
+        from calibrax.metrics import MetricRegistry
+        from calibrax.metrics._types import MetricSignature
+
+        assert MetricRegistry().get("coverage").signature == MetricSignature.CUSTOM
 
 
 class TestRankingMetricRegistration:

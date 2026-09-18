@@ -1190,7 +1190,7 @@ def _register_information_metrics() -> None:
 
 
 def _register_ranking_metrics() -> None:
-    """Register 8 ranking/retrieval metrics at import time."""
+    """Register the ranking/retrieval metrics at import time."""
     from calibrax.metrics.functional.ranking import (
         coverage,
         hit_rate,
@@ -1211,7 +1211,6 @@ def _register_ranking_metrics() -> None:
         ("recall_at_k", recall_at_k, "Recall at k"),
         ("mean_reciprocal_rank", mean_reciprocal_rank, "Mean Reciprocal Rank"),
         ("hit_rate", hit_rate, "Hit rate at k"),
-        ("coverage", coverage, "Catalog coverage"),
     ]
     for name, fn, desc in builtins:
         if not registry.has(name):
@@ -1225,6 +1224,20 @@ def _register_ranking_metrics() -> None:
                 signature=MetricSignature.PREDICTIONS_TARGETS,
             )
             registry.register(name, entry)
+    if not registry.has("coverage"):
+        # One input and a required catalog size: a suite cannot call it as fn(predictions, targets).
+        registry.register(
+            "coverage",
+            MetricEntry(
+                name="coverage",
+                fn=coverage,
+                tier=MetricTier.PURE_FUNCTION,
+                domain="ranking",
+                direction=MetricDirection.HIGHER,
+                description="Catalog coverage",
+                signature=MetricSignature.CUSTOM,
+            ),
+        )
 
 
 def _register_statistical_metrics() -> None:
