@@ -11,8 +11,6 @@ and add additional behavior without modifying the original.
 
 from __future__ import annotations
 
-from typing import Any
-
 import jax
 import jax.numpy as jnp
 from flax import nnx
@@ -133,9 +131,9 @@ class ClasswiseWrapper:
 
     def compute(
         self,
-        predictions: Any,
-        targets: Any,
-        labels: Any,
+        predictions: ArrayLike,
+        targets: ArrayLike,
+        labels: ArrayLike,
     ) -> dict[str, float]:
         """Compute metric per class.
 
@@ -215,7 +213,7 @@ class MetricTracker:
         self._direction = direction
         self._history: list[float] = []
 
-    def increment(self, predictions: Any, targets: Any) -> float:
+    def increment(self, predictions: ArrayLike, targets: ArrayLike) -> float:
         """Compute metric and add to history.
 
         Args:
@@ -294,7 +292,7 @@ class MinMaxTracker:
         self._min: float | None = None
         self._max: float | None = None
 
-    def update(self, predictions: Any, targets: Any) -> float:
+    def update(self, predictions: ArrayLike, targets: ArrayLike) -> float:
         """Compute metric and update min/max tracking.
 
         Args:

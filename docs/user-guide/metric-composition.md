@@ -139,12 +139,12 @@ from calibrax.metrics.composition import ThresholdMetric
 # Regression gate: MSE must not exceed 0.05
 gate = ThresholdMetric("mse", max_value=0.05)
 result = gate.evaluate(predictions, targets)
-# {"value": 0.012, "passed": True, "threshold": 0.05, "metric_name": "mse"}
+# ThresholdResult(value=0.012, passed=True, threshold=0.05, metric_name="mse")
 
 # Classification gate: accuracy must be at least 0.90
 gate = ThresholdMetric("accuracy", min_value=0.90)
 result = gate.evaluate(predictions, targets)
-# {"value": 0.94, "passed": True, "threshold": 0.90, "metric_name": "accuracy"}
+# ThresholdResult(value=0.94, passed=True, threshold=0.9, metric_name="accuracy")
 ```
 
 You can set both bounds for metrics that should fall in a range:

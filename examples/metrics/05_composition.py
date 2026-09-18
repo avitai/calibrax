@@ -109,15 +109,15 @@ def main() -> None:
     mse_gate = ThresholdMetric("mse", max_value=0.1)
     result = mse_gate.evaluate(predictions, targets)
     print(f"  MSE threshold: max_value={mse_gate.max_value}")
-    print(f"  Value:  {result['value']:.6f}")
-    print(f"  Passed: {result['passed']}")
+    print(f"  Value:  {result.value:.6f}")
+    print(f"  Passed: {result.passed}")
 
     # R-squared must be above 0.95 (min_value for higher-is-better metric)
     r2_gate = ThresholdMetric("r_squared", min_value=0.95)
     result_r2 = r2_gate.evaluate(predictions, targets)
     print(f"\n  R-squared threshold: min_value={r2_gate.min_value}")
-    print(f"  Value:  {result_r2['value']:.6f}")
-    print(f"  Passed: {result_r2['passed']}")
+    print(f"  Value:  {result_r2.value:.6f}")
+    print(f"  Passed: {result_r2.passed}")
 
     # -- 5. BootstrapMetric ------------------------------------------------
     print("\n=== BootstrapMetric (Confidence Intervals) ===")

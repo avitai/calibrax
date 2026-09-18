@@ -76,6 +76,9 @@ and uses semantic versioning while the public API stabilizes.
   returns a `BootstrapInterval` instead of a dict, and `num_bootstraps` and `seed` are gone.
   `StatisticalAnalyzer(*, key, bootstrap_resamples=)` takes a key in place of `seed` and splits it
   on each call, so successive calls draw fresh resamples and the same key reproduces them.
+- `ThresholdMetric.evaluate` returns a `ThresholdResult` (`value`, `passed`, `threshold`,
+  `metric_name`) instead of a dict. The composition classes and wrappers type their arrays as
+  `ArrayLike`, and a metric collection's pass-through keywords as `object`.
 
 ### Removed
 
