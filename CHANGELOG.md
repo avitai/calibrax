@@ -27,6 +27,14 @@ and uses semantic versioning while the public API stabilizes.
   the (masked, weighted) mean over `axis`, then `reduction` over the remaining roots (`"none"`,
   `"mean"`, `"sum"`; `"batch_sum"` raises). Its gradient at a perfect prediction is 0 where it
   was NaN, through the new `safe_root` helper, which `sliced_wasserstein` shares.
+- Distances built on a root have a finite gradient at a perfect match, where it was NaN:
+  `euclidean_distance`, `mahalanobis_distance`, `minkowski_distance`, `hellinger_distance`,
+  `mmd`, `rmsd`, `spectral_distance`, `graph_edit_distance_approx`,
+  `spd_log_euclidean_distance`, `stiefel_distance`, `relative_error` and `relative_l2_error`.
+  `energy_score`'s gradient was NaN for every ensemble, because each member's distance to
+  itself entered the spread term through `jnp.linalg.norm`; it is finite. They take their roots
+  through `safe_root` and the new `safe_norm` (the JAX FAQ's inner-and-outer `where`, with
+  derivative 0 at 0 as in `optax.safe_norm`); values are unchanged.
 
 ### Removed
 

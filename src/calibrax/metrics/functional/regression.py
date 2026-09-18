@@ -25,6 +25,7 @@ from calibrax.metrics._utils import (
     _prepare_ensemble_arrays,
     reduce_values,
     safe_divide,
+    safe_norm,
     safe_root,
 )
 
@@ -221,7 +222,7 @@ def relative_error(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # ra
         ValueError: If shapes do not match.
     """
     p, t = _prepare_arrays(predictions, targets)
-    return jnp.sqrt(jnp.sum((p - t) ** 2)) / (jnp.sqrt(jnp.sum(t**2)) + _EPSILON)
+    return safe_norm(p - t) / (safe_norm(t) + _EPSILON)
 
 
 def explained_variance(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _prepare_arrays
@@ -511,8 +512,8 @@ def per_sample_relative_l2(predictions: Any, targets: Any) -> Any:  # noqa: DOC5
     """
     pred, target = _prepare_arrays(predictions, targets)
     batch = pred.shape[0]
-    numerator = jnp.linalg.norm((pred - target).reshape(batch, -1), axis=1)
-    denominator = jnp.linalg.norm(target.reshape(batch, -1), axis=1)
+    numerator = safe_norm((pred - target).reshape(batch, -1), axis=1)
+    denominator = safe_norm(target.reshape(batch, -1), axis=1)
     return safe_divide(numerator, denominator)
 
 

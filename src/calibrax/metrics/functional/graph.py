@@ -23,6 +23,8 @@ from typing import Any
 import jax
 import jax.numpy as jnp
 
+from calibrax.metrics._utils import safe_norm, safe_root
+
 
 def spectral_distance(
     adj_a: Any,
@@ -75,7 +77,7 @@ def spectral_distance(
     elif len_b < len_a:
         eig_b = jnp.concatenate([eig_b, jnp.zeros(len_a - len_b)])
 
-    return jnp.linalg.norm(eig_a - eig_b)
+    return safe_norm(eig_a - eig_b)
 
 
 def resistance_distance(adjacency_matrix: Any) -> jnp.ndarray:
@@ -207,6 +209,6 @@ def graph_edit_distance_approx(adj_a: Any, adj_b: Any) -> Any:
     eigenvalue_diff = jnp.sum((eig_a - eig_b) ** 2)
 
     # 2-hop structural difference
-    structural_diff = jnp.linalg.norm(a @ a - b @ b) ** 2
+    structural_diff = jnp.sum(jnp.square(a @ a - b @ b))
 
-    return jnp.sqrt(eigenvalue_diff + structural_diff)
+    return safe_root(eigenvalue_diff + structural_diff)

@@ -18,7 +18,7 @@ from typing import Any
 import jax
 import jax.numpy as jnp
 
-from calibrax.metrics._utils import _EPSILON, safe_divide
+from calibrax.metrics._utils import _EPSILON, safe_divide, safe_norm, safe_root
 
 
 def _batch_or_single(
@@ -108,7 +108,7 @@ def euclidean_distance(a: Any, b: Any) -> Any:
     """
 
     def _single(x: Any, y: Any) -> Any:
-        return jnp.linalg.norm(x - y)
+        return safe_norm(x - y)
 
     return _batch_or_single(a, b, _single)
 
@@ -208,8 +208,8 @@ def mahalanobis_distance(
     def _single(x: Any, y: Any, *, prec: Any | None = None) -> Any:
         diff = x - y
         if prec is None:
-            return jnp.linalg.norm(diff)
-        return jnp.sqrt(jnp.dot(diff, jnp.dot(prec, diff)))
+            return safe_norm(diff)
+        return safe_root(jnp.dot(diff, jnp.dot(prec, diff)))
 
     a_arr = jnp.asarray(a)
     b_arr = jnp.asarray(b)
@@ -272,7 +272,7 @@ def minkowski_distance(a: Any, b: Any, *, p: float = 2.0) -> Any:
     """
 
     def _single(x: Any, y: Any, *, p: float = 2.0) -> Any:
-        return jnp.sum(jnp.abs(x - y) ** p) ** (1.0 / p)
+        return safe_root(jnp.sum(jnp.abs(x - y) ** p), order=p)
 
     return _batch_or_single(a, b, _single, p=p)
 
