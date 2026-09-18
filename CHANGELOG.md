@@ -21,6 +21,7 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Security
 
+- The lock moves anyio from 4.12.1 to 4.14.2 for CVE-2026-63374 and CVE-2026-64847; nothing else moves. 4.14.2 is the first fixed release; 4.15.1 needs typing-extensions 4.16.0, which a single-package upgrade does not allow to move.
 - The lock moves cryptography from 49.0.0 to 50.0.1 for GHSA-g6cj-pr64-35w5. mlflow 3.15.2
   required cryptography below 50, so mlflow (the `mlflow` extra, with its skinny and tracing
   wheels) moves to 3.16.1, which also leaves the affected range of GHSA-h7x2-h6g9-p789 (the
