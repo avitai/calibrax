@@ -8,16 +8,13 @@ Does not parse trace files — only links file paths to benchmark results.
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, TYPE_CHECKING
+from typing import Any
 
 import jax
-
-
-if TYPE_CHECKING:
-    from collections.abc import Iterator
 
 
 logger = logging.getLogger(__name__)
