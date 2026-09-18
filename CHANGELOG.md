@@ -99,6 +99,13 @@ and uses semantic versioning while the public API stabilizes.
   are waited for with `jax.block_until_ready`, through nested pytrees; `reset()` makes each
   wrapper compile again. The unread shape, dtype and timestamp records are gone.
 
+### Fixed
+
+- `CarbonTracker(country_iso_code=...)` uses codecarbon's `OfflineEmissionsTracker`, the tracker
+  that takes a country. `EmissionsTracker` refuses `country_iso_code` with `TypeError`, and the
+  fallback that caught it retried without the country, so the requested country was dropped
+  without a warning and the machine's detected location was used instead.
+
 ### Removed
 
 - `scripts/setup_env.py`. `setup.sh` runs `python -m substrax.runtime.managed_env write --prefix
