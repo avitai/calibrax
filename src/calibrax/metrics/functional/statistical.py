@@ -15,7 +15,12 @@ import jax
 import jax.numpy as jnp
 from jax.typing import ArrayLike
 
-from calibrax.metrics._utils import _EPSILON
+from calibrax.metrics._utils import (
+    _EPSILON,
+    _FEATURE_MATRIX_NDIM,
+    _MIN_CORRELATED_FEATURES,
+    _SERIES_NDIM,
+)
 
 
 def pearson_correlation(a: ArrayLike, b: ArrayLike) -> jax.Array:
@@ -216,7 +221,7 @@ def correlation_preservation(real: ArrayLike, generated: ArrayLike) -> jax.Array
     """
     real_matrix = jnp.asarray(real, dtype=jnp.float32)
     generated_matrix = jnp.asarray(generated, dtype=jnp.float32)
-    if real_matrix.ndim != 2 or generated_matrix.ndim != 2:  # noqa: PLR2004
+    if real_matrix.ndim != _FEATURE_MATRIX_NDIM or generated_matrix.ndim != _FEATURE_MATRIX_NDIM:
         msg = f"records must be 2-dimensional, got {real_matrix.shape} and {generated_matrix.shape}"
         raise ValueError(msg)
     if real_matrix.shape[1] != generated_matrix.shape[1]:
@@ -226,7 +231,7 @@ def correlation_preservation(real: ArrayLike, generated: ArrayLike) -> jax.Array
         )
         raise ValueError(msg)
     n_features = real_matrix.shape[1]
-    if n_features < 2:  # noqa: PLR2004
+    if n_features < _MIN_CORRELATED_FEATURES:
         return jnp.asarray(1.0, dtype=jnp.float32)
     real_corr = jnp.nan_to_num(jnp.corrcoef(real_matrix, rowvar=False))
     generated_corr = jnp.nan_to_num(jnp.corrcoef(generated_matrix, rowvar=False))
@@ -255,7 +260,7 @@ def autocorrelation(series: ArrayLike, *, max_lag: int) -> jax.Array:
         ValueError: If ``max_lag`` exceeds the sequence length or is not positive.
     """
     data = jnp.asarray(series, dtype=jnp.float32)
-    if data.ndim != 3:  # noqa: PLR2004
+    if data.ndim != _SERIES_NDIM:
         msg = f"series must have shape (batch, sequence, features), got {data.shape}"
         raise ValueError(msg)
     sequence_length = data.shape[1]

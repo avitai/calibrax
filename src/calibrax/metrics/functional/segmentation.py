@@ -26,7 +26,7 @@ def iou(
     """Intersection over Union (Jaccard index) for segmentation.
 
     Measures overlap between predicted and ground truth masks.
-    For binary: ``|P ∩ T| / |P ∪ T|``.
+    For binary: the size of the intersection of P and T over the size of their union.
     For multiclass: per-class IoU, then averaged.
 
     Note:
@@ -54,7 +54,7 @@ def iou(
         >>> truth = jnp.array([1, 0, 0, 0])
         >>> iou(preds, truth)  # binary IoU
         0.5
-    """  # noqa: RUF002  # set notation
+    """
     p, t = _prepare_class_arrays(predictions, targets)
     p, t = p.ravel(), t.ravel()
 

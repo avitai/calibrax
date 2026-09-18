@@ -14,7 +14,7 @@ RELEASING_DOC = ROOT / "RELEASING.md"
 
 def _load_publish_workflow() -> dict[str, object]:
     # BaseLoader keeps every scalar a string, so the `on:` key stays `on` rather than True.
-    return yaml.load(PUBLISH_WORKFLOW.read_text(), Loader=yaml.BaseLoader)  # noqa: S506
+    return yaml.load(PUBLISH_WORKFLOW.read_text(), Loader=yaml.BaseLoader)  # noqa: S506  # BaseLoader keeps `on:` a string
 
 
 def test_publish_workflow_does_not_create_releases_on_push() -> None:

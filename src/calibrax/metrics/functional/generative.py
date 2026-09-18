@@ -19,7 +19,7 @@ import jax
 import jax.numpy as jnp
 from jax.typing import ArrayLike
 
-from calibrax.metrics._utils import _EPSILON
+from calibrax.metrics._utils import _EPSILON, _FEATURE_MATRIX_NDIM
 
 
 # A sample covariance needs at least two samples; with one, the estimate divides by zero.
@@ -42,7 +42,10 @@ def _prepare_feature_arrays(real: ArrayLike, generated: ArrayLike) -> tuple[jax.
     """
     real_features = jnp.asarray(real, dtype=jnp.float32)
     generated_features = jnp.asarray(generated, dtype=jnp.float32)
-    if real_features.ndim != 2 or generated_features.ndim != 2:  # noqa: PLR2004
+    if (
+        real_features.ndim != _FEATURE_MATRIX_NDIM
+        or generated_features.ndim != _FEATURE_MATRIX_NDIM
+    ):
         msg = (
             "features must be 2-dimensional (samples, features), got "
             f"{real_features.shape} and {generated_features.shape}"

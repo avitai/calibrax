@@ -8,6 +8,7 @@ dependency for plots; table generation works without it.
 from __future__ import annotations
 
 import csv
+import importlib.util
 import io
 import logging
 import re
@@ -18,12 +19,8 @@ from typing import Any
 from calibrax.core.models import extract_framework_metrics, is_higher_better, Run, TrendSeries
 
 
-try:
-    import matplotlib.pyplot  # noqa: F401
-
-    MATPLOTLIB_AVAILABLE = True
-except ImportError:
-    MATPLOTLIB_AVAILABLE = False
+# Whether plotting can run, found without importing pyplot (which starts a backend).
+MATPLOTLIB_AVAILABLE = importlib.util.find_spec("matplotlib") is not None
 
 
 logger = logging.getLogger(__name__)
