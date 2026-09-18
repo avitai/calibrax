@@ -7,6 +7,8 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+## [0.1.9] - 2026-09-18
+
 ### Changed
 
 - Requires `substrax>=0.1.11`; the lock moves it from 0.1.9. Calibrax uses substrax's device
