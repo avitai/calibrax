@@ -157,6 +157,12 @@ def safe_log(x: ArrayLike, *, eps: float = _EPSILON) -> jax.Array:
 
 # Ensemble forecasts are (samples, members) with at least two members.
 _ENSEMBLE_NDIM = 2
+# A matrix of records or features: (n_samples, n_features).
+_FEATURE_MATRIX_NDIM = 2
+# A batch of series: (batch, sequence, features).
+_SERIES_NDIM = 3
+# Feature correlations need at least two features.
+_MIN_CORRELATED_FEATURES = 2
 _MIN_ENSEMBLE_MEMBERS = 2
 _MULTIVARIATE_ENSEMBLE_NDIM = 3
 
