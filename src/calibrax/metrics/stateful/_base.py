@@ -8,14 +8,14 @@ calibration layers on top of backbone features.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
 
 from flax import nnx
+from jax.typing import ArrayLike
 
 from calibrax.metrics.plotting import MetricPlotMixin
 
 
-class FrozenBackboneMetric(MetricPlotMixin, ABC):
+class FrozenBackboneMetric[FeaturesT](MetricPlotMixin, ABC):
     """Base class for Tier 1 metrics with frozen pretrained backbones.
 
     Implements the StatefulMetricProtocol lifecycle:
@@ -59,7 +59,7 @@ class FrozenBackboneMetric(MetricPlotMixin, ABC):
         """Get the metric name."""
         return self._name
 
-    def update(self, **kwargs: Any) -> None:
+    def update(self, **kwargs: ArrayLike) -> None:
         """Extract features and accumulate statistics.
 
         Args:
@@ -82,7 +82,7 @@ class FrozenBackboneMetric(MetricPlotMixin, ABC):
         ...
 
     @abstractmethod
-    def _extract_features(self, **kwargs: Any) -> Any:
+    def _extract_features(self, **kwargs: ArrayLike) -> FeaturesT:
         """Extract features from input using the frozen backbone.
 
         Args:
@@ -94,7 +94,7 @@ class FrozenBackboneMetric(MetricPlotMixin, ABC):
         ...
 
     @abstractmethod
-    def _accumulate(self, features: Any) -> None:
+    def _accumulate(self, features: FeaturesT) -> None:
         """Accumulate statistics from extracted features.
 
         Args:

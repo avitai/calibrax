@@ -79,6 +79,14 @@ and uses semantic versioning while the public API stabilizes.
 - `ThresholdMetric.evaluate` returns a `ThresholdResult` (`value`, `passed`, `threshold`,
   `metric_name`) instead of a dict. The composition classes and wrappers type their arrays as
   `ArrayLike`, and a metric collection's pass-through keywords as `object`.
+- `FrozenBackboneMetric[FeaturesT]` is generic in the features its `_extract_features` returns
+  and `_accumulate` receives (`FIDMetric` and `BERTScoreMetric` use `dict[str, jax.Array]`,
+  `InceptionScoreMetric` `jax.Array`); `update` takes array keywords. `DatasetProtocol[ItemT]` and
+  `BatchableDatasetProtocol[ItemT]` are generic in their items, and the batchable protocol extends
+  the plain one; `get_batch` returns `dict[str, jax.Array]` and `MetricProtocol.compute`
+  `jax.Array | float`. `LPIPSMetric.update(*, features_a, features_b)` names its per-layer feature
+  sequences instead of reading them from `**kwargs`. The scientific plugin functions take
+  array-likes and return arrays.
 
 ### Removed
 
