@@ -59,6 +59,8 @@ and uses semantic versioning while the public API stabilizes.
 - `BenchmarkAdapter` is an abstract base class with an abstract `can_adapt`, as the architecture
   notes describe it; the base returned `False` for every target, so an adapter that did not
   override it could never be selected by `AdapterRegistry`. Adapters implement `can_adapt`.
+- `LearnedMetric.__init__(name)` no longer takes `rngs`, which it ignored; a subclass creates its
+  layers with its own `nnx.Rngs` (`LPIPSMetric` and the user-guide example updated).
 
 ### Removed
 

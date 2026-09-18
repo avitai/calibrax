@@ -194,7 +194,7 @@ class LPIPSMetric(LearnedMetric):
             feature_channels: Number of channels at each VGG layer.
             rngs: RNG streams for parameter initialization.
         """
-        super().__init__(name="lpips", rngs=rngs)
+        super().__init__(name="lpips")
         self._layer_weights = nnx.List(
             [nnx.Linear(in_features=ch, out_features=1, rngs=rngs) for ch in feature_channels]
         )

@@ -125,16 +125,17 @@ class LearnedMetric(MetricPlotMixin, nnx.Module):
     Examples:
         >>> class MyLearnedMetric(LearnedMetric):
         ...     def __init__(self, *, rngs):
-        ...         super().__init__(name="my_metric", rngs=rngs)
+        ...         super().__init__(name="my_metric")
         ...         self._linear = nnx.Linear(4, 1, rngs=rngs)
     """
 
-    def __init__(self, name: str, *, rngs: nnx.Rngs) -> None:  # noqa: ARG002  # for subclasses
+    def __init__(self, name: str) -> None:
         """Initialize learned metric.
+
+        A subclass creates its trainable layers with its own ``nnx.Rngs``.
 
         Args:
             name: Metric name.
-            rngs: RNG streams for parameter initialization.
         """
         super().__init__()
         self._name = name
