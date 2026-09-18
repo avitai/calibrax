@@ -50,5 +50,7 @@ jobs:
       - name: Install in clean venv and verify import
         run: |
           uv venv /tmp/test-env
-          VIRTUAL_ENV=/tmp/test-env uv pip install dist/*.whl
-          /tmp/test-env/bin/python -c "import calibrax; print(calibrax.__version__)"
+          # --refresh: a fresh install reads PyPI, not the restored cache. The import reaches
+          # the numerical stack: `import calibrax` alone never loads flax.nnx.
+          VIRTUAL_ENV=/tmp/test-env uv pip install --refresh dist/*.whl
+          /tmp/test-env/bin/python -c "import calibrax, calibrax.core.adapters; print(calibrax.__version__)"
