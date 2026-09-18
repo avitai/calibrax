@@ -164,15 +164,16 @@ Wrap any metric with bootstrap confidence interval estimation. A measurement
 without uncertainty is incomplete.
 
 ```python
+import jax
 from calibrax.metrics.functional.regression import mse
 from calibrax.metrics.wrappers import BootstrapMetric
 
-bootstrap = BootstrapMetric(mse, num_bootstraps=1000, confidence=0.95, seed=42)
-result = bootstrap.compute(predictions, targets)
+bootstrap = BootstrapMetric(mse, num_resamples=1000, confidence=0.95)
+result = bootstrap.compute(predictions, targets, key=jax.random.key(42))
 
-print(f"MSE: {result['value']:.4f}")
-print(f"95% CI: [{result['lower']:.4f}, {result['upper']:.4f}]")
-print(f"Bootstrap samples: {len(result['samples'])}")
+print(f"MSE: {float(result.value):.4f}")
+print(f"95% CI: [{float(result.lower):.4f}, {float(result.upper):.4f}]")
+print(f"Bootstrap samples: {result.samples.shape[0]}")
 ```
 
 The wrapper resamples `(predictions, targets)` pairs with replacement,
@@ -292,6 +293,7 @@ tracker.reset()  # Clear tracking state
 Combine several composition tools for a full evaluation workflow:
 
 ```python
+import jax
 from calibrax.metrics.composition import (
     MetricCollection,
     MetricSuite,
@@ -302,11 +304,12 @@ from calibrax.metrics.wrappers import BootstrapMetric, MetricTracker
 from calibrax.metrics.functional.regression import mse, mae
 
 # 1. Compute metrics with confidence intervals
-bootstrap_mse = BootstrapMetric(mse, num_bootstraps=500, seed=0)
-bootstrap_mae = BootstrapMetric(mae, num_bootstraps=500, seed=0)
+bootstrap_mse = BootstrapMetric(mse, num_resamples=500)
+bootstrap_mae = BootstrapMetric(mae, num_resamples=500)
 
-mse_result = bootstrap_mse.compute(predictions, targets)
-mae_result = bootstrap_mae.compute(predictions, targets)
+mse_key, mae_key = jax.random.split(jax.random.key(0))
+mse_result = bootstrap_mse.compute(predictions, targets, key=mse_key)
+mae_result = bootstrap_mae.compute(predictions, targets, key=mae_key)
 
 # 2. Check quality gates
 mse_gate = ThresholdMetric("mse", max_value=0.05)
@@ -315,8 +318,8 @@ gate_result = mse_gate.evaluate(predictions, targets)
 # 3. Compute weighted composite score
 weighted = WeightedMetric({"mse": 0.6, "mae": 0.4})
 score = weighted.compute({
-    "mse": mse_result["value"],
-    "mae": mae_result["value"],
+    "mse": float(mse_result.value),
+    "mae": float(mae_result.value),
 })
 ```
 
