@@ -3,9 +3,10 @@
 All protocols are runtime_checkable for structural subtyping checks.
 """
 
-from typing import Any, Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable
 
 import jax
+from jax.typing import ArrayLike
 
 
 @runtime_checkable
@@ -50,14 +51,14 @@ class BenchmarkProtocol(Protocol):
 
 
 @runtime_checkable
-class DatasetProtocol(Protocol):
-    """Interface for datasets used in benchmarks."""
+class DatasetProtocol[ItemT](Protocol):
+    """Interface for datasets used in benchmarks, whose examples are ``ItemT``."""
 
     def __len__(self) -> int:
         """Get the number of examples in the dataset."""
         ...
 
-    def __getitem__(self, idx: int) -> Any:
+    def __getitem__(self, idx: int) -> ItemT:
         """Get an example by index.
 
         Args:
@@ -70,28 +71,10 @@ class DatasetProtocol(Protocol):
 
 
 @runtime_checkable
-class BatchableDatasetProtocol(Protocol):
-    """Interface for datasets that support batch retrieval.
+class BatchableDatasetProtocol[ItemT](DatasetProtocol[ItemT], Protocol):
+    """A dataset that also returns batches of arrays by name."""
 
-    Extends DatasetProtocol with get_batch capability.
-    """
-
-    def __len__(self) -> int:
-        """Get the number of examples in the dataset."""
-        ...
-
-    def __getitem__(self, idx: int) -> Any:
-        """Get an example by index.
-
-        Args:
-            idx: Index of the example.
-
-        Returns:
-            The example at the given index.
-        """
-        ...
-
-    def get_batch(self, batch_size: int, start_idx: int) -> dict[str, Any]:
+    def get_batch(self, batch_size: int, start_idx: int) -> dict[str, jax.Array]:
         """Get a batch of data starting at the given index.
 
         Args:
@@ -99,7 +82,7 @@ class BatchableDatasetProtocol(Protocol):
             start_idx: Starting index for the batch.
 
         Returns:
-            Batch data dictionary.
+            The batch's arrays by name.
         """
         ...
 
@@ -122,7 +105,7 @@ class MetricProtocol(Protocol):
         """Whether higher values indicate better performance."""
         ...
 
-    def compute(self, predictions: jax.Array, targets: jax.Array) -> Any:
+    def compute(self, predictions: jax.Array, targets: jax.Array) -> jax.Array | float:
         """Compute the metric value.
 
         Args:
@@ -171,7 +154,7 @@ class StatefulMetricProtocol(Protocol):
         """Get the metric name."""
         ...
 
-    def update(self, **kwargs: Any) -> None:
+    def update(self, **kwargs: ArrayLike) -> None:
         """Accumulate batch statistics.
 
         Args:
