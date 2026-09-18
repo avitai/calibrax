@@ -91,4 +91,5 @@ fi
 _calibrax_sanitize_cuda_library_path
 
 echo "Calibrax environment active (${CALIBRAX_BACKEND:-auto})."
-echo "Use 'python3 scripts/setup_env.py show' to inspect the resolved backend and env layering."
+echo "Inspect the resolved backend and env layering with:"
+echo "  python -m substrax.runtime.managed_env show --prefix CALIBRAX --env-file .calibrax.env --user-env .env --user-env .env.local"
