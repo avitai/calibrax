@@ -158,8 +158,8 @@ def hellinger_distance(p: Any, q: Any) -> Any:
     """
     p_arr = jnp.asarray(p).ravel()
     q_arr = jnp.asarray(q).ravel()
-    diff = jnp.sqrt(jnp.maximum(p_arr, 0.0)) - jnp.sqrt(jnp.maximum(q_arr, 0.0))
-    return jnp.sqrt(0.5 * jnp.sum(diff**2))
+    diff = safe_root(jnp.maximum(p_arr, 0.0)) - safe_root(jnp.maximum(q_arr, 0.0))
+    return safe_root(0.5 * jnp.sum(diff**2))
 
 
 def chi_squared_divergence(p: Any, q: Any) -> Any:
@@ -330,7 +330,7 @@ def mmd(
     kxy_sum = jnp.sum(kxy) / (n * m)
 
     mmd_sq = kxx_sum + kyy_sum - 2.0 * kxy_sum
-    return jnp.sqrt(jnp.maximum(mmd_sq, 0.0))
+    return safe_root(jnp.maximum(mmd_sq, 0.0))
 
 
 def sinkhorn_divergence(

@@ -10,6 +10,7 @@ from typing import Any
 
 import jax
 import jax.numpy as jnp
+from jax.typing import ArrayLike
 
 
 _EPSILON = 1e-8
@@ -99,13 +100,14 @@ def safe_divide(
     return numerator / (denominator + eps)
 
 
-def safe_root(x: Any, *, order: float = 2.0) -> Any:
+def safe_root(x: ArrayLike, *, order: float = 2.0) -> jax.Array:
     """The ``order``-th root of non-negative ``x``, with derivative 0 where ``x`` is 0.
 
     The plain root's derivative is infinite at 0, so ``jax.grad`` of a distance built on it
-    is NaN at a perfect match. The root is taken of a guarded value and the zero case
-    returns 0 through the outer ``where``; one ``where`` alone keeps the NaN, because the
-    discarded branch's derivative still enters the product.
+    is NaN at a perfect match. Following the JAX FAQ ("Gradients contain NaN where using
+    where"), the root is taken of a value guarded by an inner ``where`` and the zero case is
+    selected by an outer one; the outer ``where`` alone keeps the NaN. The derivative at 0 is
+    0, the convention of ``optax.safe_norm``.
 
     Args:
         x: Non-negative values.
@@ -118,6 +120,22 @@ def safe_root(x: Any, *, order: float = 2.0) -> Any:
     positive = x > 0.0
     safe = jnp.where(positive, x, jnp.ones_like(x))
     return jnp.where(positive, safe ** (1.0 / order), jnp.zeros_like(x))
+
+
+def safe_norm(x: ArrayLike, *, axis: int | tuple[int, ...] | None = None) -> jax.Array:
+    """The Euclidean norm of ``x`` over ``axis`` (all elements when ``None``), zero-safe.
+
+    ``jnp.linalg.norm`` has a NaN gradient at the zero vector, which a distance reaches at a
+    perfect match; this is ``safe_root`` of the sum of squares, with gradient 0 there.
+
+    Args:
+        x: Values.
+        axis: Axis or axes to reduce.
+
+    Returns:
+        The norm, reduced over ``axis``.
+    """
+    return safe_root(jnp.sum(jnp.square(x), axis=axis))
 
 
 def safe_log(x: Any, *, eps: float = _EPSILON) -> Any:

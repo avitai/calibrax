@@ -15,7 +15,7 @@ from typing import Any
 import jax
 import jax.numpy as jnp
 
-from calibrax.metrics._utils import _EPSILON
+from calibrax.metrics._utils import _EPSILON, safe_root
 
 
 def chamfer_distance(set_a: Any, set_b: Any) -> Any:
@@ -171,7 +171,7 @@ def rmsd(
     centred_a = a - jnp.sum(a * weights, axis=0) / safe_count
     centred_b = b - jnp.sum(b * weights, axis=0) / safe_count
     squared = jnp.sum(weights[:, 0] * jnp.sum((centred_a - centred_b) ** 2, axis=-1)) / safe_count
-    return jnp.where(count > 0.0, jnp.sqrt(squared), jnp.inf)
+    return jnp.where(count > 0.0, safe_root(squared), jnp.inf)
 
 
 def pairwise_rmsd(coordinates: Any, mask: Any) -> Any:

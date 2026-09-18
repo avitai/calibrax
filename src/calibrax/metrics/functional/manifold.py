@@ -31,7 +31,7 @@ from typing import Any
 
 import jax.numpy as jnp
 
-from calibrax.metrics._utils import _EPSILON
+from calibrax.metrics._utils import _EPSILON, safe_norm
 
 
 def spd_affine_invariant_distance(a: Any, b: Any) -> Any:
@@ -111,7 +111,7 @@ def spd_log_euclidean_distance(a: Any, b: Any) -> Any:
     log_a = _matrix_log_spd(a)
     log_b = _matrix_log_spd(b)
 
-    return jnp.linalg.norm(log_a - log_b)
+    return safe_norm(log_a - log_b)
 
 
 def _matrix_log_spd(m: jnp.ndarray) -> jnp.ndarray:
@@ -197,7 +197,7 @@ def stiefel_distance(u: Any, v: Any) -> Any:
     u = jnp.asarray(u, dtype=jnp.float32)
     v = jnp.asarray(v, dtype=jnp.float32)
 
-    return jnp.linalg.norm(u - v)
+    return safe_norm(u - v)
 
 
 def ultrahyperbolic_distance(

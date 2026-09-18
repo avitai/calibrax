@@ -30,6 +30,7 @@ from calibrax.metrics._utils import (
     _prepare_arrays,
     _prepare_ensemble_arrays,
     _prepare_multivariate_ensemble_arrays,
+    safe_norm,
 )
 
 
@@ -87,8 +88,9 @@ def energy_score(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # rais
         ValueError: If inputs do not have compatible multivariate ensemble shapes.
     """
     pred, target = _prepare_multivariate_ensemble_arrays(predictions, targets)
-    forecast_error = jnp.mean(jnp.linalg.norm(pred - target[:, None, :], axis=-1), axis=1)
-    pairwise = jnp.linalg.norm(pred[:, :, None, :] - pred[:, None, :, :], axis=-1)
+    forecast_error = jnp.mean(safe_norm(pred - target[:, None, :], axis=-1), axis=1)
+    # Each member's distance to itself is 0, so a bare norm made the gradient NaN everywhere.
+    pairwise = safe_norm(pred[:, :, None, :] - pred[:, None, :, :], axis=-1)
     return jnp.mean(forecast_error - 0.5 * jnp.mean(pairwise, axis=(1, 2)))
 
 
