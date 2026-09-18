@@ -9,8 +9,13 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Changed
 
-- Requires `substrax>=0.1.10`; the lock moves it from 0.1.9. Calibrax uses substrax's device
-  detection only, which 0.1.10 leaves as it was.
+- Requires `substrax>=0.1.11`; the lock moves it from 0.1.9. Calibrax uses substrax's device
+  detection only, which 0.1.10 and 0.1.11 leave as it was; 0.1.11 caps jax below 0.11.2, whose
+  renamed `jax.experimental.hijax.HiPrimitive` flax 0.12.9 imports at module load, and a
+  resolver given `substrax>=0.1.10` keeps jax 0.11.2 and picks 0.1.10 instead, so a fresh
+  install of calibrax resolved the failing pair until the floor moved. The build-verification
+  smoke installs the wheel with `--refresh` and imports `calibrax.core.adapters`, which loads
+  the stack; `import calibrax` alone never did.
 
 ### Security
 
