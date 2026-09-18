@@ -1,24 +1,42 @@
 """Carbon emissions tracking via CodeCarbon integration.
 
-Wraps the ``codecarbon.EmissionsTracker`` as a context manager, exposing
-emissions data as a frozen ``CarbonResult`` dataclass. Requires the
-optional ``codecarbon`` dependency (``uv pip install "calibrax[codecarbon]"``).
+Wraps codecarbon's trackers as a context manager, exposing emissions data as a frozen
+``CarbonResult`` dataclass: ``EmissionsTracker``, which locates the machine itself, or, when a
+country is given, ``OfflineEmissionsTracker``, the tracker codecarbon takes ``country_iso_code``
+on. codecarbon is imported when a tracker starts, since importing it loads the NVML bindings.
+Requires the optional ``codecarbon`` dependency (``uv pip install "calibrax[codecarbon]"``).
 """
 
 from __future__ import annotations
 
+import importlib.util
 import logging
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Protocol
 
 
-try:
-    from codecarbon import EmissionsTracker
+CODECARBON_AVAILABLE = importlib.util.find_spec("codecarbon") is not None
 
-    CODECARBON_AVAILABLE = True
-except ImportError:
-    EmissionsTracker = None  # type: ignore[assignment, misc]
-    CODECARBON_AVAILABLE = False
+
+class _EmissionsData(Protocol):
+    """The emissions record fields CarbonTracker reads."""
+
+    @property
+    def energy_consumed(self) -> float: ...
+
+    @property
+    def duration(self) -> float: ...
+
+
+class _Tracker(Protocol):
+    """The part of a codecarbon tracker CarbonTracker uses."""
+
+    @property
+    def final_emissions_data(self) -> _EmissionsData | None: ...
+
+    def start(self) -> None: ...
+
+    def stop(self) -> float | None: ...
 
 
 logger = logging.getLogger(__name__)
@@ -108,27 +126,26 @@ class CarbonTracker:
 
         self._country_iso_code = country_iso_code
         self._log_level = log_level
-        self._tracker: Any = None
+        self._tracker: _Tracker | None = None
         self._emissions: float = 0.0
         self._energy: float = 0.0
         self._duration: float = 0.0
 
     def __enter__(self) -> CarbonTracker:
         """Start emissions tracking."""
-        kwargs: dict[str, Any] = {
-            "log_level": self._log_level,
-            "save_to_file": False,
-        }
-        if self._country_iso_code is not None:
-            kwargs["country_iso_code"] = self._country_iso_code
+        from codecarbon import EmissionsTracker, OfflineEmissionsTracker
 
-        try:
-            self._tracker = EmissionsTracker(**kwargs)  # type: ignore[misc]
-        except TypeError:
-            # Handle codecarbon versions that don't accept country_iso_code
-            kwargs.pop("country_iso_code", None)
-            self._tracker = EmissionsTracker(**kwargs)  # type: ignore[misc]
-        self._tracker.start()
+        tracker: _Tracker
+        if self._country_iso_code is None:
+            tracker = EmissionsTracker(log_level=self._log_level, save_to_file=False)
+        else:
+            tracker = OfflineEmissionsTracker(
+                country_iso_code=self._country_iso_code,
+                log_level=self._log_level,
+                save_to_file=False,
+            )
+        tracker.start()
+        self._tracker = tracker
         return self
 
     def __exit__(self, *args: object) -> None:
