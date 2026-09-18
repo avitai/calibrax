@@ -48,6 +48,9 @@ and uses semantic versioning while the public API stabilizes.
   wrappers and fairness helpers; they declared `Callable[..., float]` although every metric
   returns an array; it admits a Python float for the host-side text metrics. `MetricValues` types
   `calculate_all`'s result.
+- `MetricLearningLoss.__call__(embeddings, labels)` takes array-likes and no `**kwargs`: every
+  loss ignored them (`ContrastiveLoss`, `TripletMarginLoss`, `NTXentLoss`), so they were a
+  suppressed unused argument, not an interface.
 
 ### Removed
 

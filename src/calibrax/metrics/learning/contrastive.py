@@ -6,8 +6,6 @@ All return differentiable JAX arrays for gradient flow.
 
 from __future__ import annotations
 
-from typing import Any
-
 import jax
 import jax.numpy as jnp
 
@@ -41,14 +39,12 @@ class ContrastiveLoss(MetricLearningLoss):
         self,
         embeddings: jax.Array,
         labels: jax.Array,
-        **kwargs: Any,  # noqa: ARG002  # part of the loss interface
     ) -> jax.Array:
         """Compute contrastive loss for all pairs.
 
         Args:
             embeddings: (batch_size, dim) embedding vectors.
             labels: (batch_size,) class labels.
-            **kwargs: Unused; accepted for the loss interface.
 
         Returns:
             Per-pair loss array.
@@ -95,14 +91,12 @@ class TripletMarginLoss(MetricLearningLoss):
         self,
         embeddings: jax.Array,
         labels: jax.Array,
-        **kwargs: Any,  # noqa: ARG002  # part of the loss interface
     ) -> jax.Array:
         """Compute triplet loss for all valid triplets.
 
         Args:
             embeddings: (batch_size, dim) embedding vectors.
             labels: (batch_size,) class labels.
-            **kwargs: Unused; accepted for the loss interface.
 
         Returns:
             Per-triplet loss array (reduced to scalar via batch mean).
@@ -158,14 +152,12 @@ class NTXentLoss(MetricLearningLoss):
         self,
         embeddings: jax.Array,
         labels: jax.Array,
-        **kwargs: Any,  # noqa: ARG002  # part of the loss interface
     ) -> jax.Array:
         """Compute NT-Xent loss.
 
         Args:
             embeddings: (batch_size, dim) embedding vectors.
             labels: (batch_size,) class labels.
-            **kwargs: Unused; accepted for the loss interface.
 
         Returns:
             Per-anchor loss array.
