@@ -88,20 +88,22 @@ class BisectionEngine:
         Restores the original HEAD after bisection completes.
 
         Args:
-            good_commit: Commit hash known to be regression-free.
-            bad_commit: Commit hash known to have the regression.
+            good_commit: A revision known to be regression-free (hash, branch or tag).
+            bad_commit: A revision known to have the regression.
 
         Returns:
-            BisectionResult with the culprit commit (if found).
+            BisectionResult with the culprit commit (if found), as a full hash.
         """
+        good = self._resolve_commit(good_commit)
+        bad = self._resolve_commit(bad_commit)
         original_head = self._get_original_ref()
         tested: list[str] = []
 
         try:
-            commits = self._get_commit_range(good_commit, bad_commit)
+            commits = self._get_commit_range(good, bad)
             if len(commits) <= _ADJACENT_RANGE:
                 return BisectionResult(
-                    culprit_commit=bad_commit if len(commits) == _ADJACENT_RANGE else None,
+                    culprit_commit=bad if len(commits) == _ADJACENT_RANGE else None,
                     total_steps=0,
                     tested_commits=(),
                     is_regression_found=len(commits) == _ADJACENT_RANGE,
@@ -142,16 +144,52 @@ class BisectionEngine:
         finally:
             self._restore_head(original_head)
 
-    def _get_current_head(self) -> str:
-        """Get the current HEAD commit hash."""
-        result = subprocess.run(  # noqa: S603  # nosec B603  # refs come from the caller; no shell
-            [_git_executable(), "rev-parse", "HEAD"],
+    def _git(self, *args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
+        """Run git in the repository.
+
+        Every argument is a git subcommand or option, or a commit hash or branch name that git
+        itself returned: caller-supplied refs are resolved by ``_resolve_commit`` first.
+
+        Args:
+            *args: The git arguments.
+            check: Raise ``CalledProcessError`` on a non-zero exit.
+
+        Returns:
+            The completed process, with text output captured.
+        """
+        return subprocess.run(  # noqa: S603  # nosec B603  # git and resolved hashes; no shell
+            [_git_executable(), *args],
             cwd=self._repo_path,
             capture_output=True,
             text=True,
-            check=True,
+            check=check,
         )
+
+    def _resolve_commit(self, ref: str) -> str:
+        """The full hash of the commit ``ref`` names.
+
+        ``--end-of-options`` keeps a ref that begins with ``-`` from being read as an option.
+
+        Args:
+            ref: A commit hash, branch, tag or other revision.
+
+        Returns:
+            The commit's full hash.
+
+        Raises:
+            ValueError: If ``ref`` does not name a commit in the repository.
+        """
+        result = self._git(
+            "rev-parse", "--verify", "--quiet", "--end-of-options", f"{ref}^{{commit}}", check=False
+        )
+        if result.returncode != 0:
+            msg = f"{ref!r} does not name a commit in {self._repo_path}"
+            raise ValueError(msg)
         return result.stdout.strip()
+
+    def _get_current_head(self) -> str:
+        """Get the current HEAD commit hash."""
+        return self._git("rev-parse", "HEAD").stdout.strip()
 
     def _get_original_ref(self) -> str:
         """Get a ref that can restore the user's original git state.
@@ -159,25 +197,14 @@ class BisectionEngine:
         Prefers a symbolic branch name when HEAD is attached; falls back
         to the current commit hash when detached.
         """
-        try:
-            result = subprocess.run(  # noqa: S603  # nosec B603  # refs come from the caller; no shell
-                [_git_executable(), "symbolic-ref", "--quiet", "--short", "HEAD"],
-                cwd=self._repo_path,
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-            ref = result.stdout.strip()
-            if ref:
-                return ref
-        except subprocess.CalledProcessError:
-            # Detached HEAD: restore by commit hash instead.
-            pass
-
-        return self._get_current_head()
+        ref = self._git("symbolic-ref", "--quiet", "--short", "HEAD", check=False).stdout.strip()
+        return ref or self._get_current_head()
 
     def _get_commit_range(self, good: str, bad: str) -> list[str]:
         """Get list of commits from good to bad (oldest first).
+
+        ``good`` and the commits after it up to ``bad``; unlike ``good^..bad`` this also works
+        when ``good`` is the root commit.
 
         Args:
             good: Good (older) commit hash.
@@ -186,31 +213,13 @@ class BisectionEngine:
         Returns:
             List of commit hashes from good to bad inclusive.
         """
-        result = subprocess.run(  # noqa: S603  # nosec B603  # refs come from the caller; no shell
-            [_git_executable(), "rev-list", "--reverse", f"{good}^..{bad}"],
-            cwd=self._repo_path,
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        return [line.strip() for line in result.stdout.strip().splitlines() if line.strip()]
+        output = self._git("rev-list", "--reverse", "--end-of-options", f"{good}..{bad}").stdout
+        return [good, *(line.strip() for line in output.splitlines() if line.strip())]
 
     def _checkout(self, commit: str) -> None:
         """Checkout a specific commit."""
-        subprocess.run(  # noqa: S603  # nosec B603  # refs come from the caller; no shell
-            [_git_executable(), "checkout", commit],
-            cwd=self._repo_path,
-            capture_output=True,
-            text=True,
-            check=True,
-        )
+        self._git("checkout", commit)
 
     def _restore_head(self, original_head: str) -> None:
         """Restore the original HEAD after bisection."""
-        subprocess.run(  # noqa: S603  # nosec B603  # refs come from the caller; no shell
-            [_git_executable(), "checkout", original_head],
-            cwd=self._repo_path,
-            capture_output=True,
-            text=True,
-            check=True,
-        )
+        self._git("checkout", original_head)
