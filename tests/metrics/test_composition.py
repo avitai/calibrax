@@ -9,6 +9,7 @@ from calibrax.metrics.composition import (
     MetricCollection,
     MetricSuite,
     ThresholdMetric,
+    ThresholdResult,
     WeightedMetric,
 )
 from calibrax.metrics.functional.regression import mae, mse, rmse
@@ -151,29 +152,29 @@ class TestThresholdMetric:
         predictions = jnp.array([1.0, 2.0, 3.0])
         targets = jnp.array([1.0, 2.0, 3.0])
         result = threshold.evaluate(predictions, targets)
-        assert result["passed"] is True
-        assert result["value"] == pytest.approx(0.0, abs=1e-5)
+        assert result.passed is True
+        assert result.value == pytest.approx(0.0, abs=1e-5)
 
     def test_fails_when_above_max(self) -> None:
         threshold = ThresholdMetric("mse", max_value=0.001)
         predictions = jnp.array([2.0, 3.0, 4.0])
         targets = jnp.array([1.0, 2.0, 3.0])
         result = threshold.evaluate(predictions, targets)
-        assert result["passed"] is False
+        assert result.passed is False
 
     def test_passes_when_above_min(self) -> None:
         threshold = ThresholdMetric("r_squared", min_value=0.9)
         predictions = jnp.array([1.0, 2.0, 3.0])
         targets = jnp.array([1.0, 2.0, 3.0])
         result = threshold.evaluate(predictions, targets)
-        assert result["passed"] is True
+        assert result.passed is True
 
     def test_fails_when_below_min(self) -> None:
         threshold = ThresholdMetric("r_squared", min_value=0.99)
         predictions = jnp.array([1.5, 2.5, 3.5])
         targets = jnp.array([1.0, 2.0, 3.0])
         result = threshold.evaluate(predictions, targets)
-        assert result["passed"] is False
+        assert result.passed is False
 
     def test_no_threshold_raises(self) -> None:
         with pytest.raises(ValueError, match="At least one"):
@@ -183,16 +184,12 @@ class TestThresholdMetric:
         with pytest.raises(KeyError, match="not found"):
             ThresholdMetric("nonexistent_xyz", max_value=1.0)
 
-    def test_evaluate_returns_dict(self) -> None:
+    def test_evaluate_returns_a_threshold_result(self) -> None:
         threshold = ThresholdMetric("mse", max_value=1.0)
         predictions = jnp.array([1.0, 2.0])
         targets = jnp.array([1.0, 2.0])
         result = threshold.evaluate(predictions, targets)
-        assert "value" in result
-        assert "passed" in result
-        assert "threshold" in result
-        assert "metric_name" in result
-        assert result["metric_name"] == "mse"
+        assert result == ThresholdResult(value=0.0, passed=True, threshold=1.0, metric_name="mse")
 
     def test_properties(self) -> None:
         threshold = ThresholdMetric("mse", min_value=0.0, max_value=1.0)

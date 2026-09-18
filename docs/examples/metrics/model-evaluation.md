@@ -100,7 +100,7 @@ from calibrax.metrics import ThresholdMetric
 # MSE must be below 0.1
 mse_gate = ThresholdMetric("mse", max_value=0.1)
 result = mse_gate.evaluate(predictions, targets)
-# result["value"] = 0.04, result["passed"] = True
+# result.value = 0.04, result.passed = True
 
 # R-squared must be above 0.95
 r2_gate = ThresholdMetric("r_squared", min_value=0.95)
@@ -153,12 +153,12 @@ The script ties all six components together. Here is the quality-gate section:
 # MSE must be below 0.1 (lower-is-better)
 mse_gate = ThresholdMetric("mse", max_value=0.1)
 result = mse_gate.evaluate(predictions, targets)
-print(f"Value: {result['value']:.6f}, Passed: {result['passed']}")
+print(f"Value: {result.value:.6f}, Passed: {result.passed}")
 
 # R-squared must be above 0.95 (higher-is-better)
 r2_gate = ThresholdMetric("r_squared", min_value=0.95)
 result_r2 = r2_gate.evaluate(predictions, targets)
-print(f"Value: {result_r2['value']:.6f}, Passed: {result_r2['passed']}")
+print(f"Value: {result_r2.value:.6f}, Passed: {result_r2.passed}")
 ```
 
 ## Next Steps

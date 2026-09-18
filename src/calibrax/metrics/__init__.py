@@ -21,6 +21,7 @@ from calibrax.metrics.composition import (
     MetricCollection,
     MetricSuite,
     ThresholdMetric,
+    ThresholdResult,
     WeightedMetric,
 )
 from calibrax.metrics.stateful import FrozenBackboneMetric, LearnedMetric
@@ -41,6 +42,7 @@ __all__ = [
     "MetricCollection",
     "MetricSuite",
     "ThresholdMetric",
+    "ThresholdResult",
     "WeightedMetric",
     # Registry & types
     "MetricEntry",
