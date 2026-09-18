@@ -325,31 +325,105 @@ class TestSinkhornDivergence:
 
 
 class TestSlicedWasserstein:
-    """Tests for sliced_wasserstein."""
+    """``SW_p = (E_theta[W_p^p(theta)])^(1/p)`` over random unit directions (Bonneel et al. 2015)."""
 
     def test_identical_samples(self) -> None:
         x = jnp.array([[0.0, 0.0], [1.0, 1.0], [2.0, 2.0]])
-        result = sliced_wasserstein(x, x, num_projections=20)
-        assert result == pytest.approx(0.0, abs=1e-5)
+        assert sliced_wasserstein(x, x, key=jax.random.key(0)) == pytest.approx(0.0, abs=1e-6)
 
-    def test_different_distributions(self) -> None:
-        x = jnp.array([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0]])
-        y = jnp.array([[5.0, 5.0], [6.0, 5.0], [5.0, 6.0]])
-        result = sliced_wasserstein(x, y, num_projections=50)
-        assert result > 0.0
+    def test_one_dimension_is_the_exact_wasserstein_distance(self) -> None:
+        x = jnp.array([0.0, 1.0, 2.0, 5.0])
+        y = jnp.array([1.0, 3.0, 4.0, 6.0])
+        # Sorted differences 1, 2, 2, 1: W_2 = sqrt(mean([1, 4, 4, 1])) = sqrt(2.5).
+        result = sliced_wasserstein(x, y, key=jax.random.key(0), num_projections=8)
+        assert float(result) == pytest.approx(np.sqrt(2.5), rel=1e-5)
+
+    @pytest.mark.parametrize("dimension", [2, 10])
+    def test_a_shift_gives_its_norm_over_root_dimension(self, dimension: int) -> None:
+        """For y = x + v every direction's W_2 is |<v, theta>|, and E[<v, theta>^2] = |v|^2 / d.
+
+        The mean of per-direction W_2, which is not SW_2, converges elsewhere: |v| E|theta_1|
+        (2 / pi for d = 2, about 0.25 for d = 10 against 0.316).
+        """
+        x = jax.random.normal(jax.random.key(1), (64, dimension))
+        v = jnp.arange(1.0, dimension + 1.0)
+        result = sliced_wasserstein(x, x + v, key=jax.random.key(2), num_projections=20_000)
+        expected = float(jnp.linalg.norm(v)) / np.sqrt(dimension)
+        assert float(result) == pytest.approx(expected, rel=0.02)
+
+    def test_order_one_is_the_mean_of_per_direction_distances(self) -> None:
+        x = jnp.array([[0.0, 0.0], [1.0, 0.0]])
+        y = x + jnp.array([3.0, 4.0])
+        # W_1 along theta is |<(3, 4), theta>|; E|<v, theta>| = |v| * 2 / pi in two dimensions.
+        result = sliced_wasserstein(x, y, p=1.0, key=jax.random.key(3), num_projections=20_000)
+        assert float(result) == pytest.approx(5.0 * 2.0 / np.pi, rel=0.02)
 
     def test_symmetric(self) -> None:
         x = jnp.array([[0.0, 0.0], [1.0, 1.0]])
         y = jnp.array([[2.0, 2.0], [3.0, 3.0]])
-        key = jax.random.PRNGKey(0)
-        assert sliced_wasserstein(x, y, key=key) == pytest.approx(
-            sliced_wasserstein(y, x, key=key), abs=1e-5
+        key = jax.random.key(0)
+        assert float(sliced_wasserstein(x, y, key=key)) == pytest.approx(
+            float(sliced_wasserstein(y, x, key=key)), rel=1e-6
         )
+
+    def test_a_key_is_required(self) -> None:
+        x = jnp.array([[0.0], [1.0]])
+        with pytest.raises(TypeError, match="sliced_wasserstein"):
+            sliced_wasserstein(x, x, key=None)  # type: ignore[arg-type]
+        with pytest.raises(TypeError):
+            sliced_wasserstein(x, x)  # type: ignore[call-arg]
+
+    def test_an_rngs_stream_supplies_the_key(self) -> None:
+        from flax import nnx
+
+        x = jnp.array([[0.0, 0.0], [1.0, 0.0]])
+        y = x + 1.0
+        from_rngs = sliced_wasserstein(x, y, key=nnx.Rngs(sample=7))
+        from_key = sliced_wasserstein(x, y, key=nnx.Rngs(sample=7).sample())
+        assert float(from_rngs) == pytest.approx(float(from_key))
+
+    def test_the_default_projection_count(self) -> None:
+        import inspect
+
+        assert inspect.signature(sliced_wasserstein).parameters["num_projections"].default == 256
+
+    def test_unequal_sample_counts_are_refused(self) -> None:
+        with pytest.raises(ValueError, match="same number of samples"):
+            sliced_wasserstein(jnp.zeros((3, 2)), jnp.zeros((4, 2)), key=jax.random.key(0))
+
+    def test_jit_traces_once_for_new_keys_and_data(self) -> None:
+        from substrax.testing import TraceCounter
+
+        counter = TraceCounter()
+        compiled = jax.jit(counter.wrap(sliced_wasserstein), static_argnames=("num_projections",))
+        x = jnp.ones((5, 3))
+        with counter.expect(new_traces=1):
+            compiled(x, x + 1.0, key=jax.random.key(0), num_projections=16)
+        with counter.expect(new_traces=0):
+            compiled(x * 2.0, x, key=jax.random.key(1), num_projections=16)
+
+    def test_vmap_over_keys_matches_separate_calls(self) -> None:
+        x = jax.random.normal(jax.random.key(4), (8, 3))
+        y = x + 0.5
+        keys = jax.random.split(jax.random.key(5), 3)
+        batched = jax.vmap(lambda k: sliced_wasserstein(x, y, key=k, num_projections=32))(keys)
+        separate = jnp.stack([sliced_wasserstein(x, y, key=k, num_projections=32) for k in keys])
+        np.testing.assert_allclose(np.asarray(batched), np.asarray(separate), rtol=1e-5, atol=1e-6)
+
+    def test_gradient_is_finite_including_at_identical_samples(self) -> None:
+        x = jax.random.normal(jax.random.key(6), (6, 2))
+        key = jax.random.key(7)
+        at_zero = jax.grad(lambda z: sliced_wasserstein(z, x, key=key))(x)
+        apart = jax.grad(lambda z: sliced_wasserstein(z, x + 1.0, key=key))(x)
+        assert bool(jnp.all(jnp.isfinite(at_zero)))
+        assert bool(jnp.all(jnp.isfinite(apart)))
+        assert float(jnp.abs(apart).sum()) > 0.0
 
     def test_returns_jax_scalar(self) -> None:
         x = jnp.array([[0.0], [1.0]])
-        result = sliced_wasserstein(x, x)
+        result = sliced_wasserstein(x, x, key=jax.random.key(0))
         assert isinstance(result, jax.Array)
+        assert result.shape == ()
 
 
 class TestBregmanDivergence:
@@ -440,6 +514,27 @@ class TestDivergenceMetricRegistration:
         registry = MetricRegistry()
         div_metrics = registry.list_by_domain("divergence")
         assert len(div_metrics) == 14
+
+    def test_the_registered_sliced_wasserstein_uses_a_fixed_projection_set(self) -> None:
+        """The registry calls ``fn(predictions, targets)``, so its entry fixes the directions.
+
+        A fixed set makes values from different suite runs comparable, at the price of being
+        a pseudometric, which the entry's properties record.
+        """
+        from calibrax.metrics import MetricRegistry
+        from calibrax.metrics.functional.divergence import SLICED_WASSERSTEIN_REGISTRY_SEED
+
+        entry = MetricRegistry().get("sliced_wasserstein")
+        x = jax.random.normal(jax.random.key(8), (16, 3))
+        y = x + 0.25
+
+        first, second = entry.fn(x, y), entry.fn(x, y)
+
+        assert float(first) == float(second)
+        expected = sliced_wasserstein(x, y, key=jax.random.key(SLICED_WASSERSTEIN_REGISTRY_SEED))
+        assert float(first) == pytest.approx(float(expected), rel=1e-6)
+        assert entry.properties.is_true_metric is False
+        assert entry.properties.is_symmetric is True
 
     def test_all_direction_lower(self) -> None:
         from calibrax.core.models import MetricDirection
