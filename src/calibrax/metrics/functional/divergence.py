@@ -22,7 +22,7 @@ import jax.numpy as jnp
 from flax import nnx
 from substrax.rng import key_from
 
-from calibrax.metrics._utils import _EPSILON, safe_divide, safe_log
+from calibrax.metrics._utils import _EPSILON, safe_divide, safe_log, safe_root
 
 
 # Renyi divergence is undefined at alpha = 1; treat values this close as 1.
@@ -466,12 +466,7 @@ def sliced_wasserstein(
     # (n_samples, d) @ (d, num_projections): every projection at once, each column sorted.
     proj_x = jnp.sort(x_arr @ directions.T, axis=0)
     proj_y = jnp.sort(y_arr @ directions.T, axis=0)
-    mean_power = jnp.mean(jnp.abs(proj_x - proj_y) ** p)
-    # The root's derivative is infinite at 0, so the root is taken of a guarded value and the
-    # zero case returns 0 through the outer where (double-where: jnp.where alone keeps the NaN).
-    positive = mean_power > 0.0
-    safe = jnp.where(positive, mean_power, 1.0)
-    return jnp.where(positive, safe ** (1.0 / p), 0.0)
+    return safe_root(jnp.mean(jnp.abs(proj_x - proj_y) ** p), order=p)
 
 
 # The registry's fixed projection set: the registry calls metrics as ``fn(predictions,

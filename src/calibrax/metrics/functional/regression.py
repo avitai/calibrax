@@ -25,6 +25,7 @@ from calibrax.metrics._utils import (
     _prepare_ensemble_arrays,
     reduce_values,
     safe_divide,
+    safe_root,
 )
 
 
@@ -102,10 +103,22 @@ def mae(  # noqa: DOC502  # raised by _prepare_arrays
     return reduce_values(jnp.abs(p - t), mask=mask, weights=weights, reduction=reduction, axis=axis)
 
 
-def rmse(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _prepare_arrays
+def rmse(  # noqa: DOC502  # raised by _prepare_arrays
+    predictions: Any,
+    targets: Any,
+    *,
+    mask: Any | None = None,
+    weights: Any | None = None,
+    reduction: str = "mean",
+    axis: int | tuple[int, ...] | None = None,
+) -> Any:
     """Root mean squared error.
 
-    Computes ``sqrt(mean((predictions - targets)^2))``.
+    The root of the mean squared error over ``axis`` (every element when ``None``), after the
+    mask and weights, as in ``mse``: ``sqrt(sum(w * (p - t)^2) / sum(w))``. ``reduction`` then
+    combines the roots left over the remaining axes: ``"none"`` returns them, ``"mean"``
+    averages them, ``"sum"`` adds them. Without an ``axis`` there is one root, which every
+    reduction returns. The derivative at a perfect prediction is 0, not NaN.
 
     Note:
         Direction: LOWER (0.0 = perfect).
@@ -115,14 +128,23 @@ def rmse(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _p
     Args:
         predictions: Predicted values.
         targets: Ground truth values.
+        mask: Elements to keep (boolean, broadcastable), or ``None`` for all.
+        weights: Element weights (broadcastable), or ``None`` for unit weights.
+        reduction: ``"none"``, ``"mean"`` or ``"sum"`` over the roots.
+        axis: Axis or axes the mean under the root runs over.
 
     Returns:
-        Root mean squared error as a scalar value.
+        Root mean squared error as a scalar value, or the roots reduced.
 
     Raises:
-        ValueError: If shapes do not match.
+        ValueError: If shapes do not match, or ``reduction`` is ``"batch_sum"``, which has no
+            meaning for a root of a mean.
     """
-    return jnp.sqrt(mse(predictions, targets))
+    if reduction == "batch_sum":
+        msg = "rmse takes reduction 'none', 'mean' or 'sum'; 'batch_sum' has no root of a mean"
+        raise ValueError(msg)
+    roots = safe_root(mse(predictions, targets, mask=mask, weights=weights, axis=axis))
+    return reduce_values(roots, reduction=reduction)
 
 
 def r_squared(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _prepare_arrays

@@ -23,6 +23,10 @@ and uses semantic versioning while the public API stabilizes.
 - The registry's `sliced_wasserstein` entry is `registry_sliced_wasserstein`, which fixes the
   directions with `SLICED_WASSERSTEIN_REGISTRY_SEED` so suite runs compare like with like, and is
   marked `is_true_metric=False`: over a fixed set of directions the value is a pseudometric.
+- `rmse` takes the keyword-only `mask`, `weights`, `reduction` and `axis` of `mse`: the root of
+  the (masked, weighted) mean over `axis`, then `reduction` over the remaining roots (`"none"`,
+  `"mean"`, `"sum"`; `"batch_sum"` raises). Its gradient at a perfect prediction is 0 where it
+  was NaN, through the new `safe_root` helper, which `sliced_wasserstein` shares.
 
 ### Removed
 

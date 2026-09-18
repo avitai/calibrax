@@ -99,6 +99,27 @@ def safe_divide(
     return numerator / (denominator + eps)
 
 
+def safe_root(x: Any, *, order: float = 2.0) -> Any:
+    """The ``order``-th root of non-negative ``x``, with derivative 0 where ``x`` is 0.
+
+    The plain root's derivative is infinite at 0, so ``jax.grad`` of a distance built on it
+    is NaN at a perfect match. The root is taken of a guarded value and the zero case
+    returns 0 through the outer ``where``; one ``where`` alone keeps the NaN, because the
+    discarded branch's derivative still enters the product.
+
+    Args:
+        x: Non-negative values.
+        order: The root's order; 2 is the square root.
+
+    Returns:
+        ``x ** (1 / order)`` element-wise.
+    """
+    x = jnp.asarray(x)
+    positive = x > 0.0
+    safe = jnp.where(positive, x, jnp.ones_like(x))
+    return jnp.where(positive, safe ** (1.0 / order), jnp.zeros_like(x))
+
+
 def safe_log(x: Any, *, eps: float = _EPSILON) -> Any:
     """Logarithm guarded against zero/negative inputs.
 
