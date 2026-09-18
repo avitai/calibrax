@@ -56,6 +56,9 @@ and uses semantic versioning while the public API stabilizes.
   `jax.vmap` where `jnp.unique` could not, and ignores ids outside `[0, catalog_size)`; a negative
   id had counted as item 0. Its registry entry is `MetricSignature.CUSTOM`, since a suite cannot
   call it as `fn(predictions, targets)`.
+- `BenchmarkAdapter` is an abstract base class with an abstract `can_adapt`, as the architecture
+  notes describe it; the base returned `False` for every target, so an adapter that did not
+  override it could never be selected by `AdapterRegistry`. Adapters implement `can_adapt`.
 
 ### Removed
 
