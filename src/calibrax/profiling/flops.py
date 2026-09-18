@@ -22,14 +22,11 @@ the compiled executable's analysis is used, as ``nnx.tabulate`` does.
 
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from typing import Any, TYPE_CHECKING
+from typing import Any
 
 import jax
-
-
-if TYPE_CHECKING:
-    from collections.abc import Callable, Mapping
 
 
 class FlopsUnavailableError(ValueError):

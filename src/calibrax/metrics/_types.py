@@ -11,8 +11,11 @@ import jax
 from calibrax.core.models import MetricDirection
 
 
-MetricFn = Callable[..., jax.Array]
-"""A metric function: arrays in, a JAX array out (a scalar for a single value)."""
+MetricFn = Callable[..., jax.Array | float]
+"""A metric function: a JAX array out, or a Python float from a host-side metric (text, loops)."""
+
+MetricValues = dict[str, jax.Array | float]
+"""Metric results by name, as ``calculate_all`` returns them."""
 
 
 class MetricTier(StrEnum):

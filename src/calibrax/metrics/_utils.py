@@ -6,8 +6,6 @@ all metric modules. Private module — not part of the public API.
 
 from __future__ import annotations
 
-from typing import Any
-
 import jax
 import jax.numpy as jnp
 from jax.typing import ArrayLike
@@ -17,7 +15,7 @@ _EPSILON = 1e-8
 _EPSILON_CLIP = 1e-7
 
 
-def _validate_shapes(predictions: Any, targets: Any) -> None:
+def _validate_shapes(predictions: ArrayLike, targets: ArrayLike) -> None:
     """Validate that predictions and targets have matching shapes.
 
     Args:
@@ -34,7 +32,7 @@ def _validate_shapes(predictions: Any, targets: Any) -> None:
         raise ValueError(msg)
 
 
-def _prepare_arrays(predictions: Any, targets: Any) -> tuple[jax.Array, jax.Array]:  # noqa: DOC502  # raised by _validate_shapes
+def _prepare_arrays(predictions: ArrayLike, targets: ArrayLike) -> tuple[jax.Array, jax.Array]:  # noqa: DOC502  # raised by _validate_shapes
     """Validate shapes and convert predictions/targets to JAX arrays.
 
     Combines shape validation with array conversion — the standard
@@ -54,7 +52,9 @@ def _prepare_arrays(predictions: Any, targets: Any) -> tuple[jax.Array, jax.Arra
     return jnp.asarray(predictions), jnp.asarray(targets)
 
 
-def _prepare_class_arrays(predictions: Any, targets: Any) -> tuple[Any, Any]:  # noqa: DOC502  # raised by _validate_shapes
+def _prepare_class_arrays(  # noqa: DOC502  # raised by _validate_shapes
+    predictions: ArrayLike, targets: ArrayLike
+) -> tuple[jax.Array, jax.Array]:
     """Validate shapes and convert to int32 class index arrays.
 
     Standard preamble for classification, segmentation, and clustering
@@ -78,11 +78,11 @@ def _prepare_class_arrays(predictions: Any, targets: Any) -> tuple[Any, Any]:  #
 
 
 def safe_divide(
-    numerator: Any,
-    denominator: Any,
+    numerator: ArrayLike,
+    denominator: ArrayLike,
     *,
     eps: float = _EPSILON,
-) -> Any:
+) -> jax.Array:
     """Division guarded against zero/near-zero denominators.
 
     Replaces scattered ``x / (y + _EPSILON)`` patterns with a centralized,
@@ -97,7 +97,7 @@ def safe_divide(
     Returns:
         Result of numerator / (denominator + eps).
     """
-    return numerator / (denominator + eps)
+    return jnp.asarray(numerator) / (jnp.asarray(denominator) + eps)
 
 
 def safe_root(x: ArrayLike, *, order: float = 2.0) -> jax.Array:
@@ -138,7 +138,7 @@ def safe_norm(x: ArrayLike, *, axis: int | tuple[int, ...] | None = None) -> jax
     return safe_root(jnp.sum(jnp.square(x), axis=axis))
 
 
-def safe_log(x: Any, *, eps: float = _EPSILON) -> Any:
+def safe_log(x: ArrayLike, *, eps: float = _EPSILON) -> jax.Array:
     """Logarithm guarded against zero/negative inputs.
 
     Clamps input to ``[eps, inf)`` before taking log. Essential for
@@ -161,7 +161,9 @@ _MIN_ENSEMBLE_MEMBERS = 2
 _MULTIVARIATE_ENSEMBLE_NDIM = 3
 
 
-def _prepare_ensemble_arrays(predictions: Any, targets: Any) -> tuple[jax.Array, jax.Array]:
+def _prepare_ensemble_arrays(
+    predictions: ArrayLike, targets: ArrayLike
+) -> tuple[jax.Array, jax.Array]:
     """Validate and convert an ensemble forecast and its targets.
 
     Args:
@@ -199,7 +201,7 @@ def _prepare_ensemble_arrays(predictions: Any, targets: Any) -> tuple[jax.Array,
 
 
 def _prepare_multivariate_ensemble_arrays(
-    predictions: Any, targets: Any
+    predictions: ArrayLike, targets: ArrayLike
 ) -> tuple[jax.Array, jax.Array]:
     """Validate and convert a multivariate ensemble forecast and its targets.
 
@@ -231,7 +233,7 @@ def _prepare_multivariate_ensemble_arrays(
     return pred, target
 
 
-def matrix_sqrtm(matrix: Any, *, eps: float = _EPSILON) -> jax.Array:
+def matrix_sqrtm(matrix: ArrayLike, *, eps: float = _EPSILON) -> jax.Array:
     """Square root of a symmetric positive semi-definite matrix by eigendecomposition.
 
     Eigenvalues are floored at ``eps`` before the square root, which keeps the
@@ -254,13 +256,13 @@ _REDUCTIONS = ("none", "mean", "sum", "batch_sum")
 
 
 def reduce_values(
-    values: Any,
+    values: ArrayLike,
     *,
-    mask: Any | None = None,
-    weights: Any | None = None,
+    mask: ArrayLike | None = None,
+    weights: ArrayLike | None = None,
     reduction: str = "mean",
     axis: int | tuple[int, ...] | None = None,
-) -> Any:
+) -> jax.Array:
     """Reduce element-wise loss values under an optional mask and weights.
 
     Every loss in the functional tier reduces through this one function, so a mask,
@@ -306,7 +308,9 @@ def reduce_values(
     return _scaled_reduction(values * scale, scale, reduction, axis)
 
 
-def _plain_reduction(values: Any, reduction: str, axis: int | tuple[int, ...] | None) -> Any:
+def _plain_reduction(
+    values: jax.Array, reduction: str, axis: int | tuple[int, ...] | None
+) -> jax.Array:
     """Reduce unscaled values."""
     if reduction == "none":
         return values
@@ -318,8 +322,8 @@ def _plain_reduction(values: Any, reduction: str, axis: int | tuple[int, ...] | 
 
 
 def _scaled_reduction(
-    scaled: Any, scale: Any, reduction: str, axis: int | tuple[int, ...] | None
-) -> Any:
+    scaled: jax.Array, scale: jax.Array, reduction: str, axis: int | tuple[int, ...] | None
+) -> jax.Array:
     """Reduce masked or weighted values; a mean divides by the scale that survived the mask."""
     if reduction == "none":
         return scaled
@@ -330,7 +334,7 @@ def _scaled_reduction(
     return _mean_of_scaled(scaled, scale, axis=axis)
 
 
-def _batch_sum(values: Any) -> Any:
+def _batch_sum(values: jax.Array) -> jax.Array:
     """Sum over the non-batch axes, mean over the leading batch axis."""
     if values.ndim <= 1:
         return jnp.mean(values)
@@ -338,7 +342,9 @@ def _batch_sum(values: Any) -> Any:
     return jnp.mean(jnp.sum(values.reshape(batch, -1), axis=-1))
 
 
-def _mean_of_scaled(scaled: Any, scale: Any, *, axis: int | tuple[int, ...] | None) -> Any:
+def _mean_of_scaled(
+    scaled: jax.Array, scale: jax.Array, *, axis: int | tuple[int, ...] | None
+) -> jax.Array:
     """``sum(scaled) / sum(scale)`` with ``0.0`` where the scale sums to zero."""
     numerator = jnp.sum(scaled, axis=axis)
     denominator = jnp.sum(scale, axis=axis)
