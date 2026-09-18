@@ -155,7 +155,8 @@ class RooflineAnalyzer:
         Returns:
             RooflineResult with bottleneck classification and recommendations.
         """
-        execution_time = time_calls(jax.jit(func), *inputs).median_sec
+        compiled = jax.jit(func)
+        execution_time = time_calls(lambda: compiled(*inputs)).median_sec
         theoretical_flops = flops_override or self._estimate_flops(func, inputs)
         memory_traffic = self._estimate_memory_traffic(func, inputs)
 

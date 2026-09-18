@@ -87,6 +87,11 @@ and uses semantic versioning while the public API stabilizes.
   `jax.Array | float`. `LPIPSMetric.update(*, features_a, features_b)` names its per-layer feature
   sequences instead of reading them from `**kwargs`. The scientific plugin functions take
   array-likes and return arrays.
+- `time_calls(call, *, warmup, iterations, percentiles, sync)` times a zero-argument callable:
+  close over the inputs (`lambda: step(state, batch)`). It took `func, *args, **kwargs` beside its
+  own keyword options, so a function with a `warmup`, `iterations`, `percentiles` or `sync` keyword
+  could not be timed. `TimingCollector.measure_iteration` is generic in the batch type, and results
+  handed to a sync function are `substrax.typing.PyTree`.
 
 ### Removed
 
