@@ -7,10 +7,10 @@ They learn distance functions via backpropagation on embedding spaces.
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import Any
 
 import jax
 import jax.numpy as jnp
+from jax.typing import ArrayLike
 
 from calibrax.metrics._utils import _EPSILON
 
@@ -80,28 +80,26 @@ class MetricLearningLoss:
         """
         self._reducer = Reducer(reduction)
 
-    def __call__(self, embeddings: jax.Array, labels: jax.Array, **kwargs: Any) -> jax.Array:
+    def __call__(self, embeddings: ArrayLike, labels: ArrayLike) -> jax.Array:
         """Compute the metric learning loss.
 
         Args:
             embeddings: Batch of embedding vectors (batch_size, embedding_dim).
             labels: Integer class labels (batch_size,).
-            **kwargs: Additional arguments for subclass losses.
 
         Returns:
             Scalar loss value as a differentiable JAX array.
         """
-        per_element = self._compute_loss(embeddings, labels, **kwargs)
+        per_element = self._compute_loss(jnp.asarray(embeddings), jnp.asarray(labels))
         return self._reducer(per_element)
 
     @abstractmethod
-    def _compute_loss(self, embeddings: jax.Array, labels: jax.Array, **kwargs: Any) -> jax.Array:
+    def _compute_loss(self, embeddings: jax.Array, labels: jax.Array) -> jax.Array:
         """Compute per-element losses before reduction.
 
         Args:
             embeddings: Batch of embedding vectors.
             labels: Integer class labels.
-            **kwargs: Additional arguments.
 
         Returns:
             Per-element loss array.
