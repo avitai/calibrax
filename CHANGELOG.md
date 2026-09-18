@@ -12,6 +12,17 @@ and uses semantic versioning while the public API stabilizes.
 - Requires `substrax>=0.1.12`; the lock moves it from 0.1.11 and nothing else. Calibrax's
   `setup.sh` writes its managed environment file with `python -m substrax.runtime.managed_env`,
   which that release adds.
+- `sliced_wasserstein` computes `SW_p = (mean over directions of W_p^p)^(1/p)` (Bonneel et al.
+  2015; Nadjahi et al. 2020, eq. 5; POT). It returned the mean of the per-direction `W_p`, which
+  for `p > 1` is lower: 0.341 against 0.379 on a 10-dimensional Gaussian pair. `key` is
+  required, as a key or an `nnx.Rngs` (its `sample` or `default` stream), through
+  `substrax.rng.key_from`; the
+  silent `PRNGKey(42)` default is gone. `num_projections` defaults to 256
+  (`SLICED_WASSERSTEIN_PROJECTIONS`), unequal sample counts raise `ValueError`, and the gradient
+  at identical samples is finite.
+- The registry's `sliced_wasserstein` entry is `registry_sliced_wasserstein`, which fixes the
+  directions with `SLICED_WASSERSTEIN_REGISTRY_SEED` so suite runs compare like with like, and is
+  marked `is_true_metric=False`: over a fixed set of directions the value is a pseudometric.
 
 ### Removed
 
@@ -21,6 +32,7 @@ and uses semantic versioning while the public API stabilizes.
   with `python -m substrax.runtime.managed_env show --prefix CALIBRAX --env-file .calibrax.env
   --user-env .env --user-env .env.local`. A user-owned `.env` that still exports the deprecated
   name overrides the managed file and stops JAX's CUDA backend from starting.
+
 ### Security
 
 - The lock moves anyio from 4.12.1 to 4.14.2 for CVE-2026-63374 and CVE-2026-64847; nothing else moves. 4.14.2 is the first fixed release; 4.15.1 needs typing-extensions 4.16.0, which a single-package upgrade does not allow to move.

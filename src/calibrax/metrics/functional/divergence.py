@@ -19,6 +19,8 @@ from typing import Any
 
 import jax
 import jax.numpy as jnp
+from flax import nnx
+from substrax.rng import key_from
 
 from calibrax.metrics._utils import _EPSILON, safe_divide, safe_log
 
@@ -402,60 +404,95 @@ def sinkhorn_divergence(
     return jnp.maximum(ot_xy - 0.5 * (ot_xx + ot_yy), 0.0)
 
 
+# The number of directions: the Monte Carlo error of the average over directions falls as
+# L^(-1/2), about 3 % relative at 256 on a 10-dimensional Gaussian pair.
+SLICED_WASSERSTEIN_PROJECTIONS = 256
+
+
 def sliced_wasserstein(
     x: Any,
     y: Any,
     *,
-    num_projections: int = 50,
+    key: jax.Array | nnx.Rngs,
+    num_projections: int = SLICED_WASSERSTEIN_PROJECTIONS,
     p: float = 2.0,
-    key: Any | None = None,
 ) -> Any:
-    """Sliced Wasserstein distance.
+    """Sliced Wasserstein distance ``SW_p = (E_theta[W_p^p(theta_# x, theta_# y)])^(1/p)``.
 
-    Project onto random 1D directions, compute exact 1D Wasserstein,
-    average. Practical for high-dimensional distribution comparison.
+    Both sample sets are projected onto ``num_projections`` directions drawn uniformly on the
+    unit sphere; along each direction the exact one-dimensional ``W_p^p`` is the mean of the
+    ``p``-th powers of the sorted differences, and the average over directions is taken before
+    the ``1/p`` root (Bonneel et al. 2015; Nadjahi et al. 2020, eq. 5; POT's
+    ``sliced_wasserstein_distance``).
 
     Note:
         Direction: LOWER (0.0 = identical distributions).
         Range: [0, inf).
-        True metric. Symmetric.
+        Symmetric. With a fixed set of directions the value is a pseudometric: two
+        distributions that agree along every drawn direction are at distance 0.
 
     Args:
-        x: First sample matrix (n_samples, n_features).
-        y: Second sample matrix (n_samples, n_features).
-        num_projections: Number of random 1D projections.
-        p: Order of Wasserstein distance.
-        key: JAX PRNG key for reproducibility. Uses fixed seed if None.
+        x: First sample matrix (n_samples, n_features), or a vector of scalar samples.
+        y: Second sample matrix with the same number of samples and features.
+        key: The key the directions are drawn from, or an ``nnx.Rngs`` whose ``sample`` or
+            ``default`` stream supplies it. There is no default: a fixed direction set would
+            bias every estimate the same way.
+        num_projections: Number of random directions.
+        p: Order of the Wasserstein distance.
 
     Returns:
-        Sliced Wasserstein distance as a scalar value.
+        The sliced Wasserstein distance as a scalar.
+
+    Raises:
+        ValueError: If ``x`` and ``y`` hold different numbers of samples.
     """
+    directions_key = key_from(key, streams=("sample", "default"), context="sliced_wasserstein")
     x_arr = jnp.asarray(x)
     y_arr = jnp.asarray(y)
     if x_arr.ndim == 1:
         x_arr = x_arr[:, None]
     if y_arr.ndim == 1:
         y_arr = y_arr[:, None]
+    if x_arr.shape[0] != y_arr.shape[0]:
+        msg = (
+            "sliced_wasserstein needs the same number of samples in x and y, "
+            f"got {x_arr.shape[0]} and {y_arr.shape[0]}"
+        )
+        raise ValueError(msg)
 
-    d = x_arr.shape[1]
-    if key is None:
-        key = jax.random.PRNGKey(42)
+    directions = jax.random.normal(directions_key, (num_projections, x_arr.shape[1]))
+    directions = directions / jnp.linalg.norm(directions, axis=1, keepdims=True)
 
-    # Random projections on unit sphere
-    directions = jax.random.normal(key, (num_projections, d))
-    directions = directions / (jnp.linalg.norm(directions, axis=1, keepdims=True) + _EPSILON)
+    # (n_samples, d) @ (d, num_projections): every projection at once, each column sorted.
+    proj_x = jnp.sort(x_arr @ directions.T, axis=0)
+    proj_y = jnp.sort(y_arr @ directions.T, axis=0)
+    mean_power = jnp.mean(jnp.abs(proj_x - proj_y) ** p)
+    # The root's derivative is infinite at 0, so the root is taken of a guarded value and the
+    # zero case returns 0 through the outer where (double-where: jnp.where alone keeps the NaN).
+    positive = mean_power > 0.0
+    safe = jnp.where(positive, mean_power, 1.0)
+    return jnp.where(positive, safe ** (1.0 / p), 0.0)
 
-    # Batched projection: (n_samples, d) @ (d, num_projections) -> (n_samples, num_projections)
-    proj_x_all = x_arr @ directions.T
-    proj_y_all = y_arr @ directions.T
 
-    # Sort each projection independently
-    proj_x_sorted = jnp.sort(proj_x_all, axis=0)
-    proj_y_sorted = jnp.sort(proj_y_all, axis=0)
+# The registry's fixed projection set: the registry calls metrics as ``fn(predictions,
+# targets)``, and a fixed set keeps values from different suite runs comparable.
+SLICED_WASSERSTEIN_REGISTRY_SEED = 0
 
-    # Wasserstein per projection
-    per_proj = jnp.mean(jnp.abs(proj_x_sorted - proj_y_sorted) ** p, axis=0) ** (1.0 / p)
-    return jnp.mean(per_proj)
+
+def registry_sliced_wasserstein(x: Any, y: Any) -> Any:
+    """``sliced_wasserstein`` over the registry's fixed projection set.
+
+    The directions come from ``SLICED_WASSERSTEIN_REGISTRY_SEED``, the same in every call, so a
+    suite compares like with like; over a fixed set the value is a pseudometric.
+
+    Args:
+        x: First sample matrix (n_samples, n_features).
+        y: Second sample matrix with the same shape.
+
+    Returns:
+        The sliced Wasserstein distance as a scalar.
+    """
+    return sliced_wasserstein(x, y, key=jax.random.key(SLICED_WASSERSTEIN_REGISTRY_SEED))
 
 
 def bregman_divergence(
