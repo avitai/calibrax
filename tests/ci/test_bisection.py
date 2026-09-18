@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import shutil
 import subprocess
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -33,19 +35,26 @@ def _make_mock_subprocess(
     """Create a mock subprocess.run that simulates git operations."""
     mock = MagicMock()
 
-    def side_effect(cmd, **_kwargs):
+    def side_effect(cmd, *, check=False, **_kwargs):
+        """Model git as subprocess.run returns it: a non-zero exit raises only when ``check``."""
         result = MagicMock()
         result.returncode = 0
+        result.stdout = ""
         if cmd[1] == "symbolic-ref":
             if symbolic_ref is None:
-                raise subprocess.CalledProcessError(returncode=1, cmd=cmd)
-            result.stdout = f"{symbolic_ref}\n"
+                result.returncode = 1
+            else:
+                result.stdout = f"{symbolic_ref}\n"
+        elif cmd[1] == "rev-parse" and "--verify" in cmd:
+            # The revision is the last argument with its ``^{commit}`` peel; it resolves to itself.
+            result.stdout = cmd[-1].removesuffix("^{commit}") + "\n"
         elif cmd[1] == "rev-parse":
             result.stdout = "original_head_hash\n"
         elif cmd[1] == "rev-list":
-            result.stdout = "\n".join(commits) + "\n"
-        elif cmd[1] == "checkout":
-            result.stdout = ""
+            # ``good..bad`` excludes good, which the engine puts first itself.
+            result.stdout = "\n".join(commits[1:]) + "\n"
+        if check and result.returncode != 0:
+            raise subprocess.CalledProcessError(returncode=result.returncode, cmd=cmd)
         return result
 
     mock.side_effect = side_effect
@@ -225,3 +234,71 @@ class TestBisectionResult:
         d = result.to_dict()
         assert d["culprit_commit"] is None
         assert d["is_regression_found"] is False
+
+
+def _git(repo: Path, *args: str) -> str:
+    git = shutil.which("git")
+    assert git is not None, "these tests need git"
+    result = subprocess.run(  # noqa: S603  # a fixed git argv in a temporary test repository
+        [git, "-c", "user.name=t", "-c", "user.email=t@example.com", *args],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return result.stdout.strip()
+
+
+@pytest.fixture
+def repo(tmp_path: Path) -> tuple[Path, list[str]]:
+    """A real repository with five commits; returns it and the commit hashes, oldest first."""
+    path = tmp_path / "repo"
+    path.mkdir()
+    _git(path, "init", "-q", "-b", "main")
+    commits = []
+    for index in range(5):
+        (path / "value.txt").write_text(str(index))
+        _git(path, "add", "value.txt")
+        _git(path, "commit", "-q", "-m", f"commit {index}")
+        commits.append(_git(path, "rev-parse", "HEAD"))
+    return path, commits
+
+
+class TestRefResolution:
+    """Refs are resolved to commit hashes before any git command sees them."""
+
+    def test_an_option_like_ref_is_refused_and_never_run(
+        self, repo: tuple[Path, list[str]], tmp_path: Path
+    ) -> None:
+        path, commits = repo
+        written = tmp_path / "written-by-git"
+        engine = BisectionEngine(path, _make_run, lambda _run: False)
+
+        with pytest.raises(ValueError, match="--output"):
+            engine.bisect(f"--output={written}", commits[-1])
+
+        assert not written.exists()
+        assert _git(path, "rev-parse", "HEAD") == commits[-1]
+
+    def test_a_ref_that_names_no_commit_is_refused(self, repo: tuple[Path, list[str]]) -> None:
+        path, commits = repo
+        engine = BisectionEngine(path, _make_run, lambda _run: False)
+
+        with pytest.raises(ValueError, match="no-such-ref"):
+            engine.bisect("no-such-ref", commits[-1])
+
+    def test_branch_names_and_short_hashes_resolve_and_bisect(
+        self, repo: tuple[Path, list[str]]
+    ) -> None:
+        path, commits = repo
+        regressed = set(commits[3:])
+        engine = BisectionEngine(
+            path,
+            _make_run,
+            lambda run: run.commit in regressed,
+        )
+
+        result = engine.bisect(commits[0][:8], "main")
+
+        assert result.culprit_commit == commits[3]
+        assert _git(path, "rev-parse", "--abbrev-ref", "HEAD") == "main"

@@ -63,6 +63,12 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Security
 
+- `BisectionEngine.bisect` resolves `good_commit` and `bad_commit` to commit hashes with
+  `git rev-parse --verify --end-of-options <ref>^{commit}` before any other git command, and
+  refuses a ref that names no commit with `ValueError`. Refs were placed in git's argument list
+  as given, so one beginning with `-` was parsed as an option. Branch names and tags keep
+  working, the culprit is reported as a full hash, and a range starting at the root commit,
+  which failed on `root^`, bisects.
 - The lock moves anyio from 4.12.1 to 4.14.2 for CVE-2026-63374 and CVE-2026-64847; nothing else moves. 4.14.2 is the first fixed release; 4.15.1 needs typing-extensions 4.16.0, which a single-package upgrade does not allow to move.
 
 ## [0.1.9] - 2026-09-18
