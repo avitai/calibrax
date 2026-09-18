@@ -79,6 +79,11 @@ and uses semantic versioning while the public API stabilizes.
   as given, so one beginning with `-` was parsed as an option. Branch names and tags keep
   working, the culprit is reported as a full hash, and a range starting at the root commit,
   which failed on `root^`, bisects.
+- `vmaf_score` escapes its libvmaf options at both levels FFmpeg's filtergraph syntax defines, so a
+  `model` string holding `:`, `,`, `;` or brackets stays one option value instead of adding options
+  or filters; it passes inputs as absolute `file:` URLs, so a name holding `:` is not read as
+  another protocol; and it resolves `ffmpeg` with `shutil.which`, raising `RuntimeError` when it
+  is missing.
 - The lock moves anyio from 4.12.1 to 4.14.2 for CVE-2026-63374 and CVE-2026-64847; nothing else moves. 4.14.2 is the first fixed release; 4.15.1 needs typing-extensions 4.16.0, which a single-package upgrade does not allow to move.
 
 ## [0.1.9] - 2026-09-18

@@ -3,9 +3,25 @@
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess  # nosec B404
 import tempfile
 from pathlib import Path
+
+
+def _escape_option_value(value: str) -> str:
+    r"""Escape a filter option value: ``\``, ``'`` and ``:`` (FFmpeg's first escaping level)."""
+    return "".join(f"\\{char}" if char in "\\':" else char for char in value)
+
+
+def _escape_filtergraph(description: str) -> str:
+    r"""Escape a filter description: ``\``, ``'``, ``[``, ``]``, ``,`` and ``;`` (second level).
+
+    FFmpeg reads a filtergraph in two passes ("Notes on filtergraph escaping", ffmpeg-filters):
+    the graph splits filters on ``,`` and ``;``, then each filter splits its options on ``:``.
+    Escaping a value at both levels keeps every character of it inside that one value.
+    """
+    return "".join(f"\\{char}" if char in "\\'[],;" else char for char in description)
 
 
 def vmaf_score(reference: str | Path, distorted: str | Path, *, model: str | None = None) -> float:
@@ -32,34 +48,39 @@ def vmaf_score(reference: str | Path, distorted: str | Path, *, model: str | Non
     if not distorted_path.exists():
         raise FileNotFoundError(distorted_path)
 
+    ffmpeg = shutil.which("ffmpeg")
+    if ffmpeg is None:
+        msg = "FFmpeg executable not found; install FFmpeg with libvmaf support"
+        raise RuntimeError(msg)
+
     with tempfile.TemporaryDirectory() as temp_dir:
         log_path = Path(temp_dir) / "vmaf.json"
-        filter_args = f"libvmaf=log_fmt=json:log_path={log_path}"
+        options = {"log_fmt": "json", "log_path": str(log_path)}
         if model is not None:
-            filter_args += f":model={model}"
-
+            options["model"] = model
+        filter_graph = _escape_filtergraph(
+            "libvmaf=" + ":".join(f"{key}={_escape_option_value(v)}" for key, v in options.items())
+        )
+        # The file protocol keeps a name holding ':' from being read as another protocol.
         command = [
-            "ffmpeg",
+            ffmpeg,
             "-hide_banner",
             "-nostdin",
             "-i",
-            str(distorted_path),
+            f"file:{distorted_path.resolve()}",
             "-i",
-            str(reference_path),
+            f"file:{reference_path.resolve()}",
             "-lavfi",
-            filter_args,
+            filter_graph,
             "-f",
             "null",
             "-",
         ]
 
         try:
-            subprocess.run(  # noqa: S603  # nosec B603  # a fixed ffmpeg argv over validated paths
+            subprocess.run(  # noqa: S603  # nosec B603  # resolved ffmpeg, escaped filter, file: inputs
                 command, check=True, capture_output=True, text=True
             )
-        except FileNotFoundError as e:
-            msg = "FFmpeg executable not found; install FFmpeg with libvmaf support"
-            raise RuntimeError(msg) from e
         except subprocess.CalledProcessError as e:
             msg = "FFmpeg/libvmaf failed while computing VMAF"
             raise RuntimeError(msg) from e
