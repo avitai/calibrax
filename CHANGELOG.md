@@ -92,6 +92,12 @@ and uses semantic versioning while the public API stabilizes.
   own keyword options, so a function with a `warmup`, `iterations`, `percentiles` or `sync` keyword
   could not be timed. `TimingCollector.measure_iteration` is generic in the batch type, and results
   handed to a sync function are `substrax.typing.PyTree`.
+- `CompilationProfiler.profile_jit_compilation` keeps the wrapped function's signature
+  (`Callable[P, R]`) and gives each wrapper its own compiled functions. The profiler keyed its
+  one cache on the function's name, so two functions named alike (two lambdas) with matching
+  input shapes shared a compiled function and the second returned the first's result. Results
+  are waited for with `jax.block_until_ready`, through nested pytrees; `reset()` makes each
+  wrapper compile again. The unread shape, dtype and timestamp records are gone.
 
 ### Removed
 

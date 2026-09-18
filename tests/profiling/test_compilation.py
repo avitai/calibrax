@@ -13,11 +13,12 @@ import types
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import jax
 import jax.numpy as jnp
 import pytest
 
 from calibrax.profiling.compilation import (
-    _block_result,
+    _input_signature,
     _parse_hlo_instruction,
     _safe_ratio,
     CompilationProfiler,
@@ -346,6 +347,48 @@ class TestCompilationProfiler:
         assert post_reset.cache_misses == 0
         assert post_reset.unique_signatures == 0
 
+    def test_a_call_after_reset_compiles_again(self) -> None:
+        """reset starts a new measurement: the first call per signature is a miss again."""
+        profiler = CompilationProfiler()
+        fn = profiler.profile_jit_compilation(lambda x: x + 1)
+        fn(jnp.ones((4,)))
+        profiler.reset()
+
+        fn(jnp.ones((4,)))
+        fn(jnp.ones((4,)))
+
+        result = profiler.get_result()
+        assert (result.cache_misses, result.cache_hits, result.unique_signatures) == (1, 1, 1)
+
+    def test_two_functions_with_one_name_keep_their_own_results(self) -> None:
+        """Wrappers never share compiled functions, whatever their functions are named."""
+        profiler = CompilationProfiler()
+        add_one = profiler.profile_jit_compilation(lambda x: x + 1)
+        triple = profiler.profile_jit_compilation(lambda x: x * 3)
+        x = jnp.ones((4,))
+
+        assert float(add_one(x)[0]) == 2.0
+        assert float(triple(x)[0]) == 3.0
+        assert profiler.get_result().unique_signatures == 2
+
+    def test_nested_results_are_waited_for(self) -> None:
+        profiler = CompilationProfiler()
+        nested = profiler.profile_jit_compilation(lambda x: {"a": (x, [x * 2])})
+        with patch(
+            "calibrax.profiling.compilation.jax.block_until_ready", wraps=jax.block_until_ready
+        ) as wait:
+            nested(jnp.ones((2,)))
+        assert wait.call_count >= 1
+
+    def test_the_wrapper_keeps_the_signature_and_result(self) -> None:
+        profiler = CompilationProfiler()
+
+        def scale(x: jax.Array, *, factor: float) -> jax.Array:
+            return x * factor
+
+        wrapped = profiler.profile_jit_compilation(scale)
+        assert float(wrapped(jnp.ones(()), factor=3.0)) == 3.0
+
     def test_cache_hit_rate_calculation(self) -> None:
         profiler = CompilationProfiler()
         fn = profiler.profile_jit_compilation(lambda x: x * 3)
@@ -379,8 +422,8 @@ class TestCompilationProfiler:
 
     def test_warmup_runtime_error_logs_and_reraises(self, caplog: pytest.LogCaptureFixture) -> None:
         profiler = CompilationProfiler()
-        with patch("calibrax.profiling.compilation.jax") as mock_jax:
-            mock_jax.jit.return_value = MagicMock(side_effect=RuntimeError("warmup compile failed"))
+        with patch("calibrax.profiling.compilation.jax.jit") as mock_jit:
+            mock_jit.return_value = MagicMock(side_effect=RuntimeError("warmup compile failed"))
             fn = profiler.profile_jit_compilation(lambda x: x)
 
             with (
@@ -398,8 +441,8 @@ class TestCompilationProfiler:
             pass
 
         profiler = CompilationProfiler()
-        with patch("calibrax.profiling.compilation.jax") as mock_jax:
-            mock_jax.jit.return_value = MagicMock(
+        with patch("calibrax.profiling.compilation.jax.jit") as mock_jit:
+            mock_jit.return_value = MagicMock(
                 side_effect=CatastrophicCompileError("unexpected compile failure")
             )
             fn = profiler.profile_jit_compilation(lambda x: x)
@@ -512,10 +555,8 @@ class TestCompilationProfilerAdditionalBranches:
 
     def test_create_function_signature_uses_python_type_for_non_arrays(self) -> None:
         """Non-array args should be represented by type name in signature."""
-        profiler = CompilationProfiler()
-
-        sig_obj = profiler._create_function_signature(lambda x: x, (object(),), {})
-        sig_str = profiler._create_function_signature(lambda x: x, ("value",), {})
+        sig_obj = _input_signature((object(),), {})
+        sig_str = _input_signature(("value",), {})
 
         assert sig_obj != sig_str
 
@@ -573,24 +614,6 @@ class TestCompilationProfilerAdditionalBranches:
         )
 
         assert recs == ["XLA optimizations appear effective."]
-
-    def test_block_result_materializes_sequence_items(self) -> None:
-        """_block_result should recurse through sequence outputs."""
-
-        class _Blockable:
-            def __init__(self) -> None:
-                self.calls = 0
-
-            def block_until_ready(self) -> None:
-                self.calls += 1
-
-        first = _Blockable()
-        second = object()
-
-        _block_result([first, second])
-        _block_result(123)
-
-        assert first.calls == 1
 
     def test_module_import_falls_back_without_jax_runtime_error_attr(self) -> None:
         """Import guard should use RuntimeError when jax.errors is unavailable."""
