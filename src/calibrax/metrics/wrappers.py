@@ -15,24 +15,33 @@ from typing import Any
 
 import jax
 import jax.numpy as jnp
+from flax import nnx
+from jax.typing import ArrayLike
 
 from calibrax.metrics._types import MetricFn
+from calibrax.statistics.bootstrap import (
+    bootstrap_interval,
+    BootstrapInterval,
+    check_confidence,
+    DEFAULT_RESAMPLES,
+)
 
 
 class BootstrapMetric:
-    """Wrap any metric function with bootstrap confidence interval estimation.
+    """A metric's value with its percentile bootstrap confidence interval.
 
-    A measurement without uncertainty is incomplete. This wrapper
-    provides bootstrap-based confidence intervals for any metric.
+    A measurement without uncertainty is incomplete. The predictions and targets are resampled
+    together and every resample is evaluated in one ``jax.vmap``, through
+    :func:`calibrax.statistics.bootstrap_interval`.
 
     Usage:
-        bootstrap = BootstrapMetric(mse, num_bootstraps=1000, confidence=0.95)
-        result = bootstrap.compute(predictions, targets)
-        # {"value": 0.01, "lower": 0.008, "upper": 0.012, "samples": (...)}
+        bootstrap = BootstrapMetric(mse, num_resamples=1000, confidence=0.95)
+        result = bootstrap.compute(predictions, targets, key=jax.random.key(0))
+        # result.value, result.lower, result.upper, result.samples
 
     Attributes:
         metric_fn: The wrapped metric function.
-        num_bootstraps: Number of bootstrap resamples.
+        num_resamples: Number of bootstrap resamples.
         confidence: Confidence level for interval.
     """
 
@@ -40,28 +49,21 @@ class BootstrapMetric:
         self,
         metric_fn: MetricFn,
         *,
-        num_bootstraps: int = 1000,
+        num_resamples: int = DEFAULT_RESAMPLES,
         confidence: float = 0.95,
-        seed: int = 0,
     ) -> None:
         """Initialize bootstrap wrapper.
 
         Args:
-            metric_fn: Pure function with signature (predictions, targets) -> float.
-            num_bootstraps: Number of bootstrap resamples.
+            metric_fn: Metric of ``(predictions, targets)`` returning a scalar; it must trace
+                under ``jax.vmap``.
+            num_resamples: Number of bootstrap resamples.
             confidence: Confidence level (0 < confidence < 1).
-            seed: Random seed for reproducibility.
-
-        Raises:
-            ValueError: If confidence is not in (0, 1).
         """
-        if not 0 < confidence < 1:
-            msg = f"confidence must be in (0, 1), got {confidence}"
-            raise ValueError(msg)
+        check_confidence(confidence)
         self._metric_fn = metric_fn
-        self._num_bootstraps = num_bootstraps
+        self._num_resamples = num_resamples
         self._confidence = confidence
-        self._seed = seed
 
     @property
     def metric_fn(self) -> MetricFn:
@@ -69,9 +71,9 @@ class BootstrapMetric:
         return self._metric_fn
 
     @property
-    def num_bootstraps(self) -> int:
+    def num_resamples(self) -> int:
         """Get the number of bootstrap resamples."""
-        return self._num_bootstraps
+        return self._num_resamples
 
     @property
     def confidence(self) -> float:
@@ -79,50 +81,26 @@ class BootstrapMetric:
         return self._confidence
 
     def compute(
-        self,
-        predictions: Any,
-        targets: Any,
-    ) -> dict[str, Any]:
-        """Compute metric with bootstrap confidence interval.
+        self, predictions: ArrayLike, targets: ArrayLike, *, key: jax.Array | nnx.Rngs
+    ) -> BootstrapInterval:
+        """Compute the metric and its bootstrap interval.
 
         Args:
             predictions: Predicted values.
-            targets: Ground truth values.
+            targets: Ground truth values, resampled with the predictions.
+            key: The key the resampling is drawn from, or an ``nnx.Rngs``.
 
         Returns:
-            Dict with "value" (point estimate), "lower" (CI lower bound),
-            "upper" (CI upper bound), "samples" (all bootstrap values).
+            The metric's value, the interval and the resampled values.
         """
-        predictions = jnp.asarray(predictions)
-        targets = jnp.asarray(targets)
-        n = predictions.shape[0]
-
-        # Point estimate on full data
-        value = float(self._metric_fn(predictions, targets))
-
-        # Bootstrap resamples
-        key = jax.random.PRNGKey(self._seed)
-        samples = []
-        for _ in range(self._num_bootstraps):
-            key, subkey = jax.random.split(key)
-            indices = jax.random.randint(subkey, shape=(n,), minval=0, maxval=n)
-            boot_pred = predictions[indices]
-            boot_tgt = targets[indices]
-            samples.append(float(self._metric_fn(boot_pred, boot_tgt)))
-
-        sorted_samples = sorted(samples)
-        alpha = 1.0 - self._confidence
-        lower_idx = int(alpha / 2 * self._num_bootstraps)
-        upper_idx = int((1 - alpha / 2) * self._num_bootstraps) - 1
-        lower_idx = max(0, lower_idx)
-        upper_idx = min(len(sorted_samples) - 1, upper_idx)
-
-        return {
-            "value": value,
-            "lower": sorted_samples[lower_idx],
-            "upper": sorted_samples[upper_idx],
-            "samples": tuple(samples),
-        }
+        return bootstrap_interval(
+            self._metric_fn,
+            predictions,
+            targets,
+            key=key,
+            num_resamples=self._num_resamples,
+            confidence=self._confidence,
+        )
 
 
 class ClasswiseWrapper:

@@ -7,6 +7,15 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+### Added
+
+- `calibrax.statistics.bootstrap_interval(statistic, *data, key, num_resamples, confidence)`,
+  the percentile bootstrap interval (Efron and Tibshirani 1993; `scipy.stats.bootstrap(method=
+  "percentile")`, which the tests use as the reference) with arrays resampled together, every
+  resample evaluated in one `jax.vmap`, and a `BootstrapInterval` result (`value`, `lower`,
+  `upper`, `samples`, a pytree). The quantiles interpolate as `numpy.percentile` does, which is
+  exact for equal neighbours where `jnp.quantile` is one float32 ulp off.
+
 ### Changed
 
 - Requires `substrax>=0.1.12`; the lock moves it from 0.1.11 and nothing else. Calibrax's
@@ -61,6 +70,12 @@ and uses semantic versioning while the public API stabilizes.
   override it could never be selected by `AdapterRegistry`. Adapters implement `can_adapt`.
 - `LearnedMetric.__init__(name)` no longer takes `rngs`, which it ignored; a subclass creates its
   layers with its own `nnx.Rngs` (`LPIPSMetric` and the user-guide example updated).
+- `BootstrapMetric` and `StatisticalAnalyzer` compute through `bootstrap_interval`; they were two
+  host-side loops with their own interval rules and fixed default seeds (0 and 42).
+  `BootstrapMetric(metric, num_resamples=, confidence=).compute(predictions, targets, *, key)`
+  returns a `BootstrapInterval` instead of a dict, and `num_bootstraps` and `seed` are gone.
+  `StatisticalAnalyzer(*, key, bootstrap_resamples=)` takes a key in place of `seed` and splits it
+  on each call, so successive calls draw fresh resamples and the same key reproduces them.
 
 ### Removed
 

@@ -114,14 +114,15 @@ This integrates naturally into CI pipelines -- see the [CI Integration](../../us
 `BootstrapMetric` wraps any metric function and computes confidence intervals by resampling.
 
 ```python
+import jax
 from calibrax.metrics import BootstrapMetric
 
-bootstrap = BootstrapMetric(mse, num_bootstraps=200, confidence=0.95, seed=42)
-boot_result = bootstrap.compute(predictions, targets)
-# boot_result["value"]  = point estimate
-# boot_result["lower"]  = 2.5th percentile
-# boot_result["upper"]  = 97.5th percentile
-# boot_result["samples"] = all 200 bootstrap values
+bootstrap = BootstrapMetric(mse, num_resamples=200, confidence=0.95)
+boot_result = bootstrap.compute(predictions, targets, key=jax.random.key(42))
+# boot_result.value   = point estimate
+# boot_result.lower   = 2.5th percentile
+# boot_result.upper   = 97.5th percentile
+# boot_result.samples = all 200 bootstrap values
 ```
 
 ### MetricTracker
