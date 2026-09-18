@@ -134,7 +134,7 @@ class MetricProtocol(Protocol):
         """
         ...
 
-    def validate_inputs(  # noqa: DOC502  # the contract implementers raise
+    def validate_inputs(  # noqa: DOC502  # a protocol documents what implementations raise
         self,
         predictions: jax.Array,
         targets: jax.Array,

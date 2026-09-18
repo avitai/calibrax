@@ -47,7 +47,7 @@ def _prepare_interval_arrays(  # noqa: DOC502  # raised by _prepare_arrays
     return low, high, target
 
 
-def picp(lower: ArrayLike, upper: ArrayLike, targets: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _prepare_arrays
+def picp(lower: ArrayLike, upper: ArrayLike, targets: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _prepare_interval_arrays
     """Prediction interval coverage probability.
 
     The fraction of targets inside ``[lower, upper]``. Compare it with the nominal
@@ -94,7 +94,7 @@ def mpiw(lower: ArrayLike, upper: ArrayLike) -> jax.Array:  # noqa: DOC502  # ra
     return jnp.mean(high - low)
 
 
-def interval_score(  # noqa: DOC502  # raised by _prepare_arrays
+def interval_score(  # noqa: DOC502  # raised by _prepare_interval_arrays
     lower: ArrayLike, upper: ArrayLike, targets: ArrayLike, *, alpha: float
 ) -> jax.Array:
     """Interval score of central ``(1 - alpha)`` prediction intervals.

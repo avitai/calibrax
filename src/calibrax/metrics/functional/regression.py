@@ -104,7 +104,7 @@ def mae(  # noqa: DOC502  # raised by _prepare_arrays
     return reduce_values(jnp.abs(p - t), mask=mask, weights=weights, reduction=reduction, axis=axis)
 
 
-def rmse(  # noqa: DOC502  # raised by _prepare_arrays
+def rmse(
     predictions: ArrayLike,
     targets: ArrayLike,
     *,
@@ -458,7 +458,7 @@ def smape(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:  # noqa: DOC
     return jnp.mean(safe_divide(numerator, denominator))
 
 
-def crps(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _prepare_arrays
+def crps(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _prepare_ensemble_arrays
     """Continuous ranked probability score for ensemble forecasts.
 
     Computes the empirical ensemble CRPS:
@@ -517,7 +517,7 @@ def per_sample_relative_l2(predictions: ArrayLike, targets: ArrayLike) -> jax.Ar
     return safe_divide(numerator, denominator)
 
 
-def relative_l2_error(  # noqa: DOC502  # raised by _prepare_arrays
+def relative_l2_error(  # noqa: DOC502  # raised by reduce_values
     predictions: ArrayLike,
     targets: ArrayLike,
     *,
