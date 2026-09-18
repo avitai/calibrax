@@ -14,11 +14,11 @@ Registered with ``domain="fairness"``, ``signature=MetricSignature.CUSTOM``.
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import Any
-
+import jax
 import jax.numpy as jnp
+from jax.typing import ArrayLike
 
+from calibrax.metrics._types import MetricFn
 from calibrax.metrics._utils import _EPSILON, safe_divide
 
 
@@ -28,9 +28,9 @@ _MIN_GROUP_SIZE = 2
 
 
 def demographic_parity_ratio(
-    predictions: Any,
-    protected_attribute: Any,
-) -> Any:
+    predictions: ArrayLike,
+    protected_attribute: ArrayLike,
+) -> jax.Array:
     """Ratio of positive prediction rates across demographic groups.
 
     Computes min(rate_a/rate_b, rate_b/rate_a) for all group pairs,
@@ -80,10 +80,10 @@ def demographic_parity_ratio(
 
 
 def equalized_odds_difference(
-    predictions: Any,
-    targets: Any,
-    protected_attribute: Any,
-) -> Any:
+    predictions: ArrayLike,
+    targets: ArrayLike,
+    protected_attribute: ArrayLike,
+) -> jax.Array:
     """Maximum absolute difference in TPR or FPR across groups.
 
     max(|TPR_a - TPR_b|, |FPR_a - FPR_b|) over all group pairs.
@@ -136,10 +136,10 @@ def equalized_odds_difference(
 
 
 def equal_opportunity_difference(
-    predictions: Any,
-    targets: Any,
-    protected_attribute: Any,
-) -> Any:
+    predictions: ArrayLike,
+    targets: ArrayLike,
+    protected_attribute: ArrayLike,
+) -> jax.Array:
     """Absolute difference in TPR across demographic groups.
 
     Simpler than equalized odds — only examines positive outcomes.
@@ -184,9 +184,9 @@ def equal_opportunity_difference(
 
 
 def disparate_impact_ratio(
-    predictions: Any,
-    protected_attribute: Any,
-) -> Any:
+    predictions: ArrayLike,
+    protected_attribute: ArrayLike,
+) -> jax.Array:
     """Disparate impact ratio (same as demographic parity ratio).
 
     Named following US legal terminology (80% rule). Values < 0.8
@@ -210,10 +210,10 @@ def disparate_impact_ratio(
 
 
 def group_metric_breakdown(
-    metric_fn: Callable[..., float],
-    predictions: Any,
-    targets: Any,
-    protected_attribute: Any,
+    metric_fn: MetricFn,
+    predictions: ArrayLike,
+    targets: ArrayLike,
+    protected_attribute: ArrayLike,
 ) -> dict[str, float]:
     """Apply any metric function separately to each demographic group.
 

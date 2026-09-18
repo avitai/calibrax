@@ -6,7 +6,13 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
 
+import jax
+
 from calibrax.core.models import MetricDirection
+
+
+MetricFn = Callable[..., jax.Array]
+"""A metric function: arrays in, a JAX array out (a scalar for a single value)."""
 
 
 class MetricTier(StrEnum):
@@ -92,7 +98,7 @@ class MetricEntry:
     """
 
     name: str
-    fn: Callable[..., float] | None
+    fn: MetricFn | None
     tier: MetricTier
     domain: str = "general"
     direction: MetricDirection = MetricDirection.LOWER

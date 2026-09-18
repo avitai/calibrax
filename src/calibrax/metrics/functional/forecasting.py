@@ -20,11 +20,10 @@ References:
 
 from __future__ import annotations
 
-from typing import Any
-
 import jax
 import jax.numpy as jnp
 from jax.scipy.stats.norm import cdf as _norm_cdf
+from jax.typing import ArrayLike
 
 from calibrax.metrics._utils import (
     _prepare_arrays,
@@ -34,7 +33,7 @@ from calibrax.metrics._utils import (
 )
 
 
-def fair_crps(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _prepare_ensemble_arrays
+def fair_crps(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _prepare_ensemble_arrays
     """Fair (finite-ensemble bias-corrected) CRPS per Ferro 2014.
 
     Replaces the ``1/M^2`` averaging of the pairwise spread in the empirical CRPS
@@ -66,7 +65,7 @@ def fair_crps(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised 
     return jnp.mean(forecast_error - 0.5 * spread)
 
 
-def energy_score(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _prepare_multivariate_ensemble_arrays
+def energy_score(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _prepare_multivariate_ensemble_arrays
     """Energy score of a multivariate ensemble forecast (Gneiting & Raftery 2007).
 
     ``ES = mean_i ||X_i - y|| - 0.5 * mean_{i,j} ||X_i - X_j||`` with the Euclidean
@@ -94,7 +93,7 @@ def energy_score(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # rais
     return jnp.mean(forecast_error - 0.5 * jnp.mean(pairwise, axis=(1, 2)))
 
 
-def rank_histogram(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _prepare_ensemble_arrays
+def rank_histogram(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _prepare_ensemble_arrays
     """Rank histogram of the targets within their ensembles (Hamill 2001).
 
     For each target, the rank is the number of ensemble members strictly below it,
@@ -118,7 +117,7 @@ def rank_histogram(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # ra
     return jnp.bincount(ranks, length=pred.shape[1] + 1)
 
 
-def spread_skill_ratio(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _prepare_ensemble_arrays
+def spread_skill_ratio(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _prepare_ensemble_arrays
     """Unbiased spread-skill ratio (Fortin et al. 2014).
 
     The root mean unbiased ensemble variance over the bias-corrected RMSE of the
@@ -150,7 +149,9 @@ def spread_skill_ratio(predictions: Any, targets: Any) -> Any:  # noqa: DOC502  
     return jnp.sqrt(jnp.mean(per_sample_variance) / unbiased_mse)
 
 
-def pit_histogram(means: Any, variances: Any, targets: Any, *, num_bins: int = 10) -> Any:  # noqa: DOC502  # raised by _prepare_arrays
+def pit_histogram(  # noqa: DOC502  # raised by _prepare_arrays
+    means: ArrayLike, variances: ArrayLike, targets: ArrayLike, *, num_bins: int = 10
+) -> jax.Array:
     """Histogram of probability integral transform values under a Gaussian predictive.
 
     Bins ``F(y | mean, sqrt(variance))`` into ``num_bins`` equal-width bins over
@@ -178,7 +179,7 @@ def pit_histogram(means: Any, variances: Any, targets: Any, *, num_bins: int = 1
     return jnp.bincount(bin_index.reshape(-1), length=num_bins)
 
 
-def ranked_probability_score(probabilities: Any, targets: Any) -> Any:
+def ranked_probability_score(probabilities: ArrayLike, targets: ArrayLike) -> jax.Array:
     """Ranked probability score for ordered categories (Epstein 1969).
 
     ``RPS = sum_k (F_k - O_k)^2`` where ``F_k`` is the cumulative predicted
@@ -204,7 +205,9 @@ def ranked_probability_score(probabilities: Any, targets: Any) -> Any:
     return jnp.mean(jnp.sum((cumulative_probs - cumulative_obs) ** 2, axis=-1))
 
 
-def event_reliability(probabilities: Any, events: Any, *, num_bins: int = 10) -> Any:  # noqa: DOC502  # raised by _prepare_arrays
+def event_reliability(  # noqa: DOC502  # raised by _prepare_arrays
+    probabilities: ArrayLike, events: ArrayLike, *, num_bins: int = 10
+) -> jax.Array:
     """Reliability component of the Brier decomposition (Murphy 1973).
 
     ``REL = (1/n) sum_k n_k (f_k - o_k)^2`` over ``num_bins`` equal-width bins of
@@ -239,12 +242,12 @@ def event_reliability(probabilities: Any, events: Any, *, num_bins: int = 10) ->
 
 
 def ensemble_ranked_probability_score(  # noqa: DOC502  # raised by _prepare_ensemble_arrays
-    predictions: Any,
-    targets: Any,
+    predictions: ArrayLike,
+    targets: ArrayLike,
     *,
-    thresholds: Any,
+    thresholds: ArrayLike,
     fair: bool = True,
-) -> Any:
+) -> jax.Array:
     """Ranked probability score of a continuous ensemble at fixed thresholds.
 
     The empirical CDF of the ensemble and the step CDF of the target are compared
@@ -281,7 +284,7 @@ def ensemble_ranked_probability_score(  # noqa: DOC502  # raised by _prepare_ens
     return jnp.mean(jnp.sum(squared_gap, axis=-1))
 
 
-def ranked_probability_skill_score(rps: Any, rps_reference: Any) -> Any:
+def ranked_probability_skill_score(rps: ArrayLike, rps_reference: ArrayLike) -> jax.Array:
     """Ranked probability skill score against a reference forecast (Murphy 1971).
 
     ``RPSS = 1 - RPS / RPS_reference``, elementwise over broadcastable inputs.

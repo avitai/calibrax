@@ -9,14 +9,14 @@ Registered with ``domain="audio"``.
 
 from __future__ import annotations
 
-from typing import Any
-
+import jax
 import jax.numpy as jnp
+from jax.typing import ArrayLike
 
 from calibrax.metrics._utils import _EPSILON
 
 
-def spectral_convergence(predictions: Any, targets: Any) -> Any:
+def spectral_convergence(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:
     """Spectral convergence between predicted and target signals.
 
     Computes ||STFT(targets) - STFT(predictions)||_F / ||STFT(targets)||_F.
@@ -46,7 +46,9 @@ def spectral_convergence(predictions: Any, targets: Any) -> Any:
     return diff_norm / (tgt_norm + _EPSILON)
 
 
-def mel_cepstral_distortion(predictions: Any, targets: Any, *, num_mels: int = 80) -> Any:
+def mel_cepstral_distortion(
+    predictions: ArrayLike, targets: ArrayLike, *, num_mels: int = 80
+) -> jax.Array:
     """Mel Cepstral Distortion between two signals.
 
     Computes (10/ln(10)) * sqrt(2 * sum((c_pred - c_tgt)^2)) on
@@ -86,7 +88,7 @@ def mel_cepstral_distortion(predictions: Any, targets: Any, *, num_mels: int = 8
     return (10.0 / jnp.log(10.0)) * jnp.sqrt(2.0 * diff_sq + _EPSILON)
 
 
-def signal_to_noise_ratio(signal: Any, noise: Any) -> Any:
+def signal_to_noise_ratio(signal: ArrayLike, noise: ArrayLike) -> jax.Array:
     """Signal-to-Noise Ratio in dB.
 
     SNR = 10 * log10(|signal|^2 / |noise|^2).

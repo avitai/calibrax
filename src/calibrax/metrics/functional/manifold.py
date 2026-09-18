@@ -27,14 +27,14 @@ Registered with ``domain="manifold"``.
 
 from __future__ import annotations
 
-from typing import Any
-
+import jax
 import jax.numpy as jnp
+from jax.typing import ArrayLike
 
 from calibrax.metrics._utils import _EPSILON, safe_norm
 
 
-def spd_affine_invariant_distance(a: Any, b: Any) -> Any:
+def spd_affine_invariant_distance(a: ArrayLike, b: ArrayLike) -> jax.Array:
     """Affine-invariant Riemannian distance between SPD matrices.
 
     Geodesic distance on the SPD manifold:
@@ -80,7 +80,7 @@ def spd_affine_invariant_distance(a: Any, b: Any) -> Any:
     return jnp.sqrt(jnp.sum(jnp.log(eigenvalues) ** 2))
 
 
-def spd_log_euclidean_distance(a: Any, b: Any) -> Any:
+def spd_log_euclidean_distance(a: ArrayLike, b: ArrayLike) -> jax.Array:
     """Log-Euclidean distance between SPD matrices.
 
     Maps SPD matrices to Euclidean space via matrix logarithm:
@@ -128,7 +128,7 @@ def _matrix_log_spd(m: jnp.ndarray) -> jnp.ndarray:
     return eigenvectors @ jnp.diag(log_eigenvalues) @ eigenvectors.T
 
 
-def grassmann_distance(u: Any, v: Any) -> Any:
+def grassmann_distance(u: ArrayLike, v: ArrayLike) -> jax.Array:
     """Geodesic distance on the Grassmann manifold Gr(p, n).
 
     Distance between two p-dimensional subspaces of R^n, based on
@@ -171,7 +171,7 @@ def grassmann_distance(u: Any, v: Any) -> Any:
     return jnp.sqrt(jnp.sum(theta**2))
 
 
-def stiefel_distance(u: Any, v: Any) -> Any:
+def stiefel_distance(u: ArrayLike, v: ArrayLike) -> jax.Array:
     """Extrinsic distance on the Stiefel manifold St(p, n).
 
     Frobenius distance between orthonormal p-frames: ``||U - V||_F``.
@@ -201,11 +201,11 @@ def stiefel_distance(u: Any, v: Any) -> Any:
 
 
 def ultrahyperbolic_distance(
-    a: Any,
-    b: Any,
+    a: ArrayLike,
+    b: ArrayLike,
     *,
     signature: tuple[int, int],
-) -> Any:
+) -> jax.Array:
     """Geodesic distance on the pseudo-hyperboloid with given signature.
 
     Pseudo-Riemannian inner product:

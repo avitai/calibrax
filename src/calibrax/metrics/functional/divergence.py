@@ -15,11 +15,11 @@ sinkhorn_divergence, sliced_wasserstein, bregman_divergence.
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
 
 import jax
 import jax.numpy as jnp
 from flax import nnx
+from jax.typing import ArrayLike
 from substrax.rng import key_from
 
 from calibrax.metrics._utils import _EPSILON, safe_divide, safe_log, safe_root
@@ -29,7 +29,7 @@ from calibrax.metrics._utils import _EPSILON, safe_divide, safe_log, safe_root
 _ALPHA_ONE_TOLERANCE = 1e-10
 
 
-def kl_divergence(p: Any, q: Any) -> Any:
+def kl_divergence(p: ArrayLike, q: ArrayLike) -> jax.Array:
     """Kullback-Leibler divergence: ``sum(p * log(p / q))``.
 
     Measures information lost when q is used to approximate p.
@@ -64,7 +64,7 @@ def kl_divergence(p: Any, q: Any) -> Any:
     return jnp.sum(terms)
 
 
-def reverse_kl_divergence(p: Any, q: Any) -> Any:
+def reverse_kl_divergence(p: ArrayLike, q: ArrayLike) -> jax.Array:
     """Reverse KL divergence: ``KL(q || p)``.
 
     Mode-seeking variant, useful for variational inference.
@@ -85,7 +85,7 @@ def reverse_kl_divergence(p: Any, q: Any) -> Any:
     return kl_divergence(q, p)
 
 
-def js_divergence(p: Any, q: Any) -> Any:
+def js_divergence(p: ArrayLike, q: ArrayLike) -> jax.Array:
     """Jensen-Shannon divergence.
 
     Symmetric, bounded version of KL divergence:
@@ -115,7 +115,7 @@ def js_divergence(p: Any, q: Any) -> Any:
     return 0.5 * kl_divergence(p_arr, m) + 0.5 * kl_divergence(q_arr, m)
 
 
-def total_variation(p: Any, q: Any) -> Any:
+def total_variation(p: ArrayLike, q: ArrayLike) -> jax.Array:
     """Total variation distance: ``0.5 * sum(|p - q|)``.
 
     Both an f-divergence and an integral probability metric.
@@ -138,7 +138,7 @@ def total_variation(p: Any, q: Any) -> Any:
     return 0.5 * jnp.sum(jnp.abs(p_arr - q_arr))
 
 
-def hellinger_distance(p: Any, q: Any) -> Any:
+def hellinger_distance(p: ArrayLike, q: ArrayLike) -> jax.Array:
     """Hellinger distance between probability distributions.
 
     ``H(p,q) = sqrt(0.5 * sum((sqrt(p) - sqrt(q))^2))``.
@@ -162,7 +162,7 @@ def hellinger_distance(p: Any, q: Any) -> Any:
     return safe_root(0.5 * jnp.sum(diff**2))
 
 
-def chi_squared_divergence(p: Any, q: Any) -> Any:
+def chi_squared_divergence(p: ArrayLike, q: ArrayLike) -> jax.Array:
     """Pearson chi-squared divergence: ``sum((p - q)^2 / q)``.
 
     NOT symmetric. Sensitive to q near zero.
@@ -184,7 +184,7 @@ def chi_squared_divergence(p: Any, q: Any) -> Any:
     return jnp.sum(safe_divide((p_arr - q_arr) ** 2, q_arr))
 
 
-def renyi_divergence(p: Any, q: Any, *, alpha: float = 0.5) -> Any:
+def renyi_divergence(p: ArrayLike, q: ArrayLike, *, alpha: float = 0.5) -> jax.Array:
     """Renyi alpha-divergence.
 
     ``D_alpha(p||q) = 1/(alpha-1) * log(sum(p^alpha * q^(1-alpha)))``.
@@ -219,11 +219,11 @@ def renyi_divergence(p: Any, q: Any, *, alpha: float = 0.5) -> Any:
 
 
 def f_divergence(
-    p: Any,
-    q: Any,
+    p: ArrayLike,
+    q: ArrayLike,
     *,
-    generator: Callable[[Any], Any],
-) -> Any:
+    generator: Callable[[jax.Array], jax.Array],
+) -> jax.Array:
     """Unified f-divergence with arbitrary convex generator.
 
     ``D_f(p||q) = sum(q * f(p / q))`` where f is convex with f(1) = 0.
@@ -248,7 +248,7 @@ def f_divergence(
     return jnp.sum(q_arr * generator(ratio))
 
 
-def wasserstein_1d(p: Any, q: Any) -> Any:
+def wasserstein_1d(p: ArrayLike, q: ArrayLike) -> jax.Array:
     """1D Wasserstein-1 (Earth Mover's) distance between samples.
 
     For 1D data: sort both, take mean absolute difference.
@@ -271,25 +271,25 @@ def wasserstein_1d(p: Any, q: Any) -> Any:
     return jnp.mean(jnp.abs(p_sorted - q_sorted))
 
 
-def _rbf_kernel(x: Any, y: Any, bandwidth: float) -> Any:
+def _rbf_kernel(x: jax.Array, y: jax.Array, bandwidth: float) -> jax.Array:
     """RBF (Gaussian) kernel matrix."""
     sq_dist = jnp.sum((x[:, None, :] - y[None, :, :]) ** 2, axis=-1)
     return jnp.exp(-sq_dist / (2.0 * bandwidth**2))
 
 
-def _laplace_kernel(x: Any, y: Any, bandwidth: float) -> Any:
+def _laplace_kernel(x: jax.Array, y: jax.Array, bandwidth: float) -> jax.Array:
     """Laplace kernel matrix."""
     dist = jnp.sum(jnp.abs(x[:, None, :] - y[None, :, :]), axis=-1)
     return jnp.exp(-dist / bandwidth)
 
 
 def mmd(
-    x: Any,
-    y: Any,
+    x: ArrayLike,
+    y: ArrayLike,
     *,
     kernel: str = "rbf",
     bandwidth: float = 1.0,
-) -> Any:
+) -> jax.Array:
     """Maximum Mean Discrepancy between sample distributions.
 
     Measures distance using kernel mean embeddings. O(n^{-1/2})
@@ -334,13 +334,13 @@ def mmd(
 
 
 def sinkhorn_divergence(
-    x: Any,
-    y: Any,
+    x: ArrayLike,
+    y: ArrayLike,
     *,
     regularization: float = 0.1,
     max_iter: int = 100,
     threshold: float = 1e-5,
-) -> Any:
+) -> jax.Array:
     """Debiased Sinkhorn divergence (entropic optimal transport).
 
     ``S(x,y) = OT_reg(x,y) - 0.5*(OT_reg(x,x) + OT_reg(y,y))``.
@@ -369,7 +369,7 @@ def sinkhorn_divergence(
     if y_arr.ndim == 1:
         y_arr = y_arr[:, None]
 
-    def _sinkhorn_cost(a: Any, b: Any) -> Any:
+    def _sinkhorn_cost(a: jax.Array, b: jax.Array) -> jax.Array:
         # Cost matrix (squared Euclidean)
         cost = jnp.sum((a[:, None, :] - b[None, :, :]) ** 2, axis=-1)
         n_a = a.shape[0]
@@ -381,11 +381,13 @@ def sinkhorn_divergence(
         k = jnp.exp(-cost / regularization)
 
         # Sinkhorn iterations via lax.while_loop for JIT compatibility
-        def _not_converged(state: tuple[Any, Any, Any, Any]) -> Any:
+        def _not_converged(state: tuple[jax.Array, jax.Array, jax.Array, jax.Array]) -> jax.Array:
             _, _, converged, step = state
             return (~converged) & (step < max_iter)
 
-        def _step(state: tuple[Any, Any, Any, Any]) -> tuple[Any, Any, Any, Any]:
+        def _step(
+            state: tuple[jax.Array, jax.Array, jax.Array, jax.Array],
+        ) -> tuple[jax.Array, jax.Array, jax.Array, jax.Array]:
             u, v, _, step = state
             u_new = mu / (k @ v + _EPSILON)
             v_new = nu / (k.T @ u_new + _EPSILON)
@@ -410,13 +412,13 @@ SLICED_WASSERSTEIN_PROJECTIONS = 256
 
 
 def sliced_wasserstein(
-    x: Any,
-    y: Any,
+    x: ArrayLike,
+    y: ArrayLike,
     *,
     key: jax.Array | nnx.Rngs,
     num_projections: int = SLICED_WASSERSTEIN_PROJECTIONS,
     p: float = 2.0,
-) -> Any:
+) -> jax.Array:
     """Sliced Wasserstein distance ``SW_p = (E_theta[W_p^p(theta_# x, theta_# y)])^(1/p)``.
 
     Both sample sets are projected onto ``num_projections`` directions drawn uniformly on the
@@ -474,7 +476,7 @@ def sliced_wasserstein(
 SLICED_WASSERSTEIN_REGISTRY_SEED = 0
 
 
-def registry_sliced_wasserstein(x: Any, y: Any) -> Any:
+def registry_sliced_wasserstein(x: ArrayLike, y: ArrayLike) -> jax.Array:
     """``sliced_wasserstein`` over the registry's fixed projection set.
 
     The directions come from ``SLICED_WASSERSTEIN_REGISTRY_SEED``, the same in every call, so a
@@ -491,12 +493,12 @@ def registry_sliced_wasserstein(x: Any, y: Any) -> Any:
 
 
 def bregman_divergence(
-    x: Any,
-    y: Any,
+    x: ArrayLike,
+    y: ArrayLike,
     *,
-    generator: Callable[[Any], Any],
-    generator_grad: Callable[[Any], Any] | None = None,
-) -> Any:
+    generator: Callable[[jax.Array], jax.Array],
+    generator_grad: Callable[[jax.Array], jax.Array] | None = None,
+) -> jax.Array:
     """Bregman divergence with arbitrary convex generator.
 
     ``D_psi(x, y) = psi(x) - psi(y) - <grad_psi(y), x - y>``.
@@ -531,7 +533,7 @@ def bregman_divergence(
     return psi_x - psi_y - jnp.dot(grad_y, diff)
 
 
-def kolmogorov_smirnov_distance(a: Any, b: Any) -> Any:
+def kolmogorov_smirnov_distance(a: ArrayLike, b: ArrayLike) -> jax.Array:
     """Kolmogorov-Smirnov distance between two samples.
 
     The largest absolute gap between the two empirical CDFs, evaluated at every

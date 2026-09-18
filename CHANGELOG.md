@@ -41,6 +41,12 @@ and uses semantic versioning while the public API stabilizes.
   traced. The old check read `float(norm(drift))`, which cannot run inside `jax.jit`; the
   magnitude-and-direction form follows Finsler MDS (Dages et al. 2025). Pass the old `drift` as
   `direction=drift, magnitude=float(jnp.linalg.norm(drift))`.
+- The functional metrics are typed with `jax.typing.ArrayLike` for array inputs and `jax.Array`
+  for array outputs, JAX's recommendation for public APIs, in place of `Any`; private helpers
+  that receive converted arrays take `jax.Array`. pyright strict checks them.
+- `MetricFn`, a metric function returning a `jax.Array`, types the registry, composition,
+  wrappers and fairness helpers; they declared `Callable[..., float]` although every metric
+  returns an array.
 
 ### Removed
 
