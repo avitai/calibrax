@@ -221,21 +221,29 @@ def hit_rate(scores: ArrayLike, relevance: ArrayLike, *, k: int) -> jax.Array:
     return jnp.where(jnp.sum(ranked_rel[:k]) > 0, 1.0, 0.0)
 
 
-def coverage(scores: ArrayLike, relevance: ArrayLike, *, catalog_size: int) -> jax.Array:  # noqa: ARG001  # registry signature
-    """Fraction of catalog covered by recommendations.
+def coverage(items: ArrayLike, *, catalog_size: int) -> jax.Array:
+    """Catalog coverage: the fraction of the catalog's items that appear in the recommendations.
+
+    ``|distinct recommended items| / catalog_size`` (Ge, Delgado-Battenfeld and Jannach 2010).
+    Items are integer ids in ``[0, catalog_size)``; an id outside that range is not a catalog item
+    and is not counted. The count uses ``jnp.bincount`` with a static ``length``, so the function
+    works under ``jax.jit`` (``catalog_size`` static) and ``jax.vmap``.
 
     Note:
         Direction: HIGHER (1.0 = full catalog coverage).
         Range: [0, 1].
 
     Args:
-        scores: Recommended item IDs (1D integer array).
-        relevance: Unused (present for API consistency). Pass any array.
-        catalog_size: Total number of unique items in catalog.
+        items: Recommended item ids, any shape; every list in a batch is covered together.
+        catalog_size: Number of items in the catalog.
 
     Returns:
         Coverage as a scalar value.
     """
-    items = jnp.asarray(scores).ravel()
-    unique_count = jnp.float32(len(jnp.unique(items)))
-    return unique_count / catalog_size
+    ids = jnp.asarray(items).ravel()
+    in_catalog = (ids >= 0) & (ids < catalog_size)
+    # jnp.bincount clips negative ids to 0, so ids outside the catalog carry zero weight.
+    counts = jnp.bincount(
+        jnp.where(in_catalog, ids, 0), weights=in_catalog.astype(jnp.int32), length=catalog_size
+    )
+    return jnp.count_nonzero(counts) / catalog_size

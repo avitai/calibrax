@@ -51,6 +51,11 @@ and uses semantic versioning while the public API stabilizes.
 - `MetricLearningLoss.__call__(embeddings, labels)` takes array-likes and no `**kwargs`: every
   loss ignored them (`ContrastiveLoss`, `TripletMarginLoss`, `NTXentLoss`), so they were a
   suppressed unused argument, not an interface.
+- `coverage(items, *, catalog_size)` drops the unused `relevance` argument, counts distinct items
+  with a fixed-length `jnp.bincount`, so it runs under `jax.jit` (`catalog_size` static) and
+  `jax.vmap` where `jnp.unique` could not, and ignores ids outside `[0, catalog_size)`; a negative
+  id had counted as item 0. Its registry entry is `MetricSignature.CUSTOM`, since a suite cannot
+  call it as `fn(predictions, targets)`.
 
 ### Removed
 
