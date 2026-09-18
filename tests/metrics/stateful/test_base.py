@@ -105,7 +105,7 @@ class MockLearnedMetric(LearnedMetric):
     """Mock implementation for testing LearnedMetric base."""
 
     def __init__(self, *, rngs: nnx.Rngs) -> None:
-        super().__init__(name="mock_learned", rngs=rngs)
+        super().__init__(name="mock_learned")
         self._linear = nnx.Linear(in_features=4, out_features=1, rngs=rngs)
         self._accumulated: list[float] = []
 

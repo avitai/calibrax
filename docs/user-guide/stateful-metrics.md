@@ -209,7 +209,7 @@ class LearnedWeightedMSE(LearnedMetric):
     """MSE with learned per-feature importance weights."""
 
     def __init__(self, num_features: int, *, rngs: nnx.Rngs) -> None:
-        super().__init__(name="learned_weighted_mse", rngs=rngs)
+        super().__init__(name="learned_weighted_mse")
         self._feature_weights = nnx.Param(jnp.ones(num_features))
         self._scores: list[float] = []
 
@@ -217,7 +217,7 @@ class LearnedWeightedMSE(LearnedMetric):
         self._scores = []
 
     def update(self, predictions: jnp.ndarray, targets: jnp.ndarray) -> None:
-        weights = nnx.softmax(self._feature_weights.value)
+        weights = nnx.softmax(self._feature_weights[...])
         self._scores.append(float(jnp.mean((predictions - targets) ** 2 * weights)))
 
     def compute(self) -> dict[str, float]:
