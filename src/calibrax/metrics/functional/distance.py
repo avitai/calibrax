@@ -17,6 +17,7 @@ from typing import Any
 
 import jax
 import jax.numpy as jnp
+from jax.typing import ArrayLike
 
 from calibrax.metrics._utils import _EPSILON, safe_divide, safe_norm, safe_root
 
@@ -399,12 +400,16 @@ def lorentz_distance(a: Any, b: Any) -> Any:
     return _batch_or_single(a, b, _single)
 
 
-def randers_distance(a: Any, b: Any, *, drift: Any) -> Any:
-    """Randers distance: asymmetric Finsler metric with directional bias.
+def randers_distance(
+    a: ArrayLike, b: ArrayLike, *, direction: ArrayLike, magnitude: float
+) -> jax.Array:
+    """Randers distance: an asymmetric Finsler metric with a drift ``magnitude * u``.
 
-    Adds a "wind" vector to Euclidean distance:
-    ``d_R(a,b) = ||b-a||_2 + <drift, b-a>``.
-    The drift vector must satisfy ``||drift|| < 1`` (sub-sonic condition).
+    ``d_R(a, b) = ||b - a||_2 + magnitude * <u, b - a>`` with ``u = direction / ||direction||``
+    (Randers 1941). The drift's norm is ``magnitude``, and ``magnitude < 1`` keeps the
+    distance positive, so the constraint is a Python float checked when the metric is called,
+    as Finsler MDS does (Dages et al. 2025); the direction may be traced, and a zero direction
+    gives the Euclidean distance. Batches of points give the mean distance over the pairs.
 
     Note:
         Direction: LOWER (0.0 = identical points).
@@ -416,29 +421,38 @@ def randers_distance(a: Any, b: Any, *, drift: Any) -> Any:
     Args:
         a: First point or batch of points.
         b: Second point or batch of points.
-        drift: Wind/bias vector. Must satisfy ``||drift|| < 1``.
+        direction: The drift's direction; only its direction is used.
+        magnitude: The drift's norm, a Python float in ``[0, 1)``. Static under ``jax.jit``
+            (``static_argnames=("magnitude",)``).
 
     Returns:
         Randers distance as a scalar value.
 
     Raises:
-        ValueError: If ``||drift|| >= 1`` (sub-sonic condition violated).
+        TypeError: If ``magnitude`` is not a Python number.
+        ValueError: If ``magnitude`` is outside ``[0, 1)``.
 
     Examples:
         >>> import jax.numpy as jnp
         >>> a = jnp.array([0.0, 0.0])
         >>> b = jnp.array([1.0, 0.0])
-        >>> randers_distance(a, b, drift=jnp.array([0.0, 0.0]))
-        1.0
+        >>> randers_distance(a, b, direction=jnp.array([1.0, 0.0]), magnitude=0.5)
+        1.5
     """
-    drift_arr = jnp.asarray(drift)
-    drift_norm = float(jnp.linalg.norm(drift_arr))
-    if drift_norm >= 1.0:
-        msg = f"Sub-sonic condition violated: ||drift|| = {drift_norm:.4f} >= 1.0"
+    if isinstance(magnitude, bool) or not isinstance(magnitude, int | float):
+        msg = f"magnitude must be a Python float in [0, 1), got {type(magnitude).__name__}"
+        raise TypeError(msg)
+    if not 0.0 <= magnitude < 1.0:
+        msg = f"magnitude must lie in [0, 1) for a positive Randers distance, got {magnitude}"
         raise ValueError(msg)
+    direction_arr = jnp.asarray(direction)
+    norm = safe_norm(direction_arr)
+    has_direction = norm > 0.0
+    unit = jnp.where(has_direction, direction_arr / jnp.where(has_direction, norm, 1.0), 0.0)
+    drift = magnitude * unit
 
-    def _single(x: Any, y: Any, *, drift: Any) -> Any:
+    def _single(x: jax.Array, y: jax.Array) -> jax.Array:
         diff = y - x
-        return jnp.linalg.norm(diff) + jnp.dot(drift, diff)
+        return safe_norm(diff) + jnp.dot(drift, diff)
 
-    return _batch_or_single(a, b, _single, drift=drift_arr)
+    return _batch_or_single(a, b, _single)

@@ -35,6 +35,12 @@ and uses semantic versioning while the public API stabilizes.
   itself entered the spread term through `jnp.linalg.norm`; it is finite. They take their roots
   through `safe_root` and the new `safe_norm` (the JAX FAQ's inner-and-outer `where`, with
   derivative 0 at 0 as in `optax.safe_norm`); values are unchanged.
+- `randers_distance(a, b, *, direction, magnitude)` replaces `drift=`: the drift is
+  `magnitude * direction / ||direction||`, `magnitude` is a Python float checked to lie in
+  `[0, 1)` (`TypeError` for an array, `ValueError` outside the range), and the direction may be
+  traced. The old check read `float(norm(drift))`, which cannot run inside `jax.jit`; the
+  magnitude-and-direction form follows Finsler MDS (Dages et al. 2025). Pass the old `drift` as
+  `direction=drift, magnitude=float(jnp.linalg.norm(drift))`.
 
 ### Removed
 
