@@ -15,6 +15,7 @@ from typing import Any
 
 import numpy as np
 from jax import block_until_ready
+from substrax.typing import PyTree
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -107,7 +108,7 @@ class TimingCollector:
 
     def __init__(
         self,
-        sync_fn: Callable[[Any], object] | None = None,
+        sync_fn: Callable[[PyTree], object] | None = None,
         warmup_iterations: int = 0,
     ) -> None:
         """Initialize TimingCollector.
@@ -125,12 +126,12 @@ class TimingCollector:
         self._sync_fn = sync_fn or _wait_for_result
         self._warmup_iterations = warmup_iterations
 
-    def measure_iteration(
+    def measure_iteration[BatchT](
         self,
-        iterator: Iterator[Any],
+        iterator: Iterator[BatchT],
         num_batches: int | None = None,
-        process_fn: Callable[[Any], Any] | None = None,
-        count_fn: Callable[[Any], int] | None = None,
+        process_fn: Callable[[BatchT], PyTree] | None = None,
+        count_fn: Callable[[BatchT], int] | None = None,
     ) -> TimingSample:
         """Measure timing for batches from an iterator.
 
@@ -194,8 +195,8 @@ class TimingCollector:
 
     def measure_compilation_time(
         self,
-        fn: Callable[..., Any],
-        *args: Any,
+        fn: Callable[..., PyTree],
+        *args: PyTree,
     ) -> float:
         """Measure JIT compilation time for a JAX function.
 
@@ -220,7 +221,7 @@ class TimingCollector:
 _PERCENTILE_MAX = 100
 
 
-def _wait_for_result(result: Any) -> None:
+def _wait_for_result(result: PyTree) -> None:
     """Wait for every array in ``result`` with ``jax.block_until_ready``."""
     block_until_ready(result)
 
@@ -252,15 +253,17 @@ class CallTiming:
 
 
 def time_calls(
-    func: Callable[..., Any],
-    *args: Any,
+    call: Callable[[], PyTree],
+    *,
     warmup: int = 3,
     iterations: int = 10,
     percentiles: Sequence[int] = (50, 90, 99),
-    sync: Callable[[Any], object] | None = None,
-    **kwargs: Any,
+    sync: Callable[[PyTree], object] | None = None,
 ) -> CallTiming:
-    """Time ``func(*args, **kwargs)`` and report the median and percentiles.
+    """Time ``call()`` and report the median and percentiles.
+
+    ``call`` takes no arguments: close over the timed function's inputs
+    (``lambda: step(state, batch)``), so its keywords never meet these options'.
 
     Each call is followed by ``sync(result)``, ``jax.block_until_ready`` over the whole
     result pytree by default, so asynchronous dispatch is inside the measurement. The
@@ -269,14 +272,12 @@ def time_calls(
     a mean is moved by one slow call.
 
     Args:
-        func: The callable to time.
-        *args: Positional arguments for every call.
+        call: The zero-argument callable to time.
         warmup: Calls made and discarded before timing.
         iterations: Timed calls.
         percentiles: Percentiles (0-100) to report beside the median.
         sync: Called with each result before the clock stops; ``None`` waits for the
             whole result with ``jax.block_until_ready``.
-        **kwargs: Keyword arguments for every call.
 
     Returns:
         The samples, median and percentiles.
@@ -294,12 +295,12 @@ def time_calls(
     wait = _wait_for_result if sync is None else sync
 
     for _ in range(warmup):
-        wait(func(*args, **kwargs))
+        wait(call())
 
     samples: list[float] = []
     for _ in range(iterations):
         start = time.perf_counter()
-        wait(func(*args, **kwargs))
+        wait(call())
         samples.append(time.perf_counter() - start)
 
     values = np.asarray(samples)

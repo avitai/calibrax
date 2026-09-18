@@ -8,6 +8,7 @@ warm-up exclusion, compilation time measurement, and edge cases.
 import dataclasses
 from unittest.mock import MagicMock, patch
 
+import jax
 import jax.numpy as jnp
 import numpy as np
 import pytest
@@ -474,7 +475,8 @@ class TestTimeCalls:
     """``time_calls`` times a callable and reports the median and percentiles."""
 
     def test_reports_median_and_percentiles_over_the_timed_iterations(self) -> None:
-        timing = time_calls(lambda a: a + 1, jnp.ones((4,)), warmup=2, iterations=7)
+        data = jnp.ones((4,))
+        timing = time_calls(lambda: data + 1, warmup=2, iterations=7)
 
         assert isinstance(timing, CallTiming)
         assert len(timing.samples_sec) == 7
@@ -486,29 +488,42 @@ class TestTimeCalls:
 
     def test_syncs_every_call_result_with_block_until_ready(self) -> None:
         with patch("calibrax.profiling.timing.block_until_ready") as sync:
-            time_calls(lambda a: a * 2, jnp.ones((2,)), warmup=2, iterations=3)
+            data = jnp.ones((2,))
+            time_calls(lambda: data * 2, warmup=2, iterations=3)
 
         assert sync.call_count == 5  # warmup and timed calls alike
         assert all(call.args[0].shape == (2,) for call in sync.call_args_list)
 
-    def test_custom_sync_and_keyword_arguments(self) -> None:
+    def test_custom_sync(self) -> None:
         seen: list[object] = []
 
         def sync(result: object) -> None:
             seen.append(result)
 
+        data = jnp.ones((3,))
         timing = time_calls(
-            lambda a, *, scale: a * scale,
-            jnp.ones((3,)),
-            scale=2.0,
-            warmup=0,
-            iterations=2,
-            percentiles=(50,),
-            sync=sync,
+            lambda: data * 2.0, warmup=0, iterations=2, percentiles=(50,), sync=sync
         )
 
         assert len(seen) == 2
         assert set(timing.percentiles_sec) == {50}
+
+    def test_a_function_whose_keywords_share_the_options_names_can_be_timed(self) -> None:
+        """The timed call is closed over, so its keywords never meet time_calls' own."""
+        calls: list[tuple[int, str]] = []
+
+        def step(*, warmup: int, sync: str) -> jax.Array:
+            calls.append((warmup, sync))
+            return jnp.ones(())
+
+        time_calls(lambda: step(warmup=7, sync="own"), warmup=1, iterations=2)
+
+        assert calls == [(7, "own")] * 3
+
+    def test_arguments_for_the_call_are_refused(self) -> None:
+        """Only a zero-argument callable is timed; arguments belong in its closure."""
+        with pytest.raises(TypeError):
+            time_calls(lambda a: a, jnp.ones((1,)))  # type: ignore[call-arg]
 
     @pytest.mark.parametrize(
         ("kwargs", "message"),
@@ -520,10 +535,10 @@ class TestTimeCalls:
     )
     def test_rejects_invalid_arguments(self, kwargs: dict, message: str) -> None:
         with pytest.raises(ValueError, match=message):
-            time_calls(lambda a: a, jnp.ones((1,)), **kwargs)
+            time_calls(lambda: jnp.ones((1,)), **kwargs)
 
     def test_to_dict_is_json_ready(self) -> None:
-        timing = time_calls(lambda a: a, jnp.ones((1,)), warmup=0, iterations=2)
+        timing = time_calls(lambda: jnp.ones((1,)), warmup=0, iterations=2)
         payload = timing.to_dict()
 
         assert set(payload) == {"samples_sec", "median_sec", "percentiles_sec", "warmup"}
