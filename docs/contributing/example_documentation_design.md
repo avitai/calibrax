@@ -189,7 +189,8 @@ we construct a distribution of the statistic without assuming normality.
 # doctest: +SKIP — template showing API usage pattern
 from calibrax.statistics import StatisticalAnalyzer
 
-analyzer = StatisticalAnalyzer()
+import jax
+analyzer = StatisticalAnalyzer(key=jax.random.key(0))
 result = analyzer.summarize(measurements)
 print(f"Mean: {result.mean:.4f}")
 print(f"95% CI: [{result.ci_lower:.4f}, {result.ci_upper:.4f}]")
@@ -834,7 +835,7 @@ If you're familiar with pytest-benchmark, here's how Calibrax compares:
 | pytest-benchmark | Calibrax |
 |------------------|----------|
 | `benchmark(func)` | `TimingCollector().measure_iteration(iterator, num_batches=N)` |
-| `benchmark.stats["mean"]` | `StatisticalAnalyzer().analyze(samples).mean` |
+| `benchmark.stats["mean"]` | `StatisticalAnalyzer(key=jax.random.key(0)).summarize(samples).mean` |
 | `--benchmark-compare` | `compare_configurations(run_a, run_b)` |
 | `--benchmark-save=NAME` | `Store(path).save(run)` |
 | `--benchmark-json=FILE` | `Store(path).save(run)` (JSON-per-run) |
@@ -1907,7 +1908,8 @@ sample = collector.measure_iteration(
 )
 
 # Check stability
-analyzer = StatisticalAnalyzer()
+import jax
+analyzer = StatisticalAnalyzer(key=jax.random.key(0))
 result = analyzer.summarize(sample.per_batch_times)
 print(f"CV: {result.cv:.3f}")  # Should be < 0.10
 print(f"Stable: {result.is_stable}")
@@ -2494,7 +2496,8 @@ print(f"Wall clock: {sample.wall_clock_sec:.3f} sec ({sample.num_batches} batche
 # Add bootstrap confidence intervals
 from calibrax.statistics import StatisticalAnalyzer
 
-analyzer = StatisticalAnalyzer()
+import jax
+analyzer = StatisticalAnalyzer(key=jax.random.key(0))
 result = analyzer.summarize(sample.per_batch_times)
 print(f"Mean: {result.mean:.4f} sec")
 print(f"95% CI: [{result.ci_lower:.4f}, {result.ci_upper:.4f}]")

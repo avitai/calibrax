@@ -6,6 +6,8 @@ import jax
 import jax.numpy as jnp
 import pytest
 
+from calibrax.core.models import MetricDirection
+from calibrax.metrics import MetricRegistry
 from calibrax.metrics.functional.statistical import (
     autocorrelation,
     concordance_correlation,
@@ -141,8 +143,6 @@ class TestStatisticalMetricRegistration:
     """Tests for statistical metric registration."""
 
     def test_all_registered(self) -> None:
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         expected = [
             "pearson_correlation",
@@ -156,16 +156,11 @@ class TestStatisticalMetricRegistration:
             assert registry.has(name), f"Metric '{name}' not registered"
 
     def test_statistical_domain(self) -> None:
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         stat_metrics = registry.list_by_domain("statistical")
         assert len(stat_metrics) == 6
 
     def test_correlations_are_higher_and_skewness_is_informational(self) -> None:
-        from calibrax.core.models import MetricDirection
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         for m in registry.list_by_domain("statistical"):
             expected = MetricDirection.INFO if m.name == "skewness" else MetricDirection.HIGHER

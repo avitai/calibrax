@@ -5,9 +5,8 @@ from __future__ import annotations
 import logging
 import time
 from collections import deque
-from unittest.mock import MagicMock
 
-import psutil  # pyright: ignore[reportMissingModuleSource]
+import psutil
 import pytest
 
 from calibrax.monitoring.monitor import (
@@ -15,7 +14,10 @@ from calibrax.monitoring.monitor import (
     Alert,
     AlertManager,
     AlertSeverity,
+    MetricHistorySummary,
 )
+from calibrax.profiling.resources import GpuMemory
+from tests.factories import FakeGpu
 
 
 class TestAlertSeverity:
@@ -62,7 +64,7 @@ class TestAlert:
         d = alert.to_dict()
         assert d["severity"] == "error"
         assert d["metric_value"] == 99.5
-        assert d["metadata"]["node"] == "gpu-1"
+        assert d["metadata"] == {"node": "gpu-1"}
         assert isinstance(d["timestamp"], float)
 
     def test_frozen(self) -> None:
@@ -200,7 +202,7 @@ class TestAdvancedMonitor:
         monitor = AdvancedMonitor()
         monitor.set_threshold("cpu_percent", 80.0)
         summary = monitor.get_monitoring_summary()
-        assert summary["thresholds"]["cpu_percent"] == 80.0
+        assert summary.thresholds["cpu_percent"] == 80.0
 
     def test_start_stop_monitoring(self) -> None:
         """Start and stop should manage daemon thread lifecycle."""
@@ -208,10 +210,10 @@ class TestAdvancedMonitor:
         monitor.start_monitoring(interval=0.1)
         time.sleep(0.3)
         summary = monitor.get_monitoring_summary()
-        assert summary["is_monitoring"] is True
+        assert summary.is_monitoring is True
         monitor.stop_monitoring()
         summary = monitor.get_monitoring_summary()
-        assert summary["is_monitoring"] is False
+        assert summary.is_monitoring is False
 
     def test_threshold_triggers_alert(self) -> None:
         """Exceeding a threshold should produce an alert."""
@@ -227,13 +229,17 @@ class TestAdvancedMonitor:
         assert len(mem_alerts) > 0
 
     def test_monitoring_summary_structure(self) -> None:
-        """Summary should contain expected keys."""
+        """Summary holds the thresholds, the alert count, the history and the state."""
         monitor = AdvancedMonitor()
+        monitor.set_threshold("cpu_percent", 80.0)
+        monitor._metric_history["loss"] = deque([3.0, 1.0, 2.0], maxlen=100)
         summary = monitor.get_monitoring_summary()
-        assert "thresholds" in summary
-        assert "alert_count" in summary
-        assert "metric_history" in summary
-        assert "is_monitoring" in summary
+        assert summary.thresholds == {"cpu_percent": 80.0}
+        assert summary.alert_count == 0
+        assert summary.is_monitoring is False
+        assert summary.metric_history["loss"] == MetricHistorySummary(
+            latest=2.0, min=1.0, max=3.0, mean=2.0, samples=3
+        )
 
     def test_double_start_is_idempotent(self) -> None:
         """Starting twice should not create duplicate threads."""
@@ -249,42 +255,34 @@ class TestAdvancedMonitor:
         monitor.stop_monitoring()
 
         summary = monitor.get_monitoring_summary()
-        assert summary["is_monitoring"] is False
+        assert summary.is_monitoring is False
 
     def test_gpu_profiler_integration(self) -> None:
         """GPU profiler metrics should be collected when available."""
-        gpu_mock = MagicMock()
-        gpu_mock.get_utilization.return_value = 75.0
-        gpu_mock.get_memory_usage.return_value = {"gpu_memory_used_mb": 4096.0}
+        gpu = FakeGpu(
+            utilization_reading=75.0, memory_reading=GpuMemory(used_mb=4096.0, total_mb=8192.0)
+        )
 
-        monitor = AdvancedMonitor(gpu_profiler=gpu_mock)
+        monitor = AdvancedMonitor(gpu_profiler=gpu)
         monitor.start_monitoring(interval=0.1)
         time.sleep(0.3)
         monitor.stop_monitoring()
 
         summary = monitor.get_monitoring_summary()
-        assert "gpu_utilization" in summary["metric_history"]
+        assert "gpu_utilization" in summary.metric_history
 
-    def test_gpu_profiler_malformed_memory_payload_is_ignored(self) -> None:
-        """Malformed GPU memory payload should not break metrics collection."""
-        gpu_mock = MagicMock()
-        gpu_mock.get_utilization.return_value = 75.0
-        gpu_mock.get_memory_usage.return_value = 4096.0  # Not a dict
+    def test_gpu_readings_become_metrics(self) -> None:
+        gpu = FakeGpu(
+            utilization_reading=75.0, memory_reading=GpuMemory(used_mb=4096.0, total_mb=8192.0)
+        )
 
-        monitor = AdvancedMonitor(gpu_profiler=gpu_mock)
-        metrics = monitor._collect_metrics()
+        metrics = AdvancedMonitor(gpu_profiler=gpu)._collect_metrics()
 
         assert metrics["gpu_utilization"] == 75.0
-        assert "gpu_memory_mb" not in metrics
+        assert metrics["gpu_memory_mb"] == 4096.0
 
-    def test_gpu_profiler_missing_memory_key_does_not_emit_gpu_memory(self) -> None:
-        """Missing gpu_memory_used_mb should not add gpu_memory_mb metric."""
-        gpu_mock = MagicMock()
-        gpu_mock.get_utilization.return_value = 40.0
-        gpu_mock.get_memory_usage.return_value = {}
-
-        monitor = AdvancedMonitor(gpu_profiler=gpu_mock)
-        metrics = monitor._collect_metrics()
+    def test_a_gpu_reading_not_taken_emits_no_metric(self) -> None:
+        metrics = AdvancedMonitor(gpu_profiler=FakeGpu(utilization_reading=40.0))._collect_metrics()
 
         assert metrics["gpu_utilization"] == 40.0
         assert "gpu_memory_mb" not in metrics
@@ -328,7 +326,7 @@ class TestAdvancedMonitor:
 
         summary = monitor.get_monitoring_summary()
 
-        assert "empty" not in summary["metric_history"]
+        assert "empty" not in summary.metric_history
 
     def test_check_thresholds_is_stable_when_thresholds_mutate(self) -> None:
         """Threshold iteration should be robust to runtime threshold updates."""

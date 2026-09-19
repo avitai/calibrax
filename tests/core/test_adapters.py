@@ -4,6 +4,8 @@ Verifies ABC enforcement, NNX JIT compatibility, adapter resolution,
 and generic target wrapping without domain-specific methods.
 """
 
+import inspect
+from typing_extensions import TypeIs
 from unittest.mock import MagicMock
 
 import jax
@@ -20,22 +22,32 @@ from calibrax.core.adapters import (
 )
 
 
+class _AnyTargetAdapter(BenchmarkAdapter[object]):
+    """An adapter that wraps any target except ``None``."""
+
+    @classmethod
+    def can_adapt(cls, target: object) -> bool:
+        return target is not None
+
+
 class TestBenchmarkAdapter:
     """Tests for BenchmarkAdapter ABC."""
 
-    def test_can_adapt_default_false(self) -> None:
-        """Default can_adapt returns False for any target."""
-        assert BenchmarkAdapter.can_adapt(object()) is False
+    def test_an_adapter_must_say_what_it_can_adapt(self) -> None:
+        """can_adapt is abstract: an adapter without it cannot be built."""
+
+        class Incomplete(BenchmarkAdapter[object]):
+            """Adapter that does not implement can_adapt."""
+
+        assert inspect.isabstract(Incomplete)
+        assert Incomplete.__abstractmethods__ == frozenset({"can_adapt"})
 
     def test_name_from_target_name(self) -> None:
         """Name resolved from target.name attribute."""
         target = MagicMock(spec=["name"])
         target.name = "my_pipeline"
 
-        class ConcreteAdapter(BenchmarkAdapter):
-            """Concrete adapter for testing."""
-
-        adapter = ConcreteAdapter(target)
+        adapter = _AnyTargetAdapter(target)
         assert adapter.name == "my_pipeline"
 
     def test_name_from_target_model_name(self) -> None:
@@ -43,35 +55,26 @@ class TestBenchmarkAdapter:
         target = MagicMock(spec=["model_name"])
         target.model_name = "my_model"
 
-        class ConcreteAdapter(BenchmarkAdapter):
-            """Concrete adapter for testing."""
-
-        adapter = ConcreteAdapter(target)
+        adapter = _AnyTargetAdapter(target)
         assert adapter.name == "my_model"
 
     def test_name_default_unknown(self) -> None:
         """Falls back to 'unknown' when target has no name attributes."""
 
-        class ConcreteAdapter(BenchmarkAdapter):
-            """Concrete adapter for testing."""
-
-        adapter = ConcreteAdapter(object())
+        adapter = _AnyTargetAdapter(object())
         assert adapter.name == "unknown"
 
     def test_target_property_returns_wrapped_object(self) -> None:
         """The target property returns the original wrapped object."""
         original = {"key": "value"}
 
-        class ConcreteAdapter(BenchmarkAdapter):
-            """Concrete adapter for testing."""
-
-        adapter = ConcreteAdapter(original)
+        adapter = _AnyTargetAdapter(original)
         assert adapter.target is original
 
     def test_subclass_with_custom_can_adapt(self) -> None:
         """Subclass overrides can_adapt for specific target types."""
 
-        class DictAdapter(BenchmarkAdapter):
+        class DictAdapter(BenchmarkAdapter[dict[str, int]]):
             """Adapter that handles dicts."""
 
             @classmethod
@@ -214,11 +217,11 @@ class TestAdapterRegistry:
     def test_priority_order(self) -> None:
         """Most recently registered adapter takes priority."""
 
-        class SpecialAdapter(BenchmarkAdapter):
+        class SpecialAdapter(BenchmarkAdapter[nnx.Module]):
             """Higher-priority adapter that handles all objects."""
 
             @classmethod
-            def can_adapt(cls, target: object) -> bool:
+            def can_adapt(cls, target: object) -> TypeIs[nnx.Module]:
                 return isinstance(target, nnx.Module)
 
         registry = AdapterRegistry()
@@ -242,11 +245,11 @@ class TestModuleConvenience:
     def test_register_custom_adapter(self) -> None:
         """Custom adapter registered and resolved via default registry."""
 
-        class DictAdapter(BenchmarkAdapter):
+        class DictAdapter(BenchmarkAdapter[dict[str, str]]):
             """Custom adapter for dict targets."""
 
             @classmethod
-            def can_adapt(cls, target: object) -> bool:
+            def can_adapt(cls, target: object) -> TypeIs[dict[str, str]]:
                 return isinstance(target, dict)
 
         register_adapter(DictAdapter)

@@ -6,9 +6,11 @@ serde round-trip with nested composed objects, and save/load file I/O.
 
 import dataclasses
 import json
+from pathlib import Path
 
 import jax.numpy as jnp
 import pytest
+from pydantic import ValidationError
 
 from calibrax.core.models import Metric
 from calibrax.core.result import BenchmarkResult
@@ -108,6 +110,24 @@ class TestBenchmarkResult:
         assert restored.metrics["accuracy"].value == 0.95
         assert restored.metrics["accuracy"].lower == 0.93
 
+    def test_reading_a_result_requires_its_timestamp(self) -> None:
+        """A stored result names its time; reading one without it is refused, not dated now."""
+        data = BenchmarkResult(name="n", timestamp=5.0).to_dict()
+        del data["timestamp"]
+        with pytest.raises(ValidationError) as refused:
+            BenchmarkResult.from_dict(data)
+        assert refused.value.errors()[0]["loc"] == ("timestamp",)
+
+    def test_free_form_fields_read_only_as_json_objects(self) -> None:
+        """A stored ``metadata`` or ``config`` is a JSON object; anything else is refused."""
+        with pytest.raises(ValidationError) as refused:
+            BenchmarkResult.from_dict({"name": "n", "timestamp": 1.0, "metadata": [1, 2]})
+        assert refused.value.errors()[0]["loc"] == ("metadata",)
+        read = BenchmarkResult.from_dict(
+            {"name": "n", "timestamp": 1.0, "config": {"lr": 0.001, "layers": [2, 4]}}
+        )
+        assert read.config == {"lr": 0.001, "layers": [2, 4]}
+
     def test_to_dict_from_dict_no_timing_no_resources(self) -> None:
         original = BenchmarkResult(name="minimal", timestamp=100.0)
         data = original.to_dict()
@@ -118,8 +138,6 @@ class TestBenchmarkResult:
         assert restored.resources is None
 
     def test_save_and_load(self, tmp_path: "object") -> None:
-        from pathlib import Path
-
         filepath = Path(str(tmp_path)) / "result.json"
         timing = make_default_timing_sample(
             wall_clock_sec=2.0,
@@ -144,8 +162,6 @@ class TestBenchmarkResult:
         assert loaded.metrics["loss"].value == 0.01
 
     def test_save_creates_parent_directories(self, tmp_path: "object") -> None:
-        from pathlib import Path
-
         filepath = Path(str(tmp_path)) / "nested" / "dir" / "result.json"
         result = BenchmarkResult(name="nested_test", timestamp=1000.0)
         result.save(filepath)
@@ -164,8 +180,6 @@ class TestBenchmarkResult:
         assert result.domain == "physics"
 
     def test_save_produces_valid_json(self, tmp_path: "object") -> None:
-        from pathlib import Path
-
         filepath = Path(str(tmp_path)) / "result.json"
         result = BenchmarkResult(name="json_test", timestamp=1000.0)
         result.save(filepath)
@@ -217,7 +231,6 @@ class TestBenchmarkResult:
 
     def test_save_load_with_jax_scalars(self, tmp_path: "object") -> None:
         """Full save/load round-trip with JAX scalars must not raise."""
-        from pathlib import Path
 
         filepath = Path(str(tmp_path)) / "jax_result.json"
         result = BenchmarkResult(

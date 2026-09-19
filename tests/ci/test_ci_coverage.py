@@ -16,7 +16,7 @@ CAP_OVERRIDES = ("--no-cov", "-o addopts", "--override-ini")
 
 def _load_workflow(path: Path) -> dict:
     # BaseLoader keeps every scalar a string, so the `on:` key stays `on` rather than True.
-    return yaml.load(path.read_text(), Loader=yaml.BaseLoader)  # noqa: S506
+    return yaml.load(path.read_text(), Loader=yaml.BaseLoader)  # noqa: S506  # BaseLoader keeps `on:` a string
 
 
 def coverage_cap_violations(workflow: dict, pyproject: dict) -> list[str]:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import jax
 import jax.numpy as jnp
 import pytest
 
@@ -12,53 +13,60 @@ from calibrax.metrics.wrappers import (
     MetricTracker,
     MinMaxTracker,
 )
+from calibrax.statistics import bootstrap_interval, BootstrapInterval
 
 
 class TestBootstrapMetric:
-    """Tests for BootstrapMetric."""
+    """BootstrapMetric: a metric's value with its percentile bootstrap interval."""
+
+    predictions = jnp.array([1.1, 2.2, 3.3, 4.4, 5.5])
+    targets = jnp.array([1.0, 2.0, 3.0, 4.0, 5.0])
 
     def test_confidence_interval(self) -> None:
-        bootstrap = BootstrapMetric(mse, num_bootstraps=200, confidence=0.95, seed=42)
-        predictions = jnp.array([1.1, 2.2, 3.3, 4.4, 5.5])
-        targets = jnp.array([1.0, 2.0, 3.0, 4.0, 5.0])
-        result = bootstrap.compute(predictions, targets)
-        assert result["lower"] <= result["value"]
-        assert result["value"] <= result["upper"]
+        bootstrap = BootstrapMetric(mse, num_resamples=200, confidence=0.95)
+        result = bootstrap.compute(self.predictions, self.targets, key=jax.random.key(42))
+        assert isinstance(result, BootstrapInterval)
+        assert float(result.lower) <= float(result.value) <= float(result.upper)
 
     def test_point_estimate(self) -> None:
-        bootstrap = BootstrapMetric(mse, num_bootstraps=50, seed=0)
-        predictions = jnp.array([1.0, 2.0, 3.0])
-        targets = jnp.array([1.0, 2.0, 3.0])
-        result = bootstrap.compute(predictions, targets)
-        assert result["value"] == pytest.approx(0.0, abs=1e-5)
+        bootstrap = BootstrapMetric(mse, num_resamples=50)
+        result = bootstrap.compute(self.targets, self.targets, key=jax.random.key(0))
+        assert float(result.value) == pytest.approx(0.0, abs=1e-6)
 
     def test_samples_length(self) -> None:
-        bootstrap = BootstrapMetric(mse, num_bootstraps=100, seed=0)
-        predictions = jnp.array([1.0, 2.0, 3.0])
-        targets = jnp.array([1.5, 2.5, 3.5])
-        result = bootstrap.compute(predictions, targets)
-        assert len(result["samples"]) == 100
+        bootstrap = BootstrapMetric(mse, num_resamples=100)
+        result = bootstrap.compute(self.predictions, self.targets, key=jax.random.key(0))
+        assert result.samples.shape == (100,)
 
-    def test_reproducible_with_seed(self) -> None:
-        predictions = jnp.array([1.0, 2.0, 3.0, 4.0, 5.0])
-        targets = jnp.array([1.5, 2.5, 3.5, 4.5, 5.5])
-        b1 = BootstrapMetric(mse, num_bootstraps=50, seed=42)
-        b2 = BootstrapMetric(mse, num_bootstraps=50, seed=42)
-        r1 = b1.compute(predictions, targets)
-        r2 = b2.compute(predictions, targets)
-        assert r1["lower"] == pytest.approx(r2["lower"], abs=1e-10)
-        assert r1["upper"] == pytest.approx(r2["upper"], abs=1e-10)
+    def test_equals_the_shared_bootstrap_on_the_pair(self) -> None:
+        bootstrap = BootstrapMetric(mse, num_resamples=64, confidence=0.9)
+        result = bootstrap.compute(self.predictions, self.targets, key=jax.random.key(3))
+        direct = bootstrap_interval(
+            mse,
+            self.predictions,
+            self.targets,
+            key=jax.random.key(3),
+            num_resamples=64,
+            confidence=0.9,
+        )
+        assert jnp.array_equal(result.samples, direct.samples)
+        assert float(result.lower) == float(direct.lower)
+
+    def test_a_key_is_required(self) -> None:
+        bootstrap = BootstrapMetric(mse)
+        with pytest.raises(TypeError):
+            bootstrap.compute(self.predictions, self.targets)  # type: ignore[call-arg]
 
     def test_invalid_confidence_raises(self) -> None:
-        with pytest.raises(ValueError, match="confidence must be"):
+        with pytest.raises(ValueError, match="confidence"):
             BootstrapMetric(mse, confidence=1.5)
-        with pytest.raises(ValueError, match="confidence must be"):
+        with pytest.raises(ValueError, match="confidence"):
             BootstrapMetric(mse, confidence=0.0)
 
     def test_properties(self) -> None:
-        bootstrap = BootstrapMetric(mse, num_bootstraps=100, confidence=0.9)
+        bootstrap = BootstrapMetric(mse, num_resamples=100, confidence=0.9)
         assert bootstrap.metric_fn is mse
-        assert bootstrap.num_bootstraps == 100
+        assert bootstrap.num_resamples == 100
         assert bootstrap.confidence == 0.9
 
 

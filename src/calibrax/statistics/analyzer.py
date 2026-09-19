@@ -6,11 +6,18 @@ outlier detection via modified Z-scores, and stability assessment.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any
 
+import jax
+import jax.numpy as jnp
 import numpy as np
+from flax import nnx
+from substrax.records import read_record
+from substrax.rng import key_from
+from substrax.typing import JsonValue
+
+from calibrax.statistics.bootstrap import bootstrap_interval, DEFAULT_RESAMPLES
 
 
 # Coefficient of variation threshold for measurement stability.
@@ -61,7 +68,7 @@ class StatisticalResult:
     n: int
     is_stable: bool
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, JsonValue]:
         """Serialize to a JSON-compatible dictionary."""
         return {
             "mean": self.mean,
@@ -77,27 +84,22 @@ class StatisticalResult:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> StatisticalResult:
-        """Deserialize from a dictionary.
+    def from_dict(  # noqa: DOC502  # raised by read_record
+        cls, data: Mapping[str, JsonValue]
+    ) -> StatisticalResult:
+        """Read the record from the JSON object ``to_dict`` writes.
 
         Args:
-            data: Dictionary with statistical result fields.
+            data: The JSON object.
 
         Returns:
-            Reconstructed StatisticalResult instance.
+            The record.
+
+        Raises:
+            pydantic.ValidationError: If a field is missing or holds a value its annotation
+                does not admit.
         """
-        return cls(
-            mean=data["mean"],
-            median=data["median"],
-            std=data["std"],
-            min=data["min"],
-            max=data["max"],
-            cv=data["cv"],
-            ci_lower=data["ci_lower"],
-            ci_upper=data["ci_upper"],
-            n=data["n"],
-            is_stable=data["is_stable"],
-        )
+        return read_record(cls, data)
 
 
 class StatisticalAnalyzer:
@@ -107,15 +109,19 @@ class StatisticalAnalyzer:
     modified Z-score outlier detection, and stability assessment.
     """
 
-    def __init__(self, bootstrap_resamples: int = 1000, seed: int = 42) -> None:
-        """Initialize with bootstrap parameters.
+    def __init__(
+        self, *, key: jax.Array | nnx.Rngs, bootstrap_resamples: int = DEFAULT_RESAMPLES
+    ) -> None:
+        """Initialize with the bootstrap's key and resample count.
 
         Args:
+            key: The key bootstrap resampling starts from, or an ``nnx.Rngs`` whose ``sample``
+                or ``default`` stream supplies it; each call splits it, so successive calls
+                draw fresh resamples and the same key reproduces the sequence.
             bootstrap_resamples: Number of bootstrap resamples for CI computation.
-            seed: Random seed for reproducible bootstrap sampling.
         """
         self._bootstrap_resamples = bootstrap_resamples
-        self._rng = np.random.default_rng(seed)
+        self._key = key_from(key, streams=("sample", "default"), context="StatisticalAnalyzer")
 
     def summarize(self, samples: Sequence[float]) -> StatisticalResult:
         """Compute summary statistics with bootstrap CI.
@@ -162,26 +168,15 @@ class StatisticalAnalyzer:
         Returns:
             Tuple of (lower_bound, upper_bound).
         """
-        arr = np.array(samples, dtype=np.float64)
-        n = len(arr)
-
-        if n <= 1:
-            val = float(arr[0])
-            return (val, val)
-
-        bootstrap_means = np.array(
-            [
-                float(np.mean(self._rng.choice(arr, size=n, replace=True)))
-                for _ in range(self._bootstrap_resamples)
-            ]
+        self._key, key = jax.random.split(self._key)
+        interval = bootstrap_interval(
+            jnp.mean,
+            jnp.asarray(samples),
+            key=key,
+            num_resamples=self._bootstrap_resamples,
+            confidence=confidence,
         )
-        alpha = 1.0 - confidence
-        lo = (alpha / 2) * 100
-        hi = (1 - alpha / 2) * 100
-        return (
-            float(np.percentile(bootstrap_means, lo)),
-            float(np.percentile(bootstrap_means, hi)),
-        )
+        return float(interval.lower), float(interval.upper)
 
     def detect_outliers(
         self, samples: Sequence[float], threshold: float = OUTLIER_Z_THRESHOLD

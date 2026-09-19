@@ -6,9 +6,11 @@ etc.) using MetricDef-aware direction logic and aggregate scoring.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any
+
+from substrax.records import read_record
+from substrax.typing import JsonValue
 
 from calibrax.analysis.ranking import aggregate_score, rank_table
 from calibrax.core.models import (
@@ -42,7 +44,7 @@ class MetricComparison:
     best_label: str
     improvement_factors: dict[str, float]
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, JsonValue]:
         """Serialize to a JSON-compatible dictionary."""
         return {
             "metric_name": self.metric_name,
@@ -71,7 +73,7 @@ class ComparisonReport:
     winner_by_metric: dict[str, str]
     overall_winner: str
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, JsonValue]:
         """Serialize to a JSON-compatible dictionary."""
         return {
             "name": self.name,
@@ -82,31 +84,22 @@ class ComparisonReport:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> ComparisonReport:
-        """Deserialize from a dictionary.
+    def from_dict(  # noqa: DOC502  # raised by read_record
+        cls, data: Mapping[str, JsonValue]
+    ) -> ComparisonReport:
+        """Read the record from the JSON object ``to_dict`` writes.
 
         Args:
-            data: Dictionary with comparison report fields.
+            data: The JSON object.
 
         Returns:
-            Reconstructed ComparisonReport instance.
+            The record.
+
+        Raises:
+            pydantic.ValidationError: If a field is missing or holds a value its annotation
+                does not admit.
         """
-        return cls(
-            name=data["name"],
-            labels_compared=tuple(data["labels_compared"]),
-            metric_comparisons=tuple(
-                MetricComparison(
-                    metric_name=mc["metric_name"],
-                    values=mc["values"],
-                    rankings=tuple(RankEntry.from_dict(r) for r in mc["rankings"]),
-                    best_label=mc["best_label"],
-                    improvement_factors=mc["improvement_factors"],
-                )
-                for mc in data["metric_comparisons"]
-            ),
-            winner_by_metric=data["winner_by_metric"],
-            overall_winner=data["overall_winner"],
-        )
+        return read_record(cls, data)
 
 
 def _build_merged_run(

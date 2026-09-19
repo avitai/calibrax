@@ -34,6 +34,7 @@ Demonstrates:
 - MetricTracker for tracking across evaluations
 """
 
+import jax
 import jax.numpy as jnp
 
 from calibrax.metrics import (
@@ -108,28 +109,29 @@ def main() -> None:
     mse_gate = ThresholdMetric("mse", max_value=0.1)
     result = mse_gate.evaluate(predictions, targets)
     print(f"  MSE threshold: max_value={mse_gate.max_value}")
-    print(f"  Value:  {result['value']:.6f}")
-    print(f"  Passed: {result['passed']}")
+    print(f"  Value:  {result.value:.6f}")
+    print(f"  Passed: {result.passed}")
 
     # R-squared must be above 0.95 (min_value for higher-is-better metric)
     r2_gate = ThresholdMetric("r_squared", min_value=0.95)
     result_r2 = r2_gate.evaluate(predictions, targets)
     print(f"\n  R-squared threshold: min_value={r2_gate.min_value}")
-    print(f"  Value:  {result_r2['value']:.6f}")
-    print(f"  Passed: {result_r2['passed']}")
+    print(f"  Value:  {result_r2.value:.6f}")
+    print(f"  Passed: {result_r2.passed}")
 
     # -- 5. BootstrapMetric ------------------------------------------------
     print("\n=== BootstrapMetric (Confidence Intervals) ===")
-    bootstrap = BootstrapMetric(mse, num_bootstraps=200, confidence=0.95, seed=42)
-    boot_result = bootstrap.compute(predictions, targets)
-    print(f"  MSE point estimate: {boot_result['value']:.6f}")
-    print(f"  95% CI: [{boot_result['lower']:.6f}, {boot_result['upper']:.6f}]")
-    print(f"  Bootstrap samples:  {len(boot_result['samples'])}")
+    mse_key, r2_key = jax.random.split(jax.random.key(42))
+    bootstrap = BootstrapMetric(mse, num_resamples=200, confidence=0.95)
+    boot_result = bootstrap.compute(predictions, targets, key=mse_key)
+    print(f"  MSE point estimate: {float(boot_result.value):.6f}")
+    print(f"  95% CI: [{float(boot_result.lower):.6f}, {float(boot_result.upper):.6f}]")
+    print(f"  Bootstrap samples:  {boot_result.samples.shape[0]}")
 
-    bootstrap_r2 = BootstrapMetric(r_squared, num_bootstraps=200, confidence=0.90, seed=42)
-    boot_r2 = bootstrap_r2.compute(predictions, targets)
-    print(f"\n  R-squared point estimate: {boot_r2['value']:.6f}")
-    print(f"  90% CI: [{boot_r2['lower']:.6f}, {boot_r2['upper']:.6f}]")
+    bootstrap_r2 = BootstrapMetric(r_squared, num_resamples=200, confidence=0.90)
+    boot_r2 = bootstrap_r2.compute(predictions, targets, key=r2_key)
+    print(f"\n  R-squared point estimate: {float(boot_r2.value):.6f}")
+    print(f"  90% CI: [{float(boot_r2.lower):.6f}, {float(boot_r2.upper):.6f}]")
 
     # -- 6. MetricTracker --------------------------------------------------
     print("\n=== MetricTracker (Training History) ===")

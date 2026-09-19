@@ -7,16 +7,23 @@ classification, and alignment score calculation.
 
 import dataclasses
 
+import jax
 import jax.numpy as jnp
 import pytest
 
+from calibrax.profiling.flops import FlopsUnavailableError
+from calibrax.profiling.hardware import detect_hardware_specs, HardwareSpec
 from calibrax.profiling.roofline import (
     _calculate_alignment_score,
-    _extract_flops_from_cost,
-    _try_xla_cost_analysis,
+    _recommendations,
     RooflineAnalyzer,
     RooflineResult,
+    UnknownHardwareError,
 )
+
+
+# 1 TFLOP/s over 200 GB/s: a ridge point of 5 FLOPs per byte.
+SPEC = HardwareSpec(name="test", peak_flops=1e12, memory_bandwidth=200e9)
 
 
 class TestRooflineResult:
@@ -140,12 +147,7 @@ class TestRooflineAnalyzer:
     """Tests for RooflineAnalyzer operation analysis."""
 
     def test_analyze_with_flops_override(self) -> None:
-        specs = {
-            "peak_flops": 1e12,
-            "memory_bandwidth": 200e9,
-            "critical_intensity": 5.0,
-        }
-        analyzer = RooflineAnalyzer(hardware_specs=specs)
+        analyzer = RooflineAnalyzer(hardware_specs=SPEC)
         x = jnp.ones((64, 64))
         result = analyzer.analyze_operation(jnp.add, [x, x], flops_override=1_000_000)
 
@@ -154,12 +156,7 @@ class TestRooflineAnalyzer:
         assert result.critical_intensity == 5.0
 
     def test_bottleneck_is_valid_value(self) -> None:
-        specs = {
-            "peak_flops": 1e12,
-            "memory_bandwidth": 200e9,
-            "critical_intensity": 5.0,
-        }
-        analyzer = RooflineAnalyzer(hardware_specs=specs)
+        analyzer = RooflineAnalyzer(hardware_specs=SPEC)
         x = jnp.ones((32, 32))
         result = analyzer.analyze_operation(jnp.add, [x, x], flops_override=100)
 
@@ -167,12 +164,9 @@ class TestRooflineAnalyzer:
 
     def test_memory_bound_when_low_intensity(self) -> None:
         """Low flops_override with large arrays -> low arithmetic intensity -> memory bound."""
-        specs = {
-            "peak_flops": 1e12,
-            "memory_bandwidth": 200e9,
-            "critical_intensity": 1000.0,  # Very high threshold
-        }
-        analyzer = RooflineAnalyzer(hardware_specs=specs)
+        # Very high threshold: 1000 FLOPs per byte.
+        spec = HardwareSpec(name="test", peak_flops=1e12, memory_bandwidth=1e9)
+        analyzer = RooflineAnalyzer(hardware_specs=spec)
         x = jnp.ones((128, 128))
         result = analyzer.analyze_operation(jnp.add, [x, x], flops_override=1)
 
@@ -180,24 +174,16 @@ class TestRooflineAnalyzer:
 
     def test_compute_bound_when_high_intensity(self) -> None:
         """Very high flops_override with small arrays -> high arithmetic intensity -> compute."""
-        specs = {
-            "peak_flops": 1e12,
-            "memory_bandwidth": 200e9,
-            "critical_intensity": 0.001,  # Very low threshold
-        }
-        analyzer = RooflineAnalyzer(hardware_specs=specs)
+        # Very low threshold: 0.001 FLOPs per byte.
+        spec = HardwareSpec(name="test", peak_flops=1e12, memory_bandwidth=1e15)
+        analyzer = RooflineAnalyzer(hardware_specs=spec)
         x = jnp.ones((2,))
         result = analyzer.analyze_operation(jnp.add, [x, x], flops_override=10_000_000)
 
         assert result.bottleneck == "compute"
 
     def test_result_has_recommendations(self) -> None:
-        specs = {
-            "peak_flops": 1e12,
-            "memory_bandwidth": 200e9,
-            "critical_intensity": 5.0,
-        }
-        analyzer = RooflineAnalyzer(hardware_specs=specs)
+        analyzer = RooflineAnalyzer(hardware_specs=SPEC)
         x = jnp.ones((16, 16))
         result = analyzer.analyze_operation(jnp.add, [x, x], flops_override=100)
 
@@ -205,12 +191,7 @@ class TestRooflineAnalyzer:
         assert len(result.recommendations) > 0
 
     def test_utilization_values_non_negative(self) -> None:
-        specs = {
-            "peak_flops": 1e12,
-            "memory_bandwidth": 200e9,
-            "critical_intensity": 5.0,
-        }
-        analyzer = RooflineAnalyzer(hardware_specs=specs)
+        analyzer = RooflineAnalyzer(hardware_specs=SPEC)
         x = jnp.ones((8, 8))
         result = analyzer.analyze_operation(jnp.add, [x, x], flops_override=500)
 
@@ -220,115 +201,51 @@ class TestRooflineAnalyzer:
 
     def test_default_hardware_specs_auto_detected(self) -> None:
         """Default factory calls detect_hardware_specs for auto-detection."""
-        from calibrax.profiling.hardware import detect_hardware_specs
 
-        analyzer = RooflineAnalyzer()
-        expected = detect_hardware_specs()
-        assert analyzer.hardware_specs["peak_flops"] == expected["peak_flops"]
-        assert analyzer.hardware_specs["memory_bandwidth"] == expected["memory_bandwidth"]
-        assert analyzer.hardware_specs["critical_intensity"] == expected["critical_intensity"]
+        assert RooflineAnalyzer().hardware_specs == detect_hardware_specs()
 
-    def test_extract_flops_from_cost_handles_dict_and_list(self) -> None:
-        assert _extract_flops_from_cost({"flops": 123.0}) == 123
-        assert _extract_flops_from_cost([{"flops": 456.0}]) == 456
-        assert _extract_flops_from_cost({"flops": 0.0}) is None
-        assert _extract_flops_from_cost([{"flops": -1.0}]) is None
-        assert _extract_flops_from_cost([]) is None
-        assert _extract_flops_from_cost(None) is None
+    def test_flops_come_from_xla_through_the_flops_counter(self) -> None:
+        analyzer = RooflineAnalyzer(hardware_specs=SPEC)
+        x = jnp.ones((8, 8))
+        assert analyzer._estimate_flops(jnp.matmul, [x, x]) == 2 * 8 * 8 * 8
 
-    def test_try_xla_cost_analysis_success(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        class _Lowered:
-            def cost_analysis(self) -> dict[str, float]:
-                return {"flops": 321.0}
+    def test_a_function_xla_cannot_cost_is_refused_not_guessed(self) -> None:
+        def with_callback(x: jax.Array) -> jax.Array:
+            return jax.pure_callback(lambda v: v * 2, jax.ShapeDtypeStruct((4,), jnp.float32), x)
 
-        class _Jitted:
-            def lower(self, *_args: object) -> _Lowered:
-                return _Lowered()
+        analyzer = RooflineAnalyzer(hardware_specs=SPEC)
+        with pytest.raises(FlopsUnavailableError):
+            analyzer.analyze_operation(with_callback, [jnp.ones(4)])
 
-        monkeypatch.setattr("calibrax.profiling.roofline.jax.jit", lambda _func: _Jitted())
-        flops = _try_xla_cost_analysis(lambda x: x, [jnp.ones((1,))])
-        assert flops == 321
+    def test_memory_traffic_counts_every_output_leaf_without_running(self) -> None:
+        calls: list[int] = []
 
-    def test_try_xla_cost_analysis_fallback_on_error(
-        self,
-        monkeypatch: pytest.MonkeyPatch,
-    ) -> None:
-        class _Jitted:
-            def lower(self, *_args: object) -> object:
-                raise RuntimeError("lowering failed")
+        def split(x: jax.Array) -> dict[str, jax.Array | tuple[jax.Array, jax.Array]]:
+            calls.append(1)
+            return {"sum": x + 1, "parts": (x[:2], x.astype(jnp.float16))}
 
-        monkeypatch.setattr("calibrax.profiling.roofline.jax.jit", lambda _func: _Jitted())
-        flops = _try_xla_cost_analysis(lambda x: x, [jnp.ones((1,))])
-        assert flops is None
+        analyzer = RooflineAnalyzer(hardware_specs=SPEC)
+        x = jnp.ones((4,), jnp.float32)
+        # 16 input bytes; outputs 16 + 8 + 8 bytes.
+        assert analyzer._estimate_memory_traffic(split, [x]) == 16 + 16 + 8 + 8
+        assert calls == [1]  # traced once by eval_shape, never executed eagerly
 
-    def test_estimate_flops_uses_heuristic_when_xla_unavailable(
-        self,
-        monkeypatch: pytest.MonkeyPatch,
-    ) -> None:
-        class _FakeArray:
-            def __init__(self, size: int) -> None:
-                self.size = size
+    def test_a_zero_flop_override_is_used(self) -> None:
+        analyzer = RooflineAnalyzer(hardware_specs=SPEC)
+        x = jnp.ones((64, 64))
+        result = analyzer.analyze_operation(jnp.add, [x, x], flops_override=0)
+        assert result.arithmetic_intensity == 0.0
+        assert result.flops_utilization == 0.0
 
-        specs = {
-            "peak_flops": 1e12,
-            "memory_bandwidth": 200e9,
-            "critical_intensity": 5.0,
-        }
-        analyzer = RooflineAnalyzer(hardware_specs=specs)
-        monkeypatch.setattr("calibrax.profiling.roofline._try_xla_cost_analysis", lambda *_: None)
-
-        flops = analyzer._estimate_flops(lambda *_: None, [_FakeArray(3), _FakeArray(7)])  # type: ignore[arg-type]
-        assert flops == 100
-
-    def test_estimate_memory_traffic_handles_tuple_outputs(self) -> None:
-        class _FakeArray:
-            def __init__(self, *, nbytes: int, shape: tuple[int, ...] = (16,)) -> None:
-                self.nbytes = nbytes
-                self.shape = shape
-
-        specs = {
-            "peak_flops": 1e12,
-            "memory_bandwidth": 200e9,
-            "critical_intensity": 5.0,
-        }
-        analyzer = RooflineAnalyzer(hardware_specs=specs)
-        inputs = [_FakeArray(nbytes=8), _FakeArray(nbytes=12)]
-
-        def _func(*_args: object) -> tuple[object, object, object]:
-            return _FakeArray(nbytes=20), object(), _FakeArray(nbytes=4)
-
-        traffic = analyzer._estimate_memory_traffic(_func, inputs)  # type: ignore[arg-type]
-        assert traffic == 44
-
-    def test_estimate_memory_traffic_fallback_when_func_raises(self) -> None:
-        class _FakeArray:
-            def __init__(self, *, nbytes: int, shape: tuple[int, ...] = (16,)) -> None:
-                self.nbytes = nbytes
-                self.shape = shape
-
-        specs = {
-            "peak_flops": 1e12,
-            "memory_bandwidth": 200e9,
-            "critical_intensity": 5.0,
-        }
-        analyzer = RooflineAnalyzer(hardware_specs=specs)
-        inputs = [_FakeArray(nbytes=8), _FakeArray(nbytes=12)]
-
-        def _func(*_args: object) -> object:
-            raise RuntimeError("cannot execute")
-
-        traffic = analyzer._estimate_memory_traffic(_func, inputs)  # type: ignore[arg-type]
-        assert traffic == 40
+    def test_unknown_hardware_is_refused_at_analysis(self) -> None:
+        analyzer = RooflineAnalyzer(hardware_specs=None)
+        with pytest.raises(UnknownHardwareError, match="HardwareSpec"):
+            analyzer.analyze_operation(jnp.add, [jnp.ones(4), jnp.ones(4)])
 
     def test_generate_recommendations_includes_moderate_efficiency_message(self) -> None:
-        specs = {
-            "peak_flops": 1e12,
-            "memory_bandwidth": 200e9,
-            "critical_intensity": 5.0,
-        }
-        analyzer = RooflineAnalyzer(hardware_specs=specs)
         x = jnp.ones((2, 32))
-        recs = analyzer._generate_recommendations(
+        recs = _recommendations(
+            SPEC,
             arithmetic_intensity=10.0,
             efficiency=0.3,
             bottleneck="compute",
@@ -338,14 +255,9 @@ class TestRooflineAnalyzer:
         assert any("Moderate efficiency" in rec for rec in recs)
 
     def test_generate_recommendations_adds_alignment_hint_for_unaligned_inputs(self) -> None:
-        specs = {
-            "peak_flops": 1e12,
-            "memory_bandwidth": 200e9,
-            "critical_intensity": 5.0,
-        }
-        analyzer = RooflineAnalyzer(hardware_specs=specs)
         x = jnp.ones((2, 7))
-        recs = analyzer._generate_recommendations(
+        recs = _recommendations(
+            SPEC,
             arithmetic_intensity=2.0,
             efficiency=0.9,
             bottleneck="memory_bandwidth",
@@ -355,13 +267,8 @@ class TestRooflineAnalyzer:
         assert any("Poor tensor alignment" in rec for rec in recs)
 
     def test_generate_recommendations_skips_alignment_for_empty_inputs(self) -> None:
-        specs = {
-            "peak_flops": 1e12,
-            "memory_bandwidth": 200e9,
-            "critical_intensity": 5.0,
-        }
-        analyzer = RooflineAnalyzer(hardware_specs=specs)
-        recs = analyzer._generate_recommendations(
+        recs = _recommendations(
+            SPEC,
             arithmetic_intensity=2.0,
             efficiency=0.9,
             bottleneck="memory_bandwidth",

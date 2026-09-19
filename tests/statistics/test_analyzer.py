@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import jax
 import pytest
 
 from calibrax.statistics.analyzer import (
@@ -13,8 +14,8 @@ from calibrax.statistics.analyzer import (
 
 @pytest.fixture
 def analyzer() -> StatisticalAnalyzer:
-    """Create a StatisticalAnalyzer with fixed seed."""
-    return StatisticalAnalyzer(bootstrap_resamples=500, seed=42)
+    """A StatisticalAnalyzer with a fixed key."""
+    return StatisticalAnalyzer(key=jax.random.key(42), bootstrap_resamples=500)
 
 
 class TestStatisticalResult:
@@ -145,20 +146,26 @@ class TestBootstrapCI:
         assert lo == pytest.approx(7.0)
         assert hi == pytest.approx(7.0)
 
-    def test_reproducible_with_same_seed(self) -> None:
-        """Same seed should produce identical CIs."""
-        a = StatisticalAnalyzer(seed=123)
-        b = StatisticalAnalyzer(seed=123)
+    def test_reproducible_with_same_key(self) -> None:
+        """The same key gives identical CIs."""
+        a = StatisticalAnalyzer(key=jax.random.key(123))
+        b = StatisticalAnalyzer(key=jax.random.key(123))
         samples = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
         assert a.bootstrap_ci(samples) == b.bootstrap_ci(samples)
 
+    def test_successive_calls_draw_fresh_resamples(self) -> None:
+        """The analyzer splits its key on each call, as a random generator advances."""
+        analyzer = StatisticalAnalyzer(key=jax.random.key(7), bootstrap_resamples=50)
+        samples = [1.0, 4.0, 2.0, 8.0, 5.0, 7.0, 3.0, 6.0]
+        assert analyzer.bootstrap_ci(samples) != analyzer.bootstrap_ci(samples)
+
     def test_ci_width_scales_with_variability(self) -> None:
         """Higher variability should produce wider CI."""
-        analyzer = StatisticalAnalyzer(seed=42)
+        analyzer = StatisticalAnalyzer(key=jax.random.key(42))
         tight = [10.0, 10.01, 9.99, 10.0, 10.0, 10.01, 9.99, 10.0]
         wide = [1.0, 20.0, 3.0, 18.0, 5.0, 16.0, 7.0, 14.0]
         lo_t, hi_t = analyzer.bootstrap_ci(tight)
-        analyzer2 = StatisticalAnalyzer(seed=42)
+        analyzer2 = StatisticalAnalyzer(key=jax.random.key(42))
         lo_w, hi_w = analyzer2.bootstrap_ci(wide)
         assert (hi_t - lo_t) < (hi_w - lo_w)
 

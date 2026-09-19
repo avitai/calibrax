@@ -48,9 +48,6 @@ for real_batch, gen_batch in dataloader:
 result = fid.compute()
 print(f"FID: {result['fid']:.2f}")
 
-figure_path = fid.plot(output_dir="figures")
-print(f"Saved metric plot to: {figure_path}")
-
 fid.reset()  # Ready for next evaluation
 ```
 
@@ -62,19 +59,18 @@ fid.reset()  # Ready for next evaluation
 
 ### Plotting Computed Values
 
-Stateful metrics expose `.plot()` for quick scalar summaries. The method calls
-`compute()`, uses the publication exporter, and returns the generated path when
-`matplotlib` is installed.
+A metric's computed values plot through `PlotGenerator` (the `publication` extra):
 
 ```python
+from calibrax.exporters.plots import PlotGenerator
+
 metric = FIDMetric(feature_dim=2048)
 metric.update(real=real_features, generated=gen_features)
 
-figure_path = metric.plot(output_dir="figures")
+figure_path = PlotGenerator("figures").metric_values_plot(
+    metric.compute(), title=metric.name, filename=metric.name
+)
 ```
-
-The method returns `None` if plotting dependencies are unavailable, matching the
-publication exporter's other plotting methods.
 
 ### Inception Score
 
@@ -209,7 +205,7 @@ class LearnedWeightedMSE(LearnedMetric):
     """MSE with learned per-feature importance weights."""
 
     def __init__(self, num_features: int, *, rngs: nnx.Rngs) -> None:
-        super().__init__(name="learned_weighted_mse", rngs=rngs)
+        super().__init__(name="learned_weighted_mse")
         self._feature_weights = nnx.Param(jnp.ones(num_features))
         self._scores: list[float] = []
 
@@ -217,7 +213,7 @@ class LearnedWeightedMSE(LearnedMetric):
         self._scores = []
 
     def update(self, predictions: jnp.ndarray, targets: jnp.ndarray) -> None:
-        weights = nnx.softmax(self._feature_weights.value)
+        weights = nnx.softmax(self._feature_weights[...])
         self._scores.append(float(jnp.mean((predictions - targets) ** 2 * weights)))
 
     def compute(self) -> dict[str, float]:

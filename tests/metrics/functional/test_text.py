@@ -8,6 +8,8 @@ import jax
 import jax.numpy as jnp
 import pytest
 
+from calibrax.core.models import MetricDirection
+from calibrax.metrics import MetricRegistry
 from calibrax.metrics.functional.text import (
     bleu,
     distinct_n,
@@ -173,23 +175,16 @@ class TestTextMetricRegistration:
     """Tests for text metric registration."""
 
     def test_all_registered(self) -> None:
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         expected = ["bleu", "rouge_n", "rouge_l", "perplexity", "distinct_n"]
         for name in expected:
             assert registry.has(name), f"Metric '{name}' not registered"
 
     def test_text_domain(self) -> None:
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         text_metrics = registry.list_by_domain("text")
         assert len(text_metrics) == 5
 
     def test_perplexity_direction_lower(self) -> None:
-        from calibrax.core.models import MetricDirection
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         assert registry.get("perplexity").direction == MetricDirection.LOWER

@@ -16,9 +16,9 @@ a feature matrix. Registered with ``domain="clustering"`` and
 
 from __future__ import annotations
 
-from typing import Any
-
+import jax
 import jax.numpy as jnp
+from jax.typing import ArrayLike
 
 from calibrax.metrics._utils import _EPSILON, safe_divide
 
@@ -29,9 +29,9 @@ from calibrax.metrics._utils import _EPSILON, safe_divide
 
 
 def _contingency_table(
-    labels_true: Any,
-    labels_pred: Any,
-) -> tuple[Any, Any, Any]:
+    labels_true: ArrayLike,
+    labels_pred: ArrayLike,
+) -> tuple[jax.Array, jax.Array, jax.Array]:
     """Build contingency table from two label arrays.
 
     Args:
@@ -57,7 +57,7 @@ def _contingency_table(
     return contingency, classes_true, classes_pred
 
 
-def _entropy_from_counts(counts: Any) -> Any:
+def _entropy_from_counts(counts: jax.Array) -> jax.Array:
     """Compute Shannon entropy from a count array.
 
     Args:
@@ -72,7 +72,7 @@ def _entropy_from_counts(counts: Any) -> Any:
     return -jnp.sum(counts / (n + _EPSILON) * jnp.log(probs))
 
 
-def _pairwise_distances(features: Any) -> Any:
+def _pairwise_distances(features: jax.Array) -> jax.Array:
     """Compute pairwise Euclidean distance matrix.
 
     Args:
@@ -90,7 +90,7 @@ def _pairwise_distances(features: Any) -> Any:
 # ---------------------------------------------------------------------------
 
 
-def adjusted_rand_index(labels_true: Any, labels_pred: Any) -> Any:
+def adjusted_rand_index(labels_true: ArrayLike, labels_pred: ArrayLike) -> jax.Array:
     """Adjusted Rand Index for clustering agreement.
 
     Measures similarity between two clusterings, corrected for chance.
@@ -133,11 +133,11 @@ def adjusted_rand_index(labels_true: Any, labels_pred: Any) -> Any:
 
 
 def normalized_mutual_information_clustering(
-    labels_true: Any,
-    labels_pred: Any,
+    labels_true: ArrayLike,
+    labels_pred: ArrayLike,
     *,
     average: str = "arithmetic",
-) -> Any:
+) -> jax.Array:
     """Normalized Mutual Information for clustering.
 
     MI(true, pred) / normalizer. Range [0, 1].
@@ -200,9 +200,9 @@ def normalized_mutual_information_clustering(
 
 
 def adjusted_mutual_information(
-    labels_true: Any,
-    labels_pred: Any,
-) -> Any:
+    labels_true: ArrayLike,
+    labels_pred: ArrayLike,
+) -> jax.Array:
     """Adjusted Mutual Information for clustering.
 
     Chance-adjusted version of NMI: AMI = (MI - E[MI]) / (max(H_true, H_pred) - E[MI]).
@@ -257,11 +257,11 @@ def adjusted_mutual_information(
 
 
 def v_measure(
-    labels_true: Any,
-    labels_pred: Any,
+    labels_true: ArrayLike,
+    labels_pred: ArrayLike,
     *,
     beta: float = 1.0,
-) -> Any:
+) -> jax.Array:
     """V-measure: harmonic mean of homogeneity and completeness.
 
     Equivalent to NMI with arithmetic normalizer when beta=1.0.
@@ -322,7 +322,7 @@ def v_measure(
 # ---------------------------------------------------------------------------
 
 
-def silhouette_score(features: Any, labels: Any) -> Any:
+def silhouette_score(features: ArrayLike, labels: ArrayLike) -> jax.Array:
     """Mean silhouette coefficient across all samples.
 
     For each sample: s = (b - a) / max(a, b) where a = mean intra-cluster
@@ -375,7 +375,7 @@ def silhouette_score(features: Any, labels: Any) -> Any:
     return jnp.mean(silhouettes)
 
 
-def calinski_harabasz_score(features: Any, labels: Any) -> Any:
+def calinski_harabasz_score(features: ArrayLike, labels: ArrayLike) -> jax.Array:
     """Calinski-Harabasz Index (Variance Ratio Criterion).
 
     Ratio of between-cluster to within-cluster dispersion, adjusted
@@ -426,7 +426,7 @@ def calinski_harabasz_score(features: Any, labels: Any) -> Any:
     )
 
 
-def davies_bouldin_score(features: Any, labels: Any) -> Any:
+def davies_bouldin_score(features: ArrayLike, labels: ArrayLike) -> jax.Array:
     """Davies-Bouldin Index for cluster separation.
 
     For each cluster, finds the worst-case similarity ratio with another

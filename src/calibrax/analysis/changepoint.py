@@ -2,29 +2,43 @@
 
 Uses the ``ruptures`` library to detect significant changes in metric
 trends, enabling automated identification of performance regressions
-or improvements over time. Requires the optional ``ruptures`` dependency
-(``uv pip install "calibrax[changepoint]"``).
+or improvements over time. This module is the ruptures integration: it needs the
+``changepoint`` extra, importing it without ruptures raises ``ImportError`` naming the extra,
+and it is not re-exported from ``calibrax.analysis``.
 """
 
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
+from typing import Protocol, Self, SupportsInt
 
 import numpy as np
-
-from calibrax.core.models import TrendSeries
+from substrax.records import read_record
+from substrax.typing import JsonValue
 
 
 try:
     import ruptures
+except ImportError as error:
+    msg = 'calibrax.analysis.changepoint needs ruptures: uv pip install "calibrax[changepoint]"'
+    raise ImportError(msg) from error
 
-    RUPTURES_AVAILABLE = True
-except ImportError:
-    ruptures = None  # type: ignore[assignment]
-    RUPTURES_AVAILABLE = False
+from calibrax.core.models import TrendSeries
+
+
+class _ChangePointAlgorithm(Protocol):
+    """The part of a ruptures detector the analysis uses.
+
+    ``pen`` is keyword-only: ``Binseg`` and ``Window`` take ``n_bkps`` first, so a
+    positional penalty would be read as a breakpoint count.
+    """
+
+    def fit(self, signal: np.ndarray) -> Self: ...
+
+    def predict(self, *, pen: float) -> list[SupportsInt]: ...
 
 
 logger = logging.getLogger(__name__)
@@ -46,9 +60,9 @@ class ChangePoint:
     run_id: str | None = None
     magnitude: float = 0.0
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, JsonValue]:
         """Serialize to a JSON-compatible dictionary."""
-        d: dict[str, Any] = {
+        d: dict[str, JsonValue] = {
             "index": int(self.index),
             "magnitude": float(self.magnitude),
         }
@@ -59,22 +73,22 @@ class ChangePoint:
         return d
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> ChangePoint:
-        """Deserialize from a dictionary.
+    def from_dict(  # noqa: DOC502  # raised by read_record
+        cls, data: Mapping[str, JsonValue]
+    ) -> ChangePoint:
+        """Read the record from the JSON object ``to_dict`` writes.
 
         Args:
-            data: Dictionary with change point fields.
+            data: The JSON object.
 
         Returns:
-            Reconstructed ChangePoint instance.
+            The record.
+
+        Raises:
+            pydantic.ValidationError: If a field is missing or holds a value its annotation
+                does not admit.
         """
-        ts = data.get("timestamp")
-        return cls(
-            index=data["index"],
-            timestamp=datetime.fromisoformat(ts) if ts else None,
-            run_id=data.get("run_id"),
-            magnitude=data.get("magnitude", 0.0),
-        )
+        return read_record(cls, data)
 
 
 def detect_change_points(
@@ -99,16 +113,8 @@ def detect_change_points(
         List of detected ChangePoint instances, ordered by index.
 
     Raises:
-        ImportError: If ruptures is not installed.
         ValueError: If the trend has fewer points than min_size.
     """
-    if not RUPTURES_AVAILABLE:
-        msg = (
-            "ruptures is required for change point detection: "
-            'uv pip install "calibrax[changepoint]"'
-        )
-        raise ImportError(msg)
-
     if len(trend.points) < min_size:
         msg = f"Need at least {min_size} points, got {len(trend.points)}"
         raise ValueError(msg)
@@ -122,7 +128,7 @@ def detect_change_points(
     algo.fit(values.reshape(-1, 1))
 
     # predict returns breakpoints including the final index (len)
-    breakpoints = algo.predict(pen=penalty)
+    breakpoints = [int(bp) for bp in algo.predict(pen=penalty)]
     # Remove the final index (always equals len(values))
     change_indices = [bp for bp in breakpoints if bp < len(values)]
 
@@ -148,7 +154,7 @@ def detect_change_points(
     return result
 
 
-def _get_algorithm(method: str, min_size: int) -> Any:
+def _get_algorithm(method: str, min_size: int) -> _ChangePointAlgorithm:
     """Get a ruptures algorithm instance.
 
     Args:
@@ -162,13 +168,11 @@ def _get_algorithm(method: str, min_size: int) -> Any:
         ValueError: If the method is not recognized.
     """
     if method == "pelt":
-        return ruptures.Pelt(model="l2", min_size=min_size)  # type: ignore[union-attr]
+        return ruptures.Pelt(model="l2", min_size=min_size)
     if method == "binseg":
-        return ruptures.Binseg(model="l2", min_size=min_size)  # type: ignore[union-attr]
+        return ruptures.Binseg(model="l2", min_size=min_size)
     if method == "window":
-        return ruptures.Window(  # type: ignore[union-attr]
-            model="l2", min_size=min_size, width=min_size * 2
-        )
+        return ruptures.Window(model="l2", min_size=min_size, width=min_size * 2)
 
     msg = f"Unknown method: {method!r}. Use 'pelt', 'binseg', or 'window'."
     raise ValueError(msg)

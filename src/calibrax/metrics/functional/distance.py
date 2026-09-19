@@ -13,20 +13,21 @@ jaccard_distance, poincare_distance, lorentz_distance, randers_distance.
 
 from __future__ import annotations
 
-from typing import Any
+from collections.abc import Callable
 
 import jax
 import jax.numpy as jnp
+from jax.typing import ArrayLike
 
-from calibrax.metrics._utils import _EPSILON, safe_divide
+from calibrax.metrics._utils import _EPSILON, safe_divide, safe_norm, safe_root
 
 
 def _batch_or_single(
-    a: Any,
-    b: Any,
-    fn: Any,
-    **kwargs: Any,
-) -> Any:
+    a: ArrayLike,
+    b: ArrayLike,
+    fn: Callable[..., jax.Array],
+    **kwargs: ArrayLike | None,
+) -> jax.Array:
     """Apply a distance function to 1D or 2D inputs.
 
     For 1D: compute single distance.
@@ -50,7 +51,7 @@ def _batch_or_single(
     return jnp.mean(batched_fn(a, b))
 
 
-def cosine_distance(a: Any, b: Any) -> Any:
+def cosine_distance(a: ArrayLike, b: ArrayLike) -> jax.Array:
     """Cosine distance: ``1 - cosine_similarity(a, b)``.
 
     Measures angular separation between vectors. Lives on the
@@ -76,14 +77,14 @@ def cosine_distance(a: Any, b: Any) -> Any:
         0.0
     """
 
-    def _single(x: Any, y: Any) -> Any:
+    def _single(x: jax.Array, y: jax.Array) -> jax.Array:
         similarity = jnp.dot(x, y) / (jnp.linalg.norm(x) * jnp.linalg.norm(y) + _EPSILON)
         return 1.0 - similarity
 
     return _batch_or_single(a, b, _single)
 
 
-def euclidean_distance(a: Any, b: Any) -> Any:
+def euclidean_distance(a: ArrayLike, b: ArrayLike) -> jax.Array:
     """Euclidean (L2) distance.
 
     Standard distance in flat (zero curvature) Euclidean space.
@@ -107,13 +108,13 @@ def euclidean_distance(a: Any, b: Any) -> Any:
         1.4142...
     """
 
-    def _single(x: Any, y: Any) -> Any:
-        return jnp.linalg.norm(x - y)
+    def _single(x: jax.Array, y: jax.Array) -> jax.Array:
+        return safe_norm(x - y)
 
     return _batch_or_single(a, b, _single)
 
 
-def manhattan_distance(a: Any, b: Any) -> Any:
+def manhattan_distance(a: ArrayLike, b: ArrayLike) -> jax.Array:
     """Manhattan (L1) distance.
 
     Sum of absolute differences. Also called taxicab or city-block distance.
@@ -136,13 +137,13 @@ def manhattan_distance(a: Any, b: Any) -> Any:
         2.0
     """
 
-    def _single(x: Any, y: Any) -> Any:
+    def _single(x: jax.Array, y: jax.Array) -> jax.Array:
         return jnp.sum(jnp.abs(x - y))
 
     return _batch_or_single(a, b, _single)
 
 
-def chebyshev_distance(a: Any, b: Any) -> Any:
+def chebyshev_distance(a: ArrayLike, b: ArrayLike) -> jax.Array:
     """Chebyshev (L-infinity) distance.
 
     Maximum absolute difference across dimensions.
@@ -165,18 +166,18 @@ def chebyshev_distance(a: Any, b: Any) -> Any:
         3.0
     """
 
-    def _single(x: Any, y: Any) -> Any:
+    def _single(x: jax.Array, y: jax.Array) -> jax.Array:
         return jnp.max(jnp.abs(x - y))
 
     return _batch_or_single(a, b, _single)
 
 
 def mahalanobis_distance(
-    a: Any,
-    b: Any,
+    a: ArrayLike,
+    b: ArrayLike,
     *,
-    precision_matrix: Any | None = None,
-) -> Any:
+    precision_matrix: ArrayLike | None = None,
+) -> jax.Array:
     """Mahalanobis distance.
 
     Generalized Euclidean distance weighted by an inverse covariance
@@ -205,21 +206,22 @@ def mahalanobis_distance(
         1.4142...
     """
 
-    def _single(x: Any, y: Any, *, prec: Any | None = None) -> Any:
+    def _single(x: jax.Array, y: jax.Array, *, prec: jax.Array | None = None) -> jax.Array:
         diff = x - y
         if prec is None:
-            return jnp.linalg.norm(diff)
-        return jnp.sqrt(jnp.dot(diff, jnp.dot(prec, diff)))
+            return safe_norm(diff)
+        return safe_root(jnp.dot(diff, jnp.dot(prec, diff)))
 
     a_arr = jnp.asarray(a)
     b_arr = jnp.asarray(b)
+    prec_arr = None if precision_matrix is None else jnp.asarray(precision_matrix)
     if a_arr.ndim == 1:
-        return _single(a_arr, b_arr, prec=precision_matrix)
-    batched = jax.vmap(lambda x, y: _single(x, y, prec=precision_matrix))
+        return _single(a_arr, b_arr, prec=prec_arr)
+    batched = jax.vmap(lambda x, y: _single(x, y, prec=prec_arr))
     return jnp.mean(batched(a_arr, b_arr))
 
 
-def hamming_distance(a: Any, b: Any) -> Any:
+def hamming_distance(a: ArrayLike, b: ArrayLike) -> jax.Array:
     """Hamming distance: fraction of differing positions.
 
     Discrete metric on integer or boolean arrays.
@@ -246,7 +248,7 @@ def hamming_distance(a: Any, b: Any) -> Any:
     return jnp.mean(a_arr != b_arr)
 
 
-def minkowski_distance(a: Any, b: Any, *, p: float = 2.0) -> Any:
+def minkowski_distance(a: ArrayLike, b: ArrayLike, *, p: float = 2.0) -> jax.Array:
     """Minkowski (Lp) distance.
 
     Generalized distance: ``(sum|a_i - b_i|^p)^(1/p)``.
@@ -271,13 +273,13 @@ def minkowski_distance(a: Any, b: Any, *, p: float = 2.0) -> Any:
         2.0
     """
 
-    def _single(x: Any, y: Any, *, p: float = 2.0) -> Any:
-        return jnp.sum(jnp.abs(x - y) ** p) ** (1.0 / p)
+    def _single(x: jax.Array, y: jax.Array, *, p: float = 2.0) -> jax.Array:
+        return safe_root(jnp.sum(jnp.abs(x - y) ** p), order=p)
 
     return _batch_or_single(a, b, _single, p=p)
 
 
-def jaccard_distance(a: Any, b: Any) -> Any:
+def jaccard_distance(a: ArrayLike, b: ArrayLike) -> jax.Array:
     """Jaccard distance: ``1 - |A intersection B| / |A union B|``.
 
     Set-based distance for binary vectors. Complement of the
@@ -309,11 +311,11 @@ def jaccard_distance(a: Any, b: Any) -> Any:
 
 
 def poincare_distance(
-    a: Any,
-    b: Any,
+    a: ArrayLike,
+    b: ArrayLike,
     *,
     curvature: float = 1.0,
-) -> Any:
+) -> jax.Array:
     """Geodesic distance in the Poincare ball model of hyperbolic space.
 
     Points must lie inside the ball: ``curvature * ||x||^2 < 1``.
@@ -343,7 +345,7 @@ def poincare_distance(
         1.0986...
     """
 
-    def _single(x: Any, y: Any, *, curvature: float = 1.0) -> Any:
+    def _single(x: jax.Array, y: jax.Array, *, curvature: float = 1.0) -> jax.Array:
         c = curvature
         diff_sq = jnp.sum((x - y) ** 2)
         norm_x_sq = jnp.sum(x**2)
@@ -358,7 +360,7 @@ def poincare_distance(
     return _batch_or_single(a, b, _single, curvature=curvature)
 
 
-def lorentz_distance(a: Any, b: Any) -> Any:
+def lorentz_distance(a: ArrayLike, b: ArrayLike) -> jax.Array:
     """Geodesic distance on the Lorentz (hyperboloid) model of hyperbolic space.
 
     Points live on the upper hyperboloid ``<x,x>_L = -1, x_0 > 0`` in R^(n+1).
@@ -388,7 +390,7 @@ def lorentz_distance(a: Any, b: Any) -> Any:
         0.0
     """
 
-    def _single(x: Any, y: Any) -> Any:
+    def _single(x: jax.Array, y: jax.Array) -> jax.Array:
         # Minkowski inner product: -x_0*y_0 + sum(x_i*y_i)
         inner = -x[0] * y[0] + jnp.sum(x[1:] * y[1:])
         # Clamp for numerical stability (arccosh domain is [1, inf))
@@ -399,12 +401,16 @@ def lorentz_distance(a: Any, b: Any) -> Any:
     return _batch_or_single(a, b, _single)
 
 
-def randers_distance(a: Any, b: Any, *, drift: Any) -> Any:
-    """Randers distance: asymmetric Finsler metric with directional bias.
+def randers_distance(
+    a: ArrayLike, b: ArrayLike, *, direction: ArrayLike, magnitude: float
+) -> jax.Array:
+    """Randers distance: an asymmetric Finsler metric with a drift ``magnitude * u``.
 
-    Adds a "wind" vector to Euclidean distance:
-    ``d_R(a,b) = ||b-a||_2 + <drift, b-a>``.
-    The drift vector must satisfy ``||drift|| < 1`` (sub-sonic condition).
+    ``d_R(a, b) = ||b - a||_2 + magnitude * <u, b - a>`` with ``u = direction / ||direction||``
+    (Randers 1941). The drift's norm is ``magnitude``, and ``magnitude < 1`` keeps the
+    distance positive, so the constraint is a Python float checked when the metric is called,
+    as Finsler MDS does (Dages et al. 2025); the direction may be traced, and a zero direction
+    gives the Euclidean distance. Batches of points give the mean distance over the pairs.
 
     Note:
         Direction: LOWER (0.0 = identical points).
@@ -416,29 +422,38 @@ def randers_distance(a: Any, b: Any, *, drift: Any) -> Any:
     Args:
         a: First point or batch of points.
         b: Second point or batch of points.
-        drift: Wind/bias vector. Must satisfy ``||drift|| < 1``.
+        direction: The drift's direction; only its direction is used.
+        magnitude: The drift's norm, a Python float in ``[0, 1)``. Static under ``jax.jit``
+            (``static_argnames=("magnitude",)``).
 
     Returns:
         Randers distance as a scalar value.
 
     Raises:
-        ValueError: If ``||drift|| >= 1`` (sub-sonic condition violated).
+        TypeError: If ``magnitude`` is not a Python number.
+        ValueError: If ``magnitude`` is outside ``[0, 1)``.
 
     Examples:
         >>> import jax.numpy as jnp
         >>> a = jnp.array([0.0, 0.0])
         >>> b = jnp.array([1.0, 0.0])
-        >>> randers_distance(a, b, drift=jnp.array([0.0, 0.0]))
-        1.0
+        >>> randers_distance(a, b, direction=jnp.array([1.0, 0.0]), magnitude=0.5)
+        1.5
     """
-    drift_arr = jnp.asarray(drift)
-    drift_norm = float(jnp.linalg.norm(drift_arr))
-    if drift_norm >= 1.0:
-        msg = f"Sub-sonic condition violated: ||drift|| = {drift_norm:.4f} >= 1.0"
+    if isinstance(magnitude, bool) or not isinstance(magnitude, int | float):
+        msg = f"magnitude must be a Python float in [0, 1), got {type(magnitude).__name__}"
+        raise TypeError(msg)
+    if not 0.0 <= magnitude < 1.0:
+        msg = f"magnitude must lie in [0, 1) for a positive Randers distance, got {magnitude}"
         raise ValueError(msg)
+    direction_arr = jnp.asarray(direction)
+    norm = safe_norm(direction_arr)
+    has_direction = norm > 0.0
+    unit = jnp.where(has_direction, direction_arr / jnp.where(has_direction, norm, 1.0), 0.0)
+    drift = magnitude * unit
 
-    def _single(x: Any, y: Any, *, drift: Any) -> Any:
+    def _single(x: jax.Array, y: jax.Array) -> jax.Array:
         diff = y - x
-        return jnp.linalg.norm(diff) + jnp.dot(drift, diff)
+        return safe_norm(diff) + jnp.dot(drift, diff)
 
-    return _batch_or_single(a, b, _single, drift=drift_arr)
+    return _batch_or_single(a, b, _single)

@@ -41,11 +41,11 @@ jobs:
 
       - name: Check distribution
         run: |
-          uv sync --locked --extra dev
-          uv run twine check --strict dist/*
+          uv sync --locked --extra dev --extra test
+          uv run --no-sync twine check --strict dist/*
 
       - name: Pyright
-        run: uv run pyright --warnings src/
+        run: uv run --no-sync pyright --warnings src/
 
       - name: Install in clean venv and verify import
         run: |

@@ -38,7 +38,7 @@ repos:
 
   # Ruff linter and formatter
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.8
+    rev: v0.15.2
     hooks:
       - id: ruff
         args: [--fix, --unsafe-fixes]
@@ -93,28 +93,16 @@ repos:
         types: [python]
         exclude: ^tests/
 
-  # Type checking with pyright
-  - repo: https://github.com/RobertCraigie/pyright-python
-    rev: v1.1.403
+  # Type checking with the project environment's pyright, as CI runs it: a hook environment of
+  # its own resolves neither the siblings nor the optional integrations it type-checks.
+  - repo: local
     hooks:
       - id: pyright
-        args: [--warnings, src]
+        name: pyright
+        entry: uv run --no-sync pyright --warnings src
+        language: system
         pass_filenames: false
-        additional_dependencies:
-          - beartype>=0.14
-          - click>=8.0
-          - flax>=0.12.0
-          - jax>=0.4.0
-          - jaxlib>=0.4.0
-          - jaxtyping>=0.2.20
-          - matplotlib>=3.8
-          - numpy>=1.24
-          - psutil>=5.9.5
-          - pytest>=8.3
-          - scipy>=1.10
-          - types-psutil>=5.10
-          - typing_extensions>=4.5
-          - wandb>=0.18
+        types_or: [python, pyi]
 
   # Security scanning
   - repo: https://github.com/PyCQA/bandit

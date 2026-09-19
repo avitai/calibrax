@@ -14,18 +14,19 @@ References:
 from __future__ import annotations
 
 import math
-from typing import Any
 
+import jax
 import jax.numpy as jnp
+from jax.typing import ArrayLike
 
-from calibrax.metrics._utils import _EPSILON
+from calibrax.metrics._utils import _EPSILON, _FEATURE_MATRIX_NDIM, matrix_sqrtm
 
 
 # A sample covariance needs at least two samples; with one, the estimate divides by zero.
 _MIN_COVARIANCE_SAMPLES = 2
 
 
-def _prepare_feature_arrays(real: Any, generated: Any) -> tuple[Any, Any]:
+def _prepare_feature_arrays(real: ArrayLike, generated: ArrayLike) -> tuple[jax.Array, jax.Array]:
     """Validate two feature matrices share their feature dimension and convert them.
 
     Args:
@@ -41,7 +42,10 @@ def _prepare_feature_arrays(real: Any, generated: Any) -> tuple[Any, Any]:
     """
     real_features = jnp.asarray(real, dtype=jnp.float32)
     generated_features = jnp.asarray(generated, dtype=jnp.float32)
-    if real_features.ndim != 2 or generated_features.ndim != 2:  # noqa: PLR2004
+    if (
+        real_features.ndim != _FEATURE_MATRIX_NDIM
+        or generated_features.ndim != _FEATURE_MATRIX_NDIM
+    ):
         msg = (
             "features must be 2-dimensional (samples, features), got "
             f"{real_features.shape} and {generated_features.shape}"
@@ -56,12 +60,12 @@ def _prepare_feature_arrays(real: Any, generated: Any) -> tuple[Any, Any]:
     return real_features, generated_features
 
 
-def _pairwise_squared_distances(query: Any, data: Any) -> Any:
+def _pairwise_squared_distances(query: jax.Array, data: jax.Array) -> jax.Array:
     """Squared Euclidean distances with shape ``(n_query, n_data)``."""
     return jnp.sum((query[:, None, :] - data[None, :, :]) ** 2, axis=-1)
 
 
-def _nearest_neighbors(query: Any, data: Any, k: int) -> tuple[Any, Any]:
+def _nearest_neighbors(query: jax.Array, data: jax.Array, k: int) -> tuple[jax.Array, jax.Array]:
     """Distances and indices of the ``k`` nearest data points of each query point.
 
     Args:
@@ -78,7 +82,7 @@ def _nearest_neighbors(query: Any, data: Any, k: int) -> tuple[Any, Any]:
     return jnp.sqrt(jnp.take_along_axis(squared, indices, axis=1)), indices
 
 
-def manifold_radii(features: Any, *, k: int) -> Any:
+def manifold_radii(features: ArrayLike, *, k: int) -> jax.Array:
     """Distance from each point to its ``k``-th nearest other point.
 
     The radius of the ball that approximates the data manifold around each point in
@@ -96,14 +100,14 @@ def manifold_radii(features: Any, *, k: int) -> Any:
     return distances[:, k]
 
 
-def _covered_fraction(queries: Any, manifold: Any, *, k: int) -> Any:
+def _covered_fraction(queries: jax.Array, manifold: jax.Array, *, k: int) -> jax.Array:
     """Fraction of ``queries`` inside the k-NN manifold of ``manifold`` points."""
     radii = manifold_radii(manifold, k=k)
     distances, indices = _nearest_neighbors(queries, manifold, 1)
     return jnp.mean((distances[:, 0] <= radii[indices[:, 0]]).astype(jnp.float32))
 
 
-def manifold_precision(real: Any, generated: Any, *, k: int = 3) -> Any:  # noqa: DOC502  # raised by _prepare_feature_arrays
+def manifold_precision(real: ArrayLike, generated: ArrayLike, *, k: int = 3) -> jax.Array:  # noqa: DOC502  # raised by _prepare_feature_arrays
     """Fraction of generated samples inside the real k-NN manifold (fidelity).
 
     Note:
@@ -125,7 +129,7 @@ def manifold_precision(real: Any, generated: Any, *, k: int = 3) -> Any:  # noqa
     return _covered_fraction(generated_features, real_features, k=k)
 
 
-def manifold_recall(real: Any, generated: Any, *, k: int = 3) -> Any:  # noqa: DOC502  # raised by _prepare_feature_arrays
+def manifold_recall(real: ArrayLike, generated: ArrayLike, *, k: int = 3) -> jax.Array:  # noqa: DOC502  # raised by _prepare_feature_arrays
     """Fraction of real samples inside the generated k-NN manifold (diversity).
 
     Note:
@@ -147,7 +151,7 @@ def manifold_recall(real: Any, generated: Any, *, k: int = 3) -> Any:  # noqa: D
     return _covered_fraction(real_features, generated_features, k=k)
 
 
-def _density_weighted_coverage(queries: Any, manifold: Any, *, k: int) -> Any:
+def _density_weighted_coverage(queries: jax.Array, manifold: jax.Array, *, k: int) -> jax.Array:
     """Coverage of ``queries`` by the ``manifold`` balls, weighted by local density.
 
     Each query counts with the density ``1 / r_k`` of its nearest manifold point,
@@ -162,7 +166,7 @@ def _density_weighted_coverage(queries: Any, manifold: Any, *, k: int) -> Any:
     return jnp.sum(inside * weights)
 
 
-def density_weighted_precision(real: Any, generated: Any, *, k: int = 5) -> Any:  # noqa: DOC502  # raised by _prepare_feature_arrays
+def density_weighted_precision(real: ArrayLike, generated: ArrayLike, *, k: int = 5) -> jax.Array:  # noqa: DOC502  # raised by _prepare_feature_arrays
     """Manifold precision weighted by the density of the real manifold.
 
     Generated samples whose nearest real point sits in a dense region weigh more,
@@ -187,7 +191,7 @@ def density_weighted_precision(real: Any, generated: Any, *, k: int = 5) -> Any:
     return _density_weighted_coverage(generated_features, real_features, k=k)
 
 
-def density_weighted_recall(real: Any, generated: Any, *, k: int = 5) -> Any:  # noqa: DOC502  # raised by _prepare_feature_arrays
+def density_weighted_recall(real: ArrayLike, generated: ArrayLike, *, k: int = 5) -> jax.Array:  # noqa: DOC502  # raised by _prepare_feature_arrays
     """Manifold recall weighted by the density of the generated manifold.
 
     Note:
@@ -209,7 +213,7 @@ def density_weighted_recall(real: Any, generated: Any, *, k: int = 5) -> Any:  #
     return _density_weighted_coverage(real_features, generated_features, k=k)
 
 
-def distance_to_closest_record(real: Any, generated: Any) -> Any:  # noqa: DOC502  # raised by _prepare_feature_arrays
+def distance_to_closest_record(real: ArrayLike, generated: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _prepare_feature_arrays
     """Mean squared distance from each generated record to its closest real record.
 
     Features are min-max normalised over the union of both sets first, so every
@@ -240,7 +244,7 @@ def distance_to_closest_record(real: Any, generated: Any) -> Any:  # noqa: DOC50
     return jnp.mean(jnp.min(squared, axis=1))
 
 
-def memorization_rate(real: Any, generated: Any) -> Any:  # noqa: DOC502  # raised by _prepare_feature_arrays
+def memorization_rate(real: ArrayLike, generated: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _prepare_feature_arrays
     """Fraction of generated records that exactly equal some real record.
 
     Note:
@@ -262,7 +266,9 @@ def memorization_rate(real: Any, generated: Any) -> Any:  # noqa: DOC502  # rais
     return jnp.mean(jnp.any(matches, axis=1).astype(jnp.float32))
 
 
-def frechet_distance(mean_a: Any, cov_a: Any, mean_b: Any, cov_b: Any) -> Any:
+def frechet_distance(
+    mean_a: ArrayLike, cov_a: ArrayLike, mean_b: ArrayLike, cov_b: ArrayLike
+) -> jax.Array:
     """Fréchet distance between two Gaussians given their means and covariances.
 
     ``|mu_a - mu_b|^2 + Tr(S_a + S_b - 2 (S_a^{1/2} S_b S_a^{1/2})^{1/2})``. The
@@ -286,9 +292,8 @@ def frechet_distance(mean_a: Any, cov_a: Any, mean_b: Any, cov_b: Any) -> Any:
     Returns:
         Scalar distance as a JAX array, floored at zero.
     """
-    from calibrax.metrics._utils import matrix_sqrtm
 
-    def _symmetrize(matrix: Any) -> Any:
+    def _symmetrize(matrix: jax.Array) -> jax.Array:
         return 0.5 * (matrix + matrix.T)
 
     cov_a = _symmetrize(jnp.asarray(cov_a, dtype=jnp.float32))
@@ -300,7 +305,7 @@ def frechet_distance(mean_a: Any, cov_a: Any, mean_b: Any, cov_b: Any) -> Any:
     return jnp.maximum(distance, 0.0)
 
 
-def frechet_feature_distance(real: Any, generated: Any) -> Any:
+def frechet_feature_distance(real: ArrayLike, generated: ArrayLike) -> jax.Array:
     """Fréchet distance between the Gaussians fitted to two feature matrices.
 
     With Inception features this is the Fréchet Inception Distance; with any
@@ -352,7 +357,7 @@ def frechet_feature_distance(real: Any, generated: Any) -> Any:
     return jnp.maximum(distance, 0.0)
 
 
-def inception_score_per_split(probabilities: Any, *, splits: int = 10) -> Any:
+def inception_score_per_split(probabilities: ArrayLike, *, splits: int = 10) -> jax.Array:
     """Inception score of each of ``splits`` equal chunks of class probabilities.
 
     Each chunk's score is ``exp(E_x KL(p(y|x) || p(y)))`` with ``p(y)`` the chunk's
@@ -381,7 +386,7 @@ def inception_score_per_split(probabilities: Any, *, splits: int = 10) -> Any:
     return jnp.exp(jnp.mean(kl, axis=1))
 
 
-def inception_score(probabilities: Any, *, splits: int = 10) -> Any:  # noqa: DOC502  # raised by inception_score_per_split
+def inception_score(probabilities: ArrayLike, *, splits: int = 10) -> jax.Array:  # noqa: DOC502  # raised by inception_score_per_split
     """Inception score: mean over ``splits`` chunks of ``exp(E KL(p(y|x) || p(y)))``.
 
     Note:

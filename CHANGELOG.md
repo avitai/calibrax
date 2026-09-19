@@ -7,6 +7,269 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+### Added
+
+- `calibrax.statistics.bootstrap_interval(statistic, *data, key, num_resamples, confidence)`,
+  the percentile bootstrap interval (Efron and Tibshirani 1993; `scipy.stats.bootstrap(method=
+  "percentile")`, which the tests use as the reference) with arrays resampled together, every
+  resample evaluated in one `jax.vmap`, and a `BootstrapInterval` result (`value`, `lower`,
+  `upper`, `samples`, a pytree). The quantiles interpolate as `numpy.percentile` does, which is
+  exact for equal neighbours where `jnp.quantile` is one float32 ulp off.
+
+### Changed
+
+- Requires `substrax>=0.1.14` and `pydantic>=2.10`; the lock moves substrax from 0.1.11 and
+  nothing else (pydantic was already locked through the optional extras). Calibrax's `setup.sh`
+  writes its managed environment file with `python -m substrax.runtime.managed_env` (substrax
+  0.1.12), records are typed with `substrax.typing.JsonValue` (0.1.13) and read with
+  `substrax.records.read_record` (0.1.14).
+- Every record's `from_dict` takes `Mapping[str, JsonValue]` and reads through `read_record`:
+  each field is checked against its annotation, and a malformed record raises
+  `pydantic.ValidationError` naming each field's path, where a string in a number field or a
+  number in a string field was stored as given. JSON integers in float fields read as floats.
+  `to_dict` returns `dict[str, JsonValue]`. A stored `Run` must carry `id` and `timestamp`, and a
+  stored `BenchmarkResult` its `timestamp`; the old reader dated a `BenchmarkResult` without one at
+  0.0. Every file `to_dict` writes reads as before: all 86 stored runs and results in datarax and
+  cellifex read to the same values.
+- `calibrax.core` loads each export on first use (scientific-python SPEC 1 through
+  `lazy-loader>=0.5`, from the package's `__init__.pyi`, which type checkers read), so
+  `calibrax.core.models`, `calibrax.core.registry`, `calibrax.core.record_values`,
+  `calibrax.storage`, `calibrax.ci`, `calibrax.analysis` and `calibrax.validation` import without
+  JAX or Flax; importing any of them loaded both through the package's adapters and protocols.
+- `calibrax.profiling` loads each export on first use the same way, and `TimingSample` and
+  `CallTiming` live in `calibrax.profiling.timing_records`, so `BenchmarkResult`
+  (`calibrax.core.result`) and the resource, energy and timing records import without JAX or
+  Flax; each loaded both, about 0.6 s, through the package's eager imports. Every name
+  `calibrax.profiling` exported still imports from it.
+- `calibrax.profiling.flops.cost_mapping(cost)` narrows what `jax.stages.Lowered.cost_analysis()`
+  returns, which jax types `Any` and documents as arbitrary (a mapping, a list holding one, or
+  `None`), to its numeric fields; `FlopsCounter` reads the analysis through it, and
+  `FlopsCounter.count(fn, *args)` is typed with `substrax.typing.PyTree`.
+- The `cuda12` extra depends on NVIDIA's `nvidia-ml-py>=12.0.0`, which provides the `pynvml`
+  module, in place of the `pynvml` distribution, which is deprecated in its favour and warned
+  on every import. `MemoryOptimizer.analyze_pipeline_memory` is generic in the sample type.
+- GPU readings are typed: `GPUProfilerProtocol` is `memory() -> GpuMemory | None`,
+  `utilization() -> float | None`, `clocks() -> GpuClocks | None` and
+  `power() -> GpuPower | None`, in place of `get_utilization`, `get_memory_usage`,
+  `get_clock_info` and `get_power_info` returning dictionaries; a reading the source cannot take
+  is `None`, and an error is raised. `ResourceMonitor` and `AdvancedMonitor` read the protocol
+  as typed.
+- NVML is the integration module `calibrax.profiling.nvml`: `NvmlDevice(index)` initialises NVML
+  once, is a context manager, reads memory, compute utilization, clocks and power, and returns
+  `None` only for a reading NVML reports unsupported on that GPU. `GPUMemoryProfiler(device=None)`
+  reads memory from JAX's device statistics and nothing else; `has_gpu`, `PYNVML_AVAILABLE` and
+  the NVML methods are gone, and `analyze_memory_pattern(readings)` is a
+  module function over `GpuMemory` readings.
+- `EnergyMonitor(sample_interval_sec, *, gpu=None)` measures the GPU through the power source it
+  is given (`GpuPowerSource`, which `NvmlDevice` satisfies) and the CPU only without one; it
+  read NVML GPU 0 itself, starting NVML on every sample. GPU energy is a running integral,
+  where every sample re-summed all earlier readings.
+- The CLI loads each command's module when the command runs (click's lazily loaded
+  subcommands), so `calibrax --help` and the store commands do not load JAX, and `export`
+  without the `wandb` extra fails with the integration module's install command. `profile
+  --energy` measures CPU energy; GPU energy is the new `profile-gpu --gpu-index N`, which reads
+  the GPU through `NvmlDevice` and needs the `cuda12` extra. `profile` waits on each result
+  with `jax.block_until_ready`, which covers every array in a nested result, where the CLI's
+  own sync reached only the first level of a tuple or list. `export --project` is a required
+  option.
+- No module imports inside a function: the metric registrations, the image, geometric and
+  generative metrics and the CLI import at the top, and ruff's `PLC0415` is enforced; an
+  import-linter contract (`acyclic_siblings`) keeps the package free of import cycles.
+- An error inside `ResourceMonitor`'s or `EnergyMonitor`'s sampling thread is raised when the
+  monitor exits; it ended the thread with a traceback on stderr, and the summary covered the
+  samples taken before it as if the run had been complete.
+- Hardware specs are `HardwareSpec` records (`name`, `peak_flops`, `memory_bandwidth`,
+  `tensor_core_shapes`, `simd_width`, and the derived `critical_intensity`) in place of
+  dictionaries; `peak_flops_bf16`, which repeated `peak_flops`, is gone. `HARDWARE_SPECS` names
+  each chip precisely, with vendor figures cited in the module: `a100_sxm4_40gb`,
+  `a100_pcie_40gb`, `a100_sxm4_80gb` (was `a100_80g`), `a100_pcie_80gb`, `h100_sxm` (was `h100`,
+  now 989.4 TFLOPS), `h100_pcie`, `rtx_4090`, `tpu_v4`, `tpu_v5e`, `tpu_v5p`, `tpu_v6e` and
+  `cpu_generic`. `detect_hardware_specs()` names the chip by the `device_kind` JAX reports
+  (`spec_for_device_kind`) and returns `None` for one the table lacks.
+- `RooflineAnalyzer(hardware_specs=...)` takes a `HardwareSpec` or `None`; analysing with `None`
+  raises `UnknownHardwareError`. FLOPs come from `FlopsCounter`, and a function XLA cannot cost
+  raises `FlopsUnavailableError`; memory traffic is the inputs' bytes plus every output leaf's
+  bytes from `jax.eval_shape`. A `flops_override` of 0 is used as given.
+- `BenchmarkAdapter[TargetT]` is generic in its target (`target` returns `TargetT`), and an
+  adapter a registry holds declares `can_adapt(target) -> TypeIs[TargetT]` (PEP 742), as
+  `NNXBenchmarkAdapter` does for `nnx.Module`: `AdapterRegistry.register` and `register_adapter`
+  take such a class (`AdapterClass[TargetT]`), and `adapt(target: object)` returns an `Adapter`
+  (`BenchmarkAdapter[object] | NNXBenchmarkAdapter`), where every one of them was `Any`. Requires
+  `typing_extensions>=4.10`, the release that added `TypeIs`.
+- Plots live in `calibrax.exporters.plots`, the matplotlib integration: `PlotGenerator(output_dir)`
+  with `comparison_plot`, `scaling_plot`, `convergence_plot` and `metric_values_plot`, each
+  returning the written path and refusing empty input with `ValueError`. Importing the module
+  without matplotlib raises `ImportError` naming the `publication` extra. `PublicationGenerator`
+  writes tables only; its plot methods, which returned `None` with a logged warning when
+  matplotlib was missing and `None` for empty input, are gone. Stateful metrics no longer carry
+  `.plot()`; plot a metric's values with
+  `PlotGenerator(dir).metric_values_plot(metric.compute(), title=metric.name, filename=metric.name)`.
+- `calibrax.exporters.wandb` and `calibrax.exporters.mlflow` are the wandb and MLflow
+  integrations: each imports its library at the top, and importing it without the library
+  raises `ImportError` naming the extra. `WANDB_AVAILABLE` and `MLFLOW_AVAILABLE` are gone, with
+  the constructors' checks. `WandBExporter.log_figures(figures)`, which wrapped whatever it was
+  given in `wandb.Image`, is `log_images(images: Mapping[str, wandb.Image])`: log a matplotlib
+  figure as `wandb.Image(figure)`. Regression alerts go to the run they belong to
+  (`Run.alert`), `export_trends` takes any `TrendSource` (a `Store` is one), and table cells are
+  typed. MLflow's run summary is written to a temporary directory that is removed with it.
+- `calibrax.profiling.carbon` is the codecarbon integration: it imports codecarbon at the top
+  and raises `ImportError` naming the `codecarbon` extra without it; `CODECARBON_AVAILABLE` and
+  the constructor's check are gone.
+- `calibrax.analysis.changepoint` is the ruptures integration: it imports ruptures at the top
+  and raises `ImportError` naming the `changepoint` extra without it; `RUPTURES_AVAILABLE` and
+  the check inside `detect_change_points` are gone.
+- SciPy is a declared dependency (`scipy>=1.15`, the floor JAX itself requires) and the `stats`
+  extra is gone: JAX always installs SciPy, so the extra added nothing and the significance
+  tests' "SciPy missing" paths could not run. `paired_significance_test` loses its pure-Python
+  sign-test fallback, which reported its result as `method="wilcoxon"`. The dev extra adds
+  `scipy-stubs`, SciPy's type stubs, so the tests' results are typed.
+- Monitoring reports are typed: `AdvancedMonitor.get_monitoring_summary()` returns a
+  `MonitoringSummary` (`thresholds`, `alert_count`, `metric_history` of `MetricHistorySummary`,
+  `is_monitoring`) and `ProductionMonitor.get_pipeline_health_report()` a
+  `PipelineHealthReport` (`pipelines` of `PipelineStats`, `overall_health`, `baselines`,
+  `total_executions`), with health levels as `PipelineHealth`; read them by attribute where
+  they were dicts. `ProductionMonitor` takes `AdvancedMonitor`'s three keyword arguments
+  instead of `**kwargs`, and `ProductionMonitor.executions` returns the recorded
+  `PipelineExecution`s with their metadata, which nothing could read before.
+- `Run.environment`, `Run.metadata`, `BenchmarkResult.metadata` and `BenchmarkResult.config` are
+  `calibrax.core.record_values.Metadata`: JSON values and the JAX or NumPy scalars a computation
+  produces (`MetadataValue`), written as Python numbers by `to_dict`, in place of
+  `dict[str, Any]`. A consumer reading a structured value from them narrows it.
+- `sliced_wasserstein` computes `SW_p = (mean over directions of W_p^p)^(1/p)` (Bonneel et al.
+  2015; Nadjahi et al. 2020, eq. 5; POT). It returned the mean of the per-direction `W_p`, which
+  for `p > 1` is lower: 0.341 against 0.379 on a 10-dimensional Gaussian pair. `key` is
+  required, as a key or an `nnx.Rngs` (its `sample` or `default` stream), through
+  `substrax.rng.key_from`; the
+  silent `PRNGKey(42)` default is gone. `num_projections` defaults to 256
+  (`SLICED_WASSERSTEIN_PROJECTIONS`), unequal sample counts raise `ValueError`, and the gradient
+  at identical samples is finite.
+- The registry's `sliced_wasserstein` entry is `registry_sliced_wasserstein`, which fixes the
+  directions with `SLICED_WASSERSTEIN_REGISTRY_SEED` so suite runs compare like with like, and is
+  marked `is_true_metric=False`: over a fixed set of directions the value is a pseudometric.
+- `rmse` takes the keyword-only `mask`, `weights`, `reduction` and `axis` of `mse`: the root of
+  the (masked, weighted) mean over `axis`, then `reduction` over the remaining roots (`"none"`,
+  `"mean"`, `"sum"`; `"batch_sum"` raises). Its gradient at a perfect prediction is 0 where it
+  was NaN, through the new `safe_root` helper, which `sliced_wasserstein` shares.
+- Distances built on a root have a finite gradient at a perfect match, where it was NaN:
+  `euclidean_distance`, `mahalanobis_distance`, `minkowski_distance`, `hellinger_distance`,
+  `mmd`, `rmsd`, `spectral_distance`, `graph_edit_distance_approx`,
+  `spd_log_euclidean_distance`, `stiefel_distance`, `relative_error` and `relative_l2_error`.
+  `energy_score`'s gradient was NaN for every ensemble, because each member's distance to
+  itself entered the spread term through `jnp.linalg.norm`; it is finite. They take their roots
+  through `safe_root` and the new `safe_norm` (the JAX FAQ's inner-and-outer `where`, with
+  derivative 0 at 0 as in `optax.safe_norm`); values are unchanged.
+- `randers_distance(a, b, *, direction, magnitude)` replaces `drift=`: the drift is
+  `magnitude * direction / ||direction||`, `magnitude` is a Python float checked to lie in
+  `[0, 1)` (`TypeError` for an array, `ValueError` outside the range), and the direction may be
+  traced. The old check read `float(norm(drift))`, which cannot run inside `jax.jit`; the
+  magnitude-and-direction form follows Finsler MDS (Dages et al. 2025). Pass the old `drift` as
+  `direction=drift, magnitude=float(jnp.linalg.norm(drift))`.
+- The functional metrics are typed with `jax.typing.ArrayLike` for array inputs and `jax.Array`
+  for array outputs, JAX's recommendation for public APIs, in place of `Any`; private helpers
+  that receive converted arrays take `jax.Array`. pyright strict checks them.
+- `MetricFn`, a metric function returning a `jax.Array`, types the registry, composition,
+  wrappers and fairness helpers; they declared `Callable[..., float]` although every metric
+  returns an array; it admits a Python float for the host-side text metrics. `MetricValues` types
+  `calculate_all`'s result.
+- `MetricLearningLoss.__call__(embeddings, labels)` takes array-likes and no `**kwargs`: every
+  loss ignored them (`ContrastiveLoss`, `TripletMarginLoss`, `NTXentLoss`), so they were a
+  suppressed unused argument, not an interface.
+- `coverage(items, *, catalog_size)` drops the unused `relevance` argument, counts distinct items
+  with a fixed-length `jnp.bincount`, so it runs under `jax.jit` (`catalog_size` static) and
+  `jax.vmap` where `jnp.unique` could not, and ignores ids outside `[0, catalog_size)`; a negative
+  id had counted as item 0. Its registry entry is `MetricSignature.CUSTOM`, since a suite cannot
+  call it as `fn(predictions, targets)`.
+- `BenchmarkAdapter` is an abstract base class with an abstract `can_adapt`, as the architecture
+  notes describe it; the base returned `False` for every target, so an adapter that did not
+  override it could never be selected by `AdapterRegistry`. Adapters implement `can_adapt`.
+- `LearnedMetric.__init__(name)` no longer takes `rngs`, which it ignored; a subclass creates its
+  layers with its own `nnx.Rngs` (`LPIPSMetric` and the user-guide example updated).
+- `BootstrapMetric` and `StatisticalAnalyzer` compute through `bootstrap_interval`; they were two
+  host-side loops with their own interval rules and fixed default seeds (0 and 42).
+  `BootstrapMetric(metric, num_resamples=, confidence=).compute(predictions, targets, *, key)`
+  returns a `BootstrapInterval` instead of a dict, and `num_bootstraps` and `seed` are gone.
+  `StatisticalAnalyzer(*, key, bootstrap_resamples=)` takes a key in place of `seed` and splits it
+  on each call, so successive calls draw fresh resamples and the same key reproduces them.
+- `ThresholdMetric.evaluate` returns a `ThresholdResult` (`value`, `passed`, `threshold`,
+  `metric_name`) instead of a dict. The composition classes and wrappers type their arrays as
+  `ArrayLike`, and a metric collection's pass-through keywords as `object`.
+- `FrozenBackboneMetric[FeaturesT]` is generic in the features its `_extract_features` returns
+  and `_accumulate` receives (`FIDMetric` and `BERTScoreMetric` use `dict[str, jax.Array]`,
+  `InceptionScoreMetric` `jax.Array`); `update` takes array keywords. `DatasetProtocol[ItemT]` and
+  `BatchableDatasetProtocol[ItemT]` are generic in their items, and the batchable protocol extends
+  the plain one; `get_batch` returns `dict[str, jax.Array]` and `MetricProtocol.compute`
+  `jax.Array | float`. `LPIPSMetric.update(*, features_a, features_b)` names its per-layer feature
+  sequences instead of reading them from `**kwargs`. The scientific plugin functions take
+  array-likes and return arrays.
+- `time_calls(call, *, warmup, iterations, percentiles, sync)` times a zero-argument callable:
+  close over the inputs (`lambda: step(state, batch)`). It took `func, *args, **kwargs` beside its
+  own keyword options, so a function with a `warmup`, `iterations`, `percentiles` or `sync` keyword
+  could not be timed. `TimingCollector.measure_iteration` is generic in the batch type, and results
+  handed to a sync function are `substrax.typing.PyTree`.
+- `CompilationProfiler.profile_jit_compilation` keeps the wrapped function's signature
+  (`Callable[P, R]`) and gives each wrapper its own compiled functions. The profiler keyed its
+  one cache on the function's name, so two functions named alike (two lambdas) with matching
+  input shapes shared a compiled function and the second returned the first's result. Results
+  are waited for with `jax.block_until_ready`, through nested pytrees; `reset()` makes each
+  wrapper compile again. The unread shape, dtype and timestamp records are gone.
+
+### Fixed
+
+- `CarbonTracker(country_iso_code=...)` uses codecarbon's `OfflineEmissionsTracker`, the tracker
+  that takes a country. `EmissionsTracker` refuses `country_iso_code` with `TypeError`, and the
+  fallback that caught it retried without the country, so the requested country was dropped
+  without a warning and the machine's detected location was used instead.
+- `detect_change_points(method="window")` reports each `ChangePoint.index` as a Python `int`; ruptures'
+  `Window` returns NumPy integers, which the record stored as given. ruptures is typed through a
+  local stub (`typings/ruptures`), since it ships no type information, and imported where used.
+- `GPUMemoryProfiler.get_utilization()` reported memory occupancy (bytes in use over the limit)
+  as GPU utilization; `NvmlDevice.utilization()` reports NVML's compute utilization, and
+  `GPUMemoryProfiler.utilization()` is `None`, since JAX does not report it.
+- A wrapped RAPL counter added only its new reading to the CPU energy, dropping the energy used
+  up to the wrap; the increase is now measured across the counter's range
+  (`max_energy_range_uj`), and without a readable range CPU energy is `None` rather than an
+  undercount.
+- `detect_hardware_specs()` reported every GPU as an A100 80GB and every TPU as a v5e, so roofline
+  utilisation on any other chip was computed against another chip's peak and bandwidth (an
+  RTX 4090 against 312 TFLOPS and 2,039 GB/s, where it has 165.2 TFLOPS and 1,008 GB/s), and it
+  gave Apple's Metal backend the CPU figures.
+- `RooflineAnalyzer` invented figures when it could not measure them: ten FLOPs per input
+  element when XLA's cost analysis was unavailable, and twice the input bytes as memory
+  traffic when running the function eagerly failed; it also counted only tuple, list or single
+  array outputs.
+- `analyze_complexity` counts parameter memory from each parameter's dtype. It assumed four bytes
+  per parameter, so a bfloat16 model's parameter memory read twice its size and a float64 model's
+  half; parameter counts and the operation estimate use exact Python integers, where a product
+  of an input shape computed as an int32 array could overflow.
+
+### Removed
+
+- `scripts/setup_env.py`. `setup.sh` runs `python -m substrax.runtime.managed_env write --prefix
+  CALIBRAX`, which writes the memory fraction as `XLA_CLIENT_MEM_FRACTION` and always unsets the
+  deprecated `XLA_PYTHON_CLIENT_MEM_FRACTION` (jaxlib refuses both at once); inspect the layering
+  with `python -m substrax.runtime.managed_env show --prefix CALIBRAX --env-file .calibrax.env
+  --user-env .env --user-env .env.local`. A user-owned `.env` that still exports the deprecated
+  name overrides the managed file and stops JAX's CUDA backend from starting.
+
+### Security
+
+- The lock takes the fixed releases of eight transitive packages that pip-audit reports for the
+  `dev` and `test` environments: gitpython 3.1.62, jwcrypto 1.6.1, mako 1.4.1, pillow 12.3.0,
+  pyasn1 0.6.4, sqlparse 0.6.0, and starlette 1.6.0 with fastapi 0.141.1 (fastapi 0.129.0 capped
+  starlette below its fixes). No other locked version moves.
+- `BisectionEngine.bisect` resolves `good_commit` and `bad_commit` to commit hashes with
+  `git rev-parse --verify --end-of-options <ref>^{commit}` before any other git command, and
+  refuses a ref that names no commit with `ValueError`. Refs were placed in git's argument list
+  as given, so one beginning with `-` was parsed as an option. Branch names and tags keep
+  working, the culprit is reported as a full hash, and a range starting at the root commit,
+  which failed on `root^`, bisects.
+- `vmaf_score` escapes its libvmaf options at both levels FFmpeg's filtergraph syntax defines, so a
+  `model` string holding `:`, `,`, `;` or brackets stays one option value instead of adding options
+  or filters; it passes inputs as absolute `file:` URLs, so a name holding `:` is not read as
+  another protocol; and it resolves `ffmpeg` with `shutil.which`, raising `RuntimeError` when it
+  is missing.
+- The lock moves anyio from 4.12.1 to 4.14.2 for CVE-2026-63374 and CVE-2026-64847; nothing else moves. 4.14.2 is the first fixed release; 4.15.1 needs typing-extensions 4.16.0, which a single-package upgrade does not allow to move.
+
 ## [0.1.9] - 2026-09-18
 
 ### Changed

@@ -2,14 +2,11 @@
 
 from __future__ import annotations
 
-import builtins
 import dataclasses
-import importlib.util
-import sys
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+from substrax.testing import run_python
 
 from calibrax.profiling.carbon import CarbonResult, CarbonTracker
 
@@ -127,149 +124,98 @@ class TestCarbonResult:
         assert reconstructed.country_iso_code is None
 
 
+def _tracker_double(
+    emissions: float = 0.0, energy: float = 0.0, duration: float = 0.0
+) -> MagicMock:
+    tracker = MagicMock()
+    tracker.stop.return_value = emissions
+    data = MagicMock()
+    data.energy_consumed = energy
+    data.duration = duration
+    tracker.final_emissions_data = data
+    return tracker
+
+
 class TestCarbonTracker:
-    """Tests for CarbonTracker context manager."""
+    """CarbonTracker wraps codecarbon's online tracker, or its offline tracker for a country."""
 
-    def test_raises_import_error_when_unavailable(self) -> None:
-        """Should raise ImportError when codecarbon is not installed."""
+    def test_without_a_country_the_online_tracker_measures(self) -> None:
+        online = _tracker_double(emissions=0.042, energy=0.015, duration=30.0)
         with (
-            patch("calibrax.profiling.carbon.CODECARBON_AVAILABLE", False),
-            pytest.raises(ImportError, match="codecarbon is required"),
+            patch("calibrax.profiling.carbon.EmissionsTracker", return_value=online) as online_cls,
+            patch("calibrax.profiling.carbon.OfflineEmissionsTracker") as offline_cls,
+            CarbonTracker() as tracker,
         ):
-            CarbonTracker()
+            online.start.assert_called_once()
 
-    def test_context_manager_with_mocked_tracker(self) -> None:
-        """Should wrap EmissionsTracker and yield CarbonResult."""
-        mock_emissions_tracker = MagicMock()
-        mock_emissions_tracker.stop.return_value = 0.042
-        mock_emissions_data = MagicMock()
-        mock_emissions_data.energy_consumed = 0.015
-        mock_emissions_data.duration = 30.0
-        mock_emissions_tracker.final_emissions_data = mock_emissions_data
+        result = tracker.result()
+        assert (result.emissions_kg_co2, result.energy_consumed_kwh, result.duration_sec) == (
+            0.042,
+            0.015,
+            30.0,
+        )
+        assert "country_iso_code" not in online_cls.call_args.kwargs
+        offline_cls.assert_not_called()
 
+    def test_a_country_uses_the_offline_tracker_with_that_country(self) -> None:
+        """codecarbon's online tracker refuses country_iso_code; the offline one takes it."""
+        offline = _tracker_double(emissions=0.01)
         with (
-            patch("calibrax.profiling.carbon.CODECARBON_AVAILABLE", True),
+            patch("calibrax.profiling.carbon.EmissionsTracker") as online_cls,
             patch(
-                "calibrax.profiling.carbon.EmissionsTracker",
-                return_value=mock_emissions_tracker,
-            ),
-        ):
-            with CarbonTracker() as tracker:
-                mock_emissions_tracker.start.assert_called_once()
-
-            result = tracker.result()
-
-        assert isinstance(result, CarbonResult)
-        assert result.emissions_kg_co2 == 0.042
-        assert result.energy_consumed_kwh == 0.015
-        assert result.duration_sec == 30.0
-
-    def test_context_manager_with_country_code(self) -> None:
-        """Should pass country_iso_code to result and EmissionsTracker kwargs."""
-        mock_emissions_tracker = MagicMock()
-        mock_emissions_tracker.stop.return_value = 0.01
-        mock_emissions_tracker.final_emissions_data = None
-
-        with (
-            patch("calibrax.profiling.carbon.CODECARBON_AVAILABLE", True),
-            patch(
-                "calibrax.profiling.carbon.EmissionsTracker",
-                return_value=mock_emissions_tracker,
-            ) as mock_cls,
-        ):
-            with CarbonTracker(country_iso_code="DEU") as tracker:
-                pass
-
-            result = tracker.result()
-
-        assert result.country_iso_code == "DEU"
-        call_kwargs = mock_cls.call_args[1]
-        assert call_kwargs["country_iso_code"] == "DEU"
-
-    def test_context_manager_handles_no_final_data(self) -> None:
-        """Should handle None final_emissions_data gracefully."""
-        mock_emissions_tracker = MagicMock()
-        mock_emissions_tracker.stop.return_value = 0.0
-        mock_emissions_tracker.final_emissions_data = None
-
-        with (
-            patch("calibrax.profiling.carbon.CODECARBON_AVAILABLE", True),
-            patch(
-                "calibrax.profiling.carbon.EmissionsTracker",
-                return_value=mock_emissions_tracker,
-            ),
-            CarbonTracker(),
+                "calibrax.profiling.carbon.OfflineEmissionsTracker", return_value=offline
+            ) as offline_cls,
+            CarbonTracker(country_iso_code="DEU") as tracker,
         ):
             pass
 
-    def test_result_before_context_manager(self) -> None:
-        """result() before entering context should return zeros."""
+        assert offline_cls.call_args.kwargs["country_iso_code"] == "DEU"
+        online_cls.assert_not_called()
+        assert tracker.result().country_iso_code == "DEU"
+        assert tracker.result().emissions_kg_co2 == 0.01
+
+    def test_no_final_data_gives_zero_energy_and_duration(self) -> None:
+        online = _tracker_double()
+        online.final_emissions_data = None
         with (
-            patch("calibrax.profiling.carbon.CODECARBON_AVAILABLE", True),
-            patch("calibrax.profiling.carbon.EmissionsTracker"),
+            patch("calibrax.profiling.carbon.EmissionsTracker", return_value=online),
+            CarbonTracker() as tracker,
         ):
-            tracker = CarbonTracker()
-            result = tracker.result()
-            assert result.emissions_kg_co2 == 0.0
-            assert result.energy_consumed_kwh == 0.0
-            assert result.duration_sec == 0.0
+            pass
+
+        assert (tracker.result().energy_consumed_kwh, tracker.result().duration_sec) == (0.0, 0.0)
+
+    def test_result_before_the_context_is_zero(self) -> None:
+        result = CarbonTracker().result()
+        assert (result.emissions_kg_co2, result.energy_consumed_kwh, result.duration_sec) == (
+            0.0,
+            0.0,
+            0.0,
+        )
 
     def test_exit_without_enter_is_noop(self) -> None:
-        """__exit__ should be safe when tracker was never started."""
-        with (
-            patch("calibrax.profiling.carbon.CODECARBON_AVAILABLE", True),
-            patch("calibrax.profiling.carbon.EmissionsTracker"),
-        ):
-            tracker = CarbonTracker()
-            tracker.__exit__(None, None, None)
-            result = tracker.result()
-            assert result.emissions_kg_co2 == 0.0
-            assert result.energy_consumed_kwh == 0.0
-            assert result.duration_sec == 0.0
+        tracker = CarbonTracker()
+        tracker.__exit__(None, None, None)
+        assert tracker.result().emissions_kg_co2 == 0.0
 
-    def test_enter_falls_back_when_country_not_supported(self) -> None:
-        """__enter__ should retry without country_iso_code on TypeError."""
-        mock_tracker = MagicMock()
 
-        with (
-            patch("calibrax.profiling.carbon.CODECARBON_AVAILABLE", True),
-            patch(
-                "calibrax.profiling.carbon.EmissionsTracker",
-                side_effect=[TypeError("unsupported kwarg"), mock_tracker],
-            ) as tracker_cls,
-            CarbonTracker(country_iso_code="USA"),
-        ):
-            pass
+def test_importing_without_codecarbon_names_the_extra() -> None:
+    result = run_python(
+        "import sys; sys.modules['codecarbon'] = None\n"
+        "try:\n"
+        "    import calibrax.profiling.carbon\n"
+        "except ImportError as error:\n"
+        "    print(error)\n",
+        timeout=120,
+    )
 
-        assert tracker_cls.call_count == 2
-        first_kwargs = tracker_cls.call_args_list[0].kwargs
-        second_kwargs = tracker_cls.call_args_list[1].kwargs
-        assert "country_iso_code" in first_kwargs
-        assert "country_iso_code" not in second_kwargs
+    assert "calibrax[codecarbon]" in result.stdout
 
-    def test_module_import_sets_unavailable_when_codecarbon_missing(self) -> None:
-        """Module import guard should set CODECARBON_AVAILABLE=False."""
-        import calibrax.profiling.carbon as carbon_mod
 
-        module_path = Path(carbon_mod.__file__)
-        spec = importlib.util.spec_from_file_location("carbon_import_probe", module_path)
-        assert spec is not None
-        assert spec.loader is not None
-        probe_module = importlib.util.module_from_spec(spec)
+def test_profiling_imports_without_codecarbon() -> None:
+    result = run_python(
+        "import sys; sys.modules['codecarbon'] = None\nimport calibrax.profiling\nprint('ok')\n",
+        timeout=120,
+    )
 
-        real_import = builtins.__import__
-
-        def _import_hook(name: str, *args: object, **kwargs: object) -> object:
-            if name == "codecarbon":
-                raise ImportError("missing codecarbon")
-            return real_import(name, *args, **kwargs)
-
-        with patch("builtins.__import__", side_effect=_import_hook):
-            sys.modules[spec.name] = probe_module
-            try:
-                spec.loader.exec_module(probe_module)
-            finally:
-                sys.modules.pop(spec.name, None)
-
-        assert probe_module.CODECARBON_AVAILABLE is False
-        assert probe_module.EmissionsTracker is None
+    assert result.stdout.strip() == "ok"

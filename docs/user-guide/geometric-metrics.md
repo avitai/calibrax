@@ -133,12 +133,14 @@ from calibrax.metrics.functional.distance import randers_distance
 
 x = jnp.array([1.0, 2.0, 3.0])
 y = jnp.array([4.0, 5.0, 6.0])
-drift_vector = jnp.array([0.1, 0.2, 0.0])  # ||drift|| < 1
 
-# Asymmetric: d(x, y) != d(y, x) in general
-# The drift vector breaks symmetry
-d = randers_distance(x, y, drift=drift_vector)
+# The drift is magnitude * (direction / ||direction||); a magnitude below 1 keeps the
+# distance positive. Asymmetric: d(x, y) != d(y, x) in general.
+d = randers_distance(x, y, direction=jnp.array([1.0, 2.0, 0.0]), magnitude=0.2)
 ```
+
+`magnitude` is a Python float, checked when the metric is called, so under `jax.jit` it is a
+static argument (`static_argnames=("magnitude",)`); the direction may be a traced array.
 
 **When to use Randers distance:**
 

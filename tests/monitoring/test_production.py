@@ -16,7 +16,7 @@ class TestProductionMonitor:
         monitor = ProductionMonitor()
         monitor.set_performance_baseline("pipeline_a", 2.0)
         report = monitor.get_pipeline_health_report()
-        assert report["baselines"]["pipeline_a"] == 2.0
+        assert report.baselines["pipeline_a"] == 2.0
 
     def test_record_pipeline_execution(self) -> None:
         """Recorded executions should appear in health report."""
@@ -24,8 +24,8 @@ class TestProductionMonitor:
         monitor.record_pipeline_execution("train", 5.0, success=True)
         monitor.record_pipeline_execution("train", 6.0, success=True)
         report = monitor.get_pipeline_health_report()
-        assert report["pipelines"]["train"]["total_executions"] == 2
-        assert report["pipelines"]["train"]["success_rate"] == 1.0
+        assert report.pipelines["train"].total_executions == 2
+        assert report.pipelines["train"].success_rate == 1.0
 
     def test_degradation_alert(self) -> None:
         """Performance degradation beyond threshold should trigger alert."""
@@ -61,7 +61,7 @@ class TestProductionMonitor:
         monitor.record_pipeline_execution("bad", 1.0, success=False)
         monitor.record_pipeline_execution("bad", 1.0, success=True)
         report = monitor.get_pipeline_health_report()
-        assert report["pipelines"]["bad"]["health"] == "critical"
+        assert report.pipelines["bad"].health == "critical"
 
     def test_pipeline_health_status_healthy(self) -> None:
         """All-success pipeline should be healthy."""
@@ -69,7 +69,7 @@ class TestProductionMonitor:
         for _ in range(5):
             monitor.record_pipeline_execution("good", 1.0, success=True)
         report = monitor.get_pipeline_health_report()
-        assert report["pipelines"]["good"]["health"] == "healthy"
+        assert report.pipelines["good"].health == "healthy"
 
     def test_overall_health_degrades(self) -> None:
         """Overall health should reflect worst pipeline status."""
@@ -79,21 +79,23 @@ class TestProductionMonitor:
         for _ in range(3):
             monitor.record_pipeline_execution("bad", 1.0, success=False)
         report = monitor.get_pipeline_health_report()
-        assert report["overall_health"] == "degraded"
+        assert report.overall_health == "degraded"
 
     def test_empty_report(self) -> None:
         """Health report should be valid with no executions."""
         monitor = ProductionMonitor()
         report = monitor.get_pipeline_health_report()
-        assert report["total_executions"] == 0
-        assert report["overall_health"] == "healthy"
+        assert report.total_executions == 0
+        assert report.overall_health == "healthy"
 
     def test_execution_metadata(self) -> None:
         """Metadata should be stored with execution records."""
         monitor = ProductionMonitor()
         monitor.record_pipeline_execution("train", 3.0, success=True, metadata={"batch_size": 32})
-        report = monitor.get_pipeline_health_report()
-        assert report["total_executions"] == 1
+        (execution,) = monitor.executions
+        assert execution.pipeline_name == "train"
+        assert execution.metadata == {"batch_size": 32}
+        assert monitor.get_pipeline_health_report().total_executions == 1
 
     def test_degradation_severity_is_warning(self) -> None:
         """Degradation alerts should have WARNING severity."""
@@ -134,13 +136,13 @@ class TestProductionMonitor:
             thread.join()
 
         report = monitor.get_pipeline_health_report()
-        assert report["total_executions"] == num_threads * per_thread
+        assert report.total_executions == num_threads * per_thread
         for i in range(num_threads):
-            assert report["pipelines"][f"pipe_{i}"]["total_executions"] == per_thread
+            assert report.pipelines[f"pipe_{i}"].total_executions == per_thread
 
     def test_inherits_from_advanced_monitor(self) -> None:
         """ProductionMonitor should have all AdvancedMonitor capabilities."""
         monitor = ProductionMonitor()
         monitor.set_threshold("cpu_percent", 90.0)
         summary = monitor.get_monitoring_summary()
-        assert summary["thresholds"]["cpu_percent"] == 90.0
+        assert summary.thresholds["cpu_percent"] == 90.0

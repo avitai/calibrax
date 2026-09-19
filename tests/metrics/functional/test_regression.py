@@ -5,6 +5,7 @@ from __future__ import annotations
 import jax
 import jax.numpy as jnp
 import pytest
+from substrax.testing import TraceCounter
 
 from calibrax.metrics.functional.regression import (
     charbonnier_loss,
@@ -16,6 +17,7 @@ from calibrax.metrics.functional.regression import (
     mape,
     max_error,
     mse,
+    per_sample_relative_l2,
     quantile_loss,
     r_squared,
     relative_error,
@@ -81,6 +83,66 @@ class TestRMSE:
         """Result should be a JAX scalar array, not a Python float."""
         result = rmse(jnp.ones(3), jnp.zeros(3))
         assert isinstance(result, jax.Array)
+
+    def test_axis_gives_one_root_per_remaining_index(self) -> None:
+        predictions = jnp.array([[0.0, 0.0], [3.0, 4.0]])
+        targets = jnp.zeros((2, 2))
+        # Row roots: sqrt(0) = 0 and sqrt((9 + 16) / 2).
+        per_row = rmse(predictions, targets, axis=-1, reduction="none")
+        assert per_row.tolist() == pytest.approx([0.0, (12.5) ** 0.5])
+        assert float(rmse(predictions, targets, axis=-1)) == pytest.approx((12.5**0.5) / 2)
+        assert float(rmse(predictions, targets, axis=-1, reduction="sum")) == pytest.approx(
+            12.5**0.5
+        )
+
+    def test_without_an_axis_every_reduction_returns_the_one_root(self) -> None:
+        predictions = jnp.array([1.0, 2.0, 3.0])
+        targets = jnp.array([1.0, 3.0, 5.0])
+        for reduction in ("none", "mean", "sum"):
+            assert float(rmse(predictions, targets, reduction=reduction)) == pytest.approx(
+                (5.0 / 3.0) ** 0.5, rel=1e-6
+            )
+
+    def test_mask_excludes_elements_before_the_root(self) -> None:
+        predictions = jnp.array([2.0, 100.0, 4.0])
+        targets = jnp.array([0.0, 0.0, 0.0])
+        mask = jnp.array([True, False, True])
+        # sqrt((4 + 16) / 2)
+        assert float(rmse(predictions, targets, mask=mask)) == pytest.approx(10.0**0.5)
+
+    def test_weights_give_the_weighted_mean_under_the_root(self) -> None:
+        predictions = jnp.array([1.0, 3.0])
+        targets = jnp.zeros(2)
+        weights = jnp.array([3.0, 1.0])
+        # sqrt((3 * 1 + 1 * 9) / 4) = sqrt(3)
+        assert float(rmse(predictions, targets, weights=weights)) == pytest.approx(3.0**0.5)
+
+    def test_batch_sum_is_refused(self) -> None:
+        with pytest.raises(ValueError, match="batch_sum"):
+            rmse(jnp.ones((2, 3)), jnp.zeros((2, 3)), reduction="batch_sum")
+
+    def test_gradient_is_finite_at_a_perfect_prediction(self) -> None:
+        targets = jnp.array([[1.0, 2.0], [3.0, 4.0]])
+        for axis in (None, -1):
+            grad = jax.grad(lambda p, a=axis: rmse(p, targets, axis=a))(targets)
+            assert bool(jnp.all(jnp.isfinite(grad)))
+        away = jax.grad(lambda p: rmse(p, targets))(targets + 1.0)
+        assert bool(jnp.all(jnp.isfinite(away)))
+        assert float(jnp.abs(away).sum()) > 0.0
+
+    def test_jit_traces_once_and_vmap_matches_the_axis_form(self) -> None:
+        counter = TraceCounter()
+        compiled = jax.jit(counter.wrap(rmse), static_argnames=("reduction", "axis"))
+        predictions = jnp.arange(6.0).reshape(2, 3)
+        targets = jnp.ones((2, 3))
+        with counter.expect(new_traces=1):
+            compiled(predictions, targets, axis=-1, reduction="none")
+        with counter.expect(new_traces=0):
+            compiled(predictions * 2.0, targets, axis=-1, reduction="none")
+        batched = jax.vmap(rmse)(predictions, targets)
+        assert batched.tolist() == pytest.approx(
+            rmse(predictions, targets, axis=-1, reduction="none").tolist()
+        )
 
 
 class TestRSquared:
@@ -390,8 +452,6 @@ class TestRelativeL2Error:
     """The per-sample relative L2 of operator learning (PDEBench convention)."""
 
     def test_per_sample_ratios(self) -> None:
-        from calibrax.metrics.functional.regression import per_sample_relative_l2, relative_l2_error
-
         target = jnp.array([[3.0, 4.0], [6.0, 8.0]])  # norms 5 and 10
         per_sample = per_sample_relative_l2(jnp.zeros((2, 2)), target)
         assert per_sample.shape == (2,)
@@ -399,25 +459,17 @@ class TestRelativeL2Error:
         assert relative_l2_error(jnp.zeros((2, 2)), target) == pytest.approx(1.0, rel=1e-4)
 
     def test_identical_fields_have_zero_error(self) -> None:
-        from calibrax.metrics.functional.regression import relative_l2_error
-
         field = jnp.arange(12.0).reshape(3, 4)
         assert relative_l2_error(field, field) == pytest.approx(0.0, abs=1e-6)
 
     def test_flattens_trailing_axes_per_sample(self) -> None:
-        from calibrax.metrics.functional.regression import relative_l2_error
-
         target = jnp.ones((4, 8, 8, 1))
         assert relative_l2_error(target * 1.1, target) == pytest.approx(0.1, rel=1e-3)
 
     def test_zero_target_is_guarded(self) -> None:
-        from calibrax.metrics.functional.regression import relative_l2_error
-
         assert bool(jnp.isfinite(relative_l2_error(jnp.ones((1, 4)), jnp.zeros((1, 4)))))
 
     def test_jit_grad_vmap(self) -> None:
-        from calibrax.metrics.functional.regression import per_sample_relative_l2, relative_l2_error
-
         pred, target = jnp.full((6, 5), 0.5), jnp.ones((6, 5))
         assert bool(jnp.isfinite(jax.jit(relative_l2_error)(pred, target)))
         assert bool(jnp.all(jnp.isfinite(jax.grad(relative_l2_error)(pred, target))))

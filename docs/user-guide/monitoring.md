@@ -78,11 +78,11 @@ monitor.start_monitoring(interval=5.0)
 # Stop monitoring and get summary
 monitor.stop_monitoring()
 summary = monitor.get_monitoring_summary()
-print(f"Thresholds: {summary['thresholds']}")
-print(f"Alert count: {summary['alert_count']}")
-for metric, history in summary["metric_history"].items():
-    print(f"  {metric}: latest={history['latest']:.2f}, "
-          f"min={history['min']:.2f}, max={history['max']:.2f}")
+print(f"Thresholds: {summary.thresholds}")
+print(f"Alert count: {summary.alert_count}")
+for metric, history in summary.metric_history.items():
+    print(f"  {metric}: latest={history.latest:.2f}, "
+          f"min={history.min:.2f}, max={history.max:.2f}")
 ```
 
 `AdvancedMonitor` optionally accepts a `GPUProfilerProtocol` and a
@@ -117,13 +117,13 @@ monitor.record_pipeline_execution(
 
 # Get health report
 report = monitor.get_pipeline_health_report()
-print(f"Overall health: {report['overall_health']}")
-for name, stats in report["pipelines"].items():
+print(f"Overall health: {report.overall_health}")
+for name, stats in report.pipelines.items():
     print(f"\n{name}:")
-    print(f"  Total executions: {stats['total_executions']}")
-    print(f"  Success rate: {stats['success_rate']:.1%}")
-    print(f"  Mean time: {stats['mean_execution_time']:.4f}s")
-    print(f"  Health: {stats['health']}")
+    print(f"  Total executions: {stats.total_executions}")
+    print(f"  Success rate: {stats.success_rate:.1%}")
+    print(f"  Mean time: {stats.mean_execution_time:.4f}s")
+    print(f"  Health: {stats.health}")
 ```
 
 ```text
@@ -138,11 +138,17 @@ inference:
 
 ### Health Status Values
 
-| Status | Meaning |
-|--------|---------|
-| `healthy` | All pipelines have high success rate and normal execution times |
-| `degraded` | Some pipelines have elevated error rates or slow execution |
-| `critical` | One or more pipelines are failing consistently |
+`PipelineHealth` grades each pipeline by its error rate; the report's `overall_health` is
+`degraded` when any pipeline is not `healthy`. Slow executions raise alerts against the
+baselines but do not change the grade.
+
+| Status | Pipeline error rate |
+|--------|---------------------|
+| `healthy` | 20% or less |
+| `degraded` | above 20%, up to 50% |
+| `critical` | above 50% |
+
+`monitor.executions` holds every recorded execution with its metadata.
 
 ## Best Practices
 

@@ -7,9 +7,9 @@ states the boundary so that the sibling packages do not grow copies.
 
 | Concern | Module | Notes |
 | --- | --- | --- |
-| Wall-clock timing with device synchronisation and warm-up | `timing` | `TimingCollector`, `TimingSample` |
-| Host and GPU resource sampling | `resources`, `gpu` | `ResourceMonitor`, `GPUMemoryProfiler`, `MemoryOptimizer` |
-| Energy and carbon | `energy`, `carbon` | NVML and RAPL sampling; CodeCarbon-backed emissions |
+| Wall-clock timing with device synchronisation and warm-up | `timing`, `timing_records` | `TimingCollector`, `time_calls`, `TimingSample`, `CallTiming` |
+| Host and GPU resource sampling | `resources`, `gpu`, `nvml` | `ResourceMonitor`, `GPUMemoryProfiler`, `NvmlDevice`, `MemoryOptimizer` |
+| Energy and carbon | `energy`, `carbon` | GPU power source and RAPL sampling; CodeCarbon-backed emissions |
 | FLOP counting | `flops` | XLA's cost analysis of the lowered function, the same estimate `flax.nnx.tabulate` reports |
 | Roofline analysis and the accelerator spec table | `roofline`, `hardware` | `RooflineAnalyzer`, `HARDWARE_SPECS`, `detect_hardware_specs` |
 | Compilation profiling and XLA optimisation analysis | `compilation` | `CompilationProfiler` |

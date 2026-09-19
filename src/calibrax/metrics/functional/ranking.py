@@ -10,14 +10,14 @@ precision_at_k, recall_at_k, mean_reciprocal_rank, hit_rate, coverage.
 
 from __future__ import annotations
 
-from typing import Any
-
+import jax
 import jax.numpy as jnp
+from jax.typing import ArrayLike
 
 from calibrax.metrics._utils import _EPSILON
 
 
-def _rank_by_scores(scores: Any, relevance: Any) -> Any:
+def _rank_by_scores(scores: ArrayLike, relevance: ArrayLike) -> jax.Array:
     """Sort relevance by descending predicted scores.
 
     Args:
@@ -31,7 +31,7 @@ def _rank_by_scores(scores: Any, relevance: Any) -> Any:
     return jnp.asarray(relevance).ravel()[order]
 
 
-def ndcg(scores: Any, relevance: Any) -> Any:
+def ndcg(scores: ArrayLike, relevance: ArrayLike) -> jax.Array:
     """Normalized Discounted Cumulative Gain (full list).
 
     ``DCG / IDCG`` where ``DCG = sum((2^rel_i - 1) / log2(i+2))``.
@@ -68,7 +68,7 @@ def ndcg(scores: Any, relevance: Any) -> Any:
     return jnp.where(idcg > _EPSILON, dcg / idcg, 0.0)
 
 
-def ndcg_at_k(scores: Any, relevance: Any, *, k: int) -> Any:
+def ndcg_at_k(scores: ArrayLike, relevance: ArrayLike, *, k: int) -> jax.Array:
     """NDCG truncated to top-k results.
 
     Note:
@@ -97,7 +97,7 @@ def ndcg_at_k(scores: Any, relevance: Any, *, k: int) -> Any:
     return jnp.where(idcg > _EPSILON, dcg / idcg, 0.0)
 
 
-def mean_average_precision(scores: Any, relevance: Any) -> Any:
+def mean_average_precision(scores: ArrayLike, relevance: ArrayLike) -> jax.Array:
     """Mean Average Precision for a single query.
 
     Average of precision at each relevant position.
@@ -130,7 +130,7 @@ def mean_average_precision(scores: Any, relevance: Any) -> Any:
     return jnp.where(n_relevant == 0, 0.0, ap_sum / n_relevant)
 
 
-def precision_at_k(scores: Any, relevance: Any, *, k: int) -> Any:
+def precision_at_k(scores: ArrayLike, relevance: ArrayLike, *, k: int) -> jax.Array:
     """Fraction of relevant items in top-k.
 
     Note:
@@ -150,7 +150,7 @@ def precision_at_k(scores: Any, relevance: Any, *, k: int) -> Any:
     return jnp.sum(ranked_rel[:k]) / k
 
 
-def recall_at_k(scores: Any, relevance: Any, *, k: int) -> Any:
+def recall_at_k(scores: ArrayLike, relevance: ArrayLike, *, k: int) -> jax.Array:
     """Fraction of relevant items found in top-k.
 
     Note:
@@ -172,7 +172,7 @@ def recall_at_k(scores: Any, relevance: Any, *, k: int) -> Any:
     return jnp.where(n_relevant == 0, 0.0, hits / n_relevant)
 
 
-def mean_reciprocal_rank(scores: Any, relevance: Any) -> Any:
+def mean_reciprocal_rank(scores: ArrayLike, relevance: ArrayLike) -> jax.Array:
     """Reciprocal of the rank of the first relevant item.
 
     Note:
@@ -201,7 +201,7 @@ def mean_reciprocal_rank(scores: Any, relevance: Any) -> Any:
     return jnp.where(rank == 0, 0.0, rank)
 
 
-def hit_rate(scores: Any, relevance: Any, *, k: int) -> Any:
+def hit_rate(scores: ArrayLike, relevance: ArrayLike, *, k: int) -> jax.Array:
     """Whether any relevant item appears in top-k.
 
     Note:
@@ -221,21 +221,29 @@ def hit_rate(scores: Any, relevance: Any, *, k: int) -> Any:
     return jnp.where(jnp.sum(ranked_rel[:k]) > 0, 1.0, 0.0)
 
 
-def coverage(scores: Any, relevance: Any, *, catalog_size: int) -> Any:  # noqa: ARG001  # registry signature
-    """Fraction of catalog covered by recommendations.
+def coverage(items: ArrayLike, *, catalog_size: int) -> jax.Array:
+    """Catalog coverage: the fraction of the catalog's items that appear in the recommendations.
+
+    ``|distinct recommended items| / catalog_size`` (Ge, Delgado-Battenfeld and Jannach 2010).
+    Items are integer ids in ``[0, catalog_size)``; an id outside that range is not a catalog item
+    and is not counted. The count uses ``jnp.bincount`` with a static ``length``, so the function
+    works under ``jax.jit`` (``catalog_size`` static) and ``jax.vmap``.
 
     Note:
         Direction: HIGHER (1.0 = full catalog coverage).
         Range: [0, 1].
 
     Args:
-        scores: Recommended item IDs (1D integer array).
-        relevance: Unused (present for API consistency). Pass any array.
-        catalog_size: Total number of unique items in catalog.
+        items: Recommended item ids, any shape; every list in a batch is covered together.
+        catalog_size: Number of items in the catalog.
 
     Returns:
         Coverage as a scalar value.
     """
-    items = jnp.asarray(scores).ravel()
-    unique_count = jnp.float32(len(jnp.unique(items)))
-    return unique_count / catalog_size
+    ids = jnp.asarray(items).ravel()
+    in_catalog = (ids >= 0) & (ids < catalog_size)
+    # jnp.bincount clips negative ids to 0, so ids outside the catalog carry zero weight.
+    counts = jnp.bincount(
+        jnp.where(in_catalog, ids, 0), weights=in_catalog.astype(jnp.int32), length=catalog_size
+    )
+    return jnp.count_nonzero(counts) / catalog_size

@@ -9,24 +9,24 @@ Includes 3 functions: iou, dice_coefficient, pixel_accuracy.
 
 from __future__ import annotations
 
-from typing import Any
-
+import jax
 import jax.numpy as jnp
+from jax.typing import ArrayLike
 
 from calibrax.metrics._utils import _EPSILON, _prepare_class_arrays
 
 
 def iou(
-    predictions: Any,
-    targets: Any,
+    predictions: ArrayLike,
+    targets: ArrayLike,
     *,
     num_classes: int | None = None,
     average: str = "binary",
-) -> Any:
+) -> jax.Array:
     """Intersection over Union (Jaccard index) for segmentation.
 
     Measures overlap between predicted and ground truth masks.
-    For binary: ``|P ∩ T| / |P ∪ T|``.
+    For binary: the size of the intersection of P and T over the size of their union.
     For multiclass: per-class IoU, then averaged.
 
     Note:
@@ -54,7 +54,7 @@ def iou(
         >>> truth = jnp.array([1, 0, 0, 0])
         >>> iou(preds, truth)  # binary IoU
         0.5
-    """  # noqa: RUF002  # set notation
+    """
     p, t = _prepare_class_arrays(predictions, targets)
     p, t = p.ravel(), t.ravel()
 
@@ -87,12 +87,12 @@ def iou(
 
 
 def dice_coefficient(
-    predictions: Any,
-    targets: Any,
+    predictions: ArrayLike,
+    targets: ArrayLike,
     *,
     num_classes: int | None = None,
     average: str = "binary",
-) -> Any:
+) -> jax.Array:
     """Dice coefficient (F1 for segmentation).
 
     Measures overlap: ``2|P ∩ T| / (|P| + |T|)``. Equivalent to
@@ -157,7 +157,7 @@ def dice_coefficient(
     return jnp.sum(class_dice * weights)
 
 
-def pixel_accuracy(predictions: Any, targets: Any) -> Any:
+def pixel_accuracy(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:
     """Fraction of correctly classified pixels.
 
     Simple accuracy metric for segmentation tasks. Counts the

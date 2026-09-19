@@ -10,23 +10,25 @@ Tier 2: LPIPSMetric (VGG with learned calibration weights)
 from __future__ import annotations
 
 import logging
-from typing import Any
+from collections.abc import Sequence
 
+import jax
 import jax.numpy as jnp
 from flax import nnx
+from jax.typing import ArrayLike
 
+from calibrax.metrics._utils import _FEATURE_MATRIX_NDIM
 from calibrax.metrics.functional.generative import frechet_feature_distance, inception_score
 from calibrax.metrics.stateful._base import FrozenBackboneMetric, LearnedMetric
 
 
 # Feature inputs are (samples, features); anything deeper is raw images.
-_FEATURE_NDIM = 2
 
 
 logger = logging.getLogger(__name__)
 
 
-class FIDMetric(FrozenBackboneMetric):
+class FIDMetric(FrozenBackboneMetric[dict[str, jax.Array]]):
     """Frechet Inception Distance using InceptionV3 features.
 
     Accumulates real and generated feature batches, then computes the
@@ -51,15 +53,15 @@ class FIDMetric(FrozenBackboneMetric):
         """
         super().__init__(name="fid")
         self._feature_dim = feature_dim
-        self._real_features: list[Any] = []
-        self._gen_features: list[Any] = []
+        self._real_features: list[jax.Array] = []
+        self._gen_features: list[jax.Array] = []
 
     def reset(self) -> None:
         """Reset accumulated features."""
         self._real_features = []
         self._gen_features = []
 
-    def _extract_features(self, **kwargs: Any) -> dict[str, Any]:
+    def _extract_features(self, **kwargs: ArrayLike) -> dict[str, jax.Array]:
         """Extract or pass through features.
 
         Accepts either raw images (with backbone extraction) or
@@ -76,7 +78,7 @@ class FIDMetric(FrozenBackboneMetric):
         """
         real = jnp.asarray(kwargs["real"])
         generated = jnp.asarray(kwargs["generated"])
-        if real.ndim > _FEATURE_NDIM:
+        if real.ndim > _FEATURE_MATRIX_NDIM:
             logger.warning(
                 "Raw image input detected. Install calibrax[image] for "
                 "InceptionV3 feature extraction. Using flattened features."
@@ -85,7 +87,7 @@ class FIDMetric(FrozenBackboneMetric):
             generated = generated.reshape(generated.shape[0], -1)
         return {"real": real, "generated": generated}
 
-    def _accumulate(self, features: Any) -> None:
+    def _accumulate(self, features: dict[str, jax.Array]) -> None:
         """Accumulate feature batches.
 
         Args:
@@ -111,7 +113,7 @@ class FIDMetric(FrozenBackboneMetric):
         return {"fid": float(frechet_feature_distance(real_all, gen_all))}
 
 
-class InceptionScoreMetric(FrozenBackboneMetric):
+class InceptionScoreMetric(FrozenBackboneMetric[jax.Array]):
     """Inception Score using InceptionV3 class probabilities.
 
     IS = exp(E[KL(p(y|x) || p(y))])
@@ -128,13 +130,13 @@ class InceptionScoreMetric(FrozenBackboneMetric):
     def __init__(self) -> None:
         """Initialize Inception Score metric."""
         super().__init__(name="inception_score")
-        self._all_probs: list[Any] = []
+        self._all_probs: list[jax.Array] = []
 
     def reset(self) -> None:
         """Reset accumulated probabilities."""
         self._all_probs = []
 
-    def _extract_features(self, **kwargs: Any) -> Any:
+    def _extract_features(self, **kwargs: ArrayLike) -> jax.Array:
         """Extract or pass through class probabilities.
 
         Args:
@@ -146,7 +148,7 @@ class InceptionScoreMetric(FrozenBackboneMetric):
         """
         return jnp.asarray(kwargs["probabilities"])
 
-    def _accumulate(self, features: Any) -> None:
+    def _accumulate(self, features: jax.Array) -> None:
         """Accumulate probability batches.
 
         Args:
@@ -194,7 +196,7 @@ class LPIPSMetric(LearnedMetric):
             feature_channels: Number of channels at each VGG layer.
             rngs: RNG streams for parameter initialization.
         """
-        super().__init__(name="lpips", rngs=rngs)
+        super().__init__(name="lpips")
         self._layer_weights = nnx.List(
             [nnx.Linear(in_features=ch, out_features=1, rngs=rngs) for ch in feature_channels]
         )
@@ -204,19 +206,13 @@ class LPIPSMetric(LearnedMetric):
         """Reset accumulated scores."""
         self._scores = []
 
-    def update(self, **kwargs: Any) -> None:
-        """Compute LPIPS between two images.
-
-        Accepts pre-extracted VGG features as lists of per-layer activations,
-        or raw image pairs (placeholder for future backbone integration).
+    def update(self, *, features_a: Sequence[ArrayLike], features_b: Sequence[ArrayLike]) -> None:
+        """Compute LPIPS between two images from their pre-extracted per-layer VGG features.
 
         Args:
-            **kwargs: Must include "features_a" and "features_b" as lists
-                of per-layer feature arrays.
+            features_a: Per-layer features of the first images, one array per layer.
+            features_b: Per-layer features of the second images, in the same layers.
         """
-        features_a = kwargs.get("features_a", [])
-        features_b = kwargs.get("features_b", [])
-
         total = 0.0
         for layer_feat_a, layer_feat_b, linear in zip(
             features_a, features_b, self._layer_weights, strict=True

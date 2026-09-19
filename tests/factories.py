@@ -3,15 +3,17 @@
 from __future__ import annotations
 
 import time
+import types
 from collections.abc import Mapping
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
 from calibrax.core.models import Metric, MetricDef, MetricDirection, Point, Run
 from calibrax.profiling.energy import EnergySummary
 from calibrax.profiling.gpu import HardwareConfig
-from calibrax.profiling.resources import ResourceSummary
-from calibrax.profiling.timing import TimingSample
+from calibrax.profiling.resources import GpuClocks, GpuMemory, GpuPower, ResourceSummary
+from calibrax.profiling.timing_records import TimingSample
 
 
 _CPU_HARDWARE_KWARGS: dict[str, str | int | bool] = {
@@ -271,3 +273,63 @@ def assert_monitor_thread_lifecycle(monitor: Any) -> None:
         assert monitor._sampling_thread._thread is not None
         assert monitor._sampling_thread._thread.is_alive()
     assert not monitor._sampling_thread._thread.is_alive()
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class FakeGpu:
+    """A GPU profiler answering fixed readings; a field left ``None`` is a reading not taken."""
+
+    memory_reading: GpuMemory | None = None
+    utilization_reading: float | None = None
+    clocks_reading: GpuClocks | None = None
+    power_reading: GpuPower | None = None
+
+    def memory(self) -> GpuMemory | None:
+        """The fixed memory reading."""
+        return self.memory_reading
+
+    def utilization(self) -> float | None:
+        """The fixed utilization reading."""
+        return self.utilization_reading
+
+    def clocks(self) -> GpuClocks | None:
+        """The fixed clocks reading."""
+        return self.clocks_reading
+
+    def power(self) -> GpuPower | None:
+        """The fixed power reading."""
+        return self.power_reading
+
+
+NVML_NOT_SUPPORTED = 3
+
+
+class FakeNvmlError(Exception):
+    """``pynvml.NVMLError``: carries the NVML return code as ``value``."""
+
+    def __init__(self, value: int) -> None:
+        super().__init__(value)
+        self.value = value
+
+
+def make_fake_nvml() -> types.SimpleNamespace:
+    """The NVML calls ``NvmlDevice`` makes, answering for one GPU; ``calls`` records init/shutdown.
+
+    Patch it over ``calibrax.profiling.nvml.pynvml`` to run NVML code without a GPU or driver.
+    """
+    calls: list[str] = []
+    return types.SimpleNamespace(
+        calls=calls,
+        NVMLError=FakeNvmlError,
+        NVML_ERROR_NOT_SUPPORTED=NVML_NOT_SUPPORTED,
+        NVML_CLOCK_GRAPHICS=0,
+        NVML_CLOCK_MEM=2,
+        nvmlInit=lambda: calls.append("init"),
+        nvmlShutdown=lambda: calls.append("shutdown"),
+        nvmlDeviceGetHandleByIndex=lambda index: f"gpu{index}",
+        nvmlDeviceGetMemoryInfo=lambda _h: types.SimpleNamespace(used=2 * 2**30, total=8 * 2**30),
+        nvmlDeviceGetUtilizationRates=lambda _h: types.SimpleNamespace(gpu=73, memory=40),
+        nvmlDeviceGetClockInfo=lambda _h, kind: {0: 1500, 2: 10_000}[kind],
+        nvmlDeviceGetPowerUsage=lambda _h: 240_000,
+        nvmlDeviceGetPowerManagementLimit=lambda _h: 450_000,
+    )

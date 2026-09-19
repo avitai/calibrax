@@ -8,15 +8,15 @@ Tier 1: BERTScoreMetric (frozen BERT for token embedding similarity)
 
 from __future__ import annotations
 
-from typing import Any
-
+import jax
 import jax.numpy as jnp
+from jax.typing import ArrayLike
 
 from calibrax.metrics._utils import _EPSILON
 from calibrax.metrics.stateful._base import FrozenBackboneMetric
 
 
-class BERTScoreMetric(FrozenBackboneMetric):
+class BERTScoreMetric(FrozenBackboneMetric[dict[str, jax.Array]]):
     """BERTScore using frozen BERT token embeddings.
 
     Computes precision, recall, and F1 based on cosine similarity
@@ -49,7 +49,7 @@ class BERTScoreMetric(FrozenBackboneMetric):
         self._recalls = []
         self._f1_scores = []
 
-    def _extract_features(self, **kwargs: Any) -> dict[str, Any]:
+    def _extract_features(self, **kwargs: ArrayLike) -> dict[str, jax.Array]:
         """Accept pre-extracted embeddings.
 
         Args:
@@ -64,7 +64,7 @@ class BERTScoreMetric(FrozenBackboneMetric):
             "reference": jnp.asarray(kwargs["reference_embeddings"]),
         }
 
-    def _accumulate(self, features: Any) -> None:
+    def _accumulate(self, features: dict[str, jax.Array]) -> None:
         """Compute per-pair BERTScore and accumulate.
 
         Args:

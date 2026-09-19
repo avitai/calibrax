@@ -7,23 +7,23 @@ and generates optimization recommendations.
 
 from __future__ import annotations
 
-import logging
-from collections.abc import Callable
+import math
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any
 
 import jax
+from substrax.devices import detect_devices
+from substrax.records import read_record
+from substrax.typing import JsonValue, PyTree
 
-from calibrax.profiling.hardware import detect_hardware_specs
+from calibrax.profiling.flops import FlopsCounter
+from calibrax.profiling.hardware import detect_hardware_specs, HardwareSpec, UnknownHardwareError
 from calibrax.profiling.timing import time_calls
 
 
 # Attained-over-attainable fractions behind the recommendations.
 _LOW_EFFICIENCY = 0.2
 _MODERATE_EFFICIENCY = 0.5
-
-
-logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -50,7 +50,7 @@ class RooflineResult:
     execution_time_ms: float
     recommendations: tuple[str, ...] = ()
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, JsonValue]:
         """Serialize to a JSON-compatible dictionary."""
         return {
             "arithmetic_intensity": float(self.arithmetic_intensity),
@@ -64,63 +64,22 @@ class RooflineResult:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> RooflineResult:
-        """Deserialize from a dictionary.
+    def from_dict(  # noqa: DOC502  # raised by read_record
+        cls, data: Mapping[str, JsonValue]
+    ) -> RooflineResult:
+        """Read the record from the JSON object ``to_dict`` writes.
 
         Args:
-            data: Dictionary with roofline result fields.
+            data: The JSON object.
 
         Returns:
-            Reconstructed RooflineResult instance.
+            The record.
+
+        Raises:
+            pydantic.ValidationError: If a field is missing or holds a value its annotation
+                does not admit.
         """
-        return cls(
-            arithmetic_intensity=data["arithmetic_intensity"],
-            critical_intensity=data["critical_intensity"],
-            memory_bandwidth_utilization=data["memory_bandwidth_utilization"],
-            flops_utilization=data["flops_utilization"],
-            bottleneck=data["bottleneck"],
-            efficiency=data["efficiency"],
-            execution_time_ms=data["execution_time_ms"],
-            recommendations=tuple(data.get("recommendations", ())),
-        )
-
-
-def _extract_flops_from_cost(cost: dict[str, Any] | list[dict[str, Any]] | None) -> int | None:
-    """Extract FLOP count from XLA cost analysis result.
-
-    Args:
-        cost: Result from ``lowered.cost_analysis()`` (dict or list of dicts).
-
-    Returns:
-        Positive FLOP count, or None if not available.
-    """
-    if cost and isinstance(cost, dict):
-        flops = cost.get("flops")
-        if flops is not None and flops > 0:
-            return int(flops)
-    if cost and isinstance(cost, list) and len(cost) > 0:
-        flops = cost[0].get("flops")
-        if flops is not None and flops > 0:
-            return int(flops)
-    return None
-
-
-def _try_xla_cost_analysis(func: Callable[..., Any], inputs: list[jax.Array]) -> int | None:
-    """Attempt to extract FLOPs from XLA cost analysis.
-
-    Args:
-        func: JAX function.
-        inputs: Input arrays.
-
-    Returns:
-        FLOP count from XLA, or None if unavailable.
-    """
-    try:
-        lowered = jax.jit(func).lower(*inputs)
-        return _extract_flops_from_cost(lowered.cost_analysis())
-    except (AttributeError, TypeError, ValueError, RuntimeError):
-        logger.debug("XLA cost analysis unavailable, falling back to heuristic")
-    return None
+        return read_record(cls, data)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -132,15 +91,16 @@ class RooflineAnalyzer:
     it uses the available hardware resources.
 
     Attributes:
-        hardware_specs: Hardware specification dictionary (auto-detected if not provided).
+        hardware_specs: The accelerator's figures; detected from JAX's device kind when not
+            given, and ``None`` when the accelerator is not in ``HARDWARE_SPECS``.
     """
 
-    hardware_specs: dict[str, Any] = field(default_factory=detect_hardware_specs)
+    hardware_specs: HardwareSpec | None = field(default_factory=detect_hardware_specs)
 
-    def analyze_operation(
+    def analyze_operation(  # noqa: DOC503  # FlopsUnavailableError is raised by FlopsCounter
         self,
-        func: Callable[..., Any],
-        inputs: list[jax.Array],
+        func: Callable[..., PyTree],
+        inputs: Sequence[jax.Array],
         *,
         flops_override: int | None = None,
     ) -> RooflineResult:
@@ -149,23 +109,39 @@ class RooflineAnalyzer:
         Args:
             func: JAX function to analyze.
             inputs: Input arrays for the function.
-            flops_override: If provided, use this FLOP count instead of estimating.
-                For accurate results, pass the output of ``FlopsCounter.count()``.
+            flops_override: The operation's FLOP count, used in place of XLA's estimate.
 
         Returns:
             RooflineResult with bottleneck classification and recommendations.
+
+        Raises:
+            UnknownHardwareError: If no spec was given and the accelerator is not in
+                ``HARDWARE_SPECS``.
+            FlopsUnavailableError: If no override is given and XLA cannot estimate the cost.
         """
-        execution_time = time_calls(jax.jit(func), *inputs).median_sec
-        theoretical_flops = flops_override or self._estimate_flops(func, inputs)
+        spec = self.hardware_specs
+        if spec is None:
+            kinds = ", ".join(sorted(set(detect_devices().device_kinds)))
+            msg = (
+                f"no roofline figures for the accelerator in use ({kinds}); pass "
+                "RooflineAnalyzer(hardware_specs=HardwareSpec(...)) with its peak FLOP/s and "
+                "memory bandwidth"
+            )
+            raise UnknownHardwareError(msg)
+        compiled = jax.jit(func)
+        execution_time = time_calls(lambda: compiled(*inputs)).median_sec
+        theoretical_flops = (
+            flops_override if flops_override is not None else self._estimate_flops(func, inputs)
+        )
         memory_traffic = self._estimate_memory_traffic(func, inputs)
 
         achieved_flops = theoretical_flops / execution_time if execution_time > 0 else 0.0
         memory_bw = memory_traffic / execution_time if execution_time > 0 else 0.0
         arithmetic_intensity = theoretical_flops / memory_traffic if memory_traffic > 0 else 0.0
 
-        peak_flops = self.hardware_specs["peak_flops"]
-        peak_bandwidth = self.hardware_specs["memory_bandwidth"]
-        critical_intensity = self.hardware_specs["critical_intensity"]
+        peak_flops = spec.peak_flops
+        peak_bandwidth = spec.memory_bandwidth
+        critical_intensity = spec.critical_intensity
 
         flops_util = achieved_flops / peak_flops if peak_flops > 0 else 0.0
         bw_util = memory_bw / peak_bandwidth if peak_bandwidth > 0 else 0.0
@@ -177,8 +153,8 @@ class RooflineAnalyzer:
             bottleneck = "compute"
             efficiency = flops_util
 
-        recommendations = self._generate_recommendations(
-            arithmetic_intensity, efficiency, bottleneck, inputs, achieved_flops
+        recommendations = _recommendations(
+            spec, arithmetic_intensity, efficiency, bottleneck, inputs, achieved_flops
         )
 
         return RooflineResult(
@@ -192,129 +168,116 @@ class RooflineAnalyzer:
             recommendations=tuple(recommendations),
         )
 
-    def _estimate_flops(self, func: Callable[..., Any], inputs: list[jax.Array]) -> int:
-        """Estimate FLOPs using XLA cost analysis when possible.
-
-        Falls back to a simple heuristic if cost_analysis is unavailable.
+    def _estimate_flops(self, func: Callable[..., PyTree], inputs: Sequence[jax.Array]) -> int:
+        """The operation's FLOPs from XLA's cost analysis of its lowering.
 
         Args:
             func: JAX function.
             inputs: Input arrays.
 
         Returns:
-            Estimated FLOP count.
+            The FLOP count ``FlopsCounter`` reports.
         """
-        xla_flops = _try_xla_cost_analysis(func, inputs)
-        if xla_flops is not None:
-            return xla_flops
+        return FlopsCounter().count(func, *inputs).total_flops
 
-        # Fallback: rough heuristic based on input sizes
-        total_elements = sum(x.size for x in inputs)
-        return total_elements * 10
+    def _estimate_memory_traffic(
+        self, func: Callable[..., PyTree], inputs: Sequence[jax.Array]
+    ) -> int:
+        """The bytes read and written: every input and every output leaf once.
 
-    def _estimate_memory_traffic(self, func: Callable[..., Any], inputs: list[jax.Array]) -> int:
-        """Estimate total memory traffic (input + output bytes).
+        The outputs' shapes come from ``jax.eval_shape``, which traces the function without
+        running it.
 
         Args:
             func: JAX function.
             inputs: Input arrays.
 
         Returns:
-            Estimated bytes of memory traffic.
+            Input bytes plus output bytes.
         """
-        memory_traffic = sum(x.nbytes for x in inputs)
+        outputs = jax.tree.leaves(jax.eval_shape(func, *inputs))
+        output_bytes = sum(math.prod(leaf.shape) * leaf.dtype.itemsize for leaf in outputs)
+        return sum(x.nbytes for x in inputs) + output_bytes
 
-        try:
-            output = func(*inputs)
-            if isinstance(output, tuple | list):
-                for out in output:
-                    if hasattr(out, "nbytes"):
-                        memory_traffic += out.nbytes
-            elif hasattr(output, "nbytes"):
-                memory_traffic += output.nbytes
-        except (AttributeError, TypeError, ValueError, RuntimeError):
-            # If we can't run the function, estimate output = input size
-            memory_traffic *= 2
 
-        return memory_traffic
+def _recommendations(
+    spec: HardwareSpec,
+    arithmetic_intensity: float,
+    efficiency: float,
+    bottleneck: str,
+    inputs: Sequence[jax.Array],
+    achieved_flops: float,
+) -> list[str]:
+    """Generate optimization recommendations based on roofline analysis.
 
-    def _generate_recommendations(
-        self,
-        arithmetic_intensity: float,
-        efficiency: float,
-        bottleneck: str,
-        inputs: list[jax.Array],
-        achieved_flops: float,
-    ) -> list[str]:
-        """Generate optimization recommendations based on roofline analysis.
+    Args:
+        spec: The accelerator's figures.
+        arithmetic_intensity: Achieved FLOPs per byte.
+        efficiency: Utilization of the binding resource.
+        bottleneck: "memory_bandwidth" or "compute".
+        inputs: Input arrays.
+        achieved_flops: Achieved FLOP/s.
 
-        Args:
-            arithmetic_intensity: Achieved FLOPs per byte.
-            efficiency: Utilization of the binding resource.
-            bottleneck: "memory_bandwidth" or "compute".
-            inputs: Input arrays.
-            achieved_flops: Achieved FLOP/s.
+    Returns:
+        List of recommendation strings.
+    """
+    recommendations: list[str] = []
 
-        Returns:
-            List of recommendation strings.
-        """
-        recommendations: list[str] = []
+    if bottleneck == "memory_bandwidth":
+        recommendations.extend(
+            [
+                (
+                    f"Memory bound (intensity: {arithmetic_intensity:.2f} < "
+                    f"{spec.critical_intensity:.2f}). "
+                    f"Optimize memory access patterns."
+                ),
+                "Increase batch size to improve arithmetic intensity.",
+                "Use operation fusion to reduce memory traffic.",
+            ]
+        )
+    else:
+        recommendations.extend(
+            [
+                (
+                    f"Compute bound (intensity: {arithmetic_intensity:.2f} > "
+                    f"{spec.critical_intensity:.1f}). "
+                    "Optimize FLOPs."
+                ),
+                "Check for inefficient math operations.",
+                "Ensure high-precision matrix units (MXU/TensorCore) are utilized.",
+            ]
+        )
 
-        if bottleneck == "memory_bandwidth":
-            recommendations.extend(
-                [
-                    (
-                        f"Memory bound (intensity: {arithmetic_intensity:.2f} < "
-                        f"{self.hardware_specs['critical_intensity']:.2f}). "
-                        f"Optimize memory access patterns."
-                    ),
-                    "Increase batch size to improve arithmetic intensity.",
-                    "Use operation fusion to reduce memory traffic.",
-                ]
-            )
-        else:
-            recommendations.extend(
-                [
-                    (
-                        f"Compute bound (intensity: {arithmetic_intensity:.2f} > "
-                        f"{self.hardware_specs['critical_intensity']:.1f}). "
-                        "Optimize FLOPs."
-                    ),
-                    "Check for inefficient math operations.",
-                    "Ensure high-precision matrix units (MXU/TensorCore) are utilized.",
-                ]
-            )
+    if efficiency < _LOW_EFFICIENCY:
+        attained_gflops = achieved_flops / 1e9
+        recommendations.extend(
+            [
+                (
+                    f"Low performance ({attained_gflops:.2f} GFLOPS). "
+                    "Check for bottlenecks other than compute/memory."
+                ),
+                "Consider kernel launch overhead (too many small ops).",
+                "Check data alignment.",
+            ]
+        )
+    elif efficiency < _MODERATE_EFFICIENCY:
+        recommendations.extend(
+            [
+                f"Moderate efficiency ({efficiency:.2%}). Potential improvements:",
+                "Optimize tensor layouts for memory access patterns.",
+                "Consider hardware-specific optimizations.",
+            ]
+        )
 
-        if efficiency < _LOW_EFFICIENCY:
-            attained_gflops = achieved_flops / 1e9
-            recommendations.extend(
-                [
-                    (
-                        f"Low performance ({attained_gflops:.2f} GFLOPS). "
-                        "Check for bottlenecks other than compute/memory."
-                    ),
-                    "Consider kernel launch overhead (too many small ops).",
-                    "Check data alignment.",
-                ]
-            )
-        elif efficiency < _MODERATE_EFFICIENCY:
-            recommendations.extend(
-                [
-                    f"Moderate efficiency ({efficiency:.2%}). Potential improvements:",
-                    "Optimize tensor layouts for memory access patterns.",
-                    "Consider hardware-specific optimizations.",
-                ]
+    if inputs:
+        alignment_score = _calculate_alignment_score(inputs[0].shape)
+        if alignment_score < 1.0:
+            recommendations.append(
+                f"Poor tensor alignment (score: {alignment_score:.2f}). "
+                "Pad dimensions to multiples of 128/256."
             )
 
-        if inputs:
-            alignment_score = _calculate_alignment_score(inputs[0].shape)
-            if alignment_score < 1.0:
-                recommendations.append(
-                    f"Poor tensor alignment (score: {alignment_score:.2f}). "
-                    "Pad dimensions to multiples of 128/256."
-                )
-
-        return recommendations
+    return recommendations
 
 
 def _calculate_alignment_score(shape: tuple[int, ...]) -> float:

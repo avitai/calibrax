@@ -18,16 +18,18 @@ References:
 
 from __future__ import annotations
 
-from typing import Any
-
 import jax
 import jax.numpy as jnp
 from jax.scipy.stats.norm import cdf as _norm_cdf
+from jax.typing import ArrayLike
+from scipy import stats
 
 from calibrax.metrics._utils import _EPSILON, _prepare_arrays
 
 
-def _prepare_interval_arrays(lower: Any, upper: Any, targets: Any) -> tuple[Any, Any, Any]:  # noqa: DOC502  # raised by _prepare_arrays
+def _prepare_interval_arrays(  # noqa: DOC502  # raised by _prepare_arrays
+    lower: ArrayLike, upper: ArrayLike, targets: ArrayLike
+) -> tuple[jax.Array, jax.Array, jax.Array]:
     """Validate an interval and its targets share one shape and convert them.
 
     Args:
@@ -46,7 +48,7 @@ def _prepare_interval_arrays(lower: Any, upper: Any, targets: Any) -> tuple[Any,
     return low, high, target
 
 
-def picp(lower: Any, upper: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _prepare_arrays
+def picp(lower: ArrayLike, upper: ArrayLike, targets: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _prepare_interval_arrays
     """Prediction interval coverage probability.
 
     The fraction of targets inside ``[lower, upper]``. Compare it with the nominal
@@ -72,7 +74,7 @@ def picp(lower: Any, upper: Any, targets: Any) -> Any:  # noqa: DOC502  # raised
     return jnp.mean(covered.astype(jnp.float32))
 
 
-def mpiw(lower: Any, upper: Any) -> Any:  # noqa: DOC502  # raised by _prepare_arrays
+def mpiw(lower: ArrayLike, upper: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _prepare_arrays
     """Mean prediction interval width, ``mean(upper - lower)``.
 
     Note:
@@ -93,7 +95,9 @@ def mpiw(lower: Any, upper: Any) -> Any:  # noqa: DOC502  # raised by _prepare_a
     return jnp.mean(high - low)
 
 
-def interval_score(lower: Any, upper: Any, targets: Any, *, alpha: float) -> Any:  # noqa: DOC502  # raised by _prepare_arrays
+def interval_score(  # noqa: DOC502  # raised by _prepare_interval_arrays
+    lower: ArrayLike, upper: ArrayLike, targets: ArrayLike, *, alpha: float
+) -> jax.Array:
     """Interval score of central ``(1 - alpha)`` prediction intervals.
 
     ``IS = (u - l) + (2 / alpha) (l - y)_+ + (2 / alpha) (y - u)_+``, averaged over
@@ -122,7 +126,9 @@ def interval_score(lower: Any, upper: Any, targets: Any, *, alpha: float) -> Any
     return jnp.mean((high - low) + (2.0 / alpha) * (below + above))
 
 
-def winkler_score(lower: Any, upper: Any, targets: Any, *, alpha: float) -> Any:
+def winkler_score(
+    lower: ArrayLike, upper: ArrayLike, targets: ArrayLike, *, alpha: float
+) -> jax.Array:
     """Winkler's 1972 name for :func:`interval_score`; same value.
 
     Args:
@@ -137,7 +143,7 @@ def winkler_score(lower: Any, upper: Any, targets: Any, *, alpha: float) -> Any:
     return interval_score(lower, upper, targets, alpha=alpha)
 
 
-def gaussian_nll(means: Any, variances: Any, targets: Any) -> Any:  # noqa: DOC502  # raised by _prepare_arrays
+def gaussian_nll(means: ArrayLike, variances: ArrayLike, targets: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _prepare_arrays
     """Mean negative log-likelihood of the targets under a diagonal Gaussian.
 
     ``mean(0.5 (log(2 pi variance) + (target - mean)^2 / variance))``.
@@ -165,12 +171,12 @@ def gaussian_nll(means: Any, variances: Any, targets: Any) -> Any:  # noqa: DOC5
 
 
 def regression_calibration_error(  # noqa: DOC502  # raised by _prepare_arrays
-    means: Any,
-    variances: Any,
-    targets: Any,
+    means: ArrayLike,
+    variances: ArrayLike,
+    targets: ArrayLike,
     *,
-    quantile_levels: Any,
-) -> Any:
+    quantile_levels: ArrayLike,
+) -> jax.Array:
     """Regression calibration error of a Gaussian predictive (Kuleshov et al. 2018).
 
     For each nominal level ``q`` the empirical fraction of targets below the
@@ -198,13 +204,13 @@ def regression_calibration_error(  # noqa: DOC502  # raised by _prepare_arrays
     levels = jnp.asarray(quantile_levels)
     cdf_values = _norm_cdf(target, loc=mean, scale=jnp.sqrt(variance)).reshape(-1)
 
-    def empirical_at(level: Any) -> Any:
+    def empirical_at(level: ArrayLike) -> jax.Array:
         return jnp.mean((cdf_values <= level).astype(jnp.float32))
 
     return jnp.mean(jnp.abs(jax.vmap(empirical_at)(levels) - levels))
 
 
-def predictive_entropy(ensemble_probabilities: Any) -> Any:
+def predictive_entropy(ensemble_probabilities: ArrayLike) -> jax.Array:
     """Entropy of the ensemble-averaged categorical distribution, per sample.
 
     ``H(mean_m p_m)`` with the ensemble on the leading axis and the classes on the
@@ -226,7 +232,7 @@ def predictive_entropy(ensemble_probabilities: Any) -> Any:
     return -jnp.sum(mean_probs * jnp.log(mean_probs + _EPSILON), axis=-1)
 
 
-def ensemble_mutual_information(ensemble_probabilities: Any) -> Any:
+def ensemble_mutual_information(ensemble_probabilities: ArrayLike) -> jax.Array:
     """Epistemic uncertainty of an ensemble, per sample (BALD, Houlsby et al. 2011).
 
     ``H(mean_m p_m) - mean_m H(p_m)``: the predictive entropy minus the expected
@@ -250,13 +256,15 @@ def ensemble_mutual_information(ensemble_probabilities: Any) -> Any:
     return predictive_entropy(probs) - jnp.mean(member_entropies, axis=0)
 
 
-def _mahalanobis(errors: Any, covariances: Any) -> Any:
+def _mahalanobis(errors: jax.Array, covariances: jax.Array) -> jax.Array:
     """Per-step squared Mahalanobis distance ``e_t^T C_t^{-1} e_t``."""
     solved = jax.vmap(jnp.linalg.solve)(covariances, errors)
     return jnp.einsum("ti,ti->t", errors, solved)
 
 
-def anees(predicted_means: Any, predicted_covariances: Any, references: Any) -> Any:  # noqa: DOC502  # raised by _prepare_arrays
+def anees(  # noqa: DOC502  # raised by _prepare_arrays
+    predicted_means: ArrayLike, predicted_covariances: ArrayLike, references: ArrayLike
+) -> jax.Array:
     """Average normalised estimation error squared (Bar-Shalom et al. 2002).
 
     ``(1 / (N d)) sum_t (r_t - m_t)^T P_t^{-1} (r_t - m_t)`` for predictions
@@ -284,11 +292,11 @@ def anees(predicted_means: Any, predicted_covariances: Any, references: Any) -> 
 
 
 def non_credibility_index(  # noqa: DOC502  # raised by _prepare_arrays
-    predicted_means: Any,
-    predicted_covariances: Any,
-    references: Any,
-    reference_covariances: Any,
-) -> Any:
+    predicted_means: ArrayLike,
+    predicted_covariances: ArrayLike,
+    references: ArrayLike,
+    reference_covariances: ArrayLike,
+) -> jax.Array:
     """Non-credibility index of Li & Zhao 2006, in decibels.
 
     ``(10 / N) sum_t log10( e_t^T P_t^{-1} e_t / e_t^T S_t^{-1} e_t )`` with the
@@ -319,12 +327,12 @@ def non_credibility_index(  # noqa: DOC502  # raised by _prepare_arrays
     return 10.0 * jnp.mean(jnp.log10(ratio))
 
 
-def chi2_confidence_interval(dim: int, *, percentile: float = 0.99) -> tuple[Any, Any]:
+def chi2_confidence_interval(dim: int, *, percentile: float = 0.99) -> tuple[jax.Array, jax.Array]:
     """Symmetric confidence interval of the chi-squared distribution with ``dim`` degrees.
 
     The ``((1 - percentile) / 2, 1 - (1 - percentile) / 2)`` quantiles: the band an
-    ANEES-style statistic of a calibrated estimator falls in. Needs the ``stats``
-    extra (SciPy).
+    ANEES-style statistic of a calibrated estimator falls in, from SciPy's distribution on
+    the host: ``dim`` and ``percentile`` are Python values, so nothing here is traced.
 
     Args:
         dim: Degrees of freedom.
@@ -339,8 +347,6 @@ def chi2_confidence_interval(dim: int, *, percentile: float = 0.99) -> tuple[Any
     if not 0.0 < percentile < 1.0:
         msg = f"percentile must be in (0, 1); got {percentile!r}"
         raise ValueError(msg)
-    from scipy import stats
-
     tail = (1.0 - percentile) / 2.0
     distribution = stats.chi2(df=dim)
     return jnp.asarray(distribution.ppf(tail)), jnp.asarray(distribution.ppf(1.0 - tail))

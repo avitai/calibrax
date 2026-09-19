@@ -1,7 +1,8 @@
 """Framework-agnostic timing with configurable result synchronization.
 
-Provides TimingSample (frozen dataclass) and TimingCollector for
-measuring iteration throughput with per-batch timing breakdown.
+Provides TimingCollector for measuring iteration throughput with per-batch timing breakdown,
+and ``time_calls`` for the median and percentiles of repeated calls; their records,
+``TimingSample`` and ``CallTiming``, live in ``calibrax.profiling.timing_records``.
 Uses time.perf_counter() exclusively for accurate benchmarking.
 Supports warm-up iteration exclusion and JIT compilation time measurement.
 """
@@ -10,68 +11,12 @@ from __future__ import annotations
 
 import time
 from collections.abc import Callable, Iterator, Sequence
-from dataclasses import dataclass
-from typing import Any
 
 import numpy as np
-from jax import block_until_ready
+from jax import block_until_ready, jit
+from substrax.typing import PyTree
 
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class TimingSample:
-    """Result of timing an iteration through a data pipeline.
-
-    Attributes:
-        wall_clock_sec: Total wall-clock time for the iteration.
-        per_batch_times: Per-batch durations in seconds (warmup batches excluded).
-        first_batch_time: Time from iteration start to first batch completion.
-        num_batches: Number of batches consumed (including warmup).
-        num_elements: Total elements processed (via count_fn).
-        compilation_time_sec: JIT compilation time, if measured separately.
-        warmup_batches_excluded: Number of leading batches excluded from per_batch_times.
-    """
-
-    wall_clock_sec: float
-    per_batch_times: tuple[float, ...]
-    first_batch_time: float
-    num_batches: int
-    num_elements: int
-    compilation_time_sec: float | None = None
-    warmup_batches_excluded: int = 0
-
-    def to_dict(self) -> dict[str, Any]:
-        """Serialize to a JSON-compatible dictionary."""
-        d: dict[str, Any] = {
-            "wall_clock_sec": float(self.wall_clock_sec),
-            "per_batch_times": [float(t) for t in self.per_batch_times],
-            "first_batch_time": float(self.first_batch_time),
-            "num_batches": int(self.num_batches),
-            "num_elements": int(self.num_elements),
-            "warmup_batches_excluded": int(self.warmup_batches_excluded),
-        }
-        if self.compilation_time_sec is not None:
-            d["compilation_time_sec"] = float(self.compilation_time_sec)
-        return d
-
-    @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> TimingSample:
-        """Deserialize from a dictionary.
-
-        Args:
-            data: Dictionary with TimingSample fields.
-
-        Returns:
-            Reconstructed TimingSample instance.
-        """
-        return cls(
-            wall_clock_sec=data["wall_clock_sec"],
-            per_batch_times=tuple(data["per_batch_times"]),
-            first_batch_time=data["first_batch_time"],
-            num_batches=data["num_batches"],
-            num_elements=data["num_elements"],
-            compilation_time_sec=data.get("compilation_time_sec"),
-            warmup_batches_excluded=data.get("warmup_batches_excluded", 0),
-        )
+from calibrax.profiling.timing_records import CallTiming, TimingSample
 
 
 class TimingCollector:
@@ -107,7 +52,7 @@ class TimingCollector:
 
     def __init__(
         self,
-        sync_fn: Callable[[Any], object] | None = None,
+        sync_fn: Callable[[PyTree], object] | None = None,
         warmup_iterations: int = 0,
     ) -> None:
         """Initialize TimingCollector.
@@ -125,12 +70,12 @@ class TimingCollector:
         self._sync_fn = sync_fn or _wait_for_result
         self._warmup_iterations = warmup_iterations
 
-    def measure_iteration(
+    def measure_iteration[BatchT](
         self,
-        iterator: Iterator[Any],
+        iterator: Iterator[BatchT],
         num_batches: int | None = None,
-        process_fn: Callable[[Any], Any] | None = None,
-        count_fn: Callable[[Any], int] | None = None,
+        process_fn: Callable[[BatchT], PyTree] | None = None,
+        count_fn: Callable[[BatchT], int] | None = None,
     ) -> TimingSample:
         """Measure timing for batches from an iterator.
 
@@ -194,8 +139,8 @@ class TimingCollector:
 
     def measure_compilation_time(
         self,
-        fn: Callable[..., Any],
-        *args: Any,
+        fn: Callable[..., PyTree],
+        *args: PyTree,
     ) -> float:
         """Measure JIT compilation time for a JAX function.
 
@@ -209,10 +154,8 @@ class TimingCollector:
         Returns:
             Compilation time in seconds.
         """
-        import jax
-
         start = time.perf_counter()
-        jax.jit(fn).lower(*args).compile()
+        jit(fn).lower(*args).compile()
         end = time.perf_counter()
         return end - start
 
@@ -220,47 +163,23 @@ class TimingCollector:
 _PERCENTILE_MAX = 100
 
 
-def _wait_for_result(result: Any) -> None:
+def _wait_for_result(result: PyTree) -> None:
     """Wait for every array in ``result`` with ``jax.block_until_ready``."""
     block_until_ready(result)
 
 
-@dataclass(frozen=True, kw_only=True, slots=True)
-class CallTiming:
-    """Timing of repeated calls to one function: the samples, their median and percentiles.
-
-    Attributes:
-        samples_sec: Wall-clock seconds of each timed call, warm-up excluded, in call order.
-        median_sec: Median of ``samples_sec``.
-        percentiles_sec: Percentile (0-100) to seconds, for the percentiles requested.
-        warmup: Calls made and discarded before timing.
-    """
-
-    samples_sec: tuple[float, ...]
-    median_sec: float
-    percentiles_sec: dict[int, float]
-    warmup: int
-
-    def to_dict(self) -> dict[str, Any]:
-        """JSON-ready form; percentile keys become strings."""
-        return {
-            "samples_sec": [float(sample) for sample in self.samples_sec],
-            "median_sec": float(self.median_sec),
-            "percentiles_sec": {str(k): float(v) for k, v in self.percentiles_sec.items()},
-            "warmup": int(self.warmup),
-        }
-
-
 def time_calls(
-    func: Callable[..., Any],
-    *args: Any,
+    call: Callable[[], PyTree],
+    *,
     warmup: int = 3,
     iterations: int = 10,
     percentiles: Sequence[int] = (50, 90, 99),
-    sync: Callable[[Any], object] | None = None,
-    **kwargs: Any,
+    sync: Callable[[PyTree], object] | None = None,
 ) -> CallTiming:
-    """Time ``func(*args, **kwargs)`` and report the median and percentiles.
+    """Time ``call()`` and report the median and percentiles.
+
+    ``call`` takes no arguments: close over the timed function's inputs
+    (``lambda: step(state, batch)``), so its keywords never meet these options'.
 
     Each call is followed by ``sync(result)``, ``jax.block_until_ready`` over the whole
     result pytree by default, so asynchronous dispatch is inside the measurement. The
@@ -269,14 +188,12 @@ def time_calls(
     a mean is moved by one slow call.
 
     Args:
-        func: The callable to time.
-        *args: Positional arguments for every call.
+        call: The zero-argument callable to time.
         warmup: Calls made and discarded before timing.
         iterations: Timed calls.
         percentiles: Percentiles (0-100) to report beside the median.
         sync: Called with each result before the clock stops; ``None`` waits for the
             whole result with ``jax.block_until_ready``.
-        **kwargs: Keyword arguments for every call.
 
     Returns:
         The samples, median and percentiles.
@@ -294,12 +211,12 @@ def time_calls(
     wait = _wait_for_result if sync is None else sync
 
     for _ in range(warmup):
-        wait(func(*args, **kwargs))
+        wait(call())
 
     samples: list[float] = []
     for _ in range(iterations):
         start = time.perf_counter()
-        wait(func(*args, **kwargs))
+        wait(call())
         samples.append(time.perf_counter() - start)
 
     values = np.asarray(samples)

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import dataclasses
 
+import jax.numpy as jnp
 import pytest
 from flax import nnx
 
@@ -142,6 +143,16 @@ class TestAnalyzeComplexity:
         model = nnx.Linear(16, 32, rngs=nnx.Rngs(0))
         result = analyze_complexity(model, (1, 16))
         assert result.parameter_memory_mb > 0
+
+    @pytest.mark.parametrize(("dtype", "bytes_per_parameter"), [("float32", 4), ("bfloat16", 2)])
+    def test_parameter_memory_counts_each_parameters_bytes(
+        self, dtype: str, bytes_per_parameter: int
+    ) -> None:
+        """Parameter memory is the parameters' bytes, by their dtype."""
+        model = nnx.Linear(16, 32, param_dtype=jnp.dtype(dtype), rngs=nnx.Rngs(0))
+        result = analyze_complexity(model, (1, 16))
+        expected_mb = (16 * 32 + 32) * bytes_per_parameter / (1024 * 1024)
+        assert result.parameter_memory_mb == pytest.approx(expected_mb, rel=1e-12)
 
     def test_estimated_memory_includes_params(self) -> None:
         """Estimated memory should be at least as large as parameter memory."""

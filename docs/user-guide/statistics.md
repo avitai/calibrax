@@ -10,9 +10,10 @@ sizes.
 intervals for a sequence of measurements:
 
 ```python
+import jax
 from calibrax.statistics.analyzer import StatisticalAnalyzer
 
-analyzer = StatisticalAnalyzer(bootstrap_resamples=1000, seed=42)
+analyzer = StatisticalAnalyzer(key=jax.random.key(42), bootstrap_resamples=1000)
 result = analyzer.summarize([0.45, 0.47, 0.44, 0.46, 0.48, 0.43, 0.45])
 
 print(f"Mean: {result.mean:.4f}")
@@ -68,14 +69,6 @@ The `threshold` parameter controls sensitivity — lower values flag more sample
 as outliers. The default of 3.5 is conservative.
 
 ## Significance Tests
-
-!!! warning "Optional Dependency"
-
-    Significance tests require scipy. Install with:
-
-    ```bash
-    uv pip install "calibrax[stats]"
-    ```
 
 Calibrax provides three significance tests for comparing two sets of measurements:
 
@@ -151,10 +144,11 @@ print(f"Cohen's d: {d:.2f}")
 ## Full Workflow Example
 
 ```python
+import jax
 from calibrax.statistics.analyzer import StatisticalAnalyzer
 from calibrax.statistics.significance import paired_significance_test, effect_size
 
-analyzer = StatisticalAnalyzer()
+analyzer = StatisticalAnalyzer(key=jax.random.key(0))
 
 baseline_samples = [0.45, 0.47, 0.44, 0.46, 0.48]
 current_samples = [0.52, 0.54, 0.51, 0.53, 0.55]

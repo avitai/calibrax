@@ -8,14 +8,12 @@ calibration layers on top of backbone features.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
 
 from flax import nnx
+from jax.typing import ArrayLike
 
-from calibrax.metrics.plotting import MetricPlotMixin
 
-
-class FrozenBackboneMetric(MetricPlotMixin, ABC):
+class FrozenBackboneMetric[FeaturesT](ABC):
     """Base class for Tier 1 metrics with frozen pretrained backbones.
 
     Implements the StatefulMetricProtocol lifecycle:
@@ -59,7 +57,7 @@ class FrozenBackboneMetric(MetricPlotMixin, ABC):
         """Get the metric name."""
         return self._name
 
-    def update(self, **kwargs: Any) -> None:
+    def update(self, **kwargs: ArrayLike) -> None:
         """Extract features and accumulate statistics.
 
         Args:
@@ -82,7 +80,7 @@ class FrozenBackboneMetric(MetricPlotMixin, ABC):
         ...
 
     @abstractmethod
-    def _extract_features(self, **kwargs: Any) -> Any:
+    def _extract_features(self, **kwargs: ArrayLike) -> FeaturesT:
         """Extract features from input using the frozen backbone.
 
         Args:
@@ -94,7 +92,7 @@ class FrozenBackboneMetric(MetricPlotMixin, ABC):
         ...
 
     @abstractmethod
-    def _accumulate(self, features: Any) -> None:
+    def _accumulate(self, features: FeaturesT) -> None:
         """Accumulate statistics from extracted features.
 
         Args:
@@ -112,7 +110,7 @@ class FrozenBackboneMetric(MetricPlotMixin, ABC):
         ...
 
 
-class LearnedMetric(MetricPlotMixin, nnx.Module):
+class LearnedMetric(nnx.Module):
     """Base class for Tier 2 metrics with trainable calibration layers.
 
     Extends nnx.Module for JAX transform compatibility (jit, grad, vmap).
@@ -125,16 +123,17 @@ class LearnedMetric(MetricPlotMixin, nnx.Module):
     Examples:
         >>> class MyLearnedMetric(LearnedMetric):
         ...     def __init__(self, *, rngs):
-        ...         super().__init__(name="my_metric", rngs=rngs)
+        ...         super().__init__(name="my_metric")
         ...         self._linear = nnx.Linear(4, 1, rngs=rngs)
     """
 
-    def __init__(self, name: str, *, rngs: nnx.Rngs) -> None:  # noqa: ARG002  # for subclasses
+    def __init__(self, name: str) -> None:
         """Initialize learned metric.
+
+        A subclass creates its trainable layers with its own ``nnx.Rngs``.
 
         Args:
             name: Metric name.
-            rngs: RNG streams for parameter initialization.
         """
         super().__init__()
         self._name = name

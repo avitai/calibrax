@@ -6,6 +6,8 @@ import jax
 import jax.numpy as jnp
 import pytest
 
+from calibrax.core.models import MetricDirection
+from calibrax.metrics import MetricRegistry
 from calibrax.metrics.functional.image import (
     ms_ssim,
     psnr,
@@ -127,24 +129,17 @@ class TestImageMetricRegistration:
     """Tests for image metric registration."""
 
     def test_all_registered(self) -> None:
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         expected = ["psnr", "ssim", "ms_ssim", "vendi_score"]
         for name in expected:
             assert registry.has(name), f"Metric '{name}' not registered"
 
     def test_image_domain(self) -> None:
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         image_metrics = registry.list_by_domain("image")
         assert len(image_metrics) == 4
 
     def test_all_direction_higher(self) -> None:
-        from calibrax.core.models import MetricDirection
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         for m in registry.list_by_domain("image"):
             assert m.direction == MetricDirection.HIGHER

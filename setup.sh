@@ -4,6 +4,8 @@ set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MANAGED_ENV_FILE=".calibrax.env"
+# Repository variables written into the managed file beside the JAX settings substrax owns.
+MANAGED_ENV_EXTRAS=(--set TF_CPP_MIN_LOG_LEVEL=1 --set PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python)
 REQUESTED_BACKEND="auto"
 PYTHON_VERSION=""
 EXTRA_EXTRAS=()
@@ -151,7 +153,7 @@ if [[ "$DRY_RUN" == true ]]; then
         echo "uv venv --python $PYTHON_VERSION"
     fi
     echo "uv ${SYNC_ARGS[*]}"
-    echo "python3 scripts/setup_env.py write --backend $BACKEND --output $MANAGED_ENV_FILE"
+    echo "uv run --no-sync python -m substrax.runtime.managed_env write --prefix CALIBRAX --backend $BACKEND --output $MANAGED_ENV_FILE ${MANAGED_ENV_EXTRAS[*]}"
     exit 0
 fi
 
@@ -174,7 +176,8 @@ if [[ -n "$PYTHON_VERSION" ]]; then
 fi
 
 uv "${SYNC_ARGS[@]}"
-python3 scripts/setup_env.py write --backend "$BACKEND" --output "$MANAGED_ENV_FILE"
+uv run --no-sync python -m substrax.runtime.managed_env write --prefix CALIBRAX --backend "$BACKEND" \
+    --output "$MANAGED_ENV_FILE" "${MANAGED_ENV_EXTRAS[@]}"
 
 if [[ -f ".env" ]]; then
     cat <<EOF
@@ -190,5 +193,5 @@ Managed backend file: $MANAGED_ENV_FILE
 
 Next steps:
   source ./activate.sh
-  python3 scripts/setup_env.py show
+  python -m substrax.runtime.managed_env show --prefix CALIBRAX --env-file .calibrax.env --user-env .env --user-env .env.local
 EOF

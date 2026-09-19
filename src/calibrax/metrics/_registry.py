@@ -6,7 +6,13 @@ from collections.abc import Callable
 
 from calibrax.core.models import MetricDirection
 from calibrax.core.registry import SingletonRegistry
-from calibrax.metrics._types import MetricEntry, MetricProperties, MetricSignature, MetricTier
+from calibrax.metrics._types import (
+    MetricEntry,
+    MetricFn,
+    MetricProperties,
+    MetricSignature,
+    MetricTier,
+)
 
 
 class MetricRegistry(SingletonRegistry[MetricEntry]):
@@ -21,7 +27,7 @@ class MetricRegistry(SingletonRegistry[MetricEntry]):
         print(entry.tier, entry.domain)
     """
 
-    def get_function(self, name: str) -> Callable[..., float]:  # noqa: DOC503  # KeyError is raised by get
+    def get_function(self, name: str) -> MetricFn:  # noqa: DOC503  # KeyError is raised by get
         """Retrieve the callable for a Tier 0 metric.
 
         Args:
@@ -118,7 +124,7 @@ def register_metric(
     required_extra: str = "",
     signature: MetricSignature = MetricSignature.PREDICTIONS_TARGETS,
     properties: MetricProperties | None = None,
-) -> Callable[[Callable[..., float]], Callable[..., float]]:
+) -> Callable[[MetricFn], MetricFn]:
     """Decorator that registers a function in the MetricRegistry.
 
     Args:
@@ -135,7 +141,7 @@ def register_metric(
         Decorator that registers the function and returns it unchanged.
     """
 
-    def decorator(fn: Callable[..., float]) -> Callable[..., float]:
+    def decorator(fn: MetricFn) -> MetricFn:
         entry = MetricEntry(
             name=name,
             fn=fn,

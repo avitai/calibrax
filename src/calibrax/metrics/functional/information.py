@@ -12,15 +12,15 @@ fisher_information_matrix.
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
 
 import jax
 import jax.numpy as jnp
+from jax.typing import ArrayLike
 
 from calibrax.metrics._utils import _EPSILON, safe_log
 
 
-def entropy(p: Any) -> Any:
+def entropy(p: ArrayLike) -> jax.Array:
     """Shannon entropy: ``-sum(p * log(p))``.
 
     Measures uncertainty or disorder of a probability distribution.
@@ -47,7 +47,7 @@ def entropy(p: Any) -> Any:
     return -jnp.sum(p_arr * safe_log(p_safe))
 
 
-def cross_entropy(p: Any, q: Any) -> Any:
+def cross_entropy(p: ArrayLike, q: ArrayLike) -> jax.Array:
     """Cross-entropy: ``-sum(p * log(q))``.
 
     Measures the average number of nats needed to encode data from p
@@ -76,7 +76,7 @@ def cross_entropy(p: Any, q: Any) -> Any:
     return -jnp.sum(p_arr * safe_log(q_arr))
 
 
-def mutual_information(joint: Any) -> Any:
+def mutual_information(joint: ArrayLike) -> jax.Array:
     """Mutual information from a joint probability table.
 
     ``MI(X;Y) = sum_{i,j} p(i,j) * log(p(i,j) / (p(i)*p(j)))``.
@@ -117,7 +117,7 @@ def mutual_information(joint: Any) -> Any:
     return jnp.sum(terms)
 
 
-def conditional_entropy(joint: Any) -> Any:
+def conditional_entropy(joint: ArrayLike) -> jax.Array:
     """Conditional entropy H(Y|X) from a joint probability table.
 
     ``H(Y|X) = H(X,Y) - H(X)``. Measures remaining uncertainty
@@ -150,7 +150,7 @@ def conditional_entropy(joint: Any) -> Any:
     return h_joint - h_x
 
 
-def normalized_mutual_information(joint: Any) -> Any:
+def normalized_mutual_information(joint: ArrayLike) -> jax.Array:
     """Normalized mutual information: ``MI / sqrt(H(X) * H(Y))``.
 
     Bounded version of MI for comparing across different scales.
@@ -185,9 +185,9 @@ def normalized_mutual_information(joint: Any) -> Any:
 
 
 def fisher_information_matrix(
-    log_prob_fn: Callable[..., Any],
-    params: Any,
-) -> Any:
+    log_prob_fn: Callable[..., jax.Array],
+    params: ArrayLike,
+) -> jax.Array:
     """Fisher information matrix at given parameter values.
 
     ``I(theta) = -E[nabla^2 log p(x|theta)]``. The unique Riemannian

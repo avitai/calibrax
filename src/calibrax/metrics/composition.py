@@ -10,11 +10,12 @@ Provides higher-level abstractions for grouping and combining metrics:
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import Any
+from dataclasses import dataclass
+
+from jax.typing import ArrayLike
 
 from calibrax.metrics._registry import MetricRegistry
-from calibrax.metrics._types import MetricSignature, MetricTier
+from calibrax.metrics._types import MetricFn, MetricSignature, MetricTier
 
 
 class MetricCollection:
@@ -36,20 +37,20 @@ class MetricCollection:
 
     def __init__(
         self,
-        metrics: dict[str, Callable[..., float]],
+        metrics: dict[str, MetricFn],
     ) -> None:
         """Initialize with a dictionary of named metric functions.
 
         Args:
             metrics: Mapping of metric names to callable functions.
         """
-        self._metrics: dict[str, Callable[..., float]] = dict(metrics)
+        self._metrics: dict[str, MetricFn] = dict(metrics)
 
     def compute_functional(
         self,
-        predictions: Any,
-        targets: Any,
-        **kwargs: Any,
+        predictions: ArrayLike,
+        targets: ArrayLike,
+        **kwargs: object,
     ) -> dict[str, float]:
         """Compute all functional metrics.
 
@@ -68,7 +69,7 @@ class MetricCollection:
             results[name] = float(fn(predictions, targets, **kwargs))
         return results
 
-    def add(self, name: str, metric: Callable[..., float]) -> None:
+    def add(self, name: str, metric: MetricFn) -> None:
         """Add a metric to the collection.
 
         Args:
@@ -231,8 +232,8 @@ class MetricSuite:
 
     def compute_all(
         self,
-        predictions: Any,
-        targets: Any,
+        predictions: ArrayLike,
+        targets: ArrayLike,
     ) -> dict[str, dict[str, float]]:
         """Compute all metrics in all groups.
 
@@ -278,6 +279,23 @@ class MetricSuite:
         for domain, names in sorted(domains.items()):
             suite._groups[domain] = names
         return suite
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class ThresholdResult:
+    """A metric's value checked against its threshold.
+
+    Attributes:
+        value: The metric's value.
+        passed: Whether the value lies within the bounds.
+        threshold: The maximum when one is set, otherwise the minimum.
+        metric_name: The registered metric's name.
+    """
+
+    value: float
+    passed: bool
+    threshold: float | None
+    metric_name: str
 
 
 class ThresholdMetric:
@@ -341,7 +359,7 @@ class ThresholdMetric:
         """Get the maximum threshold value."""
         return self._max_value
 
-    def evaluate(self, predictions: Any, targets: Any) -> dict[str, Any]:
+    def evaluate(self, predictions: ArrayLike, targets: ArrayLike) -> ThresholdResult:
         """Compute the metric and check against threshold.
 
         Args:
@@ -349,8 +367,7 @@ class ThresholdMetric:
             targets: Ground truth values.
 
         Returns:
-            Dict with "value" (float), "passed" (bool), "threshold" (float),
-            "metric_name" (str).
+            The value, whether it passed, the threshold and the metric's name.
 
         Raises:
             ValueError: If the metric has no callable function.
@@ -368,9 +385,6 @@ class ThresholdMetric:
         if self._max_value is not None and value > self._max_value:
             passed = False
 
-        return {
-            "value": value,
-            "passed": passed,
-            "threshold": threshold,
-            "metric_name": self._metric_name,
-        }
+        return ThresholdResult(
+            value=value, passed=passed, threshold=threshold, metric_name=self._metric_name
+        )

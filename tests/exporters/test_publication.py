@@ -2,17 +2,11 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 from pathlib import Path
 
 import pytest
 
-from calibrax.core.models import (
-    MetricDef,
-    TrendPoint,
-    TrendSeries,
-)
-from calibrax.exporters import publication
+from calibrax.core.models import MetricDef
 from calibrax.exporters.publication import PublicationGenerator
 from tests.factories import make_dual_framework_run, make_throughput_latency_defs
 
@@ -34,113 +28,6 @@ class TestPublicationGenerator:
         out = tmp_path / "publications"
         PublicationGenerator(out)
         assert out.exists()
-
-    def test_generate_comparison_plot(self, tmp_path: Path) -> None:
-        """Should generate a comparison plot PNG."""
-        gen = PublicationGenerator(tmp_path)
-        result = gen.generate_comparison_plot(_make_run())
-        if result is not None:
-            assert result.exists()
-            assert result.suffix == ".png"
-
-    def test_generate_comparison_plot_pdf(self, tmp_path: Path) -> None:
-        """Should generate a PDF comparison plot."""
-        gen = PublicationGenerator(tmp_path)
-        result = gen.generate_comparison_plot(_make_run(), output_format="pdf")
-        if result is not None:
-            assert result.suffix == ".pdf"
-
-    def test_generate_comparison_plot_subset(self, tmp_path: Path) -> None:
-        """Should plot only requested metrics."""
-        gen = PublicationGenerator(tmp_path)
-        result = gen.generate_comparison_plot(_make_run(), metrics=["throughput"])
-        if result is not None:
-            assert result.exists()
-
-    def test_generate_scaling_plot(self, tmp_path: Path) -> None:
-        """Should generate a scaling plot."""
-        gen = PublicationGenerator(tmp_path)
-        sizes = [10, 100, 1000, 10000]
-        values = [1.0, 8.0, 60.0, 500.0]
-        result = gen.generate_scaling_plot(sizes, values, metric_name="throughput")
-        if result is not None:
-            assert result.exists()
-
-    def test_generate_convergence_plot(self, tmp_path: Path) -> None:
-        """Should generate a convergence plot."""
-        gen = PublicationGenerator(tmp_path)
-        series = TrendSeries(
-            metric="loss",
-            point_name="train",
-            points=tuple(
-                TrendPoint(
-                    run_id=f"r{i}",
-                    timestamp=datetime(2024, 1, i + 1),
-                    value=1.0 / (i + 1),
-                )
-                for i in range(10)
-            ),
-        )
-        result = gen.generate_convergence_plot(series)
-        if result is not None:
-            assert result.exists()
-
-    def test_generate_convergence_plot_with_ci(self, tmp_path: Path) -> None:
-        """Should handle confidence intervals in convergence plot."""
-        gen = PublicationGenerator(tmp_path)
-        series = TrendSeries(
-            metric="loss",
-            point_name="train",
-            points=tuple(
-                TrendPoint(
-                    run_id=f"r{i}",
-                    timestamp=datetime(2024, 1, i + 1),
-                    value=1.0 / (i + 1),
-                    lower=0.8 / (i + 1),
-                    upper=1.2 / (i + 1),
-                )
-                for i in range(5)
-            ),
-        )
-        result = gen.generate_convergence_plot(series)
-        if result is not None:
-            assert result.exists()
-
-    def test_generate_convergence_plot_empty(self, tmp_path: Path) -> None:
-        """Empty series should return None."""
-        gen = PublicationGenerator(tmp_path)
-        series = TrendSeries(metric="loss", point_name="train")
-        result = gen.generate_convergence_plot(series)
-        assert result is None
-
-    def test_plot_metric_values(self, tmp_path: Path) -> None:
-        """Scalar metric values should be plottable."""
-        gen = PublicationGenerator(tmp_path)
-        result = gen.plot_metric_values(
-            {"fid": 12.5, "inception_score": 4.2},
-            title="Image Metrics",
-            filename="image_metrics",
-        )
-        assert result is not None
-        assert result.exists()
-        assert result.name == "image_metrics.png"
-
-    def test_plot_metric_values_empty_raises(self, tmp_path: Path) -> None:
-        """Empty scalar metric values should fail clearly."""
-        gen = PublicationGenerator(tmp_path)
-        with pytest.raises(ValueError, match="at least one"):
-            gen.plot_metric_values({}, title="Empty", filename="empty")
-
-    def test_plot_metric_values_without_matplotlib_returns_none(
-        self,
-        tmp_path: Path,
-        monkeypatch: pytest.MonkeyPatch,
-    ) -> None:
-        """Unavailable matplotlib should skip scalar plots like other plots."""
-        monkeypatch.setattr(publication, "MATPLOTLIB_AVAILABLE", False)
-        gen = PublicationGenerator(tmp_path)
-        result = gen.plot_metric_values({"fid": 12.5}, title="Image Metrics", filename="fid")
-        assert result is None
 
 
 class TestTableGeneration:

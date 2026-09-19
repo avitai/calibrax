@@ -9,10 +9,10 @@ Registered with ``domain="image"``.
 
 from __future__ import annotations
 
-from typing import Any
-
 import jax
 import jax.numpy as jnp
+from jax import image as jax_image, lax
+from jax.typing import ArrayLike
 
 from calibrax.metrics._utils import _EPSILON
 
@@ -22,7 +22,7 @@ _SINGLE_CHANNEL_NDIM = 2
 _MULTICHANNEL_NDIM = 3
 
 
-def _gaussian_kernel_1d(size: int, sigma: float) -> Any:
+def _gaussian_kernel_1d(size: int, sigma: float) -> jax.Array:
     """Create 1D Gaussian kernel.
 
     Args:
@@ -37,7 +37,7 @@ def _gaussian_kernel_1d(size: int, sigma: float) -> Any:
     return kernel / jnp.sum(kernel)
 
 
-def _gaussian_kernel_2d(size: int, sigma: float) -> Any:
+def _gaussian_kernel_2d(size: int, sigma: float) -> jax.Array:
     """Create 2D Gaussian kernel via outer product.
 
     Args:
@@ -51,7 +51,7 @@ def _gaussian_kernel_2d(size: int, sigma: float) -> Any:
     return jnp.outer(k1d, k1d)
 
 
-def _conv2d(image: Any, kernel: Any) -> Any:
+def _conv2d(image: jax.Array, kernel: jax.Array) -> jax.Array:
     """Apply 2D convolution using JAX's lax.conv.
 
     Args:
@@ -68,8 +68,6 @@ def _conv2d(image: Any, kernel: Any) -> Any:
     pad_w = kernel.shape[1] // 2
     result = jnp.pad(img, ((0, 0), (0, 0), (pad_h, pad_h), (pad_w, pad_w)), mode="edge")
 
-    from jax import lax
-
     out = lax.conv_general_dilated(
         result,
         k,
@@ -81,15 +79,15 @@ def _conv2d(image: Any, kernel: Any) -> Any:
 
 
 def _ssim_single_channel(
-    a: Any,
-    b: Any,
+    a: jax.Array,
+    b: jax.Array,
     *,
     max_val: float,
     filter_size: int,
     filter_sigma: float,
     k1: float,
     k2: float,
-) -> tuple[Any, Any, Any]:
+) -> tuple[jax.Array, jax.Array, jax.Array]:
     """Compute SSIM components for a single channel.
 
     Args:
@@ -135,7 +133,7 @@ def _ssim_single_channel(
     )
 
 
-def psnr(predictions: Any, targets: Any, *, max_val: float = 1.0) -> Any:
+def psnr(predictions: ArrayLike, targets: ArrayLike, *, max_val: float = 1.0) -> jax.Array:
     """Peak Signal-to-Noise Ratio.
 
     PSNR = 10 * log10(max_val^2 / MSE). Measured in dB. Higher is better.
@@ -165,15 +163,15 @@ def psnr(predictions: Any, targets: Any, *, max_val: float = 1.0) -> Any:
 
 
 def ssim(
-    predictions: Any,
-    targets: Any,
+    predictions: ArrayLike,
+    targets: ArrayLike,
     *,
     max_val: float = 1.0,
     filter_size: int = 11,
     filter_sigma: float = 1.5,
     k1: float = 0.01,
     k2: float = 0.03,
-) -> Any:
+) -> jax.Array:
     """Structural Similarity Index Measure.
 
     Computes luminance, contrast, and structure similarity using a
@@ -213,7 +211,7 @@ def ssim(
         return val
 
     # Multi-channel: vectorize over channel axis with vmap
-    def _ssim_for_channel(pred_ch: Any, tgt_ch: Any) -> Any:
+    def _ssim_for_channel(pred_ch: jax.Array, tgt_ch: jax.Array) -> jax.Array:
         val, _, _ = _ssim_single_channel(
             pred_ch,
             tgt_ch,
@@ -233,12 +231,12 @@ def ssim(
 
 
 def ms_ssim(
-    predictions: Any,
-    targets: Any,
+    predictions: ArrayLike,
+    targets: ArrayLike,
     *,
     max_val: float = 1.0,
     power_factors: tuple[float, ...] | None = None,
-) -> Any:
+) -> jax.Array:
     """Multi-Scale Structural Similarity Index.
 
     Computes SSIM at multiple downsample scales and combines with
@@ -262,13 +260,15 @@ def ms_ssim(
     if power_factors is None:
         power_factors = (0.0448, 0.2856, 0.3001, 0.2363, 0.1333)
 
-    predictions = jnp.asarray(predictions, dtype=jnp.float32)
-    targets = jnp.asarray(targets, dtype=jnp.float32)
+    pred_arr = jnp.asarray(predictions, dtype=jnp.float32)
+    tgt_arr = jnp.asarray(targets, dtype=jnp.float32)
 
     n_scales = len(power_factors)
-    is_multichannel = predictions.ndim == _MULTICHANNEL_NDIM
+    is_multichannel = pred_arr.ndim == _MULTICHANNEL_NDIM
 
-    def _ssim_components_for_channel(pred_ch: Any, tgt_ch: Any) -> tuple[Any, Any]:
+    def _ssim_components_for_channel(
+        pred_ch: jax.Array, tgt_ch: jax.Array
+    ) -> tuple[jax.Array, jax.Array]:
         val, cs, _ = _ssim_single_channel(
             pred_ch,
             tgt_ch,
@@ -283,15 +283,15 @@ def ms_ssim(
     cs_values = []
     for scale in range(n_scales):
         if is_multichannel:
-            pred_channels = jnp.moveaxis(predictions, -1, 0)
-            tgt_channels = jnp.moveaxis(targets, -1, 0)
+            pred_channels = jnp.moveaxis(pred_arr, -1, 0)
+            tgt_channels = jnp.moveaxis(tgt_arr, -1, 0)
             vals, css = jax.vmap(_ssim_components_for_channel)(pred_channels, tgt_channels)
             ssim_val = jnp.mean(vals)
             cs_val = jnp.mean(css)
         else:
             ssim_val, cs_val, _ = _ssim_single_channel(
-                predictions,
-                targets,
+                pred_arr,
+                tgt_arr,
                 max_val=max_val,
                 filter_size=11,
                 filter_sigma=1.5,
@@ -302,22 +302,18 @@ def ms_ssim(
         if scale < n_scales - 1:
             cs_values.append(cs_val)
             # Downsample by 2x
-            h, w = predictions.shape[0], predictions.shape[1]
+            h, w = pred_arr.shape[0], pred_arr.shape[1]
             new_h, new_w = max(h // 2, 1), max(w // 2, 1)
             if is_multichannel:
-                from jax import image as jax_image
-
-                predictions = jax_image.resize(
-                    predictions, (new_h, new_w, predictions.shape[2]), method="bilinear"
+                pred_arr = jax_image.resize(
+                    pred_arr, (new_h, new_w, pred_arr.shape[2]), method="bilinear"
                 )
-                targets = jax_image.resize(
-                    targets, (new_h, new_w, targets.shape[2]), method="bilinear"
+                tgt_arr = jax_image.resize(
+                    tgt_arr, (new_h, new_w, tgt_arr.shape[2]), method="bilinear"
                 )
             else:
-                from jax import image as jax_image
-
-                predictions = jax_image.resize(predictions, (new_h, new_w), method="bilinear")
-                targets = jax_image.resize(targets, (new_h, new_w), method="bilinear")
+                pred_arr = jax_image.resize(pred_arr, (new_h, new_w), method="bilinear")
+                tgt_arr = jax_image.resize(tgt_arr, (new_h, new_w), method="bilinear")
         else:
             cs_values.append(ssim_val)  # Last scale uses full SSIM
 
@@ -327,7 +323,7 @@ def ms_ssim(
     return jnp.prod(jnp.maximum(cs_arr, _EPSILON) ** pf_arr)
 
 
-def vendi_score(similarity_matrix: Any) -> Any:
+def vendi_score(similarity_matrix: ArrayLike) -> jax.Array:
     """Vendi Score: diversity measure via eigenvalue entropy.
 
     Computes exp(entropy of eigenvalues) of a similarity matrix.

@@ -9,12 +9,200 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any
 
 import jax.numpy as jnp
+from jax.typing import ArrayLike
 
 from calibrax.core.models import MetricDirection
-from calibrax.metrics._types import MetricEntry, MetricProperties, MetricSignature, MetricTier
+from calibrax.metrics._registry import MetricRegistry
+from calibrax.metrics._types import (
+    MetricEntry,
+    MetricFn,
+    MetricProperties,
+    MetricSignature,
+    MetricTier,
+    MetricValues,
+)
+from calibrax.metrics._utils import _EPSILON, _prepare_arrays, safe_divide
+from calibrax.metrics.functional.audio import (
+    mel_cepstral_distortion,
+    signal_to_noise_ratio,
+    spectral_convergence,
+)
+from calibrax.metrics.functional.calibration import (
+    adaptive_calibration_error,
+    brier_score,
+    classwise_ece,
+    expected_calibration_error,
+    maximum_calibration_error,
+)
+from calibrax.metrics.functional.classification import (
+    accuracy,
+    average_precision,
+    balanced_accuracy,
+    cohen_kappa,
+    f1_score,
+    log_loss,
+    matthews_corrcoef,
+    precision,
+    recall,
+    roc_auc,
+    sensitivity,
+    softmax_cross_entropy,
+    specificity,
+)
+from calibrax.metrics.functional.clustering import (
+    adjusted_mutual_information,
+    adjusted_rand_index,
+    calinski_harabasz_score,
+    davies_bouldin_score,
+    normalized_mutual_information_clustering,
+    silhouette_score,
+    v_measure,
+)
+from calibrax.metrics.functional.distance import (
+    chebyshev_distance,
+    cosine_distance,
+    euclidean_distance,
+    hamming_distance,
+    jaccard_distance,
+    lorentz_distance,
+    mahalanobis_distance,
+    manhattan_distance,
+    minkowski_distance,
+    poincare_distance,
+    randers_distance,
+)
+from calibrax.metrics.functional.divergence import (
+    bregman_divergence,
+    chi_squared_divergence,
+    f_divergence,
+    hellinger_distance,
+    js_divergence,
+    kl_divergence,
+    kolmogorov_smirnov_distance,
+    mmd,
+    registry_sliced_wasserstein,
+    renyi_divergence,
+    reverse_kl_divergence,
+    sinkhorn_divergence,
+    total_variation,
+    wasserstein_1d,
+)
+from calibrax.metrics.functional.fairness import (
+    demographic_parity_ratio,
+    disparate_impact_ratio,
+    equal_opportunity_difference,
+    equalized_odds_difference,
+)
+from calibrax.metrics.functional.forecasting import (
+    energy_score,
+    ensemble_ranked_probability_score,
+    event_reliability,
+    fair_crps,
+    ranked_probability_score,
+    spread_skill_ratio,
+)
+from calibrax.metrics.functional.generative import (
+    density_weighted_precision,
+    density_weighted_recall,
+    distance_to_closest_record,
+    frechet_feature_distance,
+    inception_score,
+    manifold_precision,
+    manifold_recall,
+    memorization_rate,
+)
+from calibrax.metrics.functional.geometric import (
+    chamfer_distance,
+    directed_hausdorff,
+    earth_movers_distance_1d,
+    hausdorff_distance,
+    rmsd,
+)
+from calibrax.metrics.functional.graph import (
+    graph_edit_distance_approx,
+    resistance_distance,
+    shortest_path_distance,
+    spectral_distance,
+)
+from calibrax.metrics.functional.image import (
+    ms_ssim,
+    psnr,
+    ssim,
+    vendi_score,
+)
+from calibrax.metrics.functional.information import (
+    conditional_entropy,
+    cross_entropy,
+    entropy,
+    mutual_information,
+    normalized_mutual_information,
+)
+from calibrax.metrics.functional.manifold import (
+    grassmann_distance,
+    spd_affine_invariant_distance,
+    spd_log_euclidean_distance,
+    stiefel_distance,
+    ultrahyperbolic_distance,
+)
+from calibrax.metrics.functional.ranking import (
+    coverage,
+    hit_rate,
+    mean_average_precision,
+    mean_reciprocal_rank,
+    ndcg,
+    ndcg_at_k,
+    precision_at_k,
+    recall_at_k,
+)
+from calibrax.metrics.functional.regression import (
+    charbonnier_loss,
+    crps,
+    explained_variance,
+    huber_loss,
+    log_cosh_loss,
+    mae,
+    mape,
+    max_error,
+    mse,
+    quantile_loss,
+    r_squared,
+    relative_error,
+    relative_l2_error,
+    rmse,
+    smape,
+)
+from calibrax.metrics.functional.segmentation import (
+    dice_coefficient,
+    iou,
+    pixel_accuracy,
+)
+from calibrax.metrics.functional.statistical import (
+    concordance_correlation,
+    correlation_preservation,
+    kendall_tau,
+    pearson_correlation,
+    r_squared_adjusted,
+    skewness,
+    spearman_rank_correlation,
+)
+from calibrax.metrics.functional.text import (
+    bleu,
+    distinct_n,
+    perplexity,
+    rouge_l,
+    rouge_n,
+)
+from calibrax.metrics.functional.uncertainty import (
+    anees,
+    gaussian_nll,
+    interval_score,
+    mpiw,
+    non_credibility_index,
+    picp,
+    regression_calibration_error,
+)
 
 
 @dataclass(frozen=True)
@@ -22,7 +210,7 @@ class _BuiltinMetricSpec:
     """Named built-in metric registration metadata."""
 
     name: str
-    fn: Any
+    fn: MetricFn
     description: str
     direction: MetricDirection
     properties: MetricProperties
@@ -50,9 +238,9 @@ _FUSED_REGRESSION_NAMES = frozenset(
 
 
 def _calculate_regression_fused(
-    predictions: Any,
-    targets: Any,
-) -> dict[str, Any]:
+    predictions: ArrayLike,
+    targets: ArrayLike,
+) -> MetricValues:
     """Compute all 12 same-shape regression metrics with shared subexpressions.
 
     Avoids redundant computation by reusing intermediate values (diff, abs_diff,
@@ -65,9 +253,6 @@ def _calculate_regression_fused(
     Returns:
         Dictionary mapping the 12 same-shape regression metric names to computed values.
     """
-    from calibrax.metrics._utils import _EPSILON, _prepare_arrays, safe_divide
-    from calibrax.metrics.functional.regression import relative_l2_error
-
     p, t = _prepare_arrays(predictions, targets)
     diff = p - t
     abs_diff = jnp.abs(diff)
@@ -122,25 +307,6 @@ def _register_all_builtins() -> None:
 
 def _register_regression_metrics() -> None:
     """Register all 14 regression metrics at import time."""
-    from calibrax.metrics._registry import MetricRegistry
-    from calibrax.metrics.functional.regression import (
-        charbonnier_loss,
-        crps,
-        explained_variance,
-        huber_loss,
-        log_cosh_loss,
-        mae,
-        mape,
-        max_error,
-        mse,
-        quantile_loss,
-        r_squared,
-        relative_error,
-        relative_l2_error,
-        rmse,
-        smape,
-    )
-
     registry = MetricRegistry()
     builtins = [
         _BuiltinMetricSpec(
@@ -271,16 +437,6 @@ def _register_forecasting_metrics() -> None:
     Note: rank_histogram, pit_histogram and ranked_probability_skill_score are
     NOT registered (they return arrays, not scalars).
     """
-    from calibrax.metrics._registry import MetricRegistry
-    from calibrax.metrics.functional.forecasting import (
-        energy_score,
-        ensemble_ranked_probability_score,
-        event_reliability,
-        fair_crps,
-        ranked_probability_score,
-        spread_skill_ratio,
-    )
-
     registry = MetricRegistry()
     proper = MetricProperties(is_proper=True, is_differentiable=True, is_jit_compatible=True)
     builtins = [
@@ -349,17 +505,6 @@ def _register_uncertainty_metrics() -> None:
     winkler_score is interval_score under its older name, and
     chi2_confidence_interval returns a pair; none is registered.
     """
-    from calibrax.metrics._registry import MetricRegistry
-    from calibrax.metrics.functional.uncertainty import (
-        anees,
-        gaussian_nll,
-        interval_score,
-        mpiw,
-        non_credibility_index,
-        picp,
-        regression_calibration_error,
-    )
-
     registry = MetricRegistry()
     differentiable = MetricProperties(is_differentiable=True, is_jit_compatible=True)
     counting = MetricProperties(is_differentiable=False, is_jit_compatible=True)
@@ -433,19 +578,6 @@ def _register_uncertainty_metrics() -> None:
 
 def _register_generative_metrics() -> None:
     """Register the sample-based generative-model metrics."""
-    from calibrax.metrics._registry import MetricRegistry
-    from calibrax.metrics.functional.generative import (
-        density_weighted_precision,
-        density_weighted_recall,
-        distance_to_closest_record,
-        frechet_feature_distance,
-        inception_score,
-        manifold_precision,
-        manifold_recall,
-        memorization_rate,
-    )
-    from calibrax.metrics.functional.statistical import correlation_preservation
-
     registry = MetricRegistry()
     counting = MetricProperties(is_differentiable=False, is_jit_compatible=True)
     smooth = MetricProperties(is_differentiable=True, is_jit_compatible=True)
@@ -535,7 +667,7 @@ def _register_generative_metrics() -> None:
     _register_specs(registry, builtins)
 
 
-def _register_specs(registry: Any, specs: Sequence[_BuiltinMetricSpec]) -> None:
+def _register_specs(registry: MetricRegistry, specs: Sequence[_BuiltinMetricSpec]) -> None:
     """Register every spec that is not already in the registry."""
     for spec in specs:
         if not registry.has(spec.name):
@@ -559,26 +691,9 @@ def _register_classification_metrics() -> None:
 
     Note: confusion_matrix is NOT registered (returns array, not float).
     """
-    from calibrax.metrics._registry import MetricRegistry
-    from calibrax.metrics.functional.classification import (
-        accuracy,
-        average_precision,
-        balanced_accuracy,
-        cohen_kappa,
-        f1_score,
-        log_loss,
-        matthews_corrcoef,
-        precision,
-        recall,
-        roc_auc,
-        sensitivity,
-        softmax_cross_entropy,
-        specificity,
-    )
-
     registry = MetricRegistry()
     # (name, fn, description, direction, is_symmetric, is_proper, is_differentiable)
-    builtins: list[tuple[str, Any, str, MetricDirection, bool, bool, bool]] = [
+    builtins: list[tuple[str, MetricFn, str, MetricDirection, bool, bool, bool]] = [
         (
             "accuracy",
             accuracy,
@@ -724,18 +839,9 @@ def _register_calibration_metrics() -> None:
     Note: reliability_diagram_bins and brier_decomposition are NOT
     registered (they return dicts, not floats).
     """
-    from calibrax.metrics._registry import MetricRegistry
-    from calibrax.metrics.functional.calibration import (
-        adaptive_calibration_error,
-        brier_score,
-        classwise_ece,
-        expected_calibration_error,
-        maximum_calibration_error,
-    )
-
     registry = MetricRegistry()
     # (name, fn, description, direction, is_proper)
-    builtins: list[tuple[str, Any, str, MetricDirection, bool]] = [
+    builtins: list[tuple[str, MetricFn, str, MetricDirection, bool]] = [
         ("brier_score", brier_score, "Brier score (probability MSE)", MetricDirection.LOWER, True),
         (
             "expected_calibration_error",
@@ -786,16 +892,9 @@ def _register_calibration_metrics() -> None:
 
 def _register_segmentation_metrics() -> None:
     """Register 3 segmentation metrics at import time."""
-    from calibrax.metrics._registry import MetricRegistry
-    from calibrax.metrics.functional.segmentation import (
-        dice_coefficient,
-        iou,
-        pixel_accuracy,
-    )
-
     registry = MetricRegistry()
     # (name, fn, description)
-    builtins: list[tuple[str, Any, str]] = [
+    builtins: list[tuple[str, MetricFn, str]] = [
         ("iou", iou, "Intersection over Union (Jaccard index)"),
         ("dice_coefficient", dice_coefficient, "Dice coefficient (F1 for segmentation)"),
         ("pixel_accuracy", pixel_accuracy, "Fraction of correctly classified pixels"),
@@ -817,24 +916,9 @@ def _register_segmentation_metrics() -> None:
 
 def _register_distance_metrics() -> None:
     """Register 11 distance metrics at import time."""
-    from calibrax.metrics._registry import MetricRegistry
-    from calibrax.metrics.functional.distance import (
-        chebyshev_distance,
-        cosine_distance,
-        euclidean_distance,
-        hamming_distance,
-        jaccard_distance,
-        lorentz_distance,
-        mahalanobis_distance,
-        manhattan_distance,
-        minkowski_distance,
-        poincare_distance,
-        randers_distance,
-    )
-
     registry = MetricRegistry()
     # (name, fn, description, is_true_metric, is_symmetric, is_differentiable, invariances)
-    builtins: list[tuple[str, Any, str, bool, bool, bool, tuple[str, ...]]] = [
+    builtins: list[tuple[str, MetricFn, str, bool, bool, bool, tuple[str, ...]]] = [
         (
             "cosine_distance",
             cosine_distance,
@@ -957,27 +1041,9 @@ def _register_distance_metrics() -> None:
 
 def _register_divergence_metrics() -> None:
     """Register 13 divergence metrics at import time."""
-    from calibrax.metrics._registry import MetricRegistry
-    from calibrax.metrics.functional.divergence import (
-        bregman_divergence,
-        chi_squared_divergence,
-        f_divergence,
-        hellinger_distance,
-        js_divergence,
-        kl_divergence,
-        kolmogorov_smirnov_distance,
-        mmd,
-        renyi_divergence,
-        reverse_kl_divergence,
-        sinkhorn_divergence,
-        sliced_wasserstein,
-        total_variation,
-        wasserstein_1d,
-    )
-
     registry = MetricRegistry()
     # (name, fn, description, is_true_metric, is_symmetric, is_differentiable, signature)
-    builtins: list[tuple[str, Any, str, bool, bool, bool, MetricSignature]] = [
+    builtins: list[tuple[str, MetricFn, str, bool, bool, bool, MetricSignature]] = [
         (
             "kl_divergence",
             kl_divergence,
@@ -1088,9 +1154,9 @@ def _register_divergence_metrics() -> None:
         ),
         (
             "sliced_wasserstein",
-            sliced_wasserstein,
-            "Sliced Wasserstein distance",
-            True,
+            registry_sliced_wasserstein,
+            "Sliced Wasserstein distance over a fixed projection set",
+            False,
             True,
             True,
             MetricSignature.SAMPLES,
@@ -1129,18 +1195,9 @@ def _register_information_metrics() -> None:
 
     Note: fisher_information_matrix is NOT registered (returns matrix, not float).
     """
-    from calibrax.metrics._registry import MetricRegistry
-    from calibrax.metrics.functional.information import (
-        conditional_entropy,
-        cross_entropy,
-        entropy,
-        mutual_information,
-        normalized_mutual_information,
-    )
-
     registry = MetricRegistry()
     # (name, fn, description, direction, signature)
-    builtins: list[tuple[str, Any, str, MetricDirection, MetricSignature]] = [
+    builtins: list[tuple[str, MetricFn, str, MetricDirection, MetricSignature]] = [
         (
             "entropy",
             entropy,
@@ -1192,21 +1249,9 @@ def _register_information_metrics() -> None:
 
 
 def _register_ranking_metrics() -> None:
-    """Register 8 ranking/retrieval metrics at import time."""
-    from calibrax.metrics._registry import MetricRegistry
-    from calibrax.metrics.functional.ranking import (
-        coverage,
-        hit_rate,
-        mean_average_precision,
-        mean_reciprocal_rank,
-        ndcg,
-        ndcg_at_k,
-        precision_at_k,
-        recall_at_k,
-    )
-
+    """Register the ranking/retrieval metrics at import time."""
     registry = MetricRegistry()
-    builtins: list[tuple[str, Any, str]] = [
+    builtins: list[tuple[str, MetricFn, str]] = [
         ("ndcg", ndcg, "Normalized Discounted Cumulative Gain"),
         ("ndcg_at_k", ndcg_at_k, "NDCG truncated to top-k"),
         ("mean_average_precision", mean_average_precision, "Mean Average Precision"),
@@ -1214,7 +1259,6 @@ def _register_ranking_metrics() -> None:
         ("recall_at_k", recall_at_k, "Recall at k"),
         ("mean_reciprocal_rank", mean_reciprocal_rank, "Mean Reciprocal Rank"),
         ("hit_rate", hit_rate, "Hit rate at k"),
-        ("coverage", coverage, "Catalog coverage"),
     ]
     for name, fn, desc in builtins:
         if not registry.has(name):
@@ -1228,22 +1272,26 @@ def _register_ranking_metrics() -> None:
                 signature=MetricSignature.PREDICTIONS_TARGETS,
             )
             registry.register(name, entry)
+    if not registry.has("coverage"):
+        # One input and a required catalog size: a suite cannot call it as fn(predictions, targets).
+        registry.register(
+            "coverage",
+            MetricEntry(
+                name="coverage",
+                fn=coverage,
+                tier=MetricTier.PURE_FUNCTION,
+                domain="ranking",
+                direction=MetricDirection.HIGHER,
+                description="Catalog coverage",
+                signature=MetricSignature.CUSTOM,
+            ),
+        )
 
 
 def _register_statistical_metrics() -> None:
     """Register 5 statistical correlation metrics at import time."""
-    from calibrax.metrics._registry import MetricRegistry
-    from calibrax.metrics.functional.statistical import (
-        concordance_correlation,
-        kendall_tau,
-        pearson_correlation,
-        r_squared_adjusted,
-        skewness,
-        spearman_rank_correlation,
-    )
-
     registry = MetricRegistry()
-    builtins: list[tuple[str, Any, str]] = [
+    builtins: list[tuple[str, MetricFn, str]] = [
         ("pearson_correlation", pearson_correlation, "Pearson correlation coefficient"),
         ("spearman_rank_correlation", spearman_rank_correlation, "Spearman rank correlation"),
         ("kendall_tau", kendall_tau, "Kendall rank correlation coefficient"),
@@ -1281,18 +1329,9 @@ def _register_statistical_metrics() -> None:
 
 def _register_text_metrics() -> None:
     """Register 5 text metrics at import time."""
-    from calibrax.metrics._registry import MetricRegistry
-    from calibrax.metrics.functional.text import (
-        bleu,
-        distinct_n,
-        perplexity,
-        rouge_l,
-        rouge_n,
-    )
-
     registry = MetricRegistry()
     # (name, fn, description, direction, is_jit_compatible)
-    builtins: list[tuple[str, Any, str, MetricDirection, bool]] = [
+    builtins: list[tuple[str, MetricFn, str, MetricDirection, bool]] = [
         ("bleu", bleu, "BLEU score for translation evaluation", MetricDirection.HIGHER, False),
         ("rouge_n", rouge_n, "ROUGE-N recall for summarization", MetricDirection.HIGHER, False),
         ("rouge_l", rouge_l, "ROUGE-L LCS-based F-measure", MetricDirection.HIGHER, False),
@@ -1325,15 +1364,8 @@ def _register_text_metrics() -> None:
 
 def _register_audio_metrics() -> None:
     """Register 3 audio metrics at import time."""
-    from calibrax.metrics._registry import MetricRegistry
-    from calibrax.metrics.functional.audio import (
-        mel_cepstral_distortion,
-        signal_to_noise_ratio,
-        spectral_convergence,
-    )
-
     registry = MetricRegistry()
-    builtins: list[tuple[str, Any, str, MetricDirection]] = [
+    builtins: list[tuple[str, MetricFn, str, MetricDirection]] = [
         (
             "spectral_convergence",
             spectral_convergence,
@@ -1370,18 +1402,9 @@ def _register_audio_metrics() -> None:
 
 def _register_geometric_metrics() -> None:
     """Register 4 geometric metrics at import time."""
-    from calibrax.metrics._registry import MetricRegistry
-    from calibrax.metrics.functional.geometric import (
-        chamfer_distance,
-        directed_hausdorff,
-        earth_movers_distance_1d,
-        hausdorff_distance,
-        rmsd,
-    )
-
     registry = MetricRegistry()
     # (name, fn, description, is_true_metric, is_symmetric)
-    builtins: list[tuple[str, Any, str, bool, bool]] = [
+    builtins: list[tuple[str, MetricFn, str, bool, bool]] = [
         ("chamfer_distance", chamfer_distance, "Chamfer distance between point sets", False, True),
         ("rmsd", rmsd, "RMSD between centred conformations over their shared atoms", True, True),
         (
@@ -1426,19 +1449,10 @@ def _register_geometric_metrics() -> None:
 
 def _register_manifold_metrics() -> None:
     """Register 5 manifold distance metrics at import time."""
-    from calibrax.metrics._registry import MetricRegistry
-    from calibrax.metrics.functional.manifold import (
-        grassmann_distance,
-        spd_affine_invariant_distance,
-        spd_log_euclidean_distance,
-        stiefel_distance,
-        ultrahyperbolic_distance,
-    )
-
     registry = MetricRegistry()
 
     # (name, fn, description, is_true_metric, invariances)
-    builtins: list[tuple[str, Any, str, bool, tuple[str, ...]]] = [
+    builtins: list[tuple[str, MetricFn, str, bool, tuple[str, ...]]] = [
         (
             "spd_affine_invariant_distance",
             spd_affine_invariant_distance,
@@ -1498,18 +1512,10 @@ def _register_manifold_metrics() -> None:
 
 def _register_graph_metrics() -> None:
     """Register 4 graph distance metrics at import time."""
-    from calibrax.metrics._registry import MetricRegistry
-    from calibrax.metrics.functional.graph import (
-        graph_edit_distance_approx,
-        resistance_distance,
-        shortest_path_distance,
-        spectral_distance,
-    )
-
     registry = MetricRegistry()
 
     # Between-graph metrics (two adjacency matrices)
-    between_graph: list[tuple[str, Any, str, bool, bool, bool]] = [
+    between_graph: list[tuple[str, MetricFn, str, bool, bool, bool]] = [
         (
             "spectral_distance",
             spectral_distance,
@@ -1549,7 +1555,7 @@ def _register_graph_metrics() -> None:
             )
 
     # Within-graph metrics (single adjacency matrix)
-    within_graph: list[tuple[str, Any, str, bool]] = [
+    within_graph: list[tuple[str, MetricFn, str, bool]] = [
         (
             "resistance_distance",
             resistance_distance,
@@ -1586,16 +1592,8 @@ def _register_graph_metrics() -> None:
 
 def _register_image_metrics() -> None:
     """Register 4 image quality metrics at import time."""
-    from calibrax.metrics._registry import MetricRegistry
-    from calibrax.metrics.functional.image import (
-        ms_ssim,
-        psnr,
-        ssim,
-        vendi_score,
-    )
-
     registry = MetricRegistry()
-    builtins: list[tuple[str, Any, str]] = [
+    builtins: list[tuple[str, MetricFn, str]] = [
         ("psnr", psnr, "Peak Signal-to-Noise Ratio (dB)"),
         ("ssim", ssim, "Structural Similarity Index Measure"),
         ("ms_ssim", ms_ssim, "Multi-Scale Structural Similarity"),
@@ -1618,17 +1616,9 @@ def _register_image_metrics() -> None:
 
 def _register_fairness_metrics() -> None:
     """Register 4 fairness metrics at import time."""
-    from calibrax.metrics._registry import MetricRegistry
-    from calibrax.metrics.functional.fairness import (
-        demographic_parity_ratio,
-        disparate_impact_ratio,
-        equal_opportunity_difference,
-        equalized_odds_difference,
-    )
-
     registry = MetricRegistry()
     # (name, fn, description, direction)
-    builtins: list[tuple[str, Any, str, MetricDirection]] = [
+    builtins: list[tuple[str, MetricFn, str, MetricDirection]] = [
         (
             "demographic_parity_ratio",
             demographic_parity_ratio,
@@ -1670,20 +1660,9 @@ def _register_fairness_metrics() -> None:
 
 def _register_clustering_metrics() -> None:
     """Register 7 clustering metrics at import time."""
-    from calibrax.metrics._registry import MetricRegistry
-    from calibrax.metrics.functional.clustering import (
-        adjusted_mutual_information,
-        adjusted_rand_index,
-        calinski_harabasz_score,
-        davies_bouldin_score,
-        normalized_mutual_information_clustering,
-        silhouette_score,
-        v_measure,
-    )
-
     registry = MetricRegistry()
     # (name, fn, description, direction)
-    builtins: list[tuple[str, Any, str, MetricDirection]] = [
+    builtins: list[tuple[str, MetricFn, str, MetricDirection]] = [
         (
             "adjusted_rand_index",
             adjusted_rand_index,
@@ -1743,11 +1722,11 @@ def _register_clustering_metrics() -> None:
 
 
 def calculate_all(
-    predictions: Any,
-    targets: Any,
+    predictions: ArrayLike,
+    targets: ArrayLike,
     *,
     metrics: Sequence[str] | None = None,
-) -> dict[str, Any]:
+) -> MetricValues:
     """Calculate multiple evaluation metrics at once.
 
     Delegates to MetricRegistry for function lookup.
@@ -1764,8 +1743,6 @@ def calculate_all(
     Raises:
         ValueError: If an unknown metric is requested or metric is not Tier 0.
     """
-    from calibrax.metrics._registry import MetricRegistry
-
     registry = MetricRegistry()
     if metrics is None:
         entries = registry.list_by_tier(MetricTier.PURE_FUNCTION)
@@ -1785,7 +1762,7 @@ def calculate_all(
         if set(names) == _FUSED_REGRESSION_NAMES:
             return _calculate_regression_fused(predictions, targets)
 
-    results: dict[str, Any] = {}
+    results: MetricValues = {}
     for name in names:
         if not registry.has(name):
             available = sorted(registry.list_names())

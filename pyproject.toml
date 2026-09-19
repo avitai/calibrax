@@ -31,10 +31,18 @@ dependencies = [
   "jax>=0.11.1",
   "jaxlib>=0.11.1",
   "jaxtyping>=0.2.20",
+  # calibrax.core loads its exports on first use from its __init__.pyi stub.
+  "lazy-loader>=0.5",
   "numpy>=2.1",
   "psutil>=5.9.5",
-  "substrax>=0.1.11",
-  "typing_extensions>=4.5"
+  # Records are read with pydantic's strict validation; 2.10 is the first release that reads the
+  # recursive JsonValue alias.
+  "pydantic>=2.10",
+  # Significance tests and the chi-squared interval use SciPy, which JAX itself requires.
+  "scipy>=1.15",
+  "substrax>=0.1.14",
+  # TypeIs, for adapter predicates, arrived in typing_extensions 4.10.
+  "typing_extensions>=4.10"
 ]
 description = "JAX benchmarking, profiling and evaluation metrics for Flax NNX: a metric registry across regression, classification, calibration, uncertainty, forecasting, generative, image, text, audio, graph and fairness domains, XLA FLOP counting, roofline analysis, GPU and energy monitoring, regression detection, publication exports, W&B and MLflow"
 dynamic = ["version"]
@@ -53,13 +61,13 @@ requires-python = ">=3.12"
 
 [project.optional-dependencies]
 all = [
-  "calibrax[changepoint,codecarbon,cuda12,dev,docs,image,mlflow,performance,publication,scientific,stats,test,text,wandb]"
+  "calibrax[changepoint,codecarbon,cuda12,dev,docs,image,mlflow,performance,publication,scientific,test,text,wandb]"
 ]
 all-cpu = [
-  "calibrax[changepoint,codecarbon,dev,docs,image,mlflow,performance,publication,scientific,stats,test,text,wandb]"
+  "calibrax[changepoint,codecarbon,dev,docs,image,mlflow,performance,publication,scientific,test,text,wandb]"
 ]
 all-macos = [
-  "calibrax[changepoint,codecarbon,dev,docs,image,metal,mlflow,performance,publication,scientific,stats,test,text,wandb]"
+  "calibrax[changepoint,codecarbon,dev,docs,image,metal,mlflow,performance,publication,scientific,test,text,wandb]"
 ]
 changepoint = [
   "ruptures>=1.1"
@@ -89,11 +97,12 @@ cuda12 = [
   "nvidia-curand-cu12>=10.3",
   "nvidia-cusolver-cu12>=11.7",
   "nvidia-cusparse-cu12>=12.3",
+  # GPU monitoring through NVIDIA's NVML bindings (the ``pynvml`` module); the pynvml
+  # distribution is deprecated in their favour.
+  "nvidia-ml-py>=12.0.0",
   "nvidia-nccl-cu12>=2.20",
   "nvidia-nvjitlink-cu12>=12.6",
-  "nvidia-nvtx-cu12>=12.6",
-  # GPU monitoring
-  "pynvml>=11.5.0"
+  "nvidia-nvtx-cu12>=12.6"
 ]
 dev = [
   "bandit[toml]>=1.8.6",
@@ -120,6 +129,8 @@ dev = [
   "pytest>=9.0.3",
   "radon>=6.0",
   "ruff>=0.1.5",
+  # Types for scipy.stats; follows the locked scipy minor.
+  "scipy-stubs>=1.17,<1.18",
   "twine>=4.0.2"
 ]
 docs = [
@@ -150,9 +161,6 @@ publication = [
   "matplotlib>=3.8"
 ]
 scientific = [
-]
-stats = [
-  "scipy>=1.10"
 ]
 test = [
   "beartype>=0.14.1",
@@ -328,6 +336,7 @@ testpaths = ["tests"]
 
 [tool.pytest_env]
 JAX_PLATFORMS = {skip_if_set = true, value = "cpu"}
+MPLBACKEND = {skip_if_set = true, value = "Agg"}
 TF_CPP_MIN_LOG_LEVEL = {skip_if_set = true, value = "1"}
 WANDB_DIR = {skip_if_set = true, value = "/tmp/calibrax-test-wandb"}
 WANDB_MODE = {skip_if_set = true, value = "offline"}
@@ -336,6 +345,9 @@ XLA_PYTHON_CLIENT_PREALLOCATE = {skip_if_set = true, value = "false"}
 [tool.ruff]
 extend-include = ["*.ipynb"]
 line-length = 100
+# First-party modules come from src/ and the isort settings only, so an untracked directory at the
+# repository root (wandb's run logs are ./wandb) cannot make a third-party package first-party.
+src = ["src"]
 target-version = "py312"
 
 [tool.ruff.format]
@@ -366,9 +378,6 @@ ignore = [
   "D213",
   # The formatter owns line length.
   "E501",
-  # Optional extras (scipy, wandb, mlflow, pynvml, ...) are imported where they are used so the
-  # base install stays light; 193 function-local imports carry that pattern.
-  "PLC0415",
   # The __all__ lists are grouped by domain with comments; a sort would destroy the grouping.
   "RUF022",
   # Exception messages are written inline; a message class per raise is noise.
@@ -402,7 +411,7 @@ select = [
 [tool.ruff.lint.isort]
 combine-as-imports = true
 extra-standard-library = ["typing_extensions"]
-known-first-party = ["calibrax"]
+known-first-party = ["calibrax", "tests"]
 lines-after-imports = 2
 order-by-type = false
 
@@ -415,9 +424,11 @@ max-complexity = 10
 # Development scripts report on stdout.
 "scripts/*" = ["T20"]
 # The CLI's output is print by design.
-"src/calibrax/cli/main.py" = ["T201"]
+"src/calibrax/cli/*" = ["T201"]
 # Test factories are keyword-only builders with one parameter per field.
 "tests/*" = ["ANN", "D", "PLR0913", "PLR2004", "S101"]
+# Local stubs for untyped libraries spell names as the library does (NVML's camelCase).
+"typings/*" = ["N"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

@@ -1,14 +1,10 @@
-"""Tests for GPU profiling: HardwareConfig, AdaptiveOperation, GPUMemoryProfiler.
+"""Tests for GPU profiling: HardwareConfig, AdaptiveOperation, GPUMemoryProfiler, memory patterns.
 
 All GPU/hardware access is mocked — no hardware dependency.
 """
 
-import builtins
 import dataclasses
-import importlib.util
-import sys
-import types
-from pathlib import Path
+from collections.abc import Mapping
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -16,12 +12,16 @@ from substrax.devices import DeviceInfo, DeviceKind
 
 from calibrax.profiling.gpu import (
     AdaptiveOperation,
+    analyze_memory_pattern,
     GPUMemoryProfiler,
     MemoryAnalysis,
     MemoryOptimizer,
 )
-from calibrax.profiling.resources import GPUProfilerProtocol
+from calibrax.profiling.resources import GpuMemory, GPUProfilerProtocol
 from tests.factories import make_cpu_hardware_config
+
+
+_MB = 1024 * 1024
 
 
 class TestHardwareConfig:
@@ -127,231 +127,107 @@ class TestAdaptiveOperation:
         assert result == [(tile, tile * 2)]
 
 
+class _Device:
+    """A device answering fixed memory statistics."""
+
+    def __init__(self, stats: Mapping[str, int] | None) -> None:
+        self._stats = stats
+
+    def memory_stats(self) -> Mapping[str, int] | None:
+        return self._stats
+
+
+def _reading(used_mb: float, occupancy: float) -> GpuMemory:
+    return GpuMemory(used_mb=used_mb, total_mb=used_mb / occupancy)
+
+
 class TestGPUMemoryProfiler:
     """Tests for GPUMemoryProfiler."""
 
-    @patch("calibrax.profiling.gpu.jax")
-    def test_has_gpu_false_on_cpu(self, mock_jax: MagicMock) -> None:
-        mock_jax.devices.side_effect = RuntimeError("No GPU backend")
-        profiler = GPUMemoryProfiler()
-        assert profiler.has_gpu is False
+    def test_memory_is_read_from_the_device_statistics(self) -> None:
+        device = _Device({"bytes_in_use": 2048 * _MB, "bytes_limit": 8192 * _MB})
 
-    @patch("calibrax.profiling.gpu.jax")
-    def test_has_gpu_true_with_devices(self, mock_jax: MagicMock) -> None:
-        mock_jax.devices.return_value = [MagicMock()]
-        profiler = GPUMemoryProfiler()
-        assert profiler.has_gpu is True
+        assert GPUMemoryProfiler(device).memory() == GpuMemory(used_mb=2048.0, total_mb=8192.0)
 
-    @patch("calibrax.profiling.gpu.jax")
-    def test_has_gpu_runtime_error(self, mock_jax: MagicMock) -> None:
-        mock_jax.devices.side_effect = RuntimeError("no GPU")
-        profiler = GPUMemoryProfiler()
-        assert profiler.has_gpu is False
-
-    def test_get_memory_no_gpu(self) -> None:
-        profiler = GPUMemoryProfiler()
-        profiler.has_gpu = False
-        mem = profiler.get_memory_usage()
-        assert mem == {"gpu_memory_used_mb": 0.0, "gpu_memory_total_mb": 0.0}
-
-    @patch("calibrax.profiling.gpu.jax")
-    def test_get_memory_with_memory_stats(
-        self,
-        mock_jax: MagicMock,
+    @pytest.mark.parametrize("stats", [None, {}, {"bytes_in_use": 1}, {"bytes_limit": 1}], ids=str)
+    def test_statistics_without_both_figures_are_no_reading(
+        self, stats: Mapping[str, int] | None
     ) -> None:
-        mock_device = MagicMock()
-        mock_device.memory_stats.return_value = {
-            "bytes_in_use": 2048 * 1024 * 1024,
-            "bytes_limit": 8192 * 1024 * 1024,
-        }
-        mock_jax.devices.return_value = [mock_device]
-
-        profiler = GPUMemoryProfiler()
-        profiler.has_gpu = True
-        mem = profiler.get_memory_usage()
-        assert mem["gpu_memory_used_mb"] == pytest.approx(2048.0)
-        assert mem["gpu_memory_total_mb"] == pytest.approx(8192.0)
-
-    def test_get_memory_runtime_error_fallback(self) -> None:
-        profiler = GPUMemoryProfiler()
-        profiler.has_gpu = True
-        with patch(
-            "calibrax.profiling.gpu.jax",
-        ) as mock_jax:
-            mock_jax.devices.side_effect = RuntimeError("backend unavailable")
-            mem = profiler.get_memory_usage()
-        assert mem == {"gpu_memory_used_mb": 0.0, "gpu_memory_total_mb": 0.0}
+        assert GPUMemoryProfiler(_Device(stats)).memory() is None
 
     @patch("calibrax.profiling.gpu.jax")
-    def test_get_memory_without_memory_stats_method_falls_back(
-        self,
-        mock_jax: MagicMock,
-    ) -> None:
-        mock_jax.devices.return_value = [object()]
+    def test_without_a_gpu_backend_there_is_no_reading(self, mock_jax: MagicMock) -> None:
+        mock_jax.devices.side_effect = RuntimeError("Unknown backend gpu")
 
-        profiler = GPUMemoryProfiler()
-        profiler.has_gpu = True
-        mem = profiler.get_memory_usage()
-
-        assert mem == {"gpu_memory_used_mb": 0.0, "gpu_memory_total_mb": 0.0}
+        assert GPUMemoryProfiler().memory() is None
 
     @patch("calibrax.profiling.gpu.jax")
-    def test_get_memory_with_empty_memory_stats_falls_back(self, mock_jax: MagicMock) -> None:
-        mock_device = MagicMock()
-        mock_device.memory_stats.return_value = {}
-        mock_jax.devices.return_value = [mock_device]
+    def test_the_first_gpu_is_read_by_default(self, mock_jax: MagicMock) -> None:
+        mock_jax.devices.return_value = [
+            _Device({"bytes_in_use": _MB, "bytes_limit": 4 * _MB}),
+            _Device(None),
+        ]
 
-        profiler = GPUMemoryProfiler()
-        profiler.has_gpu = True
-        mem = profiler.get_memory_usage()
+        assert GPUMemoryProfiler().memory() == GpuMemory(used_mb=1.0, total_mb=4.0)
+        mock_jax.devices.assert_called_once_with("gpu")
 
-        assert mem == {"gpu_memory_used_mb": 0.0, "gpu_memory_total_mb": 0.0}
-
-    def test_get_memory_unexpected_error_propagates(self) -> None:
+    def test_an_unexpected_backend_error_propagates(self) -> None:
         class CatastrophicMemoryQueryError(Exception):
             pass
 
-        profiler = GPUMemoryProfiler()
-        profiler.has_gpu = True
-        with patch(
-            "calibrax.profiling.gpu.jax",
-        ) as mock_jax:
+        with patch("calibrax.profiling.gpu.jax") as mock_jax:
             mock_jax.devices.side_effect = CatastrophicMemoryQueryError("catastrophic")
             with pytest.raises(CatastrophicMemoryQueryError):
-                profiler.get_memory_usage()
+                GPUMemoryProfiler()
 
-    def test_get_utilization_no_gpu(self) -> None:
-        profiler = GPUMemoryProfiler()
-        profiler.has_gpu = False
-        assert profiler.get_utilization() == 0.0
+    def test_jax_reports_no_utilization_clocks_or_power(self) -> None:
+        profiler = GPUMemoryProfiler(_Device({}))
 
-    def test_safe_nvml_query_returns_fallback_on_nvml_error(self) -> None:
-        class FakeNVMLError(Exception):
-            pass
-
-        fake_nvml = types.SimpleNamespace(
-            NVMLError=FakeNVMLError,
-            nvmlInit=MagicMock(side_effect=FakeNVMLError("init failed")),
-            nvmlDeviceGetHandleByIndex=MagicMock(),
-        )
-        profiler = GPUMemoryProfiler()
-        profiler.has_gpu = True
-
-        with (
-            patch("calibrax.profiling.gpu.PYNVML_AVAILABLE", True),
-            patch("calibrax.profiling.gpu.pynvml", fake_nvml),
-        ):
-            result = profiler._safe_nvml_query(lambda _handle: {"ok": 1.0}, {"ok": 0.0})
-
-        assert result == {"ok": 0.0}
-
-    def test_get_clock_info_reads_nvml_when_available(self) -> None:
-        class FakeNVMLError(Exception):
-            pass
-
-        handle = object()
-        fake_nvml = types.SimpleNamespace(
-            NVMLError=FakeNVMLError,
-            NVML_CLOCK_GRAPHICS=1,
-            NVML_CLOCK_MEM=2,
-            nvmlInit=MagicMock(),
-            nvmlDeviceGetHandleByIndex=MagicMock(return_value=handle),
-            nvmlDeviceGetClockInfo=MagicMock(side_effect=[1500, 2100]),
-        )
-        profiler = GPUMemoryProfiler()
-        profiler.has_gpu = True
-
-        with (
-            patch("calibrax.profiling.gpu.PYNVML_AVAILABLE", True),
-            patch("calibrax.profiling.gpu.pynvml", fake_nvml),
-        ):
-            clocks = profiler.get_clock_info()
-
-        assert clocks == {"gpu_clock_mhz": 1500.0, "mem_clock_mhz": 2100.0}
-
-    def test_get_power_info_reads_nvml_when_available(self) -> None:
-        class FakeNVMLError(Exception):
-            pass
-
-        handle = object()
-        fake_nvml = types.SimpleNamespace(
-            NVMLError=FakeNVMLError,
-            nvmlInit=MagicMock(),
-            nvmlDeviceGetHandleByIndex=MagicMock(return_value=handle),
-            nvmlDeviceGetPowerUsage=MagicMock(return_value=240000),
-            nvmlDeviceGetPowerManagementLimit=MagicMock(return_value=300000),
-        )
-        profiler = GPUMemoryProfiler()
-        profiler.has_gpu = True
-
-        with (
-            patch("calibrax.profiling.gpu.PYNVML_AVAILABLE", True),
-            patch("calibrax.profiling.gpu.pynvml", fake_nvml),
-        ):
-            power = profiler.get_power_info()
-
-        assert power == {"power_draw_w": 240.0, "power_limit_w": 300.0}
+        assert profiler.utilization() is None
+        assert profiler.clocks() is None
+        assert profiler.power() is None
 
     def test_satisfies_gpu_profiler_protocol(self) -> None:
-        profiler = GPUMemoryProfiler()
-        assert isinstance(profiler, GPUProfilerProtocol)
+        assert isinstance(GPUMemoryProfiler(_Device(None)), GPUProfilerProtocol)
 
-    def test_analyze_memory_pattern_empty(self) -> None:
-        profiler = GPUMemoryProfiler()
-        assert profiler.analyze_memory_pattern([]) == []
+    def test_a_cpu_run_reads_nothing(self) -> None:
+        # The suite runs under JAX_PLATFORMS=cpu: no GPU backend, so no reading.
+        assert GPUMemoryProfiler().memory() is None
 
-    def test_analyze_memory_pattern_leak_detection(self) -> None:
-        profiler = GPUMemoryProfiler()
-        measurements = [
-            {"gpu_memory_used_mb": 100, "gpu_memory_utilization": 0.3},
-            {"gpu_memory_used_mb": 200, "gpu_memory_utilization": 0.3},
-            {"gpu_memory_used_mb": 300, "gpu_memory_utilization": 0.3},
-        ]
-        suggestions = profiler.analyze_memory_pattern(measurements)
-        assert any("memory leak" in s.lower() for s in suggestions)
 
-    def test_analyze_memory_pattern_high_utilization(self) -> None:
-        profiler = GPUMemoryProfiler()
-        measurements = [
-            {"gpu_memory_used_mb": 100, "gpu_memory_utilization": 0.95},
-            {"gpu_memory_used_mb": 100, "gpu_memory_utilization": 0.5},
-            {"gpu_memory_used_mb": 100, "gpu_memory_utilization": 0.5},
-        ]
-        suggestions = profiler.analyze_memory_pattern(measurements)
-        assert any("90%" in s for s in suggestions)
+class TestAnalyzeMemoryPattern:
+    """Tests for analyze_memory_pattern."""
 
-    def test_analyze_memory_pattern_no_suggestions(self) -> None:
-        profiler = GPUMemoryProfiler()
-        measurements = [
-            {"gpu_memory_used_mb": 50, "gpu_memory_utilization": 0.1},
-            {"gpu_memory_used_mb": 51, "gpu_memory_utilization": 0.1},
-            {"gpu_memory_used_mb": 50, "gpu_memory_utilization": 0.1},
-        ]
-        assert profiler.analyze_memory_pattern(measurements) == []
+    def test_no_readings_no_suggestions(self) -> None:
+        assert analyze_memory_pattern([]) == []
 
-    def test_analyze_memory_pattern_high_average_utilization_warns(self) -> None:
-        profiler = GPUMemoryProfiler()
-        measurements = [
-            {"gpu_memory_used_mb": 100, "gpu_memory_utilization": 0.82},
-            {"gpu_memory_used_mb": 102, "gpu_memory_utilization": 0.85},
-            {"gpu_memory_used_mb": 101, "gpu_memory_utilization": 0.83},
-        ]
+    def test_a_rising_trend_suggests_a_leak(self) -> None:
+        readings = [_reading(100, 0.3), _reading(200, 0.3), _reading(300, 0.3)]
 
-        suggestions = profiler.analyze_memory_pattern(measurements)
+        assert any("memory leak" in s.lower() for s in analyze_memory_pattern(readings))
+
+    def test_a_peak_over_ninety_percent_is_reported(self) -> None:
+        readings = [_reading(100, 0.95), _reading(100, 0.5), _reading(100, 0.5)]
+
+        assert any("90%" in s for s in analyze_memory_pattern(readings))
+
+    def test_steady_low_usage_has_no_suggestions(self) -> None:
+        readings = [_reading(50, 0.1), _reading(51, 0.1), _reading(50, 0.1)]
+
+        assert analyze_memory_pattern(readings) == []
+
+    def test_a_sustained_eighty_percent_is_reported_without_the_peak_warning(self) -> None:
+        readings = [_reading(100, 0.82), _reading(102, 0.85), _reading(101, 0.83)]
+
+        suggestions = analyze_memory_pattern(readings)
 
         assert any("80%" in suggestion for suggestion in suggestions)
         assert all("90%" not in suggestion for suggestion in suggestions)
 
-    def test_analyze_memory_pattern_short_series_skips_leak_trend(self) -> None:
-        profiler = GPUMemoryProfiler()
-        measurements = [
-            {"gpu_memory_used_mb": 100, "gpu_memory_utilization": 0.2},
-            {"gpu_memory_used_mb": 300, "gpu_memory_utilization": 0.2},
-        ]
+    def test_a_short_series_skips_the_leak_trend(self) -> None:
+        readings = [_reading(100, 0.2), _reading(300, 0.2)]
 
-        suggestions = profiler.analyze_memory_pattern(measurements)
-
-        assert all("memory leak" not in suggestion.lower() for suggestion in suggestions)
+        assert all("memory leak" not in s.lower() for s in analyze_memory_pattern(readings))
 
 
 class TestMemoryAnalysis:
@@ -427,33 +303,3 @@ class TestMemoryOptimizer:
 
         assert any("High memory usage detected" in suggestion for suggestion in suggestions)
         assert any("Low memory efficiency" in suggestion for suggestion in suggestions)
-
-
-class TestGpuModuleImportGuards:
-    """Import guard behavior for optional pynvml dependency."""
-
-    def test_module_import_sets_pynvml_unavailable_when_missing(self) -> None:
-        import calibrax.profiling.gpu as gpu_mod
-
-        module_path = Path(gpu_mod.__file__)
-        spec = importlib.util.spec_from_file_location("gpu_import_probe", module_path)
-        assert spec is not None
-        assert spec.loader is not None
-        probe_module = importlib.util.module_from_spec(spec)
-
-        real_import = builtins.__import__
-
-        def _import_hook(name: str, *args: object, **kwargs: object) -> object:
-            if name == "pynvml":
-                raise ImportError("missing pynvml")
-            return real_import(name, *args, **kwargs)
-
-        with patch("builtins.__import__", side_effect=_import_hook):
-            sys.modules[spec.name] = probe_module
-            try:
-                spec.loader.exec_module(probe_module)
-            finally:
-                sys.modules.pop(spec.name, None)
-
-        assert probe_module.PYNVML_AVAILABLE is False
-        assert probe_module.pynvml is None

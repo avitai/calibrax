@@ -6,6 +6,8 @@ import jax
 import jax.numpy as jnp
 import pytest
 
+from calibrax.core.models import MetricDirection
+from calibrax.metrics import MetricRegistry
 from calibrax.metrics.functional.information import (
     conditional_entropy,
     cross_entropy,
@@ -185,8 +187,6 @@ class TestInformationMetricRegistration:
     """Tests for information metric registration in MetricRegistry."""
 
     def test_information_metrics_registered(self) -> None:
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         expected = [
             "entropy",
@@ -199,21 +199,14 @@ class TestInformationMetricRegistration:
             assert registry.has(name), f"Metric '{name}' not registered"
 
     def test_information_domain(self) -> None:
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         info_metrics = registry.list_by_domain("information")
         assert len(info_metrics) == 5
 
     def test_entropy_direction_info(self) -> None:
-        from calibrax.core.models import MetricDirection
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         assert registry.get("entropy").direction == MetricDirection.INFO
 
     def test_fisher_not_registered(self) -> None:
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         assert not registry.has("fisher_information_matrix")

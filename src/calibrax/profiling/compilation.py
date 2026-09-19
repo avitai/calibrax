@@ -10,12 +10,13 @@ import hashlib
 import logging
 import re
 import time
-from collections import defaultdict
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from typing import Any
 
 import jax
+import numpy as np
+from substrax.records import read_record
+from substrax.typing import JsonValue, PyTree
 
 
 # Thresholds behind the recommendations and the health level.
@@ -129,7 +130,7 @@ class CompilationResult:
     health_level: str
     recommendations: tuple[str, ...] = ()
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, JsonValue]:
         """Serialize to a JSON-compatible dictionary."""
         return {
             "cache_hit_rate": float(self.cache_hit_rate),
@@ -145,27 +146,22 @@ class CompilationResult:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> CompilationResult:
-        """Deserialize from a dictionary.
+    def from_dict(  # noqa: DOC502  # raised by read_record
+        cls, data: Mapping[str, JsonValue]
+    ) -> CompilationResult:
+        """Read the record from the JSON object ``to_dict`` writes.
 
         Args:
-            data: Dictionary with compilation result fields.
+            data: The JSON object.
 
         Returns:
-            Reconstructed CompilationResult instance.
+            The record.
+
+        Raises:
+            pydantic.ValidationError: If a field is missing or holds a value its annotation
+                does not admit.
         """
-        return cls(
-            cache_hit_rate=data["cache_hit_rate"],
-            total_calls=data["total_calls"],
-            cache_hits=data["cache_hits"],
-            cache_misses=data["cache_misses"],
-            avg_compilation_time_ms=data["avg_compilation_time_ms"],
-            max_compilation_time_ms=data["max_compilation_time_ms"],
-            unique_signatures=data["unique_signatures"],
-            health_score=data["health_score"],
-            health_level=data["health_level"],
-            recommendations=tuple(data.get("recommendations", ())),
-        )
+        return read_record(cls, data)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -188,7 +184,7 @@ class XLAOptimizationResult:
     total_kernels: int
     recommendations: tuple[str, ...] = ()
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, JsonValue]:
         """Serialize to a JSON-compatible dictionary."""
         return {
             "optimization_score": float(self.optimization_score),
@@ -200,23 +196,22 @@ class XLAOptimizationResult:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> XLAOptimizationResult:
-        """Deserialize from a dictionary.
+    def from_dict(  # noqa: DOC502  # raised by read_record
+        cls, data: Mapping[str, JsonValue]
+    ) -> XLAOptimizationResult:
+        """Read the record from the JSON object ``to_dict`` writes.
 
         Args:
-            data: Dictionary with XLA optimization result fields.
+            data: The JSON object.
 
         Returns:
-            Reconstructed XLAOptimizationResult instance.
+            The record.
+
+        Raises:
+            pydantic.ValidationError: If a field is missing or holds a value its annotation
+                does not admit.
         """
-        return cls(
-            optimization_score=data["optimization_score"],
-            fusion_ratio=data["fusion_ratio"],
-            arithmetic_ratio=data["arithmetic_ratio"],
-            memory_ratio=data["memory_ratio"],
-            total_kernels=data["total_kernels"],
-            recommendations=tuple(data.get("recommendations", ())),
-        )
+        return read_record(cls, data)
 
 
 class CompilationProfiler:
@@ -229,67 +224,56 @@ class CompilationProfiler:
 
     def __init__(self) -> None:
         """Initialize the compilation profiler with empty tracking state."""
-        self._compilation_cache: dict[str, dict[str, Any]] = {}
-        self._compilation_stats: dict[str, list[dict[str, Any]]] = defaultdict(list)
+        # Each wrapper keeps its own compiled functions; these count what get_result reports.
+        self._signatures: set[str] = set()
+        self._compilation_times: list[float] = []
         self._cache_hit_count = 0
         self._cache_miss_count = 0
+        # reset() advances the generation, so every wrapper compiles again on its next call.
+        self._generation = 0
+        self._wrapper_count = 0
 
-    def profile_jit_compilation(self, func: Callable[..., Any]) -> Callable[..., Any]:
+    def profile_jit_compilation[**P, R](self, func: Callable[P, R]) -> Callable[P, R]:
         """Create an instrumented wrapper that profiles JIT compilation.
 
-        The returned callable tracks cache hits/misses, compilation times,
-        and input shape patterns. Results accumulate in this profiler instance.
+        The returned callable jits ``func`` once per input signature (shapes, dtypes and static
+        keywords), counts cache hits and misses and compilation times, and waits for every
+        result. Each wrapper keeps its own compiled functions, so two functions never share
+        one, whatever they are named.
 
         Args:
             func: JAX function to instrument.
 
         Returns:
-            Instrumented function with identical signature.
+            Instrumented function with the same signature.
         """
+        wrapper_id = self._wrapper_count
+        self._wrapper_count += 1
+        compiled: dict[str, tuple[int, Callable[P, R]]] = {}
 
-        def instrumented_func(*args: Any, **kwargs: Any) -> Any:
-            """Wrapper that tracks compilation cache hits and timing."""
-            signature = self._create_function_signature(func, args, kwargs)
-            compilation_start = time.perf_counter()
-
-            if signature in self._compilation_cache:
-                compiled_func = self._compilation_cache[signature]["compiled_func"]
+        def instrumented_func(*args: P.args, **kwargs: P.kwargs) -> R:
+            signature = f"{wrapper_id}:{_input_signature(args, kwargs)}"
+            cached = compiled.get(signature)
+            if cached is not None and cached[0] == self._generation:
                 self._cache_hit_count += 1
-                compilation_time = 0.0
+                result = cached[1](*args, **kwargs)
             else:
-                compiled_func = jax.jit(func)
+                compilation_start = time.perf_counter()
+                jitted: Callable[P, R] = jax.jit(func)
                 try:
-                    warmup_result = compiled_func(*args, **kwargs)
-                    _block_result(warmup_result)
+                    result = jax.block_until_ready(jitted(*args, **kwargs))
                 except _RECOVERABLE_COMPILATION_ERRORS:
-                    compilation_time = time.perf_counter() - compilation_start
                     logger.warning(
                         "Compilation failed after %.3fs for signature %s",
-                        compilation_time,
+                        time.perf_counter() - compilation_start,
                         signature[:16],
                     )
                     raise
-
-                compilation_time = time.perf_counter() - compilation_start
+                self._compilation_times.append(time.perf_counter() - compilation_start)
                 self._cache_miss_count += 1
-
-                self._compilation_cache[signature] = {
-                    "compiled_func": compiled_func,
-                    "compilation_time": compilation_time,
-                    "input_shapes": [getattr(arg, "shape", None) for arg in args],
-                    "input_dtypes": [getattr(arg, "dtype", None) for arg in args],
-                }
-
-                self._compilation_stats[signature].append(
-                    {
-                        "compilation_time": compilation_time,
-                        "timestamp": time.perf_counter(),
-                    }
-                )
-
-            result = compiled_func(*args, **kwargs)
-            _block_result(result)
-            return result
+                self._signatures.add(signature)
+                compiled[signature] = (self._generation, jitted)
+            return jax.block_until_ready(result)
 
         return instrumented_func
 
@@ -302,9 +286,7 @@ class CompilationProfiler:
         total_calls = self._cache_hit_count + self._cache_miss_count
         cache_hit_rate = self._cache_hit_count / total_calls if total_calls > 0 else 0.0
 
-        all_times: list[float] = []
-        for stats_list in self._compilation_stats.values():
-            all_times.extend(s["compilation_time"] for s in stats_list)
+        all_times = self._compilation_times
 
         avg_time_ms = (sum(all_times) / len(all_times) * 1000) if all_times else 0.0
         max_time_ms = (max(all_times) * 1000) if all_times else 0.0
@@ -323,14 +305,14 @@ class CompilationProfiler:
             cache_misses=self._cache_miss_count,
             avg_compilation_time_ms=avg_time_ms,
             max_compilation_time_ms=max_time_ms,
-            unique_signatures=len(self._compilation_cache),
+            unique_signatures=len(self._signatures),
             health_score=health_score,
             health_level=health_level,
             recommendations=tuple(recommendations),
         )
 
     def estimate_xla_optimization(
-        self, func: Callable[..., Any], *sample_args: Any
+        self, func: Callable[..., PyTree], *sample_args: PyTree
     ) -> XLAOptimizationResult:
         """Estimate XLA optimization effectiveness by analyzing HLO text.
 
@@ -359,36 +341,11 @@ class CompilationProfiler:
 
     def reset(self) -> None:
         """Reset all profiling state."""
-        self._compilation_cache.clear()
-        self._compilation_stats.clear()
+        self._signatures.clear()
+        self._compilation_times.clear()
         self._cache_hit_count = 0
         self._cache_miss_count = 0
-
-    def _create_function_signature(
-        self, func: Callable[..., Any], args: tuple[Any, ...], kwargs: dict[str, Any]
-    ) -> str:
-        """Create a unique signature for function + argument shapes.
-
-        Args:
-            func: The function being called.
-            args: Positional arguments.
-            kwargs: Keyword arguments.
-
-        Returns:
-            MD5 hex digest identifying the function + input signature.
-        """
-        func_id = getattr(func, "__name__", str(func))
-
-        arg_parts: list[str] = []
-        for arg in args:
-            if hasattr(arg, "shape") and hasattr(arg, "dtype"):
-                arg_parts.append(f"{arg.shape}:{arg.dtype}")
-            else:
-                arg_parts.append(str(type(arg).__name__))
-
-        static_kwargs = {k: v for k, v in kwargs.items() if not hasattr(v, "shape")}
-        signature_str = f"{func_id}({','.join(arg_parts)}){static_kwargs}"
-        return hashlib.md5(signature_str.encode(), usedforsecurity=False).hexdigest()
+        self._generation += 1
 
     def _generate_recommendations(
         self, cache_hit_rate: float, avg_compilation_time: float
@@ -567,15 +524,26 @@ class CompilationProfiler:
         return recommendations
 
 
-def _block_result(result: Any) -> None:
-    """Block until a JAX result is materialized.
+def _input_signature(args: tuple[object, ...], kwargs: Mapping[str, object]) -> str:
+    """A digest of the call's input shapes, dtypes and static keywords.
+
+    Array arguments contribute their shape and dtype; other positional arguments their type;
+    keyword arguments that are not arrays their value, since ``jax.jit`` retraces on them.
 
     Args:
-        result: JAX computation result.
+        args: Positional arguments.
+        kwargs: Keyword arguments.
+
+    Returns:
+        MD5 hex digest of the signature.
     """
-    if hasattr(result, "block_until_ready"):
-        result.block_until_ready()
-    elif isinstance(result, tuple | list):
-        for item in result:
-            if hasattr(item, "block_until_ready"):
-                item.block_until_ready()
+    parts = [
+        f"{arg.shape}:{arg.dtype}"
+        if isinstance(arg, jax.Array | np.ndarray)
+        else type(arg).__name__
+        for arg in args
+    ]
+    static_kwargs = {k: v for k, v in kwargs.items() if not isinstance(v, jax.Array | np.ndarray)}
+    return hashlib.md5(
+        f"({','.join(parts)}){static_kwargs}".encode(), usedforsecurity=False
+    ).hexdigest()

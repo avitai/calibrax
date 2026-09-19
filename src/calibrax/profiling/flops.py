@@ -22,14 +22,13 @@ the compiled executable's analysis is used, as ``nnx.tabulate`` does.
 
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from typing import Any, TYPE_CHECKING
+from typing import Protocol, runtime_checkable
 
 import jax
-
-
-if TYPE_CHECKING:
-    from collections.abc import Callable, Mapping
+from jax.stages import Wrapped
+from substrax.typing import PyTree
 
 
 class FlopsUnavailableError(ValueError):
@@ -56,11 +55,47 @@ class FlopsResult:
     function_name: str
 
 
-def _abstract(leaf: Any) -> Any:
+@runtime_checkable
+class _Shaped(Protocol):
+    """An array-like leaf: anything with a shape and a dtype."""
+
+    @property
+    def shape(self) -> tuple[int, ...]: ...
+
+    @property
+    def dtype(self) -> jax.typing.DTypeLike: ...
+
+
+def _abstract(leaf: object) -> object:
     """Replace an array-like leaf by its shape and dtype; leave other leaves as they are."""
-    if hasattr(leaf, "shape") and hasattr(leaf, "dtype"):
+    if isinstance(leaf, _Shaped):
         return jax.ShapeDtypeStruct(leaf.shape, leaf.dtype)
     return leaf
+
+
+def cost_mapping(cost: object) -> Mapping[str, float] | None:
+    """The numeric fields of an XLA cost analysis, or ``None`` when there is none.
+
+    ``Lowered.cost_analysis()`` and ``Compiled.cost_analysis()`` are typed ``Any`` by jax,
+    which documents their structure as arbitrary: a mapping of property names to numbers,
+    a list holding one such mapping on some backends, or ``None``.
+
+    Args:
+        cost: What ``cost_analysis()`` returned.
+
+    Returns:
+        Each numeric field as a float, or ``None`` for anything other than a mapping or a
+        list of exactly one mapping.
+    """
+    if isinstance(cost, list) and len(cost) == 1:
+        (cost,) = cost
+    if not isinstance(cost, Mapping):
+        return None
+    return {
+        str(name): float(value)
+        for name, value in cost.items()
+        if isinstance(value, int | float) and not isinstance(value, bool)
+    }
 
 
 def _cost_field(cost: Mapping[str, float], key: str) -> int:
@@ -69,7 +104,7 @@ def _cost_field(cost: Mapping[str, float], key: str) -> int:
     return 0 if value is None else int(value)
 
 
-def _analyse(jitted: Any, spec: tuple[Any, ...]) -> Mapping[str, float]:
+def _analyse(jitted: Wrapped, spec: tuple[PyTree, ...]) -> Mapping[str, float]:
     """Return XLA's cost analysis for ``jitted`` applied to ``spec``.
 
     Prefers the analysis of the HLO lowered for the CPU backend. Without a CPU
@@ -92,13 +127,13 @@ def _analyse(jitted: Any, spec: tuple[Any, ...]) -> Mapping[str, float]:
         cpu = None
     if cpu is not None:
         with jax.default_device(cpu):
-            cost = jitted.lower(*spec).cost_analysis()
+            cost = cost_mapping(jitted.lower(*spec).cost_analysis())
         if cost is not None:
             return cost
     lowered = jitted.lower(*spec)
-    cost = lowered.cost_analysis()
+    cost = cost_mapping(lowered.cost_analysis())
     if cost is None:
-        cost = lowered.compile().cost_analysis()
+        cost = cost_mapping(lowered.compile().cost_analysis())
     if cost is None:
         raise FlopsUnavailableError(
             f"XLA returned no cost analysis on backend {jax.default_backend()!r}"
@@ -116,8 +151,8 @@ class FlopsCounter:
 
     def count(
         self,
-        fn: Callable[..., Any],
-        *args: Any,
+        fn: Callable[..., PyTree],
+        *args: PyTree,
         static_argnums: tuple[int, ...] = (),
     ) -> FlopsResult:
         """Count FLOPs for a function with given example arguments.
