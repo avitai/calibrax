@@ -38,6 +38,8 @@ dependencies = [
   # Records are read with pydantic's strict validation; 2.10 is the first release that reads the
   # recursive JsonValue alias.
   "pydantic>=2.10",
+  # Significance tests and the chi-squared interval use SciPy, which JAX itself requires.
+  "scipy>=1.15",
   "substrax>=0.1.14",
   # TypeIs, for adapter predicates, arrived in typing_extensions 4.10.
   "typing_extensions>=4.10"
@@ -59,13 +61,13 @@ requires-python = ">=3.12"
 
 [project.optional-dependencies]
 all = [
-  "calibrax[changepoint,codecarbon,cuda12,dev,docs,image,mlflow,performance,publication,scientific,stats,test,text,wandb]"
+  "calibrax[changepoint,codecarbon,cuda12,dev,docs,image,mlflow,performance,publication,scientific,test,text,wandb]"
 ]
 all-cpu = [
-  "calibrax[changepoint,codecarbon,dev,docs,image,mlflow,performance,publication,scientific,stats,test,text,wandb]"
+  "calibrax[changepoint,codecarbon,dev,docs,image,mlflow,performance,publication,scientific,test,text,wandb]"
 ]
 all-macos = [
-  "calibrax[changepoint,codecarbon,dev,docs,image,metal,mlflow,performance,publication,scientific,stats,test,text,wandb]"
+  "calibrax[changepoint,codecarbon,dev,docs,image,metal,mlflow,performance,publication,scientific,test,text,wandb]"
 ]
 changepoint = [
   "ruptures>=1.1"
@@ -127,6 +129,8 @@ dev = [
   "pytest>=9.0.3",
   "radon>=6.0",
   "ruff>=0.1.5",
+  # Types for scipy.stats; follows the locked scipy minor.
+  "scipy-stubs>=1.17,<1.18",
   "twine>=4.0.2"
 ]
 docs = [
@@ -157,9 +161,6 @@ publication = [
   "matplotlib>=3.8"
 ]
 scientific = [
-]
-stats = [
-  "scipy>=1.10"
 ]
 test = [
   "beartype>=0.14.1",

@@ -22,6 +22,7 @@ import jax
 import jax.numpy as jnp
 from jax.scipy.stats.norm import cdf as _norm_cdf
 from jax.typing import ArrayLike
+from scipy import stats
 
 from calibrax.metrics._utils import _EPSILON, _prepare_arrays
 
@@ -330,8 +331,8 @@ def chi2_confidence_interval(dim: int, *, percentile: float = 0.99) -> tuple[jax
     """Symmetric confidence interval of the chi-squared distribution with ``dim`` degrees.
 
     The ``((1 - percentile) / 2, 1 - (1 - percentile) / 2)`` quantiles: the band an
-    ANEES-style statistic of a calibrated estimator falls in. Needs the ``stats``
-    extra (SciPy).
+    ANEES-style statistic of a calibrated estimator falls in, from SciPy's distribution on
+    the host: ``dim`` and ``percentile`` are Python values, so nothing here is traced.
 
     Args:
         dim: Degrees of freedom.
@@ -346,8 +347,6 @@ def chi2_confidence_interval(dim: int, *, percentile: float = 0.99) -> tuple[jax
     if not 0.0 < percentile < 1.0:
         msg = f"percentile must be in (0, 1); got {percentile!r}"
         raise ValueError(msg)
-    from scipy import stats
-
     tail = (1.0 - percentile) / 2.0
     distribution = stats.chi2(df=dim)
     return jnp.asarray(distribution.ppf(tail)), jnp.asarray(distribution.ppf(1.0 - tail))

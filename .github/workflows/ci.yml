@@ -30,7 +30,7 @@ jobs:
 
       # pyright checks the optional integrations too, so it needs their packages (test, stats).
       - name: Install dependencies
-        run: uv sync --locked --extra dev --extra test --extra stats
+        run: uv sync --locked --extra dev --extra test
 
       - name: Lock file is current
         run: uv lock --check
@@ -77,7 +77,7 @@ jobs:
         run: uv venv
 
       - name: Install dependencies
-        run: uv sync --locked --extra dev --extra test --extra stats --extra changepoint --extra mlflow
+        run: uv sync --locked --extra dev --extra test --extra changepoint --extra mlflow
 
       - name: Create temp directory
         run: mkdir -p temp
