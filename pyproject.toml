@@ -345,6 +345,9 @@ XLA_PYTHON_CLIENT_PREALLOCATE = {skip_if_set = true, value = "false"}
 [tool.ruff]
 extend-include = ["*.ipynb"]
 line-length = 100
+# First-party modules come from src/ and the isort settings only, so an untracked directory at the
+# repository root (wandb's run logs are ./wandb) cannot make a third-party package first-party.
+src = ["src"]
 target-version = "py312"
 
 [tool.ruff.format]
@@ -408,7 +411,7 @@ select = [
 [tool.ruff.lint.isort]
 combine-as-imports = true
 extra-standard-library = ["typing_extensions"]
-known-first-party = ["calibrax"]
+known-first-party = ["calibrax", "tests"]
 lines-after-imports = 2
 order-by-type = false
 

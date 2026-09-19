@@ -14,9 +14,8 @@ from typing import Literal, Protocol
 
 
 try:
-    from wandb.sdk.wandb_alerts import AlertLevel
-
     import wandb
+    from wandb.sdk.wandb_alerts import AlertLevel
 except ImportError as error:
     msg = 'calibrax.exporters.wandb needs wandb: uv pip install "calibrax[wandb]"'
     raise ImportError(msg) from error
