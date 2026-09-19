@@ -34,6 +34,10 @@ from jax.typing import ArrayLike
 from calibrax.metrics._utils import _EPSILON, safe_norm
 
 
+# Knyazev and Argentati's switch between the sine and the cosine of a principal angle: pi/4.
+_HALF_SQRT2 = 0.5**0.5
+
+
 def spd_affine_invariant_distance(a: ArrayLike, b: ArrayLike) -> jax.Array:
     """Affine-invariant Riemannian distance between SPD matrices.
 
@@ -129,18 +133,20 @@ def _matrix_log_spd(m: jnp.ndarray) -> jnp.ndarray:
 
 
 def grassmann_distance(u: ArrayLike, v: ArrayLike) -> jax.Array:
-    """Geodesic distance on the Grassmann manifold Gr(p, n).
+    """Geodesic distance on the Grassmann manifold Gr(p, n): the norm of the principal angles.
 
-    Distance between two p-dimensional subspaces of R^n, based on
-    principal angles. The principal angles theta_i = arccos(sigma_i)
-    where sigma_i are singular values of U^T V.
+    The principal angles between the two p-dimensional subspaces of R^n come from the
+    singular values of both ``U^T V`` (their cosines) and ``(I - U U^T) V`` (their sines),
+    as Knyazev and Argentati (2002, SIAM J. Sci. Comput. 23(6), Algorithm 3.1) compute them
+    and ``scipy.linalg.subspace_angles`` does: an angle whose sine is below 1/sqrt(2) is
+    taken from the sine, the rest from the cosine, since ``arccos`` near 1 cannot resolve a
+    small angle in float32 (it read 3.45e-4 between a subspace and itself). Only singular
+    values are differentiated, whose derivative stays finite where they repeat, and the norm
+    is zero-safe, so ``jax.grad`` is finite at identical subspaces.
 
-    Distance = ``sqrt(sum(theta_i^2))``.
+    Basis-independent: same subspace with different orthonormal basis gives distance 0.
 
-    Basis-independent: same subspace with different orthonormal basis
-    gives distance 0.
-
-    Complexity: O(n*p^2) for SVD of the p x p matrix U^T V.
+    Complexity: O(n*p^2) for the two SVDs.
 
     Args:
         u: First orthonormal matrix, shape (n, p).
@@ -159,16 +165,15 @@ def grassmann_distance(u: ArrayLike, v: ArrayLike) -> jax.Array:
     u = jnp.asarray(u, dtype=jnp.float32)
     v = jnp.asarray(v, dtype=jnp.float32)
 
-    # Singular values of U^T V
-    sigma = jnp.linalg.svd(u.T @ v, compute_uv=False)
-
-    # Clamp to valid range for arccos
-    sigma = jnp.clip(sigma, -1.0, 1.0)
-
-    # Principal angles
-    theta = jnp.arccos(sigma)
-
-    return jnp.sqrt(jnp.sum(theta**2))
+    overlap = u.T @ v
+    # Cosines in descending order pair with sines in ascending order, angle by angle.
+    cosines = jnp.clip(jnp.linalg.svd(overlap, compute_uv=False), 0.0, 1.0)
+    sines = jnp.clip(jnp.sort(jnp.linalg.svd(v - u @ overlap, compute_uv=False)), 0.0, 1.0)
+    small = sines < _HALF_SQRT2
+    # Each branch evaluated only on values where its derivative is finite (double where).
+    from_sine = jnp.arcsin(jnp.where(small, sines, 0.0))
+    from_cosine = jnp.arccos(jnp.where(small, 0.0, cosines))
+    return safe_norm(jnp.where(small, from_sine, from_cosine))
 
 
 def stiefel_distance(u: ArrayLike, v: ArrayLike) -> jax.Array:

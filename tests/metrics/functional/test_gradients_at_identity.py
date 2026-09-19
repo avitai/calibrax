@@ -22,7 +22,11 @@ from calibrax.metrics.functional.divergence import hellinger_distance, mmd
 from calibrax.metrics.functional.forecasting import energy_score
 from calibrax.metrics.functional.geometric import rmsd
 from calibrax.metrics.functional.graph import graph_edit_distance_approx, spectral_distance
-from calibrax.metrics.functional.manifold import spd_log_euclidean_distance, stiefel_distance
+from calibrax.metrics.functional.manifold import (
+    grassmann_distance,
+    spd_log_euclidean_distance,
+    stiefel_distance,
+)
 from calibrax.metrics.functional.regression import relative_error, relative_l2_error
 
 
@@ -81,6 +85,12 @@ CASES: dict[str, tuple[Callable[[jax.Array], jax.Array], jax.Array, jax.Array]] 
         _SPD + jnp.array([[0.2, 0.05], [0.05, 0.1]]),
     ),
     "stiefel_distance": (lambda a: stiefel_distance(a, _BASIS), _BASIS, _BASIS + _pattern(_BASIS)),
+    # Orthonormal inputs are the metric's contract, so the off-point is re-orthonormalised.
+    "grassmann_distance": (
+        lambda a: grassmann_distance(a, _BASIS),
+        _BASIS,
+        jnp.linalg.qr(_BASIS + _pattern(_BASIS))[0],
+    ),
     "relative_l2_error": (
         lambda a: relative_l2_error(a, _FIELDS),
         _FIELDS,

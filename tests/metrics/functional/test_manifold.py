@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 import pytest
+from scipy.linalg import subspace_angles
 
 from calibrax.metrics.functional.distance import lorentz_distance
 from calibrax.metrics.functional.manifold import (
@@ -140,8 +142,7 @@ class TestGrassmannDistance:
     def test_identical_subspaces(self) -> None:
         """Distance between identical subspaces is 0."""
         u = jnp.eye(3, 2)  # First 2 columns of identity
-        result = grassmann_distance(u, u)
-        assert result == pytest.approx(0.0, abs=1e-3)
+        assert float(grassmann_distance(u, u)) == 0.0
 
     def test_orthogonal_subspaces(self) -> None:
         """Orthogonal 1D subspaces have distance pi/2."""
@@ -177,7 +178,28 @@ class TestGrassmannDistance:
         c, s = jnp.cos(0.3), jnp.sin(0.3)
         rot = jnp.array([[c, -s], [s, c], [0.0, 0.0]])
         result = grassmann_distance(u, rot)
-        assert result == pytest.approx(0.0, abs=1e-3)
+        assert result == pytest.approx(0.0, abs=1e-6)
+
+    @pytest.mark.parametrize("tilt", [1e-4, 0.3, 1.2])
+    def test_matches_scipy_principal_angles(self, tilt: float) -> None:
+        """Knyazev and Argentati's angles, as scipy.linalg.subspace_angles computes them."""
+        rng = np.random.default_rng(3)
+        u = np.linalg.qr(rng.normal(size=(6, 3)))[0]
+        step = np.linalg.qr(rng.normal(size=(6, 3)))[0]
+        v = np.linalg.qr(u + tilt * step)[0]
+
+        expected = np.linalg.norm(subspace_angles(u, v))
+        assert float(grassmann_distance(u, v)) == pytest.approx(expected, rel=1e-3, abs=1e-6)
+
+    @pytest.mark.parametrize("same", [True, False])
+    def test_gradient_is_finite_under_jit(self, same: bool) -> None:
+        rng = np.random.default_rng(4)
+        u = jnp.asarray(np.linalg.qr(rng.normal(size=(5, 2)))[0], jnp.float32)
+        v = u if same else jnp.asarray(np.linalg.qr(rng.normal(size=(5, 2)))[0], jnp.float32)
+
+        gradient = jax.jit(jax.grad(grassmann_distance))(u, v)
+
+        assert bool(jnp.all(jnp.isfinite(gradient)))
 
     def test_returns_jax_scalar(self) -> None:
         """Result should be a JAX scalar array."""
