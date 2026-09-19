@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 from jax.typing import ArrayLike
 
 from calibrax.metrics._utils import _EPSILON, _prepare_arrays, safe_divide
@@ -220,12 +221,14 @@ def adaptive_calibration_error(
     targets: ArrayLike,
     *,
     num_bins: int = 10,
-) -> float:
-    """Adaptive calibration error (ACE) with equal-mass binning.
+) -> jax.Array:
+    """Adaptive calibration error (ACE) with equal-mass binning (Nixon et al. 2019).
 
     Uses equal-mass bins (equal number of samples per bin) instead of
     ECE's equal-width bins. More robust to imbalanced confidence
-    distributions.
+    distributions. The sorted predictions fill the bins in order, the first ``n % num_bins``
+    bins taking one extra; bin membership depends only on the sample count, so it is fixed at
+    trace time and the metric runs under ``jax.jit`` and ``jax.grad``.
 
     Note:
         Direction: LOWER (0.0 = perfectly calibrated).
@@ -241,30 +244,18 @@ def adaptive_calibration_error(
         ACE as a scalar value.
     """
     p, t = _prepare_arrays(predictions, targets)
-    p, t = p.ravel(), t.ravel()
-
+    p, t = p.ravel(), t.ravel().astype(p.dtype)
     order = jnp.argsort(p)
-    sorted_p = p[order]
-    sorted_t = t[order]
+    n = p.shape[0]
 
-    n = len(sorted_p)
-    bin_size = n // num_bins
-    remainder = n % num_bins
-
-    total_error = 0.0
-    start = 0
-    for i in range(num_bins):
-        # Distribute remainder across first bins
-        end = start + bin_size + (1 if i < remainder else 0)
-        if end > start:
-            bin_p = sorted_p[start:end]
-            bin_t = sorted_t[start:end]
-            bin_acc = float(jnp.mean(bin_t))
-            bin_conf = float(jnp.mean(bin_p))
-            total_error += abs(bin_acc - bin_conf) * (end - start)
-        start = end
-
-    return total_error / n
+    # Each sorted position's bin: the first n % num_bins bins hold one sample more.
+    size, extra = divmod(n, num_bins)
+    bins = np.repeat(np.arange(num_bins), [size + 1] * extra + [size] * (num_bins - extra))
+    counts = jnp.asarray(np.bincount(bins, minlength=num_bins), p.dtype)
+    confidence = jax.ops.segment_sum(p[order], bins, num_segments=num_bins)
+    accuracy = jax.ops.segment_sum(t[order], bins, num_segments=num_bins)
+    # A bin's |mean accuracy - mean confidence| times its size is |sum gap|.
+    return jnp.sum(jnp.where(counts > 0, jnp.abs(accuracy - confidence), 0.0)) / n
 
 
 def classwise_ece(

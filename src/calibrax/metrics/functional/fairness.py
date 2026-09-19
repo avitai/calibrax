@@ -9,6 +9,10 @@ simultaneously for an imperfect classifier with different base rates across grou
 This module provides multiple fairness criteria so users can understand the
 inherent trade-offs.
 
+Group labels are names: renaming a group changes nothing, and groups with no member take no
+part. Pass ``num_groups`` to trace a metric under ``jax.jit``, labels then being ids below it;
+without it the distinct labels are counted from the data, eagerly.
+
 Registered with ``domain="fairness"``, ``signature=MetricSignature.CUSTOM``.
 """
 
@@ -19,7 +23,7 @@ import jax.numpy as jnp
 from jax.typing import ArrayLike
 
 from calibrax.metrics._types import MetricFn
-from calibrax.metrics._utils import _EPSILON, safe_divide
+from calibrax.metrics._utils import label_masks, safe_divide
 
 
 # Scores and labels above this are the positive class; a group needs two members to test.
@@ -27,9 +31,34 @@ _POSITIVE_THRESHOLD = 0.5
 _MIN_GROUP_SIZE = 2
 
 
+def _group_rates(
+    masks: jax.Array, predictions: ArrayLike, targets: ArrayLike, *, positive: bool
+) -> jax.Array:
+    """Each group's rate of positive predictions among its positive (or negative) targets.
+
+    The true positive rate with ``positive``, the false positive rate without; a group with no
+    such targets has rate 0.
+    """
+    predicted = (jnp.asarray(predictions, dtype=jnp.float32) > _POSITIVE_THRESHOLD).astype(
+        jnp.float32
+    )
+    actual = jnp.asarray(targets, dtype=jnp.float32) > _POSITIVE_THRESHOLD
+    among = (actual if positive else ~actual).astype(jnp.float32)
+    return safe_divide(masks @ (predicted * among), masks @ among)
+
+
+def _spread(rates: jax.Array, present: jax.Array) -> jax.Array:
+    """The largest difference between two present groups' rates."""
+    return jnp.max(jnp.where(present, rates, -jnp.inf)) - jnp.min(
+        jnp.where(present, rates, jnp.inf)
+    )
+
+
 def demographic_parity_ratio(
     predictions: ArrayLike,
     protected_attribute: ArrayLike,
+    *,
+    num_groups: int | None = None,
 ) -> jax.Array:
     """Ratio of positive prediction rates across demographic groups.
 
@@ -39,6 +68,7 @@ def demographic_parity_ratio(
     Args:
         predictions: Binary predictions or probabilities, shape (n,).
         protected_attribute: Group membership labels, shape (n,).
+        num_groups: Number of group ids, to trace; None counts the distinct labels.
 
     Returns:
         DPR in [0, 1]. 1.0 = perfect demographic parity.
@@ -50,39 +80,23 @@ def demographic_parity_ratio(
         >>> demographic_parity_ratio(preds, groups)  # 2/3 / (2/3) = 1.0
         ...
     """
-    predictions = jnp.asarray(predictions, dtype=jnp.float32)
-    pa = jnp.asarray(protected_attribute)
-    unique_vals = jnp.unique(pa, size=int(jnp.max(pa)) + 1)
-    n_groups = unique_vals.shape[0]
-
-    # Build group masks: (n_groups, n)
-    group_masks = pa[None, :] == unique_vals[:, None]
-    group_sizes = jnp.sum(group_masks, axis=1)  # (n_groups,)
-    group_positives = jnp.sum(
-        group_masks * (predictions > _POSITIVE_THRESHOLD)[None, :], axis=1
-    )  # (n_groups,)
-    rates = safe_divide(group_positives, group_sizes)  # (n_groups,)
-
-    # Pairwise symmetric min ratio via broadcasting
-    rate_matrix = jnp.minimum(
-        safe_divide(rates[:, None], rates[None, :]),
-        safe_divide(rates[None, :], rates[:, None]),
+    masks, sizes = label_masks(protected_attribute, num_groups)
+    present = sizes > 0
+    selected = (jnp.asarray(predictions, dtype=jnp.float32) > _POSITIVE_THRESHOLD).astype(
+        jnp.float32
     )
-    # Pairs where both rates are non-zero are valid
-    valid = (rates[:, None] > _EPSILON) & (rates[None, :] > _EPSILON)
-    off_diag = ~jnp.eye(n_groups, dtype=bool)
-    # Replace diagonal and invalid pairs with 1.0 (neutral for min)
-    rate_matrix = jnp.where(valid & off_diag, rate_matrix, 1.0)
-
-    # Any off-diagonal pair where exactly one rate is zero → ratio is 0
-    has_zero_pair = jnp.any(((rates[:, None] < _EPSILON) ^ (rates[None, :] < _EPSILON)) & off_diag)
-    return jnp.where(has_zero_pair, 0.0, jnp.min(rate_matrix))
+    rates = masks @ selected / jnp.where(present, sizes, 1.0)
+    highest = jnp.max(jnp.where(present, rates, -jnp.inf))
+    lowest = jnp.min(jnp.where(present, rates, jnp.inf))
+    return jnp.where(highest > 0, lowest / jnp.where(highest > 0, highest, 1.0), 1.0)
 
 
 def equalized_odds_difference(
     predictions: ArrayLike,
     targets: ArrayLike,
     protected_attribute: ArrayLike,
+    *,
+    num_groups: int | None = None,
 ) -> jax.Array:
     """Maximum absolute difference in TPR or FPR across groups.
 
@@ -92,6 +106,7 @@ def equalized_odds_difference(
         predictions: Binary predictions, shape (n,).
         targets: Binary ground truth, shape (n,).
         protected_attribute: Group membership labels, shape (n,).
+        num_groups: Number of group ids, to trace; None counts the distinct labels.
 
     Returns:
         EOD in [0, 1]. 0.0 = perfect equalized odds.
@@ -104,41 +119,19 @@ def equalized_odds_difference(
         >>> equalized_odds_difference(preds, targets, groups)
         0.0
     """
-    predictions = jnp.asarray(predictions, dtype=jnp.float32)
-    targets = jnp.asarray(targets, dtype=jnp.float32)
-    pa = jnp.asarray(protected_attribute)
-    unique_vals = jnp.unique(pa, size=int(jnp.max(pa)) + 1)
-
-    # Build group masks: (n_groups, n)
-    group_masks = pa[None, :] == unique_vals[:, None]  # (n_groups, n)
-
-    pos_mask = targets > _POSITIVE_THRESHOLD  # (n,)
-    neg_mask = ~pos_mask  # (n,)
-
-    # Per-group counts
-    group_positives = jnp.sum(group_masks * pos_mask[None, :], axis=1)  # (n_groups,)
-    group_negatives = jnp.sum(group_masks * neg_mask[None, :], axis=1)  # (n_groups,)
-
-    pred_pos = predictions > _POSITIVE_THRESHOLD  # (n,)
-
-    # TP and FP per group
-    group_tp = jnp.sum(group_masks * (pred_pos & pos_mask)[None, :], axis=1)
-    group_fp = jnp.sum(group_masks * (pred_pos & neg_mask)[None, :], axis=1)
-
-    tprs = safe_divide(group_tp, group_positives)  # (n_groups,)
-    fprs = safe_divide(group_fp, group_negatives)  # (n_groups,)
-
-    # Pairwise max absolute difference
-    tpr_diff = jnp.max(jnp.abs(tprs[:, None] - tprs[None, :]))
-    fpr_diff = jnp.max(jnp.abs(fprs[:, None] - fprs[None, :]))
-
-    return jnp.maximum(tpr_diff, fpr_diff)
+    masks, sizes = label_masks(protected_attribute, num_groups)
+    tprs = _group_rates(masks, predictions, targets, positive=True)
+    fprs = _group_rates(masks, predictions, targets, positive=False)
+    present = sizes > 0
+    return jnp.maximum(_spread(tprs, present), _spread(fprs, present))
 
 
 def equal_opportunity_difference(
     predictions: ArrayLike,
     targets: ArrayLike,
     protected_attribute: ArrayLike,
+    *,
+    num_groups: int | None = None,
 ) -> jax.Array:
     """Absolute difference in TPR across demographic groups.
 
@@ -148,6 +141,7 @@ def equal_opportunity_difference(
         predictions: Binary predictions, shape (n,).
         targets: Binary ground truth, shape (n,).
         protected_attribute: Group membership labels, shape (n,).
+        num_groups: Number of group ids, to trace; None counts the distinct labels.
 
     Returns:
         EOD in [0, 1]. 0.0 = perfect equal opportunity.
@@ -160,32 +154,15 @@ def equal_opportunity_difference(
         >>> equal_opportunity_difference(preds, targets, groups)
         0.0
     """
-    predictions = jnp.asarray(predictions, dtype=jnp.float32)
-    targets = jnp.asarray(targets, dtype=jnp.float32)
-    pa = jnp.asarray(protected_attribute)
-    unique_vals = jnp.unique(pa, size=int(jnp.max(pa)) + 1)
-
-    # Build group masks: (n_groups, n)
-    group_masks = pa[None, :] == unique_vals[:, None]  # (n_groups, n)
-
-    pos_mask = targets > _POSITIVE_THRESHOLD  # (n,)
-
-    # Per-group positives
-    group_positives = jnp.sum(group_masks * pos_mask[None, :], axis=1)  # (n_groups,)
-
-    # TP per group
-    pred_pos = predictions > _POSITIVE_THRESHOLD  # (n,)
-    group_tp = jnp.sum(group_masks * (pred_pos & pos_mask)[None, :], axis=1)
-
-    tprs = safe_divide(group_tp, group_positives)  # (n_groups,)
-
-    # Max absolute pairwise difference
-    return jnp.max(jnp.abs(tprs[:, None] - tprs[None, :]))
+    masks, sizes = label_masks(protected_attribute, num_groups)
+    return _spread(_group_rates(masks, predictions, targets, positive=True), sizes > 0)
 
 
 def disparate_impact_ratio(
     predictions: ArrayLike,
     protected_attribute: ArrayLike,
+    *,
+    num_groups: int | None = None,
 ) -> jax.Array:
     """Disparate impact ratio (same as demographic parity ratio).
 
@@ -195,6 +172,7 @@ def disparate_impact_ratio(
     Args:
         predictions: Binary predictions or probabilities, shape (n,).
         protected_attribute: Group membership labels, shape (n,).
+        num_groups: Number of group ids, to trace; None counts the distinct labels.
 
     Returns:
         DIR in [0, 1]. Values >= 0.8 generally pass the 80% rule.
@@ -206,7 +184,7 @@ def disparate_impact_ratio(
         >>> disparate_impact_ratio(preds, groups)
         ...
     """
-    return demographic_parity_ratio(predictions, protected_attribute)
+    return demographic_parity_ratio(predictions, protected_attribute, num_groups=num_groups)
 
 
 def group_metric_breakdown(
@@ -242,7 +220,7 @@ def group_metric_breakdown(
     targets = jnp.asarray(targets, dtype=jnp.float32)
     pa = jnp.asarray(protected_attribute)
 
-    unique_vals = jnp.unique(pa, size=int(jnp.max(pa)) + 1)
+    unique_vals = jnp.unique(pa)
     results: dict[str, float] = {}
 
     for val in unique_vals:

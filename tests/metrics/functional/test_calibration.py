@@ -218,12 +218,43 @@ class TestAdaptiveCalibrationError:
         result = adaptive_calibration_error(predictions, targets)
         assert 0.0 <= result <= 1.0
 
-    def test_returns_scalar(self) -> None:
-        """Result should be a numeric scalar (Python float due to equal-mass binning loop)."""
-        predictions = jnp.array([0.5, 0.5])
-        targets = jnp.array([1, 0])
-        result = adaptive_calibration_error(predictions, targets)
-        assert isinstance(result, (float, jax.Array))
+    def test_returns_a_jax_scalar(self) -> None:
+        result = adaptive_calibration_error(jnp.array([0.5, 0.5]), jnp.array([1, 0]))
+
+        assert isinstance(result, jax.Array)
+        assert result.shape == ()
+
+    def test_the_bins_weigh_their_gap_by_their_size(self) -> None:
+        # Bins {0.1, 0.3} (accuracy 0.5, confidence 0.2) and {0.7, 0.9} (1.0, 0.8):
+        # (2 * 0.3 + 2 * 0.2) / 4.
+        result = adaptive_calibration_error(
+            jnp.array([0.9, 0.1, 0.7, 0.3]), jnp.array([1, 0, 1, 1]), num_bins=2
+        )
+
+        assert result == pytest.approx(0.25, abs=1e-6)
+
+    def test_the_remainder_goes_to_the_first_bins(self) -> None:
+        # Five samples in two bins: {0.1, 0.2, 0.3} then {0.8, 0.9}.
+        # |1/3 - 0.2| * 3 + |1.0 - 0.85| * 2, over 5.
+        result = adaptive_calibration_error(
+            jnp.array([0.1, 0.2, 0.3, 0.8, 0.9]), jnp.array([0, 0, 1, 1, 1]), num_bins=2
+        )
+
+        assert result == pytest.approx((abs(1 / 3 - 0.2) * 3 + 0.15 * 2) / 5, abs=1e-6)
+
+    def test_traces_and_differentiates(self) -> None:
+        predictions = jax.random.uniform(jax.random.key(0), (50,))
+        targets = (jax.random.uniform(jax.random.key(1), (50,)) > 0.5).astype(jnp.int32)
+
+        traced = jax.jit(adaptive_calibration_error, static_argnames=("num_bins",))(
+            predictions, targets, num_bins=7
+        )
+        gradient = jax.grad(adaptive_calibration_error)(predictions, targets)
+
+        assert traced == pytest.approx(
+            float(adaptive_calibration_error(predictions, targets, num_bins=7)), abs=1e-6
+        )
+        assert bool(jnp.all(jnp.isfinite(gradient)))
 
     def test_equal_mass_binning(self) -> None:
         # With 4 samples and 2 bins, each bin should have 2 samples
