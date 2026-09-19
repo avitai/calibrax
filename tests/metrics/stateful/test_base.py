@@ -10,6 +10,7 @@ import pytest
 from flax import nnx
 
 from calibrax.core.protocols import StatefulMetricProtocol
+from calibrax.exporters.plots import PlotGenerator
 from calibrax.metrics.stateful._base import FrozenBackboneMetric, LearnedMetric
 
 
@@ -91,14 +92,15 @@ class TestFrozenBackboneMetric:
         result = metric.compute()
         assert result["mock_metric"] == 0.0
 
-    def test_plot_returns_output_path(self, tmp_path: Path) -> None:
-        """Frozen metrics should plot computed scalar values."""
+    def test_computed_values_plot_through_the_plot_generator(self, tmp_path: Path) -> None:
+        """A metric's computed values plot by composition with PlotGenerator."""
         metric = MockBackboneMetric()
         metric.update(values=jnp.array([1.0, 3.0]))
-        result = metric.plot(output_dir=tmp_path)
-        assert result is not None
-        assert result.exists()
-        assert result.suffix == ".png"
+        path = PlotGenerator(tmp_path).metric_values_plot(
+            metric.compute(), title=metric.name, filename=metric.name
+        )
+        assert path.suffix == ".png"
+        assert path.stat().st_size > 0
 
 
 class MockLearnedMetric(LearnedMetric):
@@ -154,11 +156,12 @@ class TestLearnedMetric:
         assert isinstance(result, dict)
         assert "mock_learned" in result
 
-    def test_plot_returns_output_path(self, tmp_path: Path) -> None:
-        """Learned metrics should share the same plotting behavior."""
+    def test_computed_values_plot_through_the_plot_generator(self, tmp_path: Path) -> None:
+        """A metric's computed values plot by composition with PlotGenerator."""
         metric = MockLearnedMetric(rngs=nnx.Rngs(42))
         metric.update(values=jnp.ones(4))
-        result = metric.plot(output_dir=tmp_path)
-        assert result is not None
-        assert result.exists()
-        assert result.suffix == ".png"
+        path = PlotGenerator(tmp_path).metric_values_plot(
+            metric.compute(), title=metric.name, filename=metric.name
+        )
+        assert path.suffix == ".png"
+        assert path.stat().st_size > 0

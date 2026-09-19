@@ -12,10 +12,8 @@ from abc import ABC, abstractmethod
 from flax import nnx
 from jax.typing import ArrayLike
 
-from calibrax.metrics.plotting import MetricPlotMixin
 
-
-class FrozenBackboneMetric[FeaturesT](MetricPlotMixin, ABC):
+class FrozenBackboneMetric[FeaturesT](ABC):
     """Base class for Tier 1 metrics with frozen pretrained backbones.
 
     Implements the StatefulMetricProtocol lifecycle:
@@ -112,7 +110,7 @@ class FrozenBackboneMetric[FeaturesT](MetricPlotMixin, ABC):
         ...
 
 
-class LearnedMetric(MetricPlotMixin, nnx.Module):
+class LearnedMetric(nnx.Module):
     """Base class for Tier 2 metrics with trainable calibration layers.
 
     Extends nnx.Module for JAX transform compatibility (jit, grad, vmap).

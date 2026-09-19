@@ -172,39 +172,41 @@ Each benchmark point's metrics are logged as MLflow metrics, environment metadat
 
 !!! warning "Optional Dependency"
 
-    Plot generation requires matplotlib: `uv pip install "calibrax[publication]"`
+    `calibrax.exporters.plots` needs matplotlib: `uv pip install "calibrax[publication]"`;
+    importing it without matplotlib raises `ImportError` naming the extra. Tables
+    (`calibrax.exporters.publication`) need no plotting library.
 
-    Table generation (LaTeX, HTML, CSV) works without matplotlib.
-
-`PublicationGenerator` creates plots and tables suitable for papers and reports:
+`PlotGenerator` writes plots, and `PublicationGenerator` writes tables, for papers and
+reports:
 
 ```python
 from pathlib import Path
+from calibrax.exporters.plots import PlotGenerator
 from calibrax.exporters.publication import PublicationGenerator
 
+plots = PlotGenerator(output_dir=Path("temp/doc-examples/figures"))
 pub = PublicationGenerator(output_dir=Path("temp/doc-examples/figures"))
 ```
 
 ### Comparison Plots
 
-Bar charts comparing metrics across configurations:
+One bar chart per metric, with a bar per configuration:
 
 ```python
-path = pub.generate_comparison_plot(
+path = plots.comparison_plot(
     run,
     metrics=["throughput", "latency"],
     output_format="pdf",  # "png", "pdf", or "svg"
 )
-if path is not None:
-    print(f"Plot saved to {path}")
+print(f"Plot saved to {path}")
 ```
 
 ### Scaling Plots
 
-Log-log plots with fitted scaling laws:
+A metric against input size:
 
 ```python
-path = pub.generate_scaling_plot(
+path = plots.scaling_plot(
     sizes=[100, 500, 1000, 5000],
     values=[0.01, 0.05, 0.10, 0.52],
     metric_name="latency",
@@ -214,12 +216,14 @@ path = pub.generate_scaling_plot(
 
 ### Convergence Plots
 
-Time series plots showing metric trends:
+A metric's trend across runs, with its confidence band when every point carries one:
 
 ```python
 trend = store.extract_trend("throughput", "forward_pass", {"framework": "flax"})
-path = pub.generate_convergence_plot(trend, output_format="png")
+path = plots.convergence_plot(trend, output_format="png")
 ```
+
+Each plot refuses empty input with `ValueError`.
 
 ### Tables
 
