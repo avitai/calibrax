@@ -5,8 +5,16 @@ from calibrax.monitoring.monitor import (
     Alert,
     AlertManager,
     AlertSeverity,
+    MetricHistorySummary,
+    MonitoringSummary,
 )
-from calibrax.monitoring.production import ProductionMonitor
+from calibrax.monitoring.production import (
+    PipelineExecution,
+    PipelineHealth,
+    PipelineHealthReport,
+    PipelineStats,
+    ProductionMonitor,
+)
 
 
 __all__ = [
@@ -14,5 +22,11 @@ __all__ = [
     "Alert",
     "AlertManager",
     "AlertSeverity",
+    "MetricHistorySummary",
+    "MonitoringSummary",
+    "PipelineExecution",
+    "PipelineHealth",
+    "PipelineHealthReport",
+    "PipelineStats",
     "ProductionMonitor",
 ]

@@ -31,6 +31,14 @@ and uses semantic versioning while the public API stabilizes.
   stored `BenchmarkResult` its `timestamp`; the old reader dated a `BenchmarkResult` without one at
   0.0. Every file `to_dict` writes reads as before: all 86 stored runs and results in datarax and
   cellifex read to the same values.
+- Monitoring reports are typed: `AdvancedMonitor.get_monitoring_summary()` returns a
+  `MonitoringSummary` (`thresholds`, `alert_count`, `metric_history` of `MetricHistorySummary`,
+  `is_monitoring`) and `ProductionMonitor.get_pipeline_health_report()` a
+  `PipelineHealthReport` (`pipelines` of `PipelineStats`, `overall_health`, `baselines`,
+  `total_executions`), with health levels as `PipelineHealth`; read them by attribute where
+  they were dicts. `ProductionMonitor` takes `AdvancedMonitor`'s three keyword arguments
+  instead of `**kwargs`, and `ProductionMonitor.executions` returns the recorded
+  `PipelineExecution`s with their metadata, which nothing could read before.
 - `Run.environment`, `Run.metadata`, `BenchmarkResult.metadata` and `BenchmarkResult.config` are
   `calibrax.core.record_values.Metadata`: JSON values and the JAX or NumPy scalars a computation
   produces (`MetadataValue`), written as Python numbers by `to_dict`, in place of
