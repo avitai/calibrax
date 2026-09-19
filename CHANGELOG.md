@@ -36,6 +36,10 @@ and uses semantic versioning while the public API stabilizes.
   `calibrax.core.models`, `calibrax.core.registry`, `calibrax.core.record_values`,
   `calibrax.storage`, `calibrax.ci`, `calibrax.analysis` and `calibrax.validation` import without
   JAX or Flax; importing any of them loaded both through the package's adapters and protocols.
+- `calibrax.profiling.flops.cost_mapping(cost)` narrows what `jax.stages.Lowered.cost_analysis()`
+  returns, which jax types `Any` and documents as arbitrary (a mapping, a list holding one, or
+  `None`), to its numeric fields; `FlopsCounter` reads the analysis through it, and
+  `FlopsCounter.count(fn, *args)` is typed with `substrax.typing.PyTree`.
 - Monitoring reports are typed: `AdvancedMonitor.get_monitoring_summary()` returns a
   `MonitoringSummary` (`thresholds`, `alert_count`, `metric_history` of `MetricHistorySummary`,
   `is_monitoring`) and `ProductionMonitor.get_pipeline_health_report()` a
