@@ -8,11 +8,12 @@ or improvements over time. Requires the optional ``ruptures`` dependency
 
 from __future__ import annotations
 
+import importlib.util
 import logging
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
+from typing import Protocol, Self, SupportsInt
 
 import numpy as np
 from substrax.records import read_record
@@ -21,13 +22,20 @@ from substrax.typing import JsonValue
 from calibrax.core.models import TrendSeries
 
 
-try:
-    import ruptures
+# ruptures is the optional ``changepoint`` extra; it is imported where it is used.
+RUPTURES_AVAILABLE = importlib.util.find_spec("ruptures") is not None
 
-    RUPTURES_AVAILABLE = True
-except ImportError:
-    ruptures = None  # type: ignore[assignment]
-    RUPTURES_AVAILABLE = False
+
+class _ChangePointAlgorithm(Protocol):
+    """The part of a ruptures detector the analysis uses.
+
+    ``pen`` is keyword-only: ``Binseg`` and ``Window`` take ``n_bkps`` first, so a
+    positional penalty would be read as a breakpoint count.
+    """
+
+    def fit(self, signal: np.ndarray) -> Self: ...
+
+    def predict(self, *, pen: float) -> list[SupportsInt]: ...
 
 
 logger = logging.getLogger(__name__)
@@ -125,7 +133,7 @@ def detect_change_points(
     algo.fit(values.reshape(-1, 1))
 
     # predict returns breakpoints including the final index (len)
-    breakpoints = algo.predict(pen=penalty)
+    breakpoints = [int(bp) for bp in algo.predict(pen=penalty)]
     # Remove the final index (always equals len(values))
     change_indices = [bp for bp in breakpoints if bp < len(values)]
 
@@ -151,7 +159,7 @@ def detect_change_points(
     return result
 
 
-def _get_algorithm(method: str, min_size: int) -> Any:
+def _get_algorithm(method: str, min_size: int) -> _ChangePointAlgorithm:
     """Get a ruptures algorithm instance.
 
     Args:
@@ -164,14 +172,14 @@ def _get_algorithm(method: str, min_size: int) -> Any:
     Raises:
         ValueError: If the method is not recognized.
     """
+    import ruptures
+
     if method == "pelt":
-        return ruptures.Pelt(model="l2", min_size=min_size)  # type: ignore[union-attr]
+        return ruptures.Pelt(model="l2", min_size=min_size)
     if method == "binseg":
-        return ruptures.Binseg(model="l2", min_size=min_size)  # type: ignore[union-attr]
+        return ruptures.Binseg(model="l2", min_size=min_size)
     if method == "window":
-        return ruptures.Window(  # type: ignore[union-attr]
-            model="l2", min_size=min_size, width=min_size * 2
-        )
+        return ruptures.Window(model="l2", min_size=min_size, width=min_size * 2)
 
     msg = f"Unknown method: {method!r}. Use 'pelt', 'binseg', or 'window'."
     raise ValueError(msg)
