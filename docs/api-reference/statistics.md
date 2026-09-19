@@ -11,8 +11,4 @@ effect size.
 
 ## Significance Testing
 
-!!! warning "Optional Dependency"
-
-    Significance tests require scipy: `uv pip install "calibrax[stats]"`
-
 ::: calibrax.statistics.significance

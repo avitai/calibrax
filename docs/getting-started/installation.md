@@ -30,7 +30,6 @@ Install only the extras relevant to your workflow:
 
 | Extra | Installs | Use Case |
 |-------|----------|----------|
-| `stats` | scipy | Significance tests (t-test, Mann-Whitney, Wilcoxon) |
 | `wandb` | wandb | Weights & Biases export |
 | `mlflow` | mlflow | MLflow experiment tracking export |
 | `publication` | matplotlib | Publication-ready plots and figures |
@@ -39,14 +38,11 @@ Install only the extras relevant to your workflow:
 | `scientific` | *(none — pure JAX)* | Scientific domain metrics (molecular, protein) |
 | `codecarbon` | codecarbon | Carbon emissions and energy tracking |
 | `changepoint` | ruptures | Change point detection in benchmark trends |
-| `gpu` | CUDA libraries | GPU memory profiling and energy monitoring |
+| `cuda12` | JAX's CUDA 12 wheels, nvidia-ml-py | NVIDIA GPU backend, GPU clock and power monitoring |
 | `metal` | Metal backend | Apple Silicon GPU acceleration |
 | `all` | Everything above | Full feature set |
 
 ```bash
-# Install with statistical testing support
-uv pip install "calibrax[stats]"
-
 # Install with W&B and publication output
 uv pip install "calibrax[wandb,publication]"
 
@@ -102,14 +98,6 @@ print(calibrax.__version__)
 
     ```bash
     uv pip install --upgrade jax jaxlib
-    ```
-
-    **scipy import errors when running significance tests**
-
-    Install the `stats` extra:
-
-    ```bash
-    uv pip install "calibrax[stats]"
     ```
 
     **matplotlib import errors when generating plots**

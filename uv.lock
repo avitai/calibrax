@@ -387,6 +387,7 @@ dependencies = [
     { name = "numpy" },
     { name = "psutil" },
     { name = "pydantic" },
+    { name = "scipy" },
     { name = "substrax" },
     { name = "typing-extensions" },
 ]
@@ -450,7 +451,7 @@ all = [
     { name = "ruff" },
     { name = "ruptures" },
     { name = "scikit-learn" },
-    { name = "scipy" },
+    { name = "scipy-stubs" },
     { name = "twine" },
     { name = "wandb" },
 ]
@@ -497,7 +498,7 @@ all-cpu = [
     { name = "ruff" },
     { name = "ruptures" },
     { name = "scikit-learn" },
-    { name = "scipy" },
+    { name = "scipy-stubs" },
     { name = "twine" },
     { name = "wandb" },
 ]
@@ -545,7 +546,7 @@ all-macos = [
     { name = "ruff" },
     { name = "ruptures" },
     { name = "scikit-learn" },
-    { name = "scipy" },
+    { name = "scipy-stubs" },
     { name = "twine" },
     { name = "wandb" },
 ]
@@ -595,6 +596,7 @@ cuda-dev = [
     { name = "pytest-xdist" },
     { name = "radon" },
     { name = "ruff" },
+    { name = "scipy-stubs" },
     { name = "twine" },
 ]
 cuda12 = [
@@ -639,6 +641,7 @@ dev = [
     { name = "pytest-xdist" },
     { name = "radon" },
     { name = "ruff" },
+    { name = "scipy-stubs" },
     { name = "twine" },
 ]
 docs = [
@@ -665,9 +668,6 @@ performance = [
 ]
 publication = [
     { name = "matplotlib" },
-]
-stats = [
-    { name = "scipy" },
 ]
 test = [
     { name = "beartype" },
@@ -956,10 +956,12 @@ requires-dist = [
     { name = "scikit-learn", marker = "extra == 'all-cpu'", specifier = ">=1.4" },
     { name = "scikit-learn", marker = "extra == 'all-macos'", specifier = ">=1.4" },
     { name = "scikit-learn", marker = "extra == 'test'", specifier = ">=1.4" },
-    { name = "scipy", marker = "extra == 'all'", specifier = ">=1.10" },
-    { name = "scipy", marker = "extra == 'all-cpu'", specifier = ">=1.10" },
-    { name = "scipy", marker = "extra == 'all-macos'", specifier = ">=1.10" },
-    { name = "scipy", marker = "extra == 'stats'", specifier = ">=1.10" },
+    { name = "scipy", specifier = ">=1.15" },
+    { name = "scipy-stubs", marker = "extra == 'all'", specifier = ">=1.17,<1.18" },
+    { name = "scipy-stubs", marker = "extra == 'all-cpu'", specifier = ">=1.17,<1.18" },
+    { name = "scipy-stubs", marker = "extra == 'all-macos'", specifier = ">=1.17,<1.18" },
+    { name = "scipy-stubs", marker = "extra == 'cuda-dev'", specifier = ">=1.17,<1.18" },
+    { name = "scipy-stubs", marker = "extra == 'dev'", specifier = ">=1.17,<1.18" },
     { name = "substrax", specifier = ">=0.1.14" },
     { name = "twine", marker = "extra == 'all'", specifier = ">=4.0.2" },
     { name = "twine", marker = "extra == 'all-cpu'", specifier = ">=4.0.2" },
@@ -973,7 +975,7 @@ requires-dist = [
     { name = "wandb", marker = "extra == 'test'", specifier = ">=0.18" },
     { name = "wandb", marker = "extra == 'wandb'", specifier = ">=0.18" },
 ]
-provides-extras = ["all", "all-cpu", "all-macos", "changepoint", "codecarbon", "cuda-dev", "cuda12", "dev", "docs", "image", "metal", "mlflow", "performance", "publication", "scientific", "stats", "test", "text", "wandb"]
+provides-extras = ["all", "all-cpu", "all-macos", "changepoint", "codecarbon", "cuda-dev", "cuda12", "dev", "docs", "image", "metal", "mlflow", "performance", "publication", "scientific", "test", "text", "wandb"]
 
 [[package]]
 name = "certifi"
@@ -3572,6 +3574,18 @@ wheels = [
 ]
 
 [[package]]
+name = "numpy-typing-compat"
+version = "20251206.2.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/42/5f/29fd5f29b0a5d96e2def96ecba3112fc330ecd16e8c97c2b332563c5e201/numpy_typing_compat-20251206.2.4.tar.gz", hash = "sha256:59882d23aaff054a2536da80564012cdce33487657be4d79c5925bb8705fcabc", size = 5011, upload-time = "2025-12-06T20:02:04.942Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/63/7c/5c2892e6bc0628a2ccf4e938e1e2db22794657ccb374672d66e20d73839e/numpy_typing_compat-20251206.2.4-py3-none-any.whl", hash = "sha256:a82e723bd20efaa4cf2886709d4264c144f1f2b609bda83d1545113b7e47a5b5", size = 6300, upload-time = "2025-12-06T20:01:57.578Z" },
+]
+
+[[package]]
 name = "nvidia-cublas-cu12"
 version = "12.9.1.4"
 source = { registry = "https://pypi.org/simple" }
@@ -3818,6 +3832,24 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/8c/f9/e3d11ae6f298ee941a0690e353a323d158ba5dedc436e75621c310845c5c/optax-0.2.8.tar.gz", hash = "sha256:5b225b35066fc3eebaa4d798f1b4173b4d57d1a480610908981f8343b50af0b0", size = 301193, upload-time = "2026-03-20T23:30:05.465Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8a/69/6a93d8600c339d7687a05857c7907bd4dd8cf88691a5ea106d7a50af90a1/optax-0.2.8-py3-none-any.whl", hash = "sha256:e3ca2d36c99daab1800ae9dbc0545034382d6bc780b24d969e1b0df65fa31cb4", size = 402960, upload-time = "2026-03-20T23:30:03.886Z" },
+]
+
+[[package]]
+name = "optype"
+version = "0.17.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/9b/86/e6f1f6f3487492dfcf3b7a2d4e2534d27af6ac05b364b276706906c34865/optype-0.17.1.tar.gz", hash = "sha256:07bfa32b795dea28fba8605a6288d36370d072f25183fb9c29b5a90f4b6f5638", size = 53572, upload-time = "2026-05-17T22:13:28.725Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2f/d4/c6a2b043e33f0dd012486dcebe0593585588d400175d22aad42049c88321/optype-0.17.1-py3-none-any.whl", hash = "sha256:82f2508ca31cb21e53a41648482d890fe1f5c6cb153720551af41161555adaf1", size = 65954, upload-time = "2026-05-17T22:13:27.549Z" },
+]
+
+[package.optional-dependencies]
+numpy = [
+    { name = "numpy" },
+    { name = "numpy-typing-compat" },
 ]
 
 [[package]]
@@ -5292,6 +5324,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/ef/5e/e565bd73991d42023eb82bb99e51c5b3d9e2c588ca9d4b3e2cc1d3ca62a6/scipy-1.17.0-cp314-cp314t-musllinux_1_2_x86_64.whl", hash = "sha256:f9eb55bb97d00f8b7ab95cb64f873eb0bf54d9446264d9f3609130381233483f", size = 37457743, upload-time = "2026-01-10T21:30:34.819Z" },
     { url = "https://files.pythonhosted.org/packages/58/a8/a66a75c3d8f1fb2b83f66007d6455a06a6f6cf5618c3dc35bc9b69dd096e/scipy-1.17.0-cp314-cp314t-win_amd64.whl", hash = "sha256:1ff269abf702f6c7e67a4b7aad981d42871a11b9dd83c58d2d2ea624efbd1088", size = 37098574, upload-time = "2026-01-10T21:30:40.782Z" },
     { url = "https://files.pythonhosted.org/packages/56/a5/df8f46ef7da168f1bc52cd86e09a9de5c6f19cc1da04454d51b7d4f43408/scipy-1.17.0-cp314-cp314t-win_arm64.whl", hash = "sha256:031121914e295d9791319a1875444d55079885bbae5bdc9c5e0f2ee5f09d34ff", size = 25246266, upload-time = "2026-01-10T21:30:45.923Z" },
+]
+
+[[package]]
+name = "scipy-stubs"
+version = "1.17.1.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "optype", extra = ["numpy"] },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/02/30/7a2e621918d1317ab972f797161131f2635648ad5d92baf0695dd009e4f9/scipy_stubs-1.17.1.5.tar.gz", hash = "sha256:284b1dd1dd46107a614971d170030d310cd88b2ac6b483f85285ee0ff87720bd", size = 399933, upload-time = "2026-05-25T21:34:33.6Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e1/26/d4bc2ba3427a623f79a6c10c8f427c7a55b56eb8b3eddc369319d97f741b/scipy_stubs-1.17.1.5-py3-none-any.whl", hash = "sha256:58ebf054a86c000c72e8982e121c4ead0d3d9ba7a6c38aa5fa71b07f96a427fd", size = 607388, upload-time = "2026-05-25T21:34:32.073Z" },
 ]
 
 [[package]]

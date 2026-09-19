@@ -116,26 +116,27 @@ Baselines are stored in a separate `baselines/` directory.
 
 ## 7. Optional Dependencies
 
-**Problem:** scipy, wandb, matplotlib, mlflow, codecarbon, and ruptures are
-heavy dependencies that many users do not need. Making them required would
-bloat the install and break on minimal environments.
+**Problem:** wandb, matplotlib, mlflow, codecarbon, NVIDIA's NVML bindings and ruptures are
+heavy dependencies that many users do not need. Making them required would bloat the install
+and break on minimal environments.
 
-**Decision:** Optional dependencies are guarded by `try/except ImportError` at
-the module level, setting availability flags like `WANDB_AVAILABLE`,
-`MATPLOTLIB_AVAILABLE`, `CODECARBON_AVAILABLE`, `RUPTURES_AVAILABLE`, and
-`MLFLOW_AVAILABLE`. Features degrade gracefully: exporters and trackers raise
-`ImportError` on instantiation when their dependency is missing.
+**Decision:** Each optional dependency has one integration module that imports it at the top:
+`calibrax.exporters.plots` (matplotlib), `calibrax.exporters.wandb`,
+`calibrax.exporters.mlflow`, `calibrax.profiling.carbon` (codecarbon) and
+`calibrax.analysis.changepoint` (ruptures). Importing an integration module without its
+library raises `ImportError` naming the extra to install. Nothing else imports these modules,
+and no package `__init__.py` re-exports them, so the rest of calibrax imports without them.
 
 **Implications:**
 
-- The base install is JAX, Flax, NumPy, jaxtyping, click, psutil, typing_extensions and
-  substrax; every heavier dependency is an extra
-- Users install only the extras they need (`calibrax[stats]`, `calibrax[wandb]`,
-  `calibrax[mlflow]`, `calibrax[codecarbon]`, `calibrax[changepoint]`)
-- Heavy optional modules (`WandBExporter`, `MLflowExporter`) are not re-exported
-  from their package `__init__.py` to avoid triggering an import-time load
-- Change point detection (`ruptures`) and carbon tracking (`codecarbon`) follow
-  the same pattern: import guard at module top, `ImportError` on use
+- The base install is JAX (which brings SciPy), Flax, NumPy, pydantic, jaxtyping, click,
+  psutil, typing_extensions, lazy-loader and substrax; every other dependency is an extra
+- A missing extra fails where the integration is imported, with the install command, rather
+  than a method returning `None` or a flag deciding at run time
+- There are no availability flags and no imports inside functions: a module's dependencies
+  are its imports
+- Users install only the extras they need (`calibrax[wandb]`, `calibrax[mlflow]`,
+  `calibrax[publication]`, `calibrax[codecarbon]`, `calibrax[changepoint]`)
 
 ## 8. Frozen Dataclasses
 

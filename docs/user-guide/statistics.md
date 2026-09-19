@@ -70,14 +70,6 @@ as outliers. The default of 3.5 is conservative.
 
 ## Significance Tests
 
-!!! warning "Optional Dependency"
-
-    Significance tests require scipy. Install with:
-
-    ```bash
-    uv pip install "calibrax[stats]"
-    ```
-
 Calibrax provides three significance tests for comparing two sets of measurements:
 
 ```python

@@ -84,6 +84,11 @@ and uses semantic versioning while the public API stabilizes.
 - `calibrax.analysis.changepoint` is the ruptures integration: it imports ruptures at the top
   and raises `ImportError` naming the `changepoint` extra without it; `RUPTURES_AVAILABLE` and
   the check inside `detect_change_points` are gone.
+- SciPy is a declared dependency (`scipy>=1.15`, the floor JAX itself requires) and the `stats`
+  extra is gone: JAX always installs SciPy, so the extra added nothing and the significance
+  tests' "SciPy missing" paths could not run. `paired_significance_test` loses its pure-Python
+  sign-test fallback, which reported its result as `method="wilcoxon"`. The dev extra adds
+  `scipy-stubs`, SciPy's type stubs, so the tests' results are typed.
 - Monitoring reports are typed: `AdvancedMonitor.get_monitoring_summary()` returns a
   `MonitoringSummary` (`thresholds`, `alert_count`, `metric_history` of `MetricHistorySummary`,
   `is_monitoring`) and `ProductionMonitor.get_pipeline_health_report()` a

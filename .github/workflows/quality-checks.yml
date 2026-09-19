@@ -34,7 +34,7 @@ jobs:
 
       # pyright checks the optional integrations too, so it needs their packages (test, stats).
       - name: Install dependencies
-        run: uv sync --locked --extra dev --extra test --extra stats
+        run: uv sync --locked --extra dev --extra test
 
       - name: Pre-commit
         run: uv run --no-sync pre-commit run --all-files

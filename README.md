@@ -110,9 +110,6 @@ rotation_inv = registry.list_by_invariance("rotation")
 # Basic installation
 uv pip install calibrax
 
-# With statistical analysis (scipy)
-uv pip install "calibrax[stats]"
-
 # With GPU monitoring
 uv pip install "calibrax[cuda12]"
 
