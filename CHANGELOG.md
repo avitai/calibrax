@@ -70,6 +70,14 @@ and uses semantic versioning while the public API stabilizes.
   matplotlib was missing and `None` for empty input, are gone. Stateful metrics no longer carry
   `.plot()`; plot a metric's values with
   `PlotGenerator(dir).metric_values_plot(metric.compute(), title=metric.name, filename=metric.name)`.
+- `calibrax.exporters.wandb` and `calibrax.exporters.mlflow` are the wandb and MLflow
+  integrations: each imports its library at the top, and importing it without the library
+  raises `ImportError` naming the extra. `WANDB_AVAILABLE` and `MLFLOW_AVAILABLE` are gone, with
+  the constructors' checks. `WandBExporter.log_figures(figures)`, which wrapped whatever it was
+  given in `wandb.Image`, is `log_images(images: Mapping[str, wandb.Image])`: log a matplotlib
+  figure as `wandb.Image(figure)`. Regression alerts go to the run they belong to
+  (`Run.alert`), `export_trends` takes any `TrendSource` (a `Store` is one), and table cells are
+  typed. MLflow's run summary is written to a temporary directory that is removed with it.
 - Monitoring reports are typed: `AdvancedMonitor.get_monitoring_summary()` returns a
   `MonitoringSummary` (`thresholds`, `alert_count`, `metric_history` of `MetricHistorySummary`,
   `is_monitoring`) and `ProductionMonitor.get_pipeline_health_report()` a

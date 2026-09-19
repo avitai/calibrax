@@ -1,10 +1,8 @@
 """MLflow exporter for benchmark results and analysis.
 
-Exports benchmark runs, comparisons, and regressions to MLflow tracking.
-Requires the optional ``mlflow`` dependency (``uv pip install "calibrax[mlflow]"``).
-
-Note: NOT re-exported from ``calibrax.exporters.__init__`` to avoid
-import-time MLflow loading. Import it from ``calibrax.exporters.mlflow``.
+Exports benchmark runs, comparisons, and regressions to MLflow tracking. This module is the
+MLflow integration: it needs the ``mlflow`` extra, and importing it without mlflow raises
+``ImportError`` naming the extra. It is not re-exported from ``calibrax.exporters``.
 """
 
 from __future__ import annotations
@@ -14,17 +12,16 @@ import logging
 import tempfile
 from pathlib import Path
 
-from calibrax.core.models import Run
-from calibrax.exporters.base import Exporter
-
 
 try:
     import mlflow
+except ImportError as error:
+    msg = 'calibrax.exporters.mlflow needs mlflow: uv pip install "calibrax[mlflow]"'
+    raise ImportError(msg) from error
 
-    MLFLOW_AVAILABLE = True
-except ImportError:
-    mlflow = None  # type: ignore[assignment]
-    MLFLOW_AVAILABLE = False
+from calibrax.analysis.regression import detect_regressions
+from calibrax.core.models import Run
+from calibrax.exporters.base import Exporter
 
 
 logger = logging.getLogger(__name__)
@@ -47,19 +44,12 @@ class MLflowExporter(Exporter):
         Args:
             experiment_name: MLflow experiment name.
             tracking_uri: MLflow tracking server URI.
-
-        Raises:
-            ImportError: If mlflow is not installed.
         """
-        if not MLFLOW_AVAILABLE:
-            msg = 'mlflow is required for MLflowExporter: uv pip install "calibrax[mlflow]"'
-            raise ImportError(msg)
-
         self._experiment_name = experiment_name
         if tracking_uri is not None:
-            mlflow.set_tracking_uri(tracking_uri)  # type: ignore[union-attr]
+            mlflow.set_tracking_uri(tracking_uri)
 
-        mlflow.set_experiment(experiment_name)  # type: ignore[union-attr]
+        mlflow.set_experiment(experiment_name)
 
     def export_run(self, run: Run) -> str:
         """Export a benchmark run to MLflow.
@@ -73,7 +63,7 @@ class MLflowExporter(Exporter):
         Returns:
             MLflow run ID.
         """
-        with mlflow.start_run() as mlflow_run:  # type: ignore[union-attr]
+        with mlflow.start_run() as mlflow_run:
             # Log parameters
             params: dict[str, str] = {
                 "run_id": run.id,
@@ -87,16 +77,16 @@ class MLflowExporter(Exporter):
             for key, value in run.environment.items():
                 params[f"env_{key}"] = str(value)[:250]
 
-            mlflow.log_params(params)  # type: ignore[union-attr]
+            mlflow.log_params(params)
 
             # Log metrics
             for point in run.points:
                 fw = point.tags.get("framework", point.name)
                 for metric_name, metric in point.metrics.items():
                     mlflow_key = f"{metric_name}_{fw}".replace("/", "_")[:250]
-                    mlflow.log_metric(mlflow_key, float(metric.value))  # type: ignore[union-attr]
+                    mlflow.log_metric(mlflow_key, float(metric.value))
 
-            return mlflow_run.info.run_id  # type: ignore[return-value]
+            return mlflow_run.info.run_id
 
     def export_analysis(self, run: Run, baseline: Run | None = None) -> None:
         """Export analysis artifacts to MLflow.
@@ -107,22 +97,17 @@ class MLflowExporter(Exporter):
             run: Current benchmark run.
             baseline: Optional baseline run for regression detection.
         """
-        with mlflow.start_run():  # type: ignore[union-attr]
-            mlflow.log_param("analysis_run_id", run.id)  # type: ignore[union-attr]
+        with mlflow.start_run():
+            mlflow.log_param("analysis_run_id", run.id)
 
             if baseline is not None:
                 self._log_regressions(run, baseline)
 
             # Log run summary as artifact
-            summary = run.to_dict()
-            with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-                json.dump(summary, f, indent=2, default=str)
-                artifact_path = f.name
-
-            try:
-                mlflow.log_artifact(artifact_path, "benchmark_data")  # type: ignore[union-attr]
-            finally:
-                Path(artifact_path).unlink(missing_ok=True)
+            with tempfile.TemporaryDirectory() as directory:
+                artifact_path = Path(directory) / f"run_{run.id}.json"
+                artifact_path.write_text(json.dumps(run.to_dict(), indent=2))
+                mlflow.log_artifact(str(artifact_path), "benchmark_data")
 
     def _log_regressions(self, run: Run, baseline: Run) -> None:
         """Log regression alerts as MLflow metrics.
@@ -131,15 +116,13 @@ class MLflowExporter(Exporter):
             run: Current benchmark run.
             baseline: Baseline run for comparison.
         """
-        from calibrax.analysis.regression import detect_regressions
-
         regressions = detect_regressions(run, baseline)
         for regression in regressions:
             key = f"regression_{regression.metric}_{regression.point_name}"
-            mlflow.log_metric(  # type: ignore[union-attr]
+            mlflow.log_metric(
                 key.replace("/", "_")[:250],
                 float(regression.delta_pct),
             )
 
         if regressions:
-            mlflow.log_metric("regression_count", len(regressions))  # type: ignore[union-attr]
+            mlflow.log_metric("regression_count", len(regressions))

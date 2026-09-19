@@ -335,6 +335,7 @@ testpaths = ["tests"]
 
 [tool.pytest_env]
 JAX_PLATFORMS = {skip_if_set = true, value = "cpu"}
+MPLBACKEND = {skip_if_set = true, value = "Agg"}
 TF_CPP_MIN_LOG_LEVEL = {skip_if_set = true, value = "1"}
 WANDB_DIR = {skip_if_set = true, value = "/tmp/calibrax-test-wandb"}
 WANDB_MODE = {skip_if_set = true, value = "offline"}

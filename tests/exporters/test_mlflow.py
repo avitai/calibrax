@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-import importlib.util
-import sys
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+from substrax.testing import run_python
 
 from calibrax.core.models import Metric, MetricDirection, Point, Regression, Run
 from tests.factories import make_matmul_run, make_throughput_only_run
@@ -54,18 +52,9 @@ def mock_mlflow() -> MagicMock:
 class TestMLflowExporter:
     """Tests for MLflowExporter."""
 
-    def test_raises_import_error_when_unavailable(self) -> None:
-        """Should raise ImportError when mlflow is not installed."""
-        with patch("calibrax.exporters.mlflow.MLFLOW_AVAILABLE", False):
-            from calibrax.exporters.mlflow import MLflowExporter
-
-            with pytest.raises(ImportError, match="mlflow is required"):
-                MLflowExporter(experiment_name="test")
-
     def test_init_sets_experiment(self, mock_mlflow: MagicMock) -> None:
         """__init__ should call mlflow.set_experiment."""
         with (
-            patch("calibrax.exporters.mlflow.MLFLOW_AVAILABLE", True),
             patch("calibrax.exporters.mlflow.mlflow", mock_mlflow),
         ):
             from calibrax.exporters.mlflow import MLflowExporter
@@ -77,7 +66,6 @@ class TestMLflowExporter:
     def test_init_sets_tracking_uri(self, mock_mlflow: MagicMock) -> None:
         """__init__ should call mlflow.set_tracking_uri when provided."""
         with (
-            patch("calibrax.exporters.mlflow.MLFLOW_AVAILABLE", True),
             patch("calibrax.exporters.mlflow.mlflow", mock_mlflow),
         ):
             from calibrax.exporters.mlflow import MLflowExporter
@@ -89,7 +77,6 @@ class TestMLflowExporter:
     def test_init_no_tracking_uri(self, mock_mlflow: MagicMock) -> None:
         """__init__ should not call set_tracking_uri when None."""
         with (
-            patch("calibrax.exporters.mlflow.MLFLOW_AVAILABLE", True),
             patch("calibrax.exporters.mlflow.mlflow", mock_mlflow),
         ):
             from calibrax.exporters.mlflow import MLflowExporter
@@ -101,7 +88,6 @@ class TestMLflowExporter:
     def test_export_run_returns_run_id(self, mock_mlflow: MagicMock) -> None:
         """export_run should return the MLflow run ID."""
         with (
-            patch("calibrax.exporters.mlflow.MLFLOW_AVAILABLE", True),
             patch("calibrax.exporters.mlflow.mlflow", mock_mlflow),
         ):
             from calibrax.exporters.mlflow import MLflowExporter
@@ -114,7 +100,6 @@ class TestMLflowExporter:
     def test_export_run_logs_params(self, mock_mlflow: MagicMock) -> None:
         """export_run should log parameters including run_id and commit."""
         with (
-            patch("calibrax.exporters.mlflow.MLFLOW_AVAILABLE", True),
             patch("calibrax.exporters.mlflow.mlflow", mock_mlflow),
         ):
             from calibrax.exporters.mlflow import MLflowExporter
@@ -132,7 +117,6 @@ class TestMLflowExporter:
     def test_export_run_logs_metrics(self, mock_mlflow: MagicMock) -> None:
         """export_run should log metric values for each point."""
         with (
-            patch("calibrax.exporters.mlflow.MLFLOW_AVAILABLE", True),
             patch("calibrax.exporters.mlflow.mlflow", mock_mlflow),
         ):
             from calibrax.exporters.mlflow import MLflowExporter
@@ -148,7 +132,6 @@ class TestMLflowExporter:
     def test_export_analysis_without_baseline(self, mock_mlflow: MagicMock) -> None:
         """export_analysis without baseline should log run summary artifact."""
         with (
-            patch("calibrax.exporters.mlflow.MLFLOW_AVAILABLE", True),
             patch("calibrax.exporters.mlflow.mlflow", mock_mlflow),
         ):
             from calibrax.exporters.mlflow import MLflowExporter
@@ -164,7 +147,6 @@ class TestMLflowExporter:
     def test_export_analysis_with_baseline(self, mock_mlflow: MagicMock) -> None:
         """export_analysis with baseline should log regression metrics."""
         with (
-            patch("calibrax.exporters.mlflow.MLFLOW_AVAILABLE", True),
             patch("calibrax.exporters.mlflow.mlflow", mock_mlflow),
         ):
             from calibrax.exporters.mlflow import MLflowExporter
@@ -194,7 +176,6 @@ class TestMLflowExporter:
         )
 
         with (
-            patch("calibrax.exporters.mlflow.MLFLOW_AVAILABLE", True),
             patch("calibrax.exporters.mlflow.mlflow", mock_mlflow),
         ):
             from calibrax.exporters.mlflow import MLflowExporter
@@ -227,7 +208,6 @@ class TestMLflowExporterAdditional:
         )
 
         with (
-            patch("calibrax.exporters.mlflow.MLFLOW_AVAILABLE", True),
             patch("calibrax.exporters.mlflow.mlflow", mock_mlflow),
         ):
             from calibrax.exporters.mlflow import MLflowExporter
@@ -242,7 +222,6 @@ class TestMLflowExporterAdditional:
     def test_log_regressions_logs_metric_rows_and_count(self, mock_mlflow: MagicMock) -> None:
         """_log_regressions should log each regression and aggregate count."""
         with (
-            patch("calibrax.exporters.mlflow.MLFLOW_AVAILABLE", True),
             patch("calibrax.exporters.mlflow.mlflow", mock_mlflow),
         ):
             from calibrax.exporters.mlflow import MLflowExporter
@@ -259,7 +238,7 @@ class TestMLflowExporterAdditional:
                 )
             ]
             with patch(
-                "calibrax.analysis.regression.detect_regressions",
+                "calibrax.exporters.mlflow.detect_regressions",
                 return_value=fake_regressions,
             ):
                 exporter._log_regressions(_make_run(), _make_baseline())
@@ -271,34 +250,25 @@ class TestMLflowExporterAdditional:
     def test_log_regressions_skips_count_when_empty(self, mock_mlflow: MagicMock) -> None:
         """_log_regressions should not log regression_count when there are none."""
         with (
-            patch("calibrax.exporters.mlflow.MLFLOW_AVAILABLE", True),
             patch("calibrax.exporters.mlflow.mlflow", mock_mlflow),
         ):
             from calibrax.exporters.mlflow import MLflowExporter
 
             exporter = MLflowExporter(experiment_name="test")
-            with patch("calibrax.analysis.regression.detect_regressions", return_value=[]):
+            with patch("calibrax.exporters.mlflow.detect_regressions", return_value=[]):
                 exporter._log_regressions(_make_run(), _make_baseline())
 
         assert mock_mlflow.log_metric.call_count == 0
 
-    def test_module_import_sets_available_when_mlflow_present(self) -> None:
-        """Module import guard should set MLFLOW_AVAILABLE=True when mlflow imports."""
-        import calibrax.exporters.mlflow as mlflow_mod
 
-        module_path = Path(mlflow_mod.__file__)
-        spec = importlib.util.spec_from_file_location("mlflow_import_probe", module_path)
-        assert spec is not None
-        assert spec.loader is not None
-        probe_module = importlib.util.module_from_spec(spec)
+def test_importing_without_mlflow_names_the_extra() -> None:
+    result = run_python(
+        "import sys; sys.modules['mlflow'] = None\n"
+        "try:\n"
+        "    import calibrax.exporters.mlflow\n"
+        "except ImportError as error:\n"
+        "    print(error)\n",
+        timeout=120,
+    )
 
-        fake_mlflow = MagicMock()
-        with patch.dict(sys.modules, {"mlflow": fake_mlflow}):
-            sys.modules[spec.name] = probe_module
-            try:
-                spec.loader.exec_module(probe_module)
-            finally:
-                sys.modules.pop(spec.name, None)
-
-        assert probe_module.MLFLOW_AVAILABLE is True
-        assert probe_module.mlflow is fake_mlflow
+    assert "calibrax[mlflow]" in result.stdout

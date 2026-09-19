@@ -21,8 +21,10 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import jax.numpy as jnp
+import matplotlib.pyplot as plt
 import pytest
 from flax import nnx
+from matplotlib.figure import Figure
 
 
 logger = logging.getLogger(__name__)
@@ -115,12 +117,19 @@ def _build_preamble() -> dict[str, Any]:
         "fn": lambda x: jnp.dot(x, x.T),
         "sample_args": (jnp.ones((4, 4)),),
         # Artifact stubs
-        "fig": MagicMock(),
+        "fig": _example_figure(),
         "html_string": "<h1>test</h1>",
         # Distributed stubs
         "pjit_function": lambda x: x,
         "sharded_input": jnp.ones((4, 4)),
     }
+
+
+def _example_figure() -> Figure:
+    """A small pyplot figure, the kind a user logs or saves."""
+    fig, ax = plt.subplots()
+    ax.plot([1, 2, 3])
+    return fig
 
 
 def _run_code_block(code: str, namespace: dict[str, Any], label: str) -> None:
@@ -166,7 +175,7 @@ def _patch_external_dependencies(file_path: str):
             )
             stack.enter_context(
                 patch(
-                    "calibrax.exporters.wandb.WandBExporter.log_figures",
+                    "calibrax.exporters.wandb.WandBExporter.log_images",
                     return_value=None,
                 )
             )
@@ -183,13 +192,8 @@ def _patch_external_dependencies(file_path: str):
                 )
             )
         if file_path == "user-guide/exporters.md":
-            # Mock mlflow to prevent ImportError when optional dep is not installed.
-            mock_mlflow = MagicMock()
-            stack.enter_context(patch.dict("sys.modules", {"mlflow": mock_mlflow}))
-            # Patch the module-level mlflow variable and availability flag
-            # (both set at import time before the mock takes effect).
-            stack.enter_context(patch("calibrax.exporters.mlflow.mlflow", mock_mlflow))
-            stack.enter_context(patch("calibrax.exporters.mlflow.MLFLOW_AVAILABLE", True))
+            # The MLflow integration imports mlflow; its calls go to a mock.
+            stack.enter_context(patch("calibrax.exporters.mlflow.mlflow", MagicMock()))
             stack.enter_context(
                 patch(
                     "calibrax.exporters.mlflow.MLflowExporter.export_run",
