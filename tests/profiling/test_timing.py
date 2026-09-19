@@ -13,7 +13,8 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 
-from calibrax.profiling.timing import CallTiming, time_calls, TimingCollector, TimingSample
+from calibrax.profiling.timing import time_calls, TimingCollector
+from calibrax.profiling.timing_records import CallTiming, TimingSample
 from tests.factories import make_default_timing_sample
 
 
@@ -444,28 +445,17 @@ class TestCompilationTime:
 
     def test_measure_compilation_time_uses_jit(self) -> None:
         """Verify it actually calls jax.jit -> lower -> compile."""
-        import sys
-
         mock_compiled = MagicMock()
         mock_lowered = MagicMock()
         mock_lowered.compile.return_value = mock_compiled
         mock_jitted = MagicMock()
         mock_jitted.lower.return_value = mock_lowered
 
-        mock_jax = MagicMock()
-        mock_jax.jit.return_value = mock_jitted
-
-        # jax is imported locally in measure_compilation_time, so we
-        # temporarily replace the sys.modules entry.
-        original_jax = sys.modules["jax"]
-        sys.modules["jax"] = mock_jax
-        try:
+        with patch("calibrax.profiling.timing.jit", return_value=mock_jitted) as mock_jit:
             collector = TimingCollector()
             comp_time = collector.measure_compilation_time(lambda x: x, "dummy_arg")
-        finally:
-            sys.modules["jax"] = original_jax
 
-        mock_jax.jit.assert_called_once()
+        mock_jit.assert_called_once()
         mock_jitted.lower.assert_called_once_with("dummy_arg")
         mock_lowered.compile.assert_called_once()
         assert comp_time >= 0

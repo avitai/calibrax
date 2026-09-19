@@ -8,3 +8,12 @@ warm-up iteration exclusion and JIT compilation time measurement.
 ::: calibrax.profiling.timing
     options:
       show_root_heading: false
+
+## calibrax.profiling.timing_records
+
+`TimingSample` and `CallTiming`, the records the collector and `time_calls` return. They
+import without JAX, so reading a stored result does not load it.
+
+::: calibrax.profiling.timing_records
+    options:
+      show_root_heading: false

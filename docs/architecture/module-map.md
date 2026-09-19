@@ -82,10 +82,15 @@ which depend on the foundation. No circular dependencies exist.
 ## Key Design Constraints
 
 - **`core` depends only on `profiling`** — `core.result` imports
-  `TimingSample` and `ResourceSummary` for serialization; otherwise `core`
-  depends only on JAX, Flax NNX (for adapters), and the standard library
-- **`exporters` does not import `wandb` or `matplotlib` at the module level** —
-  optional dependencies are guarded by availability flags
+  `TimingSample` (from `profiling.timing_records`) and `ResourceSummary` for
+  serialization; otherwise `core` depends only on JAX, Flax NNX (for adapters),
+  and the standard library
+- **`core` and `profiling` load each export on first use** — records such as
+  `BenchmarkResult`, `TimingSample` and `ResourceSummary` import without JAX
+- **Each optional dependency has one integration module** — `exporters.plots`,
+  `exporters.wandb`, `exporters.mlflow`, `profiling.carbon`, `profiling.nvml` and
+  `analysis.changepoint` import their library at the top and raise `ImportError`
+  naming the extra; nothing else imports them
 - **`ci` depends on `analysis` and `storage`** — it composes regression detection
   with store-based baseline management
 - **`cli` is the only module that calls `sys.exit()`** — all other modules

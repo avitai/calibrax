@@ -65,7 +65,7 @@ print(f"Compilation: {comp_time:.3f}s")
 round-trip serialization:
 
 ```python
-from calibrax.profiling.timing import TimingSample
+from calibrax.profiling.timing_records import TimingSample
 
 d = sample.to_dict()
 restored = TimingSample.from_dict(d)

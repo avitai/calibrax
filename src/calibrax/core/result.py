@@ -18,7 +18,7 @@ from substrax.typing import JsonValue
 from calibrax.core.models import Metric
 from calibrax.core.record_values import Metadata, metadata_to_json, require_stored
 from calibrax.profiling.resources import ResourceSummary
-from calibrax.profiling.timing import TimingSample
+from calibrax.profiling.timing_records import TimingSample
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

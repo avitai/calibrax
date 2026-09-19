@@ -36,6 +36,11 @@ and uses semantic versioning while the public API stabilizes.
   `calibrax.core.models`, `calibrax.core.registry`, `calibrax.core.record_values`,
   `calibrax.storage`, `calibrax.ci`, `calibrax.analysis` and `calibrax.validation` import without
   JAX or Flax; importing any of them loaded both through the package's adapters and protocols.
+- `calibrax.profiling` loads each export on first use the same way, and `TimingSample` and
+  `CallTiming` live in `calibrax.profiling.timing_records`, so `BenchmarkResult`
+  (`calibrax.core.result`) and the resource, energy and timing records import without JAX or
+  Flax; each loaded both, about 0.6 s, through the package's eager imports. Every name
+  `calibrax.profiling` exported still imports from it.
 - `calibrax.profiling.flops.cost_mapping(cost)` narrows what `jax.stages.Lowered.cost_analysis()`
   returns, which jax types `Any` and documents as arbitrary (a mapping, a list holding one, or
   `None`), to its numeric fields; `FlopsCounter` reads the analysis through it, and
