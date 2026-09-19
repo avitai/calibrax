@@ -330,14 +330,12 @@ class AdvancedMonitor:
             logger.debug("Failed to collect process metrics")
 
         if self._gpu_profiler is not None:
-            try:
-                metrics["gpu_utilization"] = self._gpu_profiler.get_utilization()
-                mem = self._gpu_profiler.get_memory_usage()
-                gpu_mem = mem.get("gpu_memory_used_mb")
-                if gpu_mem is not None:
-                    metrics["gpu_memory_mb"] = gpu_mem
-            except (AttributeError, TypeError, ValueError, RuntimeError):
-                logger.debug("Failed to collect GPU metrics")
+            utilization = self._gpu_profiler.utilization()
+            if utilization is not None:
+                metrics["gpu_utilization"] = utilization
+            memory = self._gpu_profiler.memory()
+            if memory is not None:
+                metrics["gpu_memory_mb"] = memory.used_mb
 
         with self._state_lock:
             for name, value in metrics.items():

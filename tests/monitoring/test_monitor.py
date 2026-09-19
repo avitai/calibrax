@@ -5,9 +5,8 @@ from __future__ import annotations
 import logging
 import time
 from collections import deque
-from unittest.mock import MagicMock
 
-import psutil  # pyright: ignore[reportMissingModuleSource]
+import psutil
 import pytest
 
 from calibrax.monitoring.monitor import (
@@ -17,6 +16,8 @@ from calibrax.monitoring.monitor import (
     AlertSeverity,
     MetricHistorySummary,
 )
+from calibrax.profiling.resources import GpuMemory
+from tests.factories import FakeGpu
 
 
 class TestAlertSeverity:
@@ -258,11 +259,11 @@ class TestAdvancedMonitor:
 
     def test_gpu_profiler_integration(self) -> None:
         """GPU profiler metrics should be collected when available."""
-        gpu_mock = MagicMock()
-        gpu_mock.get_utilization.return_value = 75.0
-        gpu_mock.get_memory_usage.return_value = {"gpu_memory_used_mb": 4096.0}
+        gpu = FakeGpu(
+            utilization_reading=75.0, memory_reading=GpuMemory(used_mb=4096.0, total_mb=8192.0)
+        )
 
-        monitor = AdvancedMonitor(gpu_profiler=gpu_mock)
+        monitor = AdvancedMonitor(gpu_profiler=gpu)
         monitor.start_monitoring(interval=0.1)
         time.sleep(0.3)
         monitor.stop_monitoring()
@@ -270,26 +271,18 @@ class TestAdvancedMonitor:
         summary = monitor.get_monitoring_summary()
         assert "gpu_utilization" in summary.metric_history
 
-    def test_gpu_profiler_malformed_memory_payload_is_ignored(self) -> None:
-        """Malformed GPU memory payload should not break metrics collection."""
-        gpu_mock = MagicMock()
-        gpu_mock.get_utilization.return_value = 75.0
-        gpu_mock.get_memory_usage.return_value = 4096.0  # Not a dict
+    def test_gpu_readings_become_metrics(self) -> None:
+        gpu = FakeGpu(
+            utilization_reading=75.0, memory_reading=GpuMemory(used_mb=4096.0, total_mb=8192.0)
+        )
 
-        monitor = AdvancedMonitor(gpu_profiler=gpu_mock)
-        metrics = monitor._collect_metrics()
+        metrics = AdvancedMonitor(gpu_profiler=gpu)._collect_metrics()
 
         assert metrics["gpu_utilization"] == 75.0
-        assert "gpu_memory_mb" not in metrics
+        assert metrics["gpu_memory_mb"] == 4096.0
 
-    def test_gpu_profiler_missing_memory_key_does_not_emit_gpu_memory(self) -> None:
-        """Missing gpu_memory_used_mb should not add gpu_memory_mb metric."""
-        gpu_mock = MagicMock()
-        gpu_mock.get_utilization.return_value = 40.0
-        gpu_mock.get_memory_usage.return_value = {}
-
-        monitor = AdvancedMonitor(gpu_profiler=gpu_mock)
-        metrics = monitor._collect_metrics()
+    def test_a_gpu_reading_not_taken_emits_no_metric(self) -> None:
+        metrics = AdvancedMonitor(gpu_profiler=FakeGpu(utilization_reading=40.0))._collect_metrics()
 
         assert metrics["gpu_utilization"] == 40.0
         assert "gpu_memory_mb" not in metrics

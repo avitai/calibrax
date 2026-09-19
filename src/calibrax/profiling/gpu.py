@@ -2,24 +2,25 @@
 
 Provides hardware detection, shape optimization, GPU memory profiling
 (satisfying GPUProfilerProtocol), and memory usage analysis.
-Includes NVML-based GPU clock and power monitoring when NVIDIA's nvidia-ml-py is installed.
+GPU clocks, power and compute utilization come from ``calibrax.profiling.nvml``.
 """
 
 from __future__ import annotations
 
 import gc
-import importlib.util
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
+from typing import Protocol
 
 import jax
-import psutil  # pyright: ignore[reportMissingModuleSource]
+import psutil
 from substrax.devices import detect_devices, DeviceInfo, DeviceKind
 
+from calibrax.profiling.resources import GpuClocks, GpuMemory, GpuPower
 
-# NVML comes from NVIDIA's nvidia-ml-py (the ``cuda12`` extra); it is imported where it is used.
-PYNVML_AVAILABLE = importlib.util.find_spec("pynvml") is not None
+
+_BYTES_PER_MB = 1024 * 1024
 
 
 # Thresholds behind the memory suggestions.
@@ -182,162 +183,94 @@ class AdaptiveOperation:
         return result
 
 
-class GPUMemoryProfiler:
-    """GPU memory profiling satisfying GPUProfilerProtocol.
+class _MemoryStatsDevice(Protocol):
+    """The part of a ``jax.Device`` the profiler reads."""
 
-    Uses multi-fallback strategy: memory_stats -> xla_bridge -> zeros.
+    def memory_stats(self) -> Mapping[str, int] | None: ...
+
+
+class GPUMemoryProfiler:
+    """GPU memory from JAX's device memory statistics; satisfies ``GPUProfilerProtocol``.
+
+    JAX reports a device's memory, not its compute utilization, clocks or power, so those
+    readings are ``None``; ``calibrax.profiling.nvml.NvmlDevice`` takes them all through NVML.
     """
 
-    def __init__(self) -> None:
-        """Initialize GPU memory profiler with GPU detection."""
-        try:
-            self.has_gpu = len(jax.devices("gpu")) > 0
-        except (RuntimeError, ValueError):
-            self.has_gpu = False
-
-    def get_memory_usage(self) -> dict[str, float]:
-        """Get current GPU memory usage statistics.
-
-        Returns:
-            Dictionary with gpu_memory_used_mb, gpu_memory_total_mb,
-            and optionally gpu_memory_utilization.
-        """
-        if not self.has_gpu:
-            return {"gpu_memory_used_mb": 0.0, "gpu_memory_total_mb": 0.0}
-
-        try:
-            device = jax.devices("gpu")[0]
-            if hasattr(device, "memory_stats"):
-                stats = device.memory_stats()
-                if stats:
-                    used = stats.get("bytes_in_use", 0) / (1024 * 1024)
-                    limit = stats.get("bytes_limit", 0) / (1024 * 1024)
-                    return {
-                        "gpu_memory_used_mb": used,
-                        "gpu_memory_total_mb": limit,
-                        "gpu_memory_utilization": (used / limit if limit > 0 else 0.0),
-                    }
-        except (AttributeError, TypeError, ValueError, RuntimeError, OSError):
-            logger.debug("GPU memory stats query failed, returning zeros")
-
-        return {"gpu_memory_used_mb": 0.0, "gpu_memory_total_mb": 0.0}
-
-    def get_utilization(self) -> float:
-        """Get GPU utilization percentage for ResourceMonitor.
-
-        Returns:
-            GPU memory utilization as percentage (0-100), or 0.0.
-        """
-        mem = self.get_memory_usage()
-        return mem.get("gpu_memory_utilization", 0.0) * 100
-
-    def _safe_nvml_query(
-        self,
-        query_fn: Callable[[object], dict[str, float]],
-        fallback: dict[str, float],
-    ) -> dict[str, float]:
-        """Execute an NVML query with init and fallback on failure.
+    def __init__(self, device: _MemoryStatsDevice | None = None) -> None:
+        """Read ``device``, or the first GPU JAX sees; with neither, every reading is ``None``.
 
         Args:
-            query_fn: Function that takes an NVML device handle, an opaque pointer only NVML
-                reads, and returns metrics.
-            fallback: Default dict to return on failure.
-
-        Returns:
-            Query result or fallback on any error.
+            device: The JAX device to read.
         """
-        if not PYNVML_AVAILABLE or not self.has_gpu:
-            return fallback
-        import pynvml
+        if device is None:
+            try:
+                gpus = jax.devices("gpu")
+            except RuntimeError:  # jax has no GPU backend
+                gpus = []
+            device = gpus[0] if gpus else None
+        self._device = device
 
-        try:
-            pynvml.nvmlInit()
-            handle: object = pynvml.nvmlDeviceGetHandleByIndex(0)
-            return query_fn(handle)
-        except pynvml.NVMLError:
-            return fallback
+    def memory(self) -> GpuMemory | None:
+        """The device's memory in use and its limit, from ``memory_stats()``.
 
-    def get_clock_info(self) -> dict[str, float]:
-        """Get current GPU clock frequencies via NVML.
-
-        Returns:
-            Dictionary with 'gpu_clock_mhz' and 'mem_clock_mhz' keys.
-            Returns zeros if NVML is unavailable or query fails.
+        ``None`` without a device, or when its statistics lack either figure.
         """
+        if self._device is None:
+            return None
+        stats = self._device.memory_stats() or {}
+        used, limit = stats.get("bytes_in_use"), stats.get("bytes_limit")
+        if used is None or limit is None:
+            return None
+        return GpuMemory(used_mb=used / _BYTES_PER_MB, total_mb=limit / _BYTES_PER_MB)
 
-        def _query(handle: object) -> dict[str, float]:
-            """Query GPU and memory clock frequencies."""
-            import pynvml
+    def utilization(self) -> float | None:
+        """``None``: JAX does not report compute utilization."""
+        return None
 
-            gpu_clock = pynvml.nvmlDeviceGetClockInfo(handle, pynvml.NVML_CLOCK_GRAPHICS)
-            mem_clock = pynvml.nvmlDeviceGetClockInfo(handle, pynvml.NVML_CLOCK_MEM)
-            return {"gpu_clock_mhz": float(gpu_clock), "mem_clock_mhz": float(mem_clock)}
+    def clocks(self) -> GpuClocks | None:
+        """``None``: JAX does not report clocks."""
+        return None
 
-        return self._safe_nvml_query(_query, {"gpu_clock_mhz": 0.0, "mem_clock_mhz": 0.0})
+    def power(self) -> GpuPower | None:
+        """``None``: JAX does not report power."""
+        return None
 
-    def get_power_info(self) -> dict[str, float]:
-        """Get current GPU power draw and limit via NVML.
 
-        Returns:
-            Dictionary with 'power_draw_w' and 'power_limit_w' keys.
-            Returns zeros if NVML is unavailable or query fails.
-        """
+def analyze_memory_pattern(readings: Sequence[GpuMemory]) -> list[str]:
+    """Suggestions from a series of memory readings: a leak trend, and high occupancy.
 
-        def _query(handle: object) -> dict[str, float]:
-            """Query GPU power draw and management limit."""
-            import pynvml
+    Args:
+        readings: Memory readings in the order they were taken.
 
-            power_mw = pynvml.nvmlDeviceGetPowerUsage(handle)
-            limit_mw = pynvml.nvmlDeviceGetPowerManagementLimit(handle)
-            return {
-                "power_draw_w": float(power_mw) / 1000.0,
-                "power_limit_w": float(limit_mw) / 1000.0,
-            }
+    Returns:
+        Optimization suggestion strings.
+    """
+    if not readings:
+        return []
 
-        return self._safe_nvml_query(_query, {"power_draw_w": 0.0, "power_limit_w": 0.0})
+    suggestions: list[str] = []
+    usage = [reading.used_mb for reading in readings]
+    occupancy = [reading.occupancy for reading in readings]
 
-    def analyze_memory_pattern(
-        self,
-        measurements: list[dict[str, float]],
-    ) -> list[str]:
-        """Analyze memory usage patterns and suggest optimizations.
-
-        Args:
-            measurements: List of memory usage dictionaries.
-
-        Returns:
-            List of optimization suggestion strings.
-        """
-        if not measurements:
-            return []
-
-        suggestions: list[str] = []
-        usage_values = [m.get("gpu_memory_used_mb", 0) for m in measurements]
-        utilization_values = [m.get("gpu_memory_utilization", 0) for m in measurements]
-
-        if len(usage_values) >= _MIN_SAMPLES_FOR_TREND:
-            trend = (usage_values[-1] - usage_values[0]) / (len(usage_values) - 1)
-            if trend > _LEAK_TREND_MB_PER_SAMPLE:
-                suggestions.append(
-                    "Potential memory leak detected. Consider using JAX's "
-                    "garbage collection or clearing unused variables."
-                )
-
-        max_util = max(utilization_values) if utilization_values else 0
-        avg_util = sum(utilization_values) / len(utilization_values) if utilization_values else 0
-
-        if max_util > _HIGH_MEMORY_UTILIZATION:
+    if len(usage) >= _MIN_SAMPLES_FOR_TREND:
+        trend = (usage[-1] - usage[0]) / (len(usage) - 1)
+        if trend > _LEAK_TREND_MB_PER_SAMPLE:
             suggestions.append(
-                "High GPU memory utilization (>90%). Consider reducing "
-                "batch size or using gradient checkpointing."
-            )
-        elif avg_util > _SUSTAINED_MEMORY_UTILIZATION:
-            suggestions.append(
-                "Consistently high GPU memory usage (>80%). Monitor for "
-                "potential out-of-memory errors."
+                "Potential memory leak detected. Consider using JAX's "
+                "garbage collection or clearing unused variables."
             )
 
-        return suggestions
+    if max(occupancy) > _HIGH_MEMORY_UTILIZATION:
+        suggestions.append(
+            "High GPU memory utilization (>90%). Consider reducing "
+            "batch size or using gradient checkpointing."
+        )
+    elif sum(occupancy) / len(occupancy) > _SUSTAINED_MEMORY_UTILIZATION:
+        suggestions.append(
+            "Consistently high GPU memory usage (>80%). Monitor for potential out-of-memory errors."
+        )
+
+    return suggestions
 
 
 class MemoryOptimizer:

@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import time
 from collections.abc import Mapping
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
 from calibrax.core.models import Metric, MetricDef, MetricDirection, Point, Run
 from calibrax.profiling.energy import EnergySummary
 from calibrax.profiling.gpu import HardwareConfig
-from calibrax.profiling.resources import ResourceSummary
+from calibrax.profiling.resources import GpuClocks, GpuMemory, GpuPower, ResourceSummary
 from calibrax.profiling.timing import TimingSample
 
 
@@ -271,3 +272,29 @@ def assert_monitor_thread_lifecycle(monitor: Any) -> None:
         assert monitor._sampling_thread._thread is not None
         assert monitor._sampling_thread._thread.is_alive()
     assert not monitor._sampling_thread._thread.is_alive()
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class FakeGpu:
+    """A GPU profiler answering fixed readings; a field left ``None`` is a reading not taken."""
+
+    memory_reading: GpuMemory | None = None
+    utilization_reading: float | None = None
+    clocks_reading: GpuClocks | None = None
+    power_reading: GpuPower | None = None
+
+    def memory(self) -> GpuMemory | None:
+        """The fixed memory reading."""
+        return self.memory_reading
+
+    def utilization(self) -> float | None:
+        """The fixed utilization reading."""
+        return self.utilization_reading
+
+    def clocks(self) -> GpuClocks | None:
+        """The fixed clocks reading."""
+        return self.clocks_reading
+
+    def power(self) -> GpuPower | None:
+        """The fixed power reading."""
+        return self.power_reading

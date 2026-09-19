@@ -6,10 +6,11 @@ from calibrax.profiling.compilation import (
     XLAOptimizationResult,
 )
 from calibrax.profiling.complexity import analyze_complexity, ComplexityResult
-from calibrax.profiling.energy import EnergyMonitor, EnergySample, EnergySummary
+from calibrax.profiling.energy import EnergyMonitor, EnergySample, EnergySummary, GpuPowerSource
 from calibrax.profiling.flops import FlopsCounter, FlopsResult
 from calibrax.profiling.gpu import (
     AdaptiveOperation,
+    analyze_memory_pattern,
     GPUMemoryProfiler,
     HardwareConfig,
     MemoryAnalysis,
@@ -23,6 +24,9 @@ from calibrax.profiling.hardware import (
     UnknownHardwareError,
 )
 from calibrax.profiling.resources import (
+    GpuClocks,
+    GpuMemory,
+    GpuPower,
     GPUProfilerProtocol,
     ResourceMonitor,
     ResourceSample,
@@ -45,6 +49,7 @@ __all__ = [
     "EnergyMonitor",
     "EnergySample",
     "EnergySummary",
+    "GpuPowerSource",
     # flops
     "FlopsCounter",
     "FlopsResult",
@@ -54,6 +59,7 @@ __all__ = [
     "HardwareConfig",
     "MemoryAnalysis",
     "MemoryOptimizer",
+    "analyze_memory_pattern",
     # hardware
     "HARDWARE_SPECS",
     "HardwareSpec",
@@ -62,6 +68,9 @@ __all__ = [
     "spec_for_device_kind",
     # resources
     "GPUProfilerProtocol",
+    "GpuClocks",
+    "GpuMemory",
+    "GpuPower",
     "ResourceMonitor",
     "ResourceSample",
     "ResourceSummary",
