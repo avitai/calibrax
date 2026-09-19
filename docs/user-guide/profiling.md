@@ -212,20 +212,25 @@ kernels) raises `FlopsUnavailableError`.
 
 ## Hardware Detection
 
-`detect_hardware_specs()` auto-detects the active JAX backend and returns
-reference performance specs. `HARDWARE_SPECS` contains peak FLOP/s and memory
-bandwidth values for common accelerators.
+`HARDWARE_SPECS` holds each accelerator's dense BF16 peak and memory bandwidth from
+the vendor's specification (A100 in its four variants, H100 SXM and PCIe, RTX 4090,
+TPU v4, v5e, v5p and v6e, and a CPU stand-in). `detect_hardware_specs()` names the chip
+by the `device_kind` JAX reports and returns its `HardwareSpec`, or `None` for an
+accelerator the table does not hold; pass a `HardwareSpec` for one.
 
 ```python
-from calibrax.profiling.hardware import detect_hardware_specs, HARDWARE_SPECS
+from calibrax.profiling.hardware import HARDWARE_SPECS, HardwareSpec, detect_hardware_specs
 
-specs = detect_hardware_specs()
-print(f"Peak FLOP/s: {specs.get('peak_flops', 'N/A')}")
-print(f"Memory BW (B/s): {specs.get('memory_bandwidth', 'N/A')}")
+spec = detect_hardware_specs()  # HardwareSpec(name="rtx_4090", ...) on an RTX 4090
+if spec is not None:
+    print(f"{spec.name}: {spec.peak_flops:.3g} FLOP/s, {spec.memory_bandwidth:.3g} B/s, "
+          f"ridge point {spec.critical_intensity:.0f} FLOPs/byte")
 
-# Reference specs for specific hardware
-a100_specs = HARDWARE_SPECS["a100_80g"]
+a100 = HARDWARE_SPECS["a100_sxm4_80gb"]
+l4 = HardwareSpec(name="l4", peak_flops=121.0e12, memory_bandwidth=300.0e9)
 ```
+
+`RooflineAnalyzer` raises `UnknownHardwareError` when it has no spec for the chip in use.
 
 ## Roofline Analysis
 

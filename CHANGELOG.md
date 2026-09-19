@@ -44,6 +44,18 @@ and uses semantic versioning while the public API stabilizes.
   module, in place of the `pynvml` distribution, which is deprecated in its favour and warned
   on every import. `calibrax.profiling.gpu` imports NVML where it is used, and
   `MemoryOptimizer.analyze_pipeline_memory` is generic in the sample type.
+- Hardware specs are `HardwareSpec` records (`name`, `peak_flops`, `memory_bandwidth`,
+  `tensor_core_shapes`, `simd_width`, and the derived `critical_intensity`) in place of
+  dictionaries; `peak_flops_bf16`, which repeated `peak_flops`, is gone. `HARDWARE_SPECS` names
+  each chip precisely, with vendor figures cited in the module: `a100_sxm4_40gb`,
+  `a100_pcie_40gb`, `a100_sxm4_80gb` (was `a100_80g`), `a100_pcie_80gb`, `h100_sxm` (was `h100`,
+  now 989.4 TFLOPS), `h100_pcie`, `rtx_4090`, `tpu_v4`, `tpu_v5e`, `tpu_v5p`, `tpu_v6e` and
+  `cpu_generic`. `detect_hardware_specs()` names the chip by the `device_kind` JAX reports
+  (`spec_for_device_kind`) and returns `None` for one the table lacks.
+- `RooflineAnalyzer(hardware_specs=...)` takes a `HardwareSpec` or `None`; analysing with `None`
+  raises `UnknownHardwareError`. FLOPs come from `FlopsCounter`, and a function XLA cannot cost
+  raises `FlopsUnavailableError`; memory traffic is the inputs' bytes plus every output leaf's
+  bytes from `jax.eval_shape`. A `flops_override` of 0 is used as given.
 - Monitoring reports are typed: `AdvancedMonitor.get_monitoring_summary()` returns a
   `MonitoringSummary` (`thresholds`, `alert_count`, `metric_history` of `MetricHistorySummary`,
   `is_monitoring`) and `ProductionMonitor.get_pipeline_health_report()` a
@@ -143,6 +155,14 @@ and uses semantic versioning while the public API stabilizes.
 - `detect_change_points(method="window")` reports each `ChangePoint.index` as a Python `int`; ruptures'
   `Window` returns NumPy integers, which the record stored as given. ruptures is typed through a
   local stub (`typings/ruptures`), since it ships no type information, and imported where used.
+- `detect_hardware_specs()` reported every GPU as an A100 80GB and every TPU as a v5e, so roofline
+  utilisation on any other chip was computed against another chip's peak and bandwidth (an
+  RTX 4090 against 312 TFLOPS and 2,039 GB/s, where it has 165.2 TFLOPS and 1,008 GB/s), and it
+  gave Apple's Metal backend the CPU figures.
+- `RooflineAnalyzer` invented figures when it could not measure them: ten FLOPs per input
+  element when XLA's cost analysis was unavailable, and twice the input bytes as memory
+  traffic when running the function eagerly failed; it also counted only tuple, list or single
+  array outputs.
 - `analyze_complexity` counts parameter memory from each parameter's dtype. It assumed four bytes
   per parameter, so a bfloat16 model's parameter memory read twice its size and a float64 model's
   half; parameter counts and the operation estimate use exact Python integers, where a product

@@ -18,6 +18,9 @@ from calibrax.profiling.gpu import (
 from calibrax.profiling.hardware import (
     detect_hardware_specs,
     HARDWARE_SPECS,
+    HardwareSpec,
+    spec_for_device_kind,
+    UnknownHardwareError,
 )
 from calibrax.profiling.resources import (
     GPUProfilerProtocol,
@@ -53,7 +56,10 @@ __all__ = [
     "MemoryOptimizer",
     # hardware
     "HARDWARE_SPECS",
+    "HardwareSpec",
+    "UnknownHardwareError",
     "detect_hardware_specs",
+    "spec_for_device_kind",
     # resources
     "GPUProfilerProtocol",
     "ResourceMonitor",

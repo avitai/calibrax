@@ -1,10 +1,8 @@
-"""Tests for hardware specifications and detection.
+"""Hardware specifications and their detection from JAX's device kind."""
 
-Verifies HARDWARE_SPECS contents, backend-based detection via mocking,
-execution time measurement, and synchronization barriers.
-"""
+from __future__ import annotations
 
-from typing import Any
+import json
 
 import pytest
 from substrax.devices import DeviceInfo, DeviceKind
@@ -12,94 +10,121 @@ from substrax.devices import DeviceInfo, DeviceKind
 from calibrax.profiling.hardware import (
     detect_hardware_specs,
     HARDWARE_SPECS,
+    HardwareSpec,
+    spec_for_device_kind,
 )
 
 
+# Vendor figures per chip: dense BF16 peak (FP32 accumulate) and memory bandwidth; the sources
+# are cited beside the table in calibrax.profiling.hardware.
+PUBLISHED = [
+    ("a100_sxm4_40gb", 312.0e12, 1555.0e9),
+    ("a100_pcie_40gb", 312.0e12, 1555.0e9),
+    ("a100_sxm4_80gb", 312.0e12, 2039.0e9),
+    ("a100_pcie_80gb", 312.0e12, 1935.0e9),
+    ("h100_sxm", 989.4e12, 3350.0e9),
+    ("h100_pcie", 756.0e12, 2000.0e9),
+    ("rtx_4090", 165.2e12, 1008.0e9),
+    ("tpu_v4", 275.0e12, 1200.0e9),
+    ("tpu_v5e", 197.0e12, 819.0e9),
+    ("tpu_v5p", 459.0e12, 2765.0e9),
+    ("tpu_v6e", 918.0e12, 1638.0e9),
+    ("cpu_generic", 2.0e12, 200.0e9),
+]
+
+
 class TestHardwareSpecs:
-    """Tests for the HARDWARE_SPECS dictionary."""
+    def test_the_table_holds_the_published_accelerators(self) -> None:
+        assert set(HARDWARE_SPECS) == {name for name, _, _ in PUBLISHED}
 
-    def test_contains_expected_keys(self) -> None:
-        expected_keys = {"tpu_v5e", "a100_80g", "h100", "cpu_generic"}
-        assert set(HARDWARE_SPECS.keys()) == expected_keys
-
-    @pytest.mark.parametrize("spec_name", ["tpu_v5e", "a100_80g", "h100", "cpu_generic"])
-    def test_entries_have_required_fields(self, spec_name: str) -> None:
-        spec = HARDWARE_SPECS[spec_name]
-        assert "peak_flops" in spec
-        assert "memory_bandwidth" in spec
-        assert "critical_intensity" in spec
-
-    @pytest.mark.parametrize(
-        ("spec_name", "peak_flops", "memory_bandwidth"),
-        [
-            # Vendor figures: dense bf16 TFLOPS and HBM bandwidth per chip.
-            ("tpu_v5e", 197.0e12, 819.0e9),
-            ("a100_80g", 312.0e12, 2039.0e9),
-            ("h100", 989.0e12, 3350.0e9),
-            ("cpu_generic", 2.0e12, 200.0e9),
-        ],
-    )
+    @pytest.mark.parametrize(("name", "peak_flops", "memory_bandwidth"), PUBLISHED)
     def test_entries_carry_the_published_figures(
-        self, spec_name: str, peak_flops: float, memory_bandwidth: float
+        self, name: str, peak_flops: float, memory_bandwidth: float
     ) -> None:
-        spec = HARDWARE_SPECS[spec_name]
-        assert spec["peak_flops"] == peak_flops
-        assert spec["peak_flops_bf16"] == peak_flops
-        assert spec["memory_bandwidth"] == memory_bandwidth
+        spec = HARDWARE_SPECS[name]
+        assert spec.name == name
+        assert spec.peak_flops == peak_flops
+        assert spec.memory_bandwidth == memory_bandwidth
 
-    @pytest.mark.parametrize("spec_name", ["tpu_v5e", "a100_80g", "h100", "cpu_generic"])
-    def test_critical_intensity_is_the_ridge_point(self, spec_name: str) -> None:
-        spec = HARDWARE_SPECS[spec_name]
-        assert spec["critical_intensity"] == pytest.approx(
-            spec["peak_flops"] / spec["memory_bandwidth"]
-        )
+    @pytest.mark.parametrize("name", sorted(HARDWARE_SPECS))
+    def test_critical_intensity_is_the_ridge_point(self, name: str) -> None:
+        spec = HARDWARE_SPECS[name]
+        assert spec.critical_intensity == pytest.approx(spec.peak_flops / spec.memory_bandwidth)
 
     def test_tpu_v5e_ridge_point_matches_the_scaling_book(self) -> None:
         # 197 TFLOPS over 819 GB/s: the 240 FLOPs/byte the JAX scaling book quotes.
-        assert HARDWARE_SPECS["tpu_v5e"]["critical_intensity"] == pytest.approx(240, rel=0.01)
+        assert HARDWARE_SPECS["tpu_v5e"].critical_intensity == pytest.approx(240, rel=0.01)
 
-    @pytest.mark.parametrize("spec_name", ["tpu_v5e", "a100_80g", "h100", "cpu_generic"])
-    def test_entries_have_peak_flops_bf16(self, spec_name: str) -> None:
-        assert "peak_flops_bf16" in HARDWARE_SPECS[spec_name]
+    def test_to_dict_is_json_with_the_ridge_point(self) -> None:
+        record = HARDWARE_SPECS["a100_sxm4_80gb"].to_dict()
+        assert json.loads(json.dumps(record)) == record
+        assert record["critical_intensity"] == pytest.approx(312.0e12 / 2039.0e9)
+        assert record["tensor_core_shapes"] == [[16, 16, 16], [16, 16, 8]]
 
-    def test_a100_has_tensor_core_shapes(self) -> None:
-        assert "tensor_core_shapes" in HARDWARE_SPECS["a100_80g"]
 
-    def test_h100_has_tensor_core_shapes(self) -> None:
-        assert "tensor_core_shapes" in HARDWARE_SPECS["h100"]
+class TestSpecForDeviceKind:
+    @pytest.mark.parametrize(
+        ("device_kind", "name"),
+        [
+            ("NVIDIA A100-SXM4-40GB", "a100_sxm4_40gb"),
+            ("NVIDIA A100-PCIE-40GB", "a100_pcie_40gb"),
+            ("NVIDIA A100-SXM4-80GB", "a100_sxm4_80gb"),
+            ("NVIDIA A100 80GB PCIe", "a100_pcie_80gb"),
+            ("NVIDIA H100 80GB HBM3", "h100_sxm"),
+            ("NVIDIA H100 PCIe", "h100_pcie"),
+            ("NVIDIA GeForce RTX 4090", "rtx_4090"),
+            ("TPU v4", "tpu_v4"),
+            ("TPU v5 lite", "tpu_v5e"),
+            ("TPU v5e", "tpu_v5e"),
+            ("TPU v5", "tpu_v5p"),
+            ("TPU v5p", "tpu_v5p"),
+            ("TPU v6 lite", "tpu_v6e"),
+            ("TPU v6e", "tpu_v6e"),
+            ("cpu", "cpu_generic"),
+        ],
+    )
+    def test_a_known_device_kind_names_its_spec(self, device_kind: str, name: str) -> None:
+        assert spec_for_device_kind(device_kind) is HARDWARE_SPECS[name]
 
-    def test_cpu_generic_has_simd_width(self) -> None:
-        assert "simd_width" in HARDWARE_SPECS["cpu_generic"]
+    @pytest.mark.parametrize(
+        "device_kind", ["NVIDIA L4", "Tesla T4", "NVIDIA GeForce RTX 3090", "TPU v4 lite", "METAL"]
+    )
+    def test_an_unknown_device_kind_has_no_spec(self, device_kind: str) -> None:
+        assert spec_for_device_kind(device_kind) is None
 
 
 class TestDetectHardwareSpecs:
-    """Tests for detect_hardware_specs against a fake device snapshot."""
+    """detect_hardware_specs against a fake device snapshot."""
 
-    def _detect_with_backend(self, backend: str, monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
-        """Run detect_hardware_specs against a fake substrax device snapshot."""
+    @staticmethod
+    def _detect(
+        platform: str, device_kinds: tuple[str, ...], monkeypatch: pytest.MonkeyPatch
+    ) -> HardwareSpec | None:
         import calibrax.profiling.hardware as hw_module
 
         info = DeviceInfo(
-            platform=backend,
-            kind=DeviceKind.from_platform(backend),
-            count=1,
-            device_kinds=(backend,),
+            platform=platform,
+            kind=DeviceKind.from_platform(platform),
+            count=len(device_kinds),
+            device_kinds=device_kinds,
         )
         monkeypatch.setattr(hw_module, "detect_devices", lambda: info)
         return detect_hardware_specs()
 
-    def test_returns_cpu_generic_on_cpu_backend(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        result = self._detect_with_backend("cpu", monkeypatch)
-        assert result is HARDWARE_SPECS["cpu_generic"]
+    def test_the_cpu_backend_gets_the_cpu_stand_in(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        assert self._detect("cpu", ("cpu",), monkeypatch) is HARDWARE_SPECS["cpu_generic"]
 
-    def test_returns_a100_on_gpu_backend(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        result = self._detect_with_backend("gpu", monkeypatch)
-        assert result is HARDWARE_SPECS["a100_80g"]
+    def test_a_gpu_is_detected_by_name(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        detected = self._detect("gpu", ("NVIDIA H100 80GB HBM3",), monkeypatch)
+        assert detected is HARDWARE_SPECS["h100_sxm"]
 
-    def test_returns_tpu_v5e_on_tpu_backend(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        result = self._detect_with_backend("tpu", monkeypatch)
-        assert result is HARDWARE_SPECS["tpu_v5e"]
+    def test_a_tpu_is_detected_by_generation(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        assert self._detect("tpu", ("TPU v6 lite",), monkeypatch) is HARDWARE_SPECS["tpu_v6e"]
 
-    def test_returns_cpu_generic_on_unknown_backend(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        result = self._detect_with_backend("metal", monkeypatch)
-        assert result is HARDWARE_SPECS["cpu_generic"]
+    def test_an_unlisted_accelerator_is_not_guessed(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        assert self._detect("gpu", ("NVIDIA L4",), monkeypatch) is None
+        assert self._detect("METAL", ("METAL",), monkeypatch) is None
+
+    def test_mixed_device_kinds_are_not_guessed(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        kinds = ("NVIDIA A100-SXM4-80GB", "NVIDIA H100 80GB HBM3")
+        assert self._detect("gpu", kinds, monkeypatch) is None

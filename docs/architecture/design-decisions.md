@@ -187,15 +187,17 @@ scoring, and complexity analysis need hardware-specific constants (peak FLOP/s,
 memory bandwidth) to produce meaningful results. Hardcoding these per-module
 duplicates values and makes it impossible to extend for new hardware.
 
-**Decision:** Centralize hardware specs in `calibrax.profiling.hardware` with a
-`HARDWARE_SPECS` dictionary containing reference values for common accelerators
-(TPU v5e, A100, H100, CPU) and a `detect_hardware_specs()` function that
-auto-detects the active JAX backend.
+**Decision:** Centralize hardware specs in `calibrax.profiling.hardware`: `HARDWARE_SPECS`
+maps a chip's name to a frozen `HardwareSpec` holding its dense BF16 peak and memory
+bandwidth from the vendor's published specification, and `detect_hardware_specs()` names the
+chip by the `device_kind` JAX reports.
 
 **Implications:**
 
-- Roofline analyzer, compilation profiler, and complexity analysis all share
-  the same hardware specs, with no duplication
-- Adding support for new hardware requires a single dictionary entry
-- `detect_hardware_specs()` returns sensible defaults for unknown platforms,
-  so profiling works everywhere (with reduced accuracy on unrecognized hardware)
+- Roofline analysis reads one table, and the ridge point is derived from the two figures,
+  so the three cannot disagree
+- Adding a chip is one table entry with its source and one `device_kind` mapping
+- An accelerator the table does not hold gets no spec: `detect_hardware_specs()` returns
+  `None` and `RooflineAnalyzer` raises `UnknownHardwareError` until a `HardwareSpec` is
+  passed. A guessed spec would report utilisation against another chip's figures, which is
+  what reporting every GPU as an A100 did
