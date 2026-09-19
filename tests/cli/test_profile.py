@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import types
 from pathlib import Path
 from unittest.mock import patch
 
@@ -11,6 +10,7 @@ import pytest
 from click.testing import CliRunner
 
 from calibrax.cli.main import main
+from tests.factories import make_fake_nvml
 
 
 _USER_MODULE = """
@@ -129,16 +129,7 @@ class TestProfileGpuCommand:
     """Tests for the 'profile-gpu' CLI command, with NVML answered by a fake."""
 
     def test_gpu_energy_is_measured(self, user_module: str) -> None:
-        calls: list[str] = []
-        fake_nvml = types.SimpleNamespace(
-            NVMLError=RuntimeError,
-            NVML_ERROR_NOT_SUPPORTED=3,
-            nvmlInit=lambda: calls.append("init"),
-            nvmlShutdown=lambda: calls.append("shutdown"),
-            nvmlDeviceGetHandleByIndex=lambda index: f"gpu{index}",
-            nvmlDeviceGetPowerUsage=lambda _h: 100_000,
-            nvmlDeviceGetPowerManagementLimit=lambda _h: 450_000,
-        )
+        fake_nvml = make_fake_nvml()
 
         with patch("calibrax.profiling.nvml.pynvml", fake_nvml):
             code, output = _profile(
@@ -154,8 +145,8 @@ class TestProfileGpuCommand:
             )
 
         assert code == 0, output
-        assert "Mean GPU power: 100.00 W" in output
-        assert calls == ["init", "shutdown"]
+        assert "Mean GPU power: 240.00 W" in output
+        assert fake_nvml.calls == ["init", "shutdown"]
 
     def test_profile_gpu_help(self) -> None:
         code, output = _profile("profile-gpu", "--help")

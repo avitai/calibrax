@@ -253,6 +253,10 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Security
 
+- The lock takes the fixed releases of eight transitive packages that pip-audit reports for the
+  `dev` and `test` environments: gitpython 3.1.62, jwcrypto 1.6.1, mako 1.4.1, pillow 12.3.0,
+  pyasn1 0.6.4, sqlparse 0.6.0, and starlette 1.6.0 with fastapi 0.141.1 (fastapi 0.129.0 capped
+  starlette below its fixes). No other locked version moves.
 - `BisectionEngine.bisect` resolves `good_commit` and `bad_commit` to commit hashes with
   `git rev-parse --verify --end-of-options <ref>^{commit}` before any other git command, and
   refuses a ref that names no commit with `ValueError`. Refs were placed in git's argument list
