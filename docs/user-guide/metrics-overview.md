@@ -2,7 +2,7 @@
 
 Calibrax provides a 4-tier metric system that covers everything from stateless
 pure functions to trainable embedding losses. The current `MetricRegistry`
-contains 139 Tier 0 pure-function metrics across 20 domains. Tier 1-3 APIs,
+contains 140 Tier 0 pure-function metrics across 20 domains. Tier 1-3 APIs,
 optional plugin metrics, and metric-learning losses are part of the package
 architecture, but they are not all registry entries today.
 
@@ -166,7 +166,7 @@ metrics with a shared evaluation context.
 | `calibration` | 5 | Brier score, ECE, MCE, adaptive ECE |
 | `segmentation` | 3 | IoU, Dice coefficient, pixel accuracy |
 | `distance` | 11 | Euclidean, cosine, Poincare, Lorentz, Mahalanobis |
-| `divergence` | 14 | KL, JS, Wasserstein, KS, MMD, Sinkhorn, Bregman |
+| `divergence` | 15 | KL, JS, Wasserstein, KS, MMD, unbiased MMD², Sinkhorn, Bregman |
 | `information` | 5 | Entropy, cross-entropy, mutual information |
 | `ranking` | 8 | NDCG, MAP, MRR, precision@k, recall@k |
 | `statistical` | 6 | Pearson, Spearman, Kendall, concordance, skewness |
@@ -197,9 +197,9 @@ Metrics expect different input shapes depending on their `MetricSignature`:
 |-----------|--------|---------|
 | `PREDICTIONS_TARGETS` | Two matching arrays | Regression, classification, distance |
 | `SAMPLES` | Two sample sets (different sizes OK) | Wasserstein, MMD, Hausdorff |
-| `FEATURES_LABELS` | Feature matrix + label vector | Clustering metrics |
-| `SINGLE_INPUT` | One array or matrix | Entropy, resistance distance |
-| `CUSTOM` | Varies per metric | BLEU (token lists), fairness (group arrays) |
+| `FEATURES_LABELS` | Feature matrix + label vector | Silhouette, Calinski-Harabasz, Davies-Bouldin |
+| `SINGLE_INPUT` | One array or matrix | Entropy, resistance distance, Vendi score |
+| `CUSTOM` | Varies per metric, or a required keyword | BLEU (token lists), fairness (group arrays), precision@k (`k`) |
 
 ## Next Steps
 

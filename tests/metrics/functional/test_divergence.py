@@ -22,6 +22,7 @@ from calibrax.metrics.functional.divergence import (
     kl_divergence,
     kolmogorov_smirnov_distance,
     mmd,
+    mmd_squared_unbiased,
     renyi_divergence,
     reverse_kl_divergence,
     sinkhorn_divergence,
@@ -279,29 +280,85 @@ class TestWasserstein1D:
         assert isinstance(result, jax.Array)
 
 
+def _gram(a: np.ndarray, b: np.ndarray, kernel: str, bandwidth: float) -> np.ndarray:
+    """The kernel matrix in float64, straight from its definition."""
+    diff = a[:, None, :] - b[None, :, :]
+    if kernel == "rbf":
+        return np.exp(-np.sum(diff**2, axis=-1) / (2.0 * bandwidth**2))
+    return np.exp(-np.sum(np.abs(diff), axis=-1) / bandwidth)
+
+
 class TestMMD:
-    """Tests for mmd."""
+    """``mmd``: Gretton et al. (2012) eq. 5, the RKHS distance between empirical mean embeddings."""
+
+    _X = np.random.default_rng(0).normal(size=(40, 3))
+    _Y = np.random.default_rng(1).normal(size=(30, 3)) + 0.4
+
+    @pytest.mark.parametrize("kernel", ["rbf", "laplace"])
+    def test_is_the_biased_statistic(self, kernel: str) -> None:
+        x, y = self._X, self._Y
+        squared = (
+            _gram(x, x, kernel, 1.5).mean()
+            + _gram(y, y, kernel, 1.5).mean()
+            - 2.0 * _gram(x, y, kernel, 1.5).mean()
+        )
+
+        value = mmd(x, y, kernel=kernel, bandwidth=1.5)
+
+        assert float(value) == pytest.approx(np.sqrt(squared), rel=1e-4)
 
     def test_identical_samples(self) -> None:
         x = jnp.array([[1.0, 0.0], [0.0, 1.0], [1.0, 1.0]])
-        assert mmd(x, x) == pytest.approx(0.0, abs=1e-4)
+        assert float(mmd(x, x)) == pytest.approx(0.0, abs=1e-6)
 
     def test_different_distributions(self) -> None:
         x = jnp.array([[0.0, 0.0], [0.1, 0.1], [0.2, 0.2]])
         y = jnp.array([[5.0, 5.0], [5.1, 5.1], [5.2, 5.2]])
-        result = mmd(x, y, bandwidth=1.0)
-        assert result > 0.0
+        assert float(mmd(x, y, bandwidth=1.0)) > 0.0
 
     def test_symmetric(self) -> None:
         x = jnp.array([[1.0, 0.0], [0.0, 1.0]])
         y = jnp.array([[2.0, 0.0], [0.0, 2.0]])
-        assert mmd(x, y) == pytest.approx(mmd(y, x), abs=1e-5)
+        assert mmd(x, y) == pytest.approx(mmd(y, x), abs=1e-6)
 
     def test_returns_jax_scalar(self) -> None:
-        x = jnp.array([[1.0, 0.0]])
-        y = jnp.array([[0.0, 1.0]])
-        result = mmd(x, y)
+        result = mmd(jnp.array([[1.0, 0.0]]), jnp.array([[0.0, 1.0]]))
         assert isinstance(result, jax.Array)
+
+    def test_an_unknown_kernel_is_refused(self) -> None:
+        with pytest.raises(ValueError, match="kernel"):
+            mmd(self._X, self._Y, kernel="gaussian")
+
+
+class TestMMDSquaredUnbiased:
+    """``mmd_squared_unbiased``: Gretton et al. (2012) Lemma 6, the U-statistic MMD^2_u."""
+
+    def test_is_the_unbiased_statistic(self) -> None:
+        x, y = TestMMD._X, TestMMD._Y
+        n, m = len(x), len(y)
+        kxx, kyy, kxy = _gram(x, x, "rbf", 1.0), _gram(y, y, "rbf", 1.0), _gram(x, y, "rbf", 1.0)
+        expected = (
+            (kxx.sum() - np.trace(kxx)) / (n * (n - 1))
+            + (kyy.sum() - np.trace(kyy)) / (m * (m - 1))
+            - 2.0 * kxy.mean()
+        )
+
+        assert float(mmd_squared_unbiased(x, y)) == pytest.approx(expected, rel=1e-4)
+
+    def test_averages_zero_between_samples_of_one_distribution(self) -> None:
+        # Unbiased: over many pairs of samples from one distribution, the mean is 0 within its
+        # standard error, and individual values fall below 0 (they are not clamped).
+        keys = jax.random.split(jax.random.key(0), 400)
+        draws = jax.vmap(lambda k: jax.random.normal(k, (2, 20, 2)))(keys)
+        values = jax.vmap(lambda d: mmd_squared_unbiased(d[0], d[1]))(draws)
+
+        standard_error = float(jnp.std(values)) / np.sqrt(len(values))
+        assert abs(float(jnp.mean(values))) < 3.0 * standard_error
+        assert float(jnp.min(values)) < 0.0
+
+    def test_needs_two_samples_on_each_side(self) -> None:
+        with pytest.raises(ValueError, match="two samples"):
+            mmd_squared_unbiased(jnp.ones((1, 2)), jnp.ones((3, 2)))
 
 
 class TestSinkhornDivergence:
@@ -521,6 +578,7 @@ class TestDivergenceMetricRegistration:
             "wasserstein_1d",
             "kolmogorov_smirnov_distance",
             "mmd",
+            "mmd_squared_unbiased",
             "sinkhorn_divergence",
             "sliced_wasserstein",
             "bregman_divergence",
@@ -531,7 +589,7 @@ class TestDivergenceMetricRegistration:
     def test_divergence_domain(self) -> None:
         registry = MetricRegistry()
         div_metrics = registry.list_by_domain("divergence")
-        assert len(div_metrics) == 14
+        assert len(div_metrics) == 15
 
     def test_the_registered_sliced_wasserstein_uses_a_fixed_projection_set(self) -> None:
         """The registry calls ``fn(predictions, targets)``, so its entry fixes the directions.

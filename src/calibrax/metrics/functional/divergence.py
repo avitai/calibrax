@@ -272,6 +272,10 @@ def wasserstein_1d(p: ArrayLike, q: ArrayLike) -> jax.Array:
     return jnp.mean(jnp.abs(p_sorted - q_sorted))
 
 
+# The unbiased estimator averages over pairs of distinct samples.
+_MIN_UNBIASED_SAMPLES = 2
+
+
 def _rbf_kernel(x: jax.Array, y: jax.Array, bandwidth: float) -> jax.Array:
     """RBF (Gaussian) kernel matrix."""
     sq_dist = jnp.sum((x[:, None, :] - y[None, :, :]) ** 2, axis=-1)
@@ -284,17 +288,61 @@ def _laplace_kernel(x: jax.Array, y: jax.Array, bandwidth: float) -> jax.Array:
     return jnp.exp(-dist / bandwidth)
 
 
-def mmd(
+_KERNELS: dict[str, Callable[[jax.Array, jax.Array, float], jax.Array]] = {
+    "rbf": _rbf_kernel,
+    "laplace": _laplace_kernel,
+}
+
+
+def _kernel_matrices(
+    x: ArrayLike, y: ArrayLike, kernel: str, bandwidth: float
+) -> tuple[jax.Array, jax.Array, jax.Array]:
+    """The kernel matrices ``K(x, x)``, ``K(y, y)`` and ``K(x, y)`` of two sample matrices.
+
+    Args:
+        x: First sample matrix; a vector is one feature per sample.
+        y: Second sample matrix.
+        kernel: ``"rbf"`` or ``"laplace"``.
+        bandwidth: Kernel bandwidth parameter.
+
+    Returns:
+        The three kernel matrices.
+
+    Raises:
+        ValueError: If ``kernel`` is not one of ``"rbf"`` or ``"laplace"``.
+    """
+    if kernel not in _KERNELS:
+        msg = f"kernel must be one of {sorted(_KERNELS)}, got {kernel!r}"
+        raise ValueError(msg)
+    kernel_fn = _KERNELS[kernel]
+    x_arr = jnp.asarray(x, dtype=jnp.float32)
+    y_arr = jnp.asarray(y, dtype=jnp.float32)
+    if x_arr.ndim == 1:
+        x_arr = x_arr[:, None]
+    if y_arr.ndim == 1:
+        y_arr = y_arr[:, None]
+    return (
+        kernel_fn(x_arr, x_arr, bandwidth),
+        kernel_fn(y_arr, y_arr, bandwidth),
+        kernel_fn(x_arr, y_arr, bandwidth),
+    )
+
+
+def mmd(  # noqa: DOC502  # raised by _kernel_matrices
     x: ArrayLike,
     y: ArrayLike,
     *,
     kernel: str = "rbf",
     bandwidth: float = 1.0,
 ) -> jax.Array:
-    """Maximum Mean Discrepancy between sample distributions.
+    """Maximum Mean Discrepancy: the kernel distance between the samples' mean embeddings.
 
-    Measures distance using kernel mean embeddings. O(n^{-1/2})
-    estimation rate regardless of dimension.
+    ``MMD_b = ||mu_x - mu_y||_H``, Gretton et al. (2012, JMLR 13, eq. 5): the biased
+    V-statistic, the root of ``mean K(x, x) + mean K(y, y) - 2 mean K(x, y)``. It is a norm,
+    so it is non-negative by construction, zero exactly when the empirical distributions have
+    the same embedding, and for a characteristic kernel (RBF, Laplace) a metric between
+    empirical distributions. For the unbiased estimate of ``MMD^2`` a two-sample test uses, see
+    ``mmd_squared_unbiased``.
 
     Note:
         Direction: LOWER (0.0 = identical distributions).
@@ -303,35 +351,61 @@ def mmd(
 
     Args:
         x: First sample matrix (n_samples, n_features).
-        y: Second sample matrix (n_samples, n_features).
+        y: Second sample matrix (m_samples, n_features).
         kernel: Kernel type: ``"rbf"`` or ``"laplace"``.
         bandwidth: Kernel bandwidth parameter.
 
     Returns:
         MMD as a scalar value.
+
+    Raises:
+        ValueError: If ``kernel`` is not one of ``"rbf"`` or ``"laplace"``.
     """
-    x_arr = jnp.asarray(x)
-    y_arr = jnp.asarray(y)
-    if x_arr.ndim == 1:
-        x_arr = x_arr[:, None]
-    if y_arr.ndim == 1:
-        y_arr = y_arr[:, None]
+    kxx, kyy, kxy = _kernel_matrices(x, y, kernel, bandwidth)
+    squared = jnp.mean(kxx) + jnp.mean(kyy) - 2.0 * jnp.mean(kxy)
+    # A norm's square: below 0 only by rounding.
+    return safe_root(jnp.maximum(squared, 0.0))
 
-    kernel_fn = _rbf_kernel if kernel == "rbf" else _laplace_kernel
 
-    kxx = kernel_fn(x_arr, x_arr, bandwidth)
-    kyy = kernel_fn(y_arr, y_arr, bandwidth)
-    kxy = kernel_fn(x_arr, y_arr, bandwidth)
+def mmd_squared_unbiased(  # noqa: DOC502  # raised by _kernel_matrices
+    x: ArrayLike,
+    y: ArrayLike,
+    *,
+    kernel: str = "rbf",
+    bandwidth: float = 1.0,
+) -> jax.Array:
+    """The unbiased estimate of ``MMD^2``, the U-statistic ``MMD^2_u``.
 
-    # Unbiased estimator: exclude diagonal
-    n = x_arr.shape[0]
-    m = y_arr.shape[0]
-    kxx_sum = (jnp.sum(kxx) - jnp.trace(kxx)) / (n * (n - 1) + _EPSILON)
-    kyy_sum = (jnp.sum(kyy) - jnp.trace(kyy)) / (m * (m - 1) + _EPSILON)
-    kxy_sum = jnp.sum(kxy) / (n * m)
+    Gretton et al. (2012, JMLR 13, Lemma 6): the within-sample kernel means exclude the
+    diagonal, so the expectation is ``MMD^2`` exactly. Between samples of one distribution it
+    is negative about half the time; that is information a two-sample test and KID (Binkowski
+    et al. 2018) use, so it is not clamped. For a distance, see ``mmd``.
 
-    mmd_sq = kxx_sum + kyy_sum - 2.0 * kxy_sum
-    return safe_root(jnp.maximum(mmd_sq, 0.0))
+    Note:
+        Direction: LOWER (0.0 in expectation for identical distributions).
+        Range: (-inf, inf).
+        Symmetric.
+
+    Args:
+        x: First sample matrix (n_samples, n_features), at least two samples.
+        y: Second sample matrix (m_samples, n_features), at least two samples.
+        kernel: Kernel type: ``"rbf"`` or ``"laplace"``.
+        bandwidth: Kernel bandwidth parameter.
+
+    Returns:
+        The unbiased ``MMD^2`` estimate as a scalar value.
+
+    Raises:
+        ValueError: If a sample matrix holds fewer than two samples, or ``kernel`` is unknown.
+    """
+    kxx, kyy, kxy = _kernel_matrices(x, y, kernel, bandwidth)
+    n, m = kxx.shape[0], kyy.shape[0]
+    if n < _MIN_UNBIASED_SAMPLES or m < _MIN_UNBIASED_SAMPLES:
+        msg = f"the unbiased estimate needs two samples on each side, got {n} and {m}"
+        raise ValueError(msg)
+    within_x = (jnp.sum(kxx) - jnp.trace(kxx)) / (n * (n - 1))
+    within_y = (jnp.sum(kyy) - jnp.trace(kyy)) / (m * (m - 1))
+    return within_x + within_y - 2.0 * jnp.mean(kxy)
 
 
 def _entropic_ot(
