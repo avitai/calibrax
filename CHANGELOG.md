@@ -78,6 +78,9 @@ and uses semantic versioning while the public API stabilizes.
   figure as `wandb.Image(figure)`. Regression alerts go to the run they belong to
   (`Run.alert`), `export_trends` takes any `TrendSource` (a `Store` is one), and table cells are
   typed. MLflow's run summary is written to a temporary directory that is removed with it.
+- `calibrax.profiling.carbon` is the codecarbon integration: it imports codecarbon at the top
+  and raises `ImportError` naming the `codecarbon` extra without it; `CODECARBON_AVAILABLE` and
+  the constructor's check are gone.
 - Monitoring reports are typed: `AdvancedMonitor.get_monitoring_summary()` returns a
   `MonitoringSummary` (`thresholds`, `alert_count`, `metric_history` of `MetricHistorySummary`,
   `is_monitoring`) and `ProductionMonitor.get_pipeline_health_report()` a
