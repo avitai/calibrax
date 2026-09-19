@@ -14,7 +14,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import StrEnum
 
-import psutil  # pyright: ignore[reportMissingModuleSource]
+import psutil
 from substrax.typing import JsonValue
 
 from calibrax.core.record_values import Metadata, metadata_to_json
@@ -212,6 +212,8 @@ class AdvancedMonitor:
         alert_manager: AlertManager | None = None,
         gpu_profiler: GPUProfilerProtocol | None = None,
         resource_monitor: ResourceMonitor | None = None,
+        *,
+        history_maxlen: int = 100,
     ) -> None:
         """Initialize the monitor.
 
@@ -219,7 +221,14 @@ class AdvancedMonitor:
             alert_manager: Alert manager for dispatching alerts. Created if not provided.
             gpu_profiler: Optional GPU profiler for GPU metrics.
             resource_monitor: Optional ResourceMonitor for background sampling.
+            history_maxlen: Most recent values each metric's history keeps.
+
+        Raises:
+            ValueError: If ``history_maxlen`` is not positive.
         """
+        if history_maxlen <= 0:
+            msg = f"history_maxlen must be positive, got {history_maxlen}"
+            raise ValueError(msg)
         self._alert_manager = alert_manager or AlertManager()
         self._gpu_profiler = gpu_profiler
         self._resource_monitor = resource_monitor
@@ -227,7 +236,7 @@ class AdvancedMonitor:
         self._metric_history: dict[str, deque[float]] = {}
         self._stop_event = threading.Event()
         self._thread: threading.Thread | None = None
-        self._history_maxlen = 100
+        self._history_maxlen = history_maxlen
         self._state_lock = threading.RLock()
 
     @property
