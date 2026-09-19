@@ -7,6 +7,7 @@ import json
 import pytest
 from substrax.devices import DeviceInfo, DeviceKind
 
+import calibrax.profiling.hardware as hw_module
 from calibrax.profiling.hardware import (
     detect_hardware_specs,
     HARDWARE_SPECS,
@@ -100,8 +101,6 @@ class TestDetectHardwareSpecs:
     def _detect(
         platform: str, device_kinds: tuple[str, ...], monkeypatch: pytest.MonkeyPatch
     ) -> HardwareSpec | None:
-        import calibrax.profiling.hardware as hw_module
-
         info = DeviceInfo(
             platform=platform,
             kind=DeviceKind.from_platform(platform),

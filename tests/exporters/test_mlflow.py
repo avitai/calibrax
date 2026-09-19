@@ -8,6 +8,7 @@ import pytest
 from substrax.testing import run_python
 
 from calibrax.core.models import Metric, MetricDirection, Point, Regression, Run
+from calibrax.exporters.mlflow import MLflowExporter
 from tests.factories import make_matmul_run, make_throughput_only_run
 
 
@@ -57,8 +58,6 @@ class TestMLflowExporter:
         with (
             patch("calibrax.exporters.mlflow.mlflow", mock_mlflow),
         ):
-            from calibrax.exporters.mlflow import MLflowExporter
-
             MLflowExporter(experiment_name="my-experiment")
 
         mock_mlflow.set_experiment.assert_called_once_with("my-experiment")
@@ -68,8 +67,6 @@ class TestMLflowExporter:
         with (
             patch("calibrax.exporters.mlflow.mlflow", mock_mlflow),
         ):
-            from calibrax.exporters.mlflow import MLflowExporter
-
             MLflowExporter(experiment_name="test", tracking_uri="http://localhost:5000")
 
         mock_mlflow.set_tracking_uri.assert_called_once_with("http://localhost:5000")
@@ -79,8 +76,6 @@ class TestMLflowExporter:
         with (
             patch("calibrax.exporters.mlflow.mlflow", mock_mlflow),
         ):
-            from calibrax.exporters.mlflow import MLflowExporter
-
             MLflowExporter(experiment_name="test")
 
         mock_mlflow.set_tracking_uri.assert_not_called()
@@ -90,8 +85,6 @@ class TestMLflowExporter:
         with (
             patch("calibrax.exporters.mlflow.mlflow", mock_mlflow),
         ):
-            from calibrax.exporters.mlflow import MLflowExporter
-
             exporter = MLflowExporter(experiment_name="test")
             result = exporter.export_run(_make_run())
 
@@ -102,8 +95,6 @@ class TestMLflowExporter:
         with (
             patch("calibrax.exporters.mlflow.mlflow", mock_mlflow),
         ):
-            from calibrax.exporters.mlflow import MLflowExporter
-
             exporter = MLflowExporter(experiment_name="test")
             exporter.export_run(_make_run())
 
@@ -119,8 +110,6 @@ class TestMLflowExporter:
         with (
             patch("calibrax.exporters.mlflow.mlflow", mock_mlflow),
         ):
-            from calibrax.exporters.mlflow import MLflowExporter
-
             exporter = MLflowExporter(experiment_name="test")
             exporter.export_run(_make_run())
 
@@ -134,8 +123,6 @@ class TestMLflowExporter:
         with (
             patch("calibrax.exporters.mlflow.mlflow", mock_mlflow),
         ):
-            from calibrax.exporters.mlflow import MLflowExporter
-
             exporter = MLflowExporter(experiment_name="test")
             exporter.export_analysis(_make_run())
 
@@ -149,8 +136,6 @@ class TestMLflowExporter:
         with (
             patch("calibrax.exporters.mlflow.mlflow", mock_mlflow),
         ):
-            from calibrax.exporters.mlflow import MLflowExporter
-
             exporter = MLflowExporter(experiment_name="test")
             exporter.export_analysis(_make_run(throughput=50.0), baseline=_make_baseline())
 
@@ -178,8 +163,6 @@ class TestMLflowExporter:
         with (
             patch("calibrax.exporters.mlflow.mlflow", mock_mlflow),
         ):
-            from calibrax.exporters.mlflow import MLflowExporter
-
             exporter = MLflowExporter(experiment_name="test")
             exporter.export_run(run)
 
@@ -210,8 +193,6 @@ class TestMLflowExporterAdditional:
         with (
             patch("calibrax.exporters.mlflow.mlflow", mock_mlflow),
         ):
-            from calibrax.exporters.mlflow import MLflowExporter
-
             exporter = MLflowExporter(experiment_name="test")
             exporter.export_run(run)
 
@@ -224,8 +205,6 @@ class TestMLflowExporterAdditional:
         with (
             patch("calibrax.exporters.mlflow.mlflow", mock_mlflow),
         ):
-            from calibrax.exporters.mlflow import MLflowExporter
-
             exporter = MLflowExporter(experiment_name="test")
             fake_regressions = [
                 Regression(
@@ -252,8 +231,6 @@ class TestMLflowExporterAdditional:
         with (
             patch("calibrax.exporters.mlflow.mlflow", mock_mlflow),
         ):
-            from calibrax.exporters.mlflow import MLflowExporter
-
             exporter = MLflowExporter(experiment_name="test")
             with patch("calibrax.exporters.mlflow.detect_regressions", return_value=[]):
                 exporter._log_regressions(_make_run(), _make_baseline())

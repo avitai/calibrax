@@ -6,6 +6,8 @@ import jax
 import jax.numpy as jnp
 import pytest
 
+from calibrax.core.models import MetricDirection
+from calibrax.metrics import MetricRegistry
 from calibrax.metrics.functional.calibration import (
     adaptive_calibration_error,
     brier_decomposition,
@@ -290,8 +292,6 @@ class TestCalibrationMetricRegistration:
     """Tests for calibration metric registration in MetricRegistry."""
 
     def test_calibration_metrics_registered(self) -> None:
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         expected = [
             "brier_score",
@@ -304,8 +304,6 @@ class TestCalibrationMetricRegistration:
             assert registry.has(name), f"Metric '{name}' not registered"
 
     def test_calibration_domain(self) -> None:
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         calibration_metrics = registry.list_by_domain("calibration")
         assert len(calibration_metrics) == 5
@@ -314,16 +312,11 @@ class TestCalibrationMetricRegistration:
         assert "expected_calibration_error" in names
 
     def test_brier_score_is_proper(self) -> None:
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         entry = registry.get("brier_score")
         assert entry.properties.is_proper is True
 
     def test_calibration_metrics_direction_lower(self) -> None:
-        from calibrax.core.models import MetricDirection
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         calibration_metrics = registry.list_by_domain("calibration")
         for m in calibration_metrics:

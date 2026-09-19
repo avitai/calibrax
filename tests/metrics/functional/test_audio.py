@@ -6,6 +6,7 @@ import jax
 import jax.numpy as jnp
 import pytest
 
+from calibrax.metrics import MetricRegistry
 from calibrax.metrics.functional.audio import (
     mel_cepstral_distortion,
     signal_to_noise_ratio,
@@ -79,8 +80,6 @@ class TestAudioMetricRegistration:
     """Tests for audio metric registration."""
 
     def test_all_registered(self) -> None:
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         expected = [
             "spectral_convergence",
@@ -91,8 +90,6 @@ class TestAudioMetricRegistration:
             assert registry.has(name), f"Metric '{name}' not registered"
 
     def test_audio_domain(self) -> None:
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         audio_metrics = registry.list_by_domain("audio")
         assert len(audio_metrics) == 3

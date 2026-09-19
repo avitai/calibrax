@@ -6,6 +6,8 @@ import jax
 import jax.numpy as jnp
 import pytest
 
+from calibrax.metrics import MetricRegistry
+from calibrax.metrics.functional.divergence import wasserstein_1d
 from calibrax.metrics.functional.geometric import (
     chamfer_distance,
     directed_hausdorff,
@@ -56,8 +58,6 @@ class TestEarthMoversDistance1D:
         assert result == pytest.approx(1.0, abs=1e-4)
 
     def test_delegates_to_wasserstein(self) -> None:
-        from calibrax.metrics.functional.divergence import wasserstein_1d
-
         a = jnp.array([1.0, 3.0, 5.0])
         b = jnp.array([2.0, 4.0, 6.0])
         assert earth_movers_distance_1d(a, b) == pytest.approx(wasserstein_1d(a, b), abs=1e-6)
@@ -130,8 +130,6 @@ class TestGeometricMetricRegistration:
     """Tests for geometric metric registration."""
 
     def test_all_registered(self) -> None:
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         expected = [
             "chamfer_distance",
@@ -144,23 +142,17 @@ class TestGeometricMetricRegistration:
             assert registry.has(name), f"Metric '{name}' not registered"
 
     def test_geometric_domain(self) -> None:
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         geo_metrics = registry.list_by_domain("geometric")
         assert len(geo_metrics) == 5
 
     def test_hausdorff_is_true_metric(self) -> None:
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         hd = registry.get("hausdorff_distance")
         assert hd.properties.is_true_metric is True
         assert hd.properties.is_symmetric is True
 
     def test_directed_hausdorff_asymmetric(self) -> None:
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         dh = registry.get("directed_hausdorff")
         assert dh.properties.is_symmetric is False

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+
 import pytest
 
 from calibrax.analysis.scaling import scaling_fit
@@ -79,7 +81,6 @@ class TestScalingFit:
 
     def test_sqrt_data(self) -> None:
         """Square root data should produce exponent ~ 0.5."""
-        import math
 
         sizes = [1.0, 4.0, 9.0, 16.0, 25.0, 36.0]
         values = [math.sqrt(s) for s in sizes]

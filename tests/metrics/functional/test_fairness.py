@@ -6,6 +6,8 @@ import jax
 import jax.numpy as jnp
 import pytest
 
+from calibrax.core.models import MetricDirection
+from calibrax.metrics import MetricRegistry
 from calibrax.metrics.functional.fairness import (
     demographic_parity_ratio,
     disparate_impact_ratio,
@@ -13,6 +15,7 @@ from calibrax.metrics.functional.fairness import (
     equalized_odds_difference,
     group_metric_breakdown,
 )
+from calibrax.metrics.functional.regression import mae, mse
 
 
 class TestDemographicParityRatio:
@@ -135,8 +138,6 @@ class TestGroupMetricBreakdown:
     """Tests for group_metric_breakdown."""
 
     def test_per_group_mse(self) -> None:
-        from calibrax.metrics.functional.regression import mse
-
         preds = jnp.array([1.0, 2.0, 3.0, 4.0])
         targets = jnp.array([1.0, 2.0, 3.0, 4.0])
         groups = jnp.array([0, 0, 1, 1])
@@ -145,8 +146,6 @@ class TestGroupMetricBreakdown:
         assert result["1"] == pytest.approx(0.0, abs=1e-5)
 
     def test_returns_dict(self) -> None:
-        from calibrax.metrics.functional.regression import mse
-
         preds = jnp.array([1.0, 2.0, 3.0, 4.0])
         targets = jnp.array([1.0, 2.0, 3.0, 4.0])
         groups = jnp.array([0, 0, 1, 1])
@@ -154,8 +153,6 @@ class TestGroupMetricBreakdown:
         assert isinstance(result, dict)
 
     def test_all_groups_represented(self) -> None:
-        from calibrax.metrics.functional.regression import mae
-
         preds = jnp.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
         targets = jnp.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
         groups = jnp.array([0, 0, 1, 1, 2, 2])
@@ -170,8 +167,6 @@ class TestFairnessMetricRegistration:
     """Tests for fairness metric registration."""
 
     def test_all_registered(self) -> None:
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         expected = [
             "demographic_parity_ratio",
@@ -183,16 +178,11 @@ class TestFairnessMetricRegistration:
             assert registry.has(name), f"Metric '{name}' not registered"
 
     def test_fairness_domain(self) -> None:
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         fairness_metrics = registry.list_by_domain("fairness")
         assert len(fairness_metrics) == 4
 
     def test_direction_assignments(self) -> None:
-        from calibrax.core.models import MetricDirection
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         higher = ["demographic_parity_ratio", "disparate_impact_ratio"]
         lower = ["equalized_odds_difference", "equal_opportunity_difference"]

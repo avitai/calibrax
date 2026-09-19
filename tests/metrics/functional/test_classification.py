@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import math
+
 import jax
 import jax.numpy as jnp
 import pytest
+from sklearn.metrics import fbeta_score as sk_fbeta
 
 from calibrax.metrics.functional.classification import (
     accuracy,
@@ -146,7 +149,6 @@ class TestLogLoss:
 
     def test_known_value(self) -> None:
         """Log loss should match hand-calculated value."""
-        import math
 
         predictions = jnp.array([0.9])
         targets = jnp.array([1])
@@ -333,8 +335,6 @@ class TestFBetaAveraging:
     def test_matches_sklearn_on_a_grid(
         self, targets: list[int], predictions: list[int], num_classes: int
     ) -> None:
-        from sklearn.metrics import fbeta_score as sk_fbeta
-
         labels = list(range(num_classes))
         for average in ("macro", "weighted"):
             for beta in (1.0, 2.0):

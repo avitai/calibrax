@@ -6,6 +6,7 @@ serde round-trip with nested composed objects, and save/load file I/O.
 
 import dataclasses
 import json
+from pathlib import Path
 
 import jax.numpy as jnp
 import pytest
@@ -137,8 +138,6 @@ class TestBenchmarkResult:
         assert restored.resources is None
 
     def test_save_and_load(self, tmp_path: "object") -> None:
-        from pathlib import Path
-
         filepath = Path(str(tmp_path)) / "result.json"
         timing = make_default_timing_sample(
             wall_clock_sec=2.0,
@@ -163,8 +162,6 @@ class TestBenchmarkResult:
         assert loaded.metrics["loss"].value == 0.01
 
     def test_save_creates_parent_directories(self, tmp_path: "object") -> None:
-        from pathlib import Path
-
         filepath = Path(str(tmp_path)) / "nested" / "dir" / "result.json"
         result = BenchmarkResult(name="nested_test", timestamp=1000.0)
         result.save(filepath)
@@ -183,8 +180,6 @@ class TestBenchmarkResult:
         assert result.domain == "physics"
 
     def test_save_produces_valid_json(self, tmp_path: "object") -> None:
-        from pathlib import Path
-
         filepath = Path(str(tmp_path)) / "result.json"
         result = BenchmarkResult(name="json_test", timestamp=1000.0)
         result.save(filepath)
@@ -236,7 +231,6 @@ class TestBenchmarkResult:
 
     def test_save_load_with_jax_scalars(self, tmp_path: "object") -> None:
         """Full save/load round-trip with JAX scalars must not raise."""
-        from pathlib import Path
 
         filepath = Path(str(tmp_path)) / "jax_result.json"
         result = BenchmarkResult(

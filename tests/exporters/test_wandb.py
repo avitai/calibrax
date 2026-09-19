@@ -14,12 +14,17 @@ from calibrax.core.models import (
     MetricDirection,
     Point,
     Run,
+    TrendPoint,
+    TrendSeries,
 )
 from calibrax.exporters.wandb import (
+    _discover_metric_names,
+    _find_best_values,
     _log_aggregate_scores,
     _log_pareto_front,
     _log_rank_tables,
     _log_regression_alerts,
+    WandBExporter,
 )
 from tests.factories import (
     make_dual_framework_run,
@@ -70,7 +75,6 @@ class TestWandBExporter:
 
     def test_export_run_returns_url(self, mock_wandb: MagicMock) -> None:
         """export_run should return a W&B URL."""
-        from calibrax.exporters.wandb import WandBExporter
 
         exporter = WandBExporter(project="test-project")
         url = exporter.export_run(_make_run())
@@ -78,7 +82,6 @@ class TestWandBExporter:
 
     def test_export_run_calls_wandb_init(self, mock_wandb: MagicMock) -> None:
         """export_run should initialize a W&B run."""
-        from calibrax.exporters.wandb import WandBExporter
 
         exporter = WandBExporter(project="my-proj", entity="my-team")
         exporter.export_run(_make_run())
@@ -89,7 +92,6 @@ class TestWandBExporter:
 
     def test_export_run_logs_metrics(self, mock_wandb: MagicMock) -> None:
         """export_run should log metrics for each point."""
-        from calibrax.exporters.wandb import WandBExporter
 
         exporter = WandBExporter(project="test")
         exporter.export_run(_make_run())
@@ -98,7 +100,6 @@ class TestWandBExporter:
 
     def test_export_run_finish_true(self, mock_wandb: MagicMock) -> None:
         """export_run with finish=True should call finish()."""
-        from calibrax.exporters.wandb import WandBExporter
 
         exporter = WandBExporter(project="test")
         exporter.export_run(_make_run(), finish=True)
@@ -106,7 +107,6 @@ class TestWandBExporter:
 
     def test_export_run_finish_false(self, mock_wandb: MagicMock) -> None:
         """export_run with finish=False should not call finish()."""
-        from calibrax.exporters.wandb import WandBExporter
 
         exporter = WandBExporter(project="test")
         exporter.export_run(_make_run(), finish=False)
@@ -114,7 +114,6 @@ class TestWandBExporter:
 
     def test_export_analysis(self, mock_wandb: MagicMock) -> None:
         """export_analysis should log rankings and scores."""
-        from calibrax.exporters.wandb import WandBExporter
 
         exporter = WandBExporter(project="test")
         exporter.export_analysis(_make_run())
@@ -122,7 +121,6 @@ class TestWandBExporter:
 
     def test_export_analysis_with_baseline(self, mock_wandb: MagicMock) -> None:
         """export_analysis with baseline should log regressions."""
-        from calibrax.exporters.wandb import WandBExporter
 
         exporter = WandBExporter(project="test")
         exporter.export_analysis(_make_run(), baseline=_make_baseline())
@@ -130,8 +128,6 @@ class TestWandBExporter:
 
     def test_export_trends(self, mock_wandb: MagicMock) -> None:
         """export_trends should log trend data."""
-        from calibrax.core.models import TrendPoint, TrendSeries
-        from calibrax.exporters.wandb import WandBExporter
 
         mock_store = MagicMock()
         mock_store.extract_trend.return_value = TrendSeries(
@@ -159,7 +155,6 @@ class TestWandBExporter:
 
     def test_check_auth_with_api_key(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """check_auth should return True when WANDB_API_KEY is set."""
-        from calibrax.exporters.wandb import WandBExporter
 
         monkeypatch.setenv("WANDB_API_KEY", "test-key")
         exporter = WandBExporter(project="test")
@@ -167,7 +162,6 @@ class TestWandBExporter:
 
     def test_check_auth_offline_mode(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """check_auth should return True in offline mode."""
-        from calibrax.exporters.wandb import WandBExporter
 
         monkeypatch.delenv("WANDB_API_KEY", raising=False)
         monkeypatch.setenv("WANDB_MODE", "offline")
@@ -176,7 +170,6 @@ class TestWandBExporter:
 
     def test_log_images_no_run(self, mock_wandb: MagicMock) -> None:
         """log_images should no-op without active W&B run."""
-        from calibrax.exporters.wandb import WandBExporter
 
         exporter = WandBExporter(project="test")
         exporter.log_images({"test": MagicMock()})
@@ -186,7 +179,6 @@ class TestWandBExporter:
 
     def test_log_html_artifacts(self, mock_wandb: MagicMock) -> None:
         """log_html_artifacts should log HTML content."""
-        from calibrax.exporters.wandb import WandBExporter
 
         exporter = WandBExporter(project="test")
         exporter.export_run(_make_run(), finish=False)
@@ -199,7 +191,6 @@ class TestWandBExporter:
 
     def test_log_extra_tables(self, mock_wandb: MagicMock) -> None:
         """log_extra_tables should log W&B Table objects."""
-        from calibrax.exporters.wandb import WandBExporter
 
         exporter = WandBExporter(project="test")
         exporter.export_run(_make_run(), finish=False)
@@ -214,7 +205,6 @@ class TestDiscoverMetricNames:
 
     def test_discovers_all_metrics(self) -> None:
         """Should find all unique metric names."""
-        from calibrax.exporters.wandb import _discover_metric_names
 
         run = _make_run()
         names = _discover_metric_names(run)
@@ -222,7 +212,6 @@ class TestDiscoverMetricNames:
 
     def test_returns_sorted(self) -> None:
         """Metric names should be sorted."""
-        from calibrax.exporters.wandb import _discover_metric_names
 
         run = _make_run()
         names = _discover_metric_names(run)
@@ -234,7 +223,6 @@ class TestFindBestValues:
 
     def test_higher_is_better(self) -> None:
         """Should find max for higher-is-better metrics."""
-        from calibrax.exporters.wandb import _find_best_values
 
         run = _make_run()
         best = _find_best_values(run, ["throughput"])
@@ -242,7 +230,6 @@ class TestFindBestValues:
 
     def test_lower_is_better(self) -> None:
         """Should find min for lower-is-better metrics."""
-        from calibrax.exporters.wandb import _find_best_values
 
         run = _make_run()
         best = _find_best_values(run, ["latency"])
@@ -250,7 +237,6 @@ class TestFindBestValues:
 
     def test_missing_metric_is_ignored(self) -> None:
         """Metric names with no values should be skipped."""
-        from calibrax.exporters.wandb import _find_best_values
 
         run = _make_run()
         best = _find_best_values(run, ["throughput", "nonexistent"])
@@ -263,7 +249,6 @@ class TestWandBExporterAdditional:
 
     def test_export_analysis_reuses_existing_active_run(self, mock_wandb: MagicMock) -> None:
         """export_analysis should reuse existing run instead of reinitializing."""
-        from calibrax.exporters.wandb import WandBExporter
 
         exporter = WandBExporter(project="test")
         exporter.export_run(_make_run(), finish=False)
@@ -278,7 +263,6 @@ class TestWandBExporterAdditional:
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """check_auth should return False if wandb API lookup raises."""
-        from calibrax.exporters.wandb import WandBExporter
 
         class _BadAPI:
             @property
@@ -294,7 +278,6 @@ class TestWandBExporterAdditional:
 
     def test_resolve_wandb_mode_valid_and_invalid(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """_resolve_wandb_mode should pass through only allowed values."""
-        from calibrax.exporters.wandb import WandBExporter
 
         monkeypatch.setenv("WANDB_MODE", "offline")
         assert WandBExporter._resolve_wandb_mode() == "offline"
@@ -304,7 +287,6 @@ class TestWandBExporterAdditional:
 
     def test_log_images_logs_each_image_to_the_active_run(self, mock_wandb: MagicMock) -> None:
         """log_images logs the given images to the open run as they are."""
-        from calibrax.exporters.wandb import WandBExporter
 
         image = MagicMock()
         exporter = WandBExporter(project="test")
@@ -315,7 +297,6 @@ class TestWandBExporterAdditional:
 
     def test_log_html_artifacts_no_run(self, mock_wandb: MagicMock) -> None:
         """log_html_artifacts should no-op when no run is active."""
-        from calibrax.exporters.wandb import WandBExporter
 
         exporter = WandBExporter(project="test")
         exporter.log_html_artifacts({"report": "<p>test</p>"})
@@ -324,7 +305,6 @@ class TestWandBExporterAdditional:
 
     def test_log_extra_tables_no_run(self, mock_wandb: MagicMock) -> None:
         """log_extra_tables should no-op when no run is active."""
-        from calibrax.exporters.wandb import WandBExporter
 
         exporter = WandBExporter(project="test")
         exporter.log_extra_tables({"data": (["col1"], [["val1"]])})
@@ -336,7 +316,6 @@ class TestWandBExporterAdditional:
         mock_wandb: MagicMock,
     ) -> None:
         """Comparison outputs should include placeholders for missing metrics."""
-        from calibrax.exporters.wandb import WandBExporter
 
         defs = {
             "throughput": MetricDef(

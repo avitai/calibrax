@@ -14,3 +14,9 @@ layers =
     calibrax.analysis | calibrax.statistics | calibrax.storage | calibrax.validation
     calibrax.core
     calibrax.profiling
+
+[importlinter:contract:acyclic]
+name = no import cycle between sibling packages or modules, at any depth
+type = acyclic_siblings
+ancestors =
+    calibrax

@@ -67,17 +67,17 @@ which depend on the foundation. No circular dependencies exist.
 
 | Module | Submodules | Public Symbols | Description |
 |--------|-----------|----------------|-------------|
-| `core` | `models`, `protocols`, `adapters`, `registry`, `result` | ~30 | Data models, enums, protocols, adapters, registry, result container |
-| `profiling` | `timing`, `resources`, `gpu`, `energy`, `flops`, `hardware`, `roofline`, `compilation`, `complexity`, `tracing`, `carbon` | ~25 | Timing, resources, GPU, energy, FLOPs, hardware detection, roofline analysis, compilation profiling, complexity analysis, XLA tracing, carbon tracking |
-| `statistics` | `analyzer`, `significance` | ~8 | Statistical analyzer, significance tests, effect size |
+| `core` | `models`, `protocols`, `adapters`, `registry`, `result`, `record_values` | ~30 | Data models, enums, protocols, adapters, registry, result container |
+| `profiling` | `timing`, `timing_records`, `resources`, `gpu`, `nvml`, `energy`, `flops`, `hardware`, `roofline`, `compilation`, `complexity`, `tracing`, `carbon` | ~40 | Timing, resources, GPU (JAX memory statistics, NVML), energy, FLOPs, hardware specs, roofline analysis, compilation profiling, complexity analysis, XLA tracing, carbon tracking |
+| `statistics` | `analyzer`, `significance`, `bootstrap` | ~9 | Statistical analyzer, significance tests, effect size, bootstrap intervals |
 | `analysis` | `regression`, `ranking`, `comparison`, `scaling`, `pareto`, `changepoint` | ~10 | Regression detection, ranking, comparison reports, scaling laws, Pareto fronts, changepoint detection |
 | `validation` | `framework`, `convergence`, `accuracy` | ~6 | Validation reports, convergence checking, accuracy assessment |
 | `monitoring` | `monitor`, `production` | ~6 | Alert management, threshold monitoring, pipeline health |
 | `storage` | `store` | ~2 | JSON store with baseline management |
-| `exporters` | `base`, `wandb`, `mlflow`, `publication` | ~5 | Exporter ABC, W&B integration, MLflow integration, publication output |
+| `exporters` | `base`, `wandb`, `mlflow`, `publication`, `plots` | ~6 | Exporter ABC, W&B integration, MLflow integration, publication tables, matplotlib plots |
 | `metrics` | `functional/` (20 domains), `stateful/`, `learning/`, `plugins/`, `composition`, `wrappers`, `_registry` | 139 registered | 4-tier metric system: pure functions, frozen backbone, learned (NNX), metric learning losses; registry with axiom-based discovery |
 | `ci` | `guard`, `bisection` | ~4 | CI guard, bisection engine |
-| `cli` | `main` | ~1 | Click command group |
+| `cli` | `main`, `store_commands`, `export`, `profile`, `profile_gpu` | ~1 | Click command group loading each command's module when it runs |
 
 ## Key Design Constraints
 

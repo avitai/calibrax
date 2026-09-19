@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 from flax import nnx
 from scipy import stats
+from substrax.testing import TraceCounter
 
 from calibrax.statistics import bootstrap_interval, BootstrapInterval
 
@@ -100,8 +101,6 @@ def test_a_single_observation_gives_a_point_interval() -> None:
 
 
 def test_jit_traces_once_for_new_data_and_keys() -> None:
-    from substrax.testing import TraceCounter
-
     counter = TraceCounter()
     counted_mean = counter.wrap(_mean)
     compiled = jax.jit(

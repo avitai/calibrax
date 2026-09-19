@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import dataclasses
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -118,7 +119,6 @@ class TestTraceLinker:
     @patch("calibrax.profiling.tracing.jax.profiler.trace")
     def test_trace_with_path_object(self, mock_trace: MagicMock) -> None:
         """trace() should accept Path objects and convert to str."""
-        from pathlib import Path
 
         mock_trace.return_value.__enter__ = MagicMock(return_value=None)
         mock_trace.return_value.__exit__ = MagicMock(return_value=False)

@@ -64,6 +64,17 @@ and uses semantic versioning while the public API stabilizes.
   is given (`GpuPowerSource`, which `NvmlDevice` satisfies) and the CPU only without one; it
   read NVML GPU 0 itself, starting NVML on every sample. GPU energy is a running integral,
   where every sample re-summed all earlier readings.
+- The CLI loads each command's module when the command runs (click's lazily loaded
+  subcommands), so `calibrax --help` and the store commands do not load JAX, and `export`
+  without the `wandb` extra fails with the integration module's install command. `profile
+  --energy` measures CPU energy; GPU energy is the new `profile-gpu --gpu-index N`, which reads
+  the GPU through `NvmlDevice` and needs the `cuda12` extra. `profile` waits on each result
+  with `jax.block_until_ready`, which covers every array in a nested result, where the CLI's
+  own sync reached only the first level of a tuple or list. `export --project` is a required
+  option.
+- No module imports inside a function: the metric registrations, the image, geometric and
+  generative metrics and the CLI import at the top, and ruff's `PLC0415` is enforced; an
+  import-linter contract (`acyclic_siblings`) keeps the package free of import cycles.
 - An error inside `ResourceMonitor`'s or `EnergyMonitor`'s sampling thread is raised when the
   monitor exits; it ended the thread with a traceback on stderr, and the summary covered the
   samples taken before it as if the run had been complete.
