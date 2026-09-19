@@ -16,7 +16,12 @@ import pytest
 from flax import nnx
 from hypothesis import given, settings, strategies as st
 
-from calibrax.profiling.flops import FlopsCounter, FlopsResult, FlopsUnavailableError
+from calibrax.profiling.flops import (
+    cost_mapping,
+    FlopsCounter,
+    FlopsResult,
+    FlopsUnavailableError,
+)
 
 
 def _matmul(a: jax.Array, b: jax.Array) -> jax.Array:
@@ -217,3 +222,30 @@ class TestWithoutCpuBackend:
         monkeypatch.setattr(jax, "devices", devices_without_cpu)
         result = FlopsCounter().count(_matmul, jnp.ones((64, 128)), jnp.ones((128, 40)))
         assert result.total_flops == 2 * 64 * 128 * 40
+
+
+class TestCostMapping:
+    """XLA's cost analysis narrowed to the numeric fields calibrax reads."""
+
+    def test_a_mapping_keeps_its_numeric_fields(self) -> None:
+        assert cost_mapping({"flops": 12.0, "transcendentals": 2, "utilization0{}": 1.0}) == {
+            "flops": 12.0,
+            "transcendentals": 2.0,
+            "utilization0{}": 1.0,
+        }
+
+    def test_non_numeric_fields_are_dropped(self) -> None:
+        assert cost_mapping({"flops": 3.0, "name": "dot", "nested": {"a": 1.0}}) == {"flops": 3.0}
+
+    def test_a_list_of_one_mapping_is_that_mapping(self) -> None:
+        assert cost_mapping([{"flops": 5.0}]) == {"flops": 5.0}
+
+    @pytest.mark.parametrize("cost", [None, [], "flops", 3.0, [{"flops": 1.0}, {"flops": 2.0}]])
+    def test_anything_else_is_no_analysis(self, cost: object) -> None:
+        assert cost_mapping(cost) is None
+
+    def test_a_real_lowering_reads(self) -> None:
+        lowered = jax.jit(lambda x: x @ x).lower(jax.ShapeDtypeStruct((4, 4), jnp.float32))
+        cost = cost_mapping(lowered.cost_analysis())
+        assert cost is not None
+        assert cost["flops"] == 2 * 4 * 4 * 4
