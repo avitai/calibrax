@@ -7,7 +7,9 @@ tracking, and health report generation.
 from __future__ import annotations
 
 import logging
+import math
 import time
+from collections import deque
 from dataclasses import dataclass, field
 from enum import StrEnum
 
@@ -21,7 +23,7 @@ _CRITICAL_ERROR_RATE = 0.5
 _DEGRADED_ERROR_RATE = 0.2
 _ALERT_ERROR_RATE = 0.3
 _MIN_EXECUTIONS_FOR_ERROR_RATE = 3
-# The error-rate alert looks at a pipeline's executions among the most recent ones.
+# The error-rate alert looks at a pipeline's own most recent executions.
 _ERROR_RATE_WINDOW = 20
 
 
@@ -111,35 +113,48 @@ def _classify_health(error_rate: float) -> PipelineHealth:
     return PipelineHealth.HEALTHY
 
 
-def _compute_pipeline_stats(executions: list[PipelineExecution]) -> PipelineStats:
-    """Compute statistics for a single pipeline's executions.
+@dataclass(slots=True)
+class _PipelineTally:
+    """One pipeline's running statistics over every execution, and its recent outcomes."""
 
-    Args:
-        executions: One pipeline's executions, at least one.
+    count: int = 0
+    successes: int = 0
+    total_time: float = 0.0
+    min_time: float = math.inf
+    max_time: float = -math.inf
+    recent_successes: deque[bool] = field(default_factory=lambda: deque(maxlen=_ERROR_RATE_WINDOW))
 
-    Returns:
-        The success rate, timing statistics and health.
-    """
-    times = [execution.execution_time for execution in executions]
-    total = len(executions)
-    successes = sum(1 for execution in executions if execution.success)
-    error_rate = 1.0 - successes / total
-    return PipelineStats(
-        total_executions=total,
-        success_rate=successes / total,
-        error_rate=error_rate,
-        mean_execution_time=sum(times) / total,
-        min_execution_time=min(times),
-        max_execution_time=max(times),
-        health=_classify_health(error_rate),
-    )
+    def add(self, execution_time: float, *, success: bool) -> None:
+        """Count one execution."""
+        self.count += 1
+        self.successes += success
+        self.total_time += execution_time
+        self.min_time = min(self.min_time, execution_time)
+        self.max_time = max(self.max_time, execution_time)
+        self.recent_successes.append(success)
+
+    def stats(self) -> PipelineStats:
+        """The statistics over every execution counted, at least one."""
+        error_rate = 1.0 - self.successes / self.count
+        return PipelineStats(
+            total_executions=self.count,
+            success_rate=self.successes / self.count,
+            error_rate=error_rate,
+            mean_execution_time=self.total_time / self.count,
+            min_execution_time=self.min_time,
+            max_execution_time=self.max_time,
+            health=_classify_health(error_rate),
+        )
 
 
 class ProductionMonitor(AdvancedMonitor):
     """Extended monitor with pipeline health tracking and performance baselines.
 
-    Tracks pipeline execution times, success rates, and detects performance
-    degradation against configured baselines.
+    Tracks pipeline execution times, success rates, and detects performance degradation
+    against configured baselines. Memory is bounded for a long-running process: the health
+    report's statistics are running tallies over every execution, ``executions`` holds the
+    most recent ``history_maxlen``, and the error-rate alert reads each pipeline's own most
+    recent executions.
     """
 
     def __init__(
@@ -147,6 +162,8 @@ class ProductionMonitor(AdvancedMonitor):
         alert_manager: AlertManager | None = None,
         gpu_profiler: GPUProfilerProtocol | None = None,
         resource_monitor: ResourceMonitor | None = None,
+        *,
+        history_maxlen: int = 100,
     ) -> None:
         """Initialize the production monitor.
 
@@ -154,19 +171,22 @@ class ProductionMonitor(AdvancedMonitor):
             alert_manager: Alert manager for dispatching alerts. Created if not provided.
             gpu_profiler: Optional GPU profiler for GPU metrics.
             resource_monitor: Optional ResourceMonitor for background sampling.
+            history_maxlen: Most recent executions, and values per metric, kept.
         """
         super().__init__(
             alert_manager=alert_manager,
             gpu_profiler=gpu_profiler,
             resource_monitor=resource_monitor,
+            history_maxlen=history_maxlen,
         )
         self._baselines: dict[str, float] = {}
-        self._pipeline_executions: list[PipelineExecution] = []
+        self._pipeline_executions: deque[PipelineExecution] = deque(maxlen=history_maxlen)
+        self._tallies: dict[str, _PipelineTally] = {}
         self._degradation_threshold = 0.2
 
     @property
     def executions(self) -> tuple[PipelineExecution, ...]:
-        """Every recorded execution, oldest first."""
+        """The most recent ``history_maxlen`` executions, oldest first."""
         with self._state_lock:
             return tuple(self._pipeline_executions)
 
@@ -204,6 +224,9 @@ class ProductionMonitor(AdvancedMonitor):
         )
         with self._state_lock:
             self._pipeline_executions.append(record)
+            self._tallies.setdefault(pipeline_name, _PipelineTally()).add(
+                record.execution_time, success=success
+            )
 
         self._check_performance_degradation(pipeline_name, execution_time)
         if not success:
@@ -216,19 +239,15 @@ class ProductionMonitor(AdvancedMonitor):
             Each pipeline's statistics, the overall health, the baselines and the total count.
         """
         with self._state_lock:
-            executions_snapshot = list(self._pipeline_executions)
+            pipelines = {name: tally.stats() for name, tally in self._tallies.items()}
             baselines_snapshot = dict(self._baselines)
 
-        by_pipeline: dict[str, list[PipelineExecution]] = {}
-        for execution in executions_snapshot:
-            by_pipeline.setdefault(execution.pipeline_name, []).append(execution)
-        pipelines = {name: _compute_pipeline_stats(runs) for name, runs in by_pipeline.items()}
         unhealthy = any(stats.health != PipelineHealth.HEALTHY for stats in pipelines.values())
         return PipelineHealthReport(
             pipelines=pipelines,
             overall_health=PipelineHealth.DEGRADED if unhealthy else PipelineHealth.HEALTHY,
             baselines=baselines_snapshot,
-            total_executions=len(executions_snapshot),
+            total_executions=sum(stats.total_executions for stats in pipelines.values()),
         )
 
     def _check_performance_degradation(self, pipeline_name: str, execution_time: float) -> None:
@@ -254,11 +273,10 @@ class ProductionMonitor(AdvancedMonitor):
     def _check_error_rate(self, pipeline_name: str) -> None:
         """Alert if recent error rate is too high for a pipeline."""
         with self._state_lock:
-            recent_window = self._pipeline_executions[-_ERROR_RATE_WINDOW:]
-            recent = [e for e in recent_window if e.pipeline_name == pipeline_name]
+            recent = list(self._tallies[pipeline_name].recent_successes)
         if len(recent) < _MIN_EXECUTIONS_FOR_ERROR_RATE:
             return
-        failures = sum(1 for e in recent if not e.success)
+        failures = recent.count(False)
         error_rate = failures / len(recent)
         if error_rate > _ALERT_ERROR_RATE:
             self.alert_manager.trigger_alert(

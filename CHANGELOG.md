@@ -232,6 +232,13 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Fixed
 
+- `ProductionMonitor` kept every execution, so its memory grew without bound in a long-running
+  process: the health report's statistics are now running tallies over every execution
+  (count, success rate, mean, min and max stay exact), `executions` holds the most recent
+  `history_maxlen`, and `AdvancedMonitor(history_maxlen=...)` sets the bound for the metric
+  histories too (100 by default, as before). The error-rate alert reads each pipeline's own
+  last 20 executions; it read that pipeline's runs among the last 20 of all pipelines, so a
+  pipeline run rarely beside a busy one never reached the three it needs and never alerted.
 - A new `Run` is stamped with `datetime.now(UTC)`, and `Run`, `TrendPoint` and `ChangePoint`
   timestamps are always aware (`calibrax.core.record_values.aware`). `Run` defaulted to naive
   local time while other writers stored aware times, so `Store.latest()`, `list_runs()` and

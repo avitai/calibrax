@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import threading
 
+import pytest
+
 from calibrax.monitoring.monitor import AlertSeverity
 from calibrax.monitoring.production import ProductionMonitor
 
@@ -146,3 +148,50 @@ class TestProductionMonitor:
         monitor.set_threshold("cpu_percent", 90.0)
         summary = monitor.get_monitoring_summary()
         assert summary.thresholds["cpu_percent"] == 90.0
+
+
+class TestBoundedHistory:
+    """A long-running monitor holds a bounded history and exact whole-run statistics."""
+
+    def test_executions_keep_only_the_most_recent(self) -> None:
+        monitor = ProductionMonitor(history_maxlen=5)
+        for step in range(12):
+            monitor.record_pipeline_execution("train", float(step), success=True)
+
+        assert [e.execution_time for e in monitor.executions] == [7.0, 8.0, 9.0, 10.0, 11.0]
+
+    def test_statistics_cover_every_execution_beyond_the_history(self) -> None:
+        monitor = ProductionMonitor(history_maxlen=5)
+        for step in range(1, 101):
+            monitor.record_pipeline_execution("train", float(step), success=step % 4 != 0)
+
+        stats = monitor.get_pipeline_health_report().pipelines["train"]
+
+        assert stats.total_executions == 100
+        assert stats.mean_execution_time == 50.5
+        assert stats.min_execution_time == 1.0
+        assert stats.max_execution_time == 100.0
+        assert stats.success_rate == 0.75
+        assert monitor.get_pipeline_health_report().total_executions == 100
+
+    def test_a_rarely_run_pipeline_still_raises_its_error_rate_alert(self) -> None:
+        monitor = ProductionMonitor()
+        for _ in range(3):
+            for _ in range(30):
+                monitor.record_pipeline_execution("busy", 1.0, success=True)
+            monitor.record_pipeline_execution("nightly", 1.0, success=False)
+
+        alerts = monitor.alert_manager.get_recent_alerts(count=10)
+        assert any("nightly" in alert.message for alert in alerts)
+
+    def test_history_maxlen_bounds_the_metric_history_too(self) -> None:
+        monitor = ProductionMonitor(history_maxlen=3)
+        for _ in range(5):
+            monitor._collect_metrics()
+
+        summary = monitor.get_monitoring_summary()
+        assert all(history.samples <= 3 for history in summary.metric_history.values())
+
+    def test_history_maxlen_must_be_positive(self) -> None:
+        with pytest.raises(ValueError, match="history_maxlen"):
+            ProductionMonitor(history_maxlen=0)
