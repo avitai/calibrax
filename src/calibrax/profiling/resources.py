@@ -7,51 +7,64 @@ and optional GPU utilization during benchmark execution.
 from __future__ import annotations
 
 import time
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 
-import psutil  # pyright: ignore[reportMissingModuleSource]
+import psutil
 from substrax.records import read_record
 from substrax.typing import JsonValue
 
 from calibrax.profiling._sampling import SamplingThread
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class GpuMemory:
+    """A GPU's memory in use and in total, in MB."""
+
+    used_mb: float
+    total_mb: float
+
+    @property
+    def occupancy(self) -> float:
+        """The fraction of the memory in use, 0 when the total is unknown."""
+        return self.used_mb / self.total_mb if self.total_mb > 0 else 0.0
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class GpuClocks:
+    """A GPU's current graphics (SM) and memory clocks, in MHz."""
+
+    graphics_mhz: float
+    memory_mhz: float
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class GpuPower:
+    """A GPU's current power draw and its management limit, in watts."""
+
+    draw_w: float
+    limit_w: float
+
+
 @runtime_checkable
 class GPUProfilerProtocol(Protocol):
-    """Protocol for GPU profilers providing utilization and memory data."""
+    """A source of GPU readings; a reading it cannot take is ``None``."""
 
-    def get_utilization(self) -> float:
-        """Get current GPU utilization percentage.
-
-        Returns:
-            GPU utilization as a percentage (0-100).
-        """
+    def memory(self) -> GpuMemory | None:
+        """The GPU's memory in use."""
         ...
 
-    def get_memory_usage(self) -> dict[str, float]:
-        """Get current GPU memory usage statistics.
-
-        Returns:
-            Dictionary with at least 'gpu_memory_used_mb' key.
-        """
+    def utilization(self) -> float | None:
+        """The GPU's compute utilization, in percent."""
         ...
 
-    def get_clock_info(self) -> dict[str, float]:
-        """Get current GPU clock frequencies.
-
-        Returns:
-            Dictionary with 'gpu_clock_mhz' and 'mem_clock_mhz' keys.
-        """
+    def clocks(self) -> GpuClocks | None:
+        """The GPU's current clocks."""
         ...
 
-    def get_power_info(self) -> dict[str, float]:
-        """Get current GPU power draw and limits.
-
-        Returns:
-            Dictionary with 'power_draw_w' and 'power_limit_w' keys.
-        """
+    def power(self) -> GpuPower | None:
+        """The GPU's current power draw."""
         ...
 
 
@@ -192,61 +205,22 @@ class ResourceMonitor:
 
     def _sample_loop(self) -> None:
         """Collect samples at the configured interval until stopped."""
+        gpu = self._gpu_profiler
         while not self._sampling_thread.stop_event.is_set():
-            clock_info = self._get_gpu_clock()
-            power_info = self._get_gpu_power()
+            memory = gpu.memory() if gpu is not None else None
+            clocks = gpu.clocks() if gpu is not None else None
+            power = gpu.power() if gpu is not None else None
             sample = ResourceSample(
                 timestamp=time.perf_counter(),
                 cpu_percent=self._process.cpu_percent(),
                 rss_mb=self._process.memory_info().rss / (1024 * 1024),
-                gpu_util=self._get_gpu_util(),
-                gpu_mem_mb=self._get_gpu_mem(),
-                gpu_clock_mhz=clock_info,
-                gpu_power_w=power_info,
+                gpu_util=gpu.utilization() if gpu is not None else None,
+                gpu_mem_mb=memory.used_mb if memory is not None else None,
+                gpu_clock_mhz=clocks.graphics_mhz if clocks is not None else None,
+                gpu_power_w=power.draw_w if power is not None else None,
             )
             self._samples.append(sample)
             self._sampling_thread.stop_event.wait(timeout=self._interval)
-
-    def _safe_gpu_call(
-        self,
-        method: str,
-        key: str | None = None,
-    ) -> float | None:
-        """Safely call a GPU profiler method, returning None on failure.
-
-        Args:
-            method: Method name on the GPU profiler to call.
-            key: If the method returns a dict, extract this key.
-
-        Returns:
-            Float value, or None if profiler is absent or call fails.
-        """
-        if self._gpu_profiler is None:
-            return None
-        try:
-            result = getattr(self._gpu_profiler, method)()
-            # A malformed payload (not a dict where one is expected) degrades the same way.
-            value = result.get(key) if key is not None else result
-        except (AttributeError, TypeError, ValueError, RuntimeError):
-            return None
-        else:
-            return value  # type: ignore[return-value]
-
-    def _get_gpu_util(self) -> float | None:
-        """Get GPU utilization, returning None on failure or no profiler."""
-        return self._safe_gpu_call("get_utilization")
-
-    def _get_gpu_mem(self) -> float | None:
-        """Get GPU memory usage in MB, returning None on failure."""
-        return self._safe_gpu_call("get_memory_usage", key="gpu_memory_used_mb")
-
-    def _get_gpu_clock(self) -> float | None:
-        """Get GPU clock frequency in MHz, returning None on failure."""
-        return self._safe_gpu_call("get_clock_info", key="gpu_clock_mhz")
-
-    def _get_gpu_power(self) -> float | None:
-        """Get GPU power draw in watts, returning None on failure."""
-        return self._safe_gpu_call("get_power_info", key="power_draw_w")
 
     @property
     def samples(self) -> list[ResourceSample]:
@@ -283,12 +257,12 @@ class ResourceMonitor:
             peak_rss_mb=max(rss_values),
             mean_rss_mb=sum(rss_values) / len(rss_values),
             peak_gpu_mem_mb=self._compute_gpu_peak_mem(),
-            mean_gpu_util=self._compute_gpu_mean(attr="gpu_util"),
+            mean_gpu_util=_mean(s.gpu_util for s in self._samples),
             memory_growth_mb=rss_values[-1] - rss_values[0],
             num_samples=len(self._samples),
             duration_sec=duration,
-            mean_gpu_clock_mhz=self._compute_gpu_mean(attr="gpu_clock_mhz"),
-            mean_gpu_power_w=self._compute_gpu_mean(attr="gpu_power_w"),
+            mean_gpu_clock_mhz=_mean(s.gpu_clock_mhz for s in self._samples),
+            mean_gpu_power_w=_mean(s.gpu_power_w for s in self._samples),
         )
 
     def _compute_gpu_peak_mem(self) -> float | None:
@@ -300,14 +274,8 @@ class ResourceMonitor:
         values = [s.gpu_mem_mb for s in self._samples if s.gpu_mem_mb is not None]
         return max(values) if values else None
 
-    def _compute_gpu_mean(self, *, attr: str) -> float | None:
-        """Compute mean of a GPU metric from samples.
 
-        Args:
-            attr: Sample attribute name to average.
-
-        Returns:
-            Mean value, or None if no data.
-        """
-        values = [getattr(s, attr) for s in self._samples if getattr(s, attr) is not None]
-        return sum(values) / len(values) if values else None
+def _mean(values: Iterable[float | None]) -> float | None:
+    """The mean of the readings taken, or ``None`` when none was."""
+    taken = [value for value in values if value is not None]
+    return sum(taken) / len(taken) if taken else None

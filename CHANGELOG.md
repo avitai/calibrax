@@ -42,8 +42,26 @@ and uses semantic versioning while the public API stabilizes.
   `FlopsCounter.count(fn, *args)` is typed with `substrax.typing.PyTree`.
 - The `cuda12` extra depends on NVIDIA's `nvidia-ml-py>=12.0.0`, which provides the `pynvml`
   module, in place of the `pynvml` distribution, which is deprecated in its favour and warned
-  on every import. `calibrax.profiling.gpu` imports NVML where it is used, and
-  `MemoryOptimizer.analyze_pipeline_memory` is generic in the sample type.
+  on every import. `MemoryOptimizer.analyze_pipeline_memory` is generic in the sample type.
+- GPU readings are typed: `GPUProfilerProtocol` is `memory() -> GpuMemory | None`,
+  `utilization() -> float | None`, `clocks() -> GpuClocks | None` and
+  `power() -> GpuPower | None`, in place of `get_utilization`, `get_memory_usage`,
+  `get_clock_info` and `get_power_info` returning dictionaries; a reading the source cannot take
+  is `None`, and an error is raised. `ResourceMonitor` and `AdvancedMonitor` read the protocol
+  as typed.
+- NVML is the integration module `calibrax.profiling.nvml`: `NvmlDevice(index)` initialises NVML
+  once, is a context manager, reads memory, compute utilization, clocks and power, and returns
+  `None` only for a reading NVML reports unsupported on that GPU. `GPUMemoryProfiler(device=None)`
+  reads memory from JAX's device statistics and nothing else; `has_gpu`, `PYNVML_AVAILABLE` and
+  the NVML methods are gone, and `analyze_memory_pattern(readings)` is a
+  module function over `GpuMemory` readings.
+- `EnergyMonitor(sample_interval_sec, *, gpu=None)` measures the GPU through the power source it
+  is given (`GpuPowerSource`, which `NvmlDevice` satisfies) and the CPU only without one; it
+  read NVML GPU 0 itself, starting NVML on every sample. GPU energy is a running integral,
+  where every sample re-summed all earlier readings.
+- An error inside `ResourceMonitor`'s or `EnergyMonitor`'s sampling thread is raised when the
+  monitor exits; it ended the thread with a traceback on stderr, and the summary covered the
+  samples taken before it as if the run had been complete.
 - Hardware specs are `HardwareSpec` records (`name`, `peak_flops`, `memory_bandwidth`,
   `tensor_core_shapes`, `simd_width`, and the derived `critical_intensity`) in place of
   dictionaries; `peak_flops_bf16`, which repeated `peak_flops`, is gone. `HARDWARE_SPECS` names
@@ -188,6 +206,13 @@ and uses semantic versioning while the public API stabilizes.
 - `detect_change_points(method="window")` reports each `ChangePoint.index` as a Python `int`; ruptures'
   `Window` returns NumPy integers, which the record stored as given. ruptures is typed through a
   local stub (`typings/ruptures`), since it ships no type information, and imported where used.
+- `GPUMemoryProfiler.get_utilization()` reported memory occupancy (bytes in use over the limit)
+  as GPU utilization; `NvmlDevice.utilization()` reports NVML's compute utilization, and
+  `GPUMemoryProfiler.utilization()` is `None`, since JAX does not report it.
+- A wrapped RAPL counter added only its new reading to the CPU energy, dropping the energy used
+  up to the wrap; the increase is now measured across the counter's range
+  (`max_energy_range_uj`), and without a readable range CPU energy is `None` rather than an
+  undercount.
 - `detect_hardware_specs()` reported every GPU as an A100 80GB and every TPU as a v5e, so roofline
   utilisation on any other chip was computed against another chip's peak and bandwidth (an
   RTX 4090 against 312 TFLOPS and 2,039 GB/s, where it has 165.2 TFLOPS and 1,008 GB/s), and it

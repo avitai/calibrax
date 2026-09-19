@@ -160,6 +160,7 @@ nav:
           - Timing: api-reference/profiling/timing.md
           - Resources: api-reference/profiling/resources.md
           - GPU: api-reference/profiling/gpu.md
+          - NVML: api-reference/profiling/nvml.md
           - Energy: api-reference/profiling/energy.md
           - FLOPS: api-reference/profiling/flops.md
           - Hardware: api-reference/profiling/hardware.md

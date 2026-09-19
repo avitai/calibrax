@@ -83,18 +83,24 @@ latest = store.latest()
 
 ## Resource Monitoring Across Devices
 
-`ResourceMonitor` tracks CPU/memory for the local process. For GPU metrics
-across multiple GPUs, use `GPUMemoryProfiler` with device selection or
-combine with NVML queries:
+`ResourceMonitor` tracks CPU/memory for the local process, and one GPU through its
+`gpu_profiler`. For several GPUs, run one monitor per device: `GPUMemoryProfiler` takes the
+JAX device whose memory it reads, and `NvmlDevice` takes an NVML index.
 
 ```python
-from calibrax.profiling.resources import ResourceMonitor
+from contextlib import ExitStack
+
+import jax
+
 from calibrax.profiling.gpu import GPUMemoryProfiler
+from calibrax.profiling.resources import ResourceMonitor
 
-profiler = GPUMemoryProfiler()
-with ResourceMonitor(gpu_profiler=profiler) as mon:
+with ExitStack() as stack:
+    monitors = [
+        stack.enter_context(ResourceMonitor(gpu_profiler=GPUMemoryProfiler(device)))
+        for device in jax.local_devices()
+    ]
     # Run distributed workload
-    pass
 
-summary = mon.summary
+peak_memory = [mon.summary.peak_gpu_mem_mb for mon in monitors]
 ```

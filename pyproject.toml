@@ -427,6 +427,8 @@ max-complexity = 10
 "src/calibrax/cli/main.py" = ["T201"]
 # Test factories are keyword-only builders with one parameter per field.
 "tests/*" = ["ANN", "D", "PLR0913", "PLR2004", "S101"]
+# Local stubs for untyped libraries spell names as the library does (NVML's camelCase).
+"typings/*" = ["N"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

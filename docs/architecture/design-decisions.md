@@ -122,8 +122,8 @@ and break on minimal environments.
 
 **Decision:** Each optional dependency has one integration module that imports it at the top:
 `calibrax.exporters.plots` (matplotlib), `calibrax.exporters.wandb`,
-`calibrax.exporters.mlflow`, `calibrax.profiling.carbon` (codecarbon) and
-`calibrax.analysis.changepoint` (ruptures). Importing an integration module without its
+`calibrax.exporters.mlflow`, `calibrax.profiling.carbon` (codecarbon),
+`calibrax.profiling.nvml` (nvidia-ml-py) and `calibrax.analysis.changepoint` (ruptures). Importing an integration module without its
 library raises `ImportError` naming the extra to install. Nothing else imports these modules,
 and no package `__init__.py` re-exports them, so the rest of calibrax imports without them.
 
@@ -136,7 +136,8 @@ and no package `__init__.py` re-exports them, so the rest of calibrax imports wi
 - There are no availability flags and no imports inside functions: a module's dependencies
   are its imports
 - Users install only the extras they need (`calibrax[wandb]`, `calibrax[mlflow]`,
-  `calibrax[publication]`, `calibrax[codecarbon]`, `calibrax[changepoint]`)
+  `calibrax[publication]`, `calibrax[codecarbon]`, `calibrax[changepoint]`, and NVML through
+  `calibrax[cuda12]`)
 
 ## 8. Frozen Dataclasses
 

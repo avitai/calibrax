@@ -97,13 +97,14 @@ print(f"Duration: {summary.duration_sec:.2f}s")
 print(f"Samples collected: {summary.num_samples}")
 ```
 
-To include GPU utilization, pass a `GPUProfilerProtocol`-compatible object:
+To include the GPU, pass a `GPUProfilerProtocol` source. `NvmlDevice` reads memory,
+compute utilization, clocks and power through NVIDIA's NVML; it lives in
+`calibrax.profiling.nvml` and needs the `cuda12` extra:
 
 ```python
-from calibrax.profiling.gpu import GPUMemoryProfiler
+from calibrax.profiling.nvml import NvmlDevice
 
-gpu_profiler = GPUMemoryProfiler()
-with ResourceMonitor(gpu_profiler=gpu_profiler) as monitor:
+with NvmlDevice(0) as gpu, ResourceMonitor(gpu_profiler=gpu) as monitor:
     train(model, data)
 
 summary = monitor.summary
@@ -113,19 +114,24 @@ if summary.peak_gpu_mem_mb is not None:
     print(f"Peak GPU memory: {summary.peak_gpu_mem_mb:.1f} MB")
 ```
 
+Without NVML, `GPUMemoryProfiler` reads a GPU's memory from JAX's device statistics; JAX
+reports no utilization, clocks or power, so those readings are `None`. An NVML error other
+than an unsupported reading is raised when the monitor exits.
+
 ## GPU Memory Analysis
 
-`GPUMemoryProfiler` checks GPU memory usage at any point. `MemoryOptimizer`
+`GPUMemoryProfiler` reads GPU memory at any point, and `analyze_memory_pattern` turns a
+series of readings into suggestions. `MemoryOptimizer`
 analyzes the memory footprint of an entire pipeline, measuring baseline, peak,
 and retained memory.
 
 ```python
 from calibrax.profiling.gpu import GPUMemoryProfiler, MemoryOptimizer
 
-# Quick snapshot
-profiler = GPUMemoryProfiler()
-usage = profiler.get_memory_usage()
-print(f"GPU memory used: {usage.get('gpu_memory_used_mb', 0):.1f} MB")
+# Quick snapshot; None without a GPU
+memory = GPUMemoryProfiler().memory()
+if memory is not None:
+    print(f"GPU memory used: {memory.used_mb:.1f} of {memory.total_mb:.1f} MB")
 
 # Full pipeline analysis
 optimizer = MemoryOptimizer()
@@ -152,13 +158,14 @@ optimized_shapes = adaptive.optimize_shapes((32, 128), (128, 64))
 
 ## Energy Monitoring
 
-`EnergyMonitor` tracks GPU power draw (via NVML) and CPU energy consumption
-(via RAPL) during a workload. Use it as a context manager:
+`EnergyMonitor` integrates the power draw of a GPU source such as `NvmlDevice`, and reads
+CPU energy from the Linux RAPL counter, during a workload. Use it as a context manager:
 
 ```python
 from calibrax.profiling.energy import EnergyMonitor
+from calibrax.profiling.nvml import NvmlDevice
 
-with EnergyMonitor(sample_interval_sec=0.1) as monitor:
+with NvmlDevice(0) as gpu, EnergyMonitor(sample_interval_sec=0.1, gpu=gpu) as monitor:
     train(model, data)
 
 energy_summary = monitor.summary
@@ -173,9 +180,9 @@ if energy_summary.mean_gpu_power_watts is not None:
 
 !!! note
 
-    Energy monitoring requires hardware support: NVML for GPU power and
-    Intel RAPL for CPU energy. On unsupported hardware, energy fields will
-    be `None`.
+    Without a GPU source the GPU fields are `None`. RAPL's counter is readable only by
+    root on most Linux systems; where it is not readable the CPU fields are `None`. A
+    counter wraparound is measured against the kernel's `max_energy_range_uj`.
 
 ## FLOP Counting
 

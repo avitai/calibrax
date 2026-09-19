@@ -1,7 +1,7 @@
 # calibrax.profiling.energy
 
-Energy monitoring for GPU (via NVML) and CPU (via Intel RAPL). `EnergyMonitor`
-runs as a context manager, sampling power draw at a configurable interval.
+Energy monitoring for a GPU power source (such as `NvmlDevice`) and the CPU (via Linux
+RAPL). `EnergyMonitor` runs as a context manager, sampling at a configurable interval.
 
 ::: calibrax.profiling.energy
     options:
