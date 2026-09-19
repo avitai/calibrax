@@ -309,20 +309,42 @@ class TestSinkhornDivergence:
 
     def test_identical_samples(self) -> None:
         x = jnp.array([[0.0, 0.0], [1.0, 1.0], [2.0, 2.0]])
-        result = sinkhorn_divergence(x, x)
-        assert result == pytest.approx(0.0, abs=0.1)
+        assert float(sinkhorn_divergence(x, x)) == pytest.approx(0.0, abs=1e-6)
 
-    def test_different_distributions(self) -> None:
-        # With small regularization and well-separated distributions, Sinkhorn > 0
+    def test_well_separated_clouds_at_small_regularization(self) -> None:
+        # eps = 0.001 against costs near 200: exp(-C / eps) underflows, the log domain does not.
         x = jnp.array([[0.0, 0.0], [0.5, 0.5], [1.0, 0.0], [0.0, 1.0], [1.0, 1.0]])
-        y = jnp.array([[10.0, 10.0], [10.5, 10.5], [11.0, 10.0], [10.0, 11.0], [11.0, 11.0]])
-        result = sinkhorn_divergence(x, y, regularization=0.001, max_iter=200)
-        assert result >= 0.0
+        y = x + 10.0
+        result = sinkhorn_divergence(x, y, regularization=0.001)
+        # A translation by t moves every point |t|^2 = 200 in squared Euclidean cost.
+        assert float(result) == pytest.approx(200.0, rel=1e-3)
 
     def test_symmetric(self) -> None:
         x = jnp.array([[0.0], [1.0]])
         y = jnp.array([[2.0], [3.0]])
-        assert sinkhorn_divergence(x, y) == pytest.approx(sinkhorn_divergence(y, x), abs=0.1)
+        assert float(sinkhorn_divergence(x, y)) == pytest.approx(
+            float(sinkhorn_divergence(y, x)), abs=1e-5
+        )
+
+    def test_matches_ott_jax(self) -> None:
+        # OTT-JAX 0.6.0's sinkhorn_divergence on these clouds (threshold 1e-6): 1.5737164 at
+        # eps = 0.1 and 1.1528621 at eps = 1.0.
+        x = jax.random.normal(jax.random.key(0), (32, 3))
+        y = jax.random.normal(jax.random.key(1), (32, 3)) + 0.5
+
+        for eps, reference in ((0.1, 1.5737164), (1.0, 1.1528621)):
+            value = sinkhorn_divergence(x, y, regularization=eps, threshold=1e-6)
+            assert float(value) == pytest.approx(reference, abs=5e-6)
+
+    def test_reverse_mode_gradient_under_jit(self) -> None:
+        x = jax.random.normal(jax.random.key(0), (16, 2))
+        y = jax.random.normal(jax.random.key(1), (16, 2)) + 1.0
+
+        gradient = jax.jit(jax.grad(sinkhorn_divergence))(x, y)
+
+        assert bool(jnp.all(jnp.isfinite(gradient)))
+        # Moving x toward y lowers the divergence: the gradient points away from y.
+        assert float(jnp.sum(gradient * (y.mean(0) - x.mean(0)))) < 0
 
     def test_returns_jax_scalar(self) -> None:
         x = jnp.array([[0.0], [1.0]])
