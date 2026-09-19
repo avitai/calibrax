@@ -39,7 +39,8 @@ dependencies = [
   # recursive JsonValue alias.
   "pydantic>=2.10",
   "substrax>=0.1.14",
-  "typing_extensions>=4.5"
+  # TypeIs, for adapter predicates, arrived in typing_extensions 4.10.
+  "typing_extensions>=4.10"
 ]
 description = "JAX benchmarking, profiling and evaluation metrics for Flax NNX: a metric registry across regression, classification, calibration, uncertainty, forecasting, generative, image, text, audio, graph and fairness domains, XLA FLOP counting, roofline analysis, GPU and energy monitoring, regression detection, publication exports, W&B and MLflow"
 dynamic = ["version"]
