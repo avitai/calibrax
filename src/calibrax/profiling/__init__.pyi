@@ -29,6 +29,7 @@ from .hardware import (
     detect_hardware_specs as detect_hardware_specs,
     HARDWARE_SPECS as HARDWARE_SPECS,
     HardwareSpec as HardwareSpec,
+    measure_hardware_spec as measure_hardware_spec,
     spec_for_device_kind as spec_for_device_kind,
     UnknownHardwareError as UnknownHardwareError,
 )

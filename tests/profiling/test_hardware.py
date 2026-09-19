@@ -3,17 +3,24 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 
+import jax
+import jax.numpy as jnp
 import pytest
 from substrax.devices import DeviceInfo, DeviceKind
+from substrax.typing import PyTree
 
 import calibrax.profiling.hardware as hw_module
 from calibrax.profiling.hardware import (
     detect_hardware_specs,
     HARDWARE_SPECS,
     HardwareSpec,
+    measure_hardware_spec,
     spec_for_device_kind,
 )
+from calibrax.profiling.roofline import RooflineAnalyzer
+from calibrax.profiling.timing_records import CallTiming
 
 
 # Vendor figures per chip: dense BF16 peak (FP32 accumulate) and memory bandwidth; the sources
@@ -30,7 +37,6 @@ PUBLISHED = [
     ("tpu_v5e", 197.0e12, 819.0e9),
     ("tpu_v5p", 459.0e12, 2765.0e9),
     ("tpu_v6e", 918.0e12, 1638.0e9),
-    ("cpu_generic", 2.0e12, 200.0e9),
 ]
 
 
@@ -107,14 +113,14 @@ class TestSpecForDeviceKind:
             ("TPU v5p", "tpu_v5p"),
             ("TPU v6 lite", "tpu_v6e"),
             ("TPU v6e", "tpu_v6e"),
-            ("cpu", "cpu_generic"),
         ],
     )
     def test_a_known_device_kind_names_its_spec(self, device_kind: str, name: str) -> None:
         assert spec_for_device_kind(device_kind) is HARDWARE_SPECS[name]
 
     @pytest.mark.parametrize(
-        "device_kind", ["NVIDIA L4", "Tesla T4", "NVIDIA GeForce RTX 3090", "TPU v4 lite", "METAL"]
+        "device_kind",
+        ["NVIDIA L4", "Tesla T4", "NVIDIA GeForce RTX 3090", "TPU v4 lite", "METAL", "cpu"],
     )
     def test_an_unknown_device_kind_has_no_spec(self, device_kind: str) -> None:
         assert spec_for_device_kind(device_kind) is None
@@ -136,8 +142,9 @@ class TestDetectHardwareSpecs:
         monkeypatch.setattr(hw_module, "detect_devices", lambda: info)
         return detect_hardware_specs()
 
-    def test_the_cpu_backend_gets_the_cpu_stand_in(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        assert self._detect("cpu", ("cpu",), monkeypatch) is HARDWARE_SPECS["cpu_generic"]
+    def test_a_cpu_has_no_published_spec(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        # A CPU's ceilings are measured (measure_hardware_spec), not looked up.
+        assert self._detect("cpu", ("cpu",), monkeypatch) is None
 
     def test_a_gpu_is_detected_by_name(self, monkeypatch: pytest.MonkeyPatch) -> None:
         detected = self._detect("gpu", ("NVIDIA H100 80GB HBM3",), monkeypatch)
@@ -153,3 +160,51 @@ class TestDetectHardwareSpecs:
     def test_mixed_device_kinds_are_not_guessed(self, monkeypatch: pytest.MonkeyPatch) -> None:
         kinds = ("NVIDIA A100-SXM4-80GB", "NVIDIA H100 80GB HBM3")
         assert self._detect("gpu", kinds, monkeypatch) is None
+
+
+class TestMeasureHardwareSpec:
+    """measure_hardware_spec: the default device's attainable ceilings, measured through XLA."""
+
+    def test_the_ceilings_are_the_counted_work_over_the_median_time(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        medians = iter([0.5, 0.25])  # the matmul is timed first, then the triad
+
+        def fixed_median(call: Callable[[], PyTree], **_options: object) -> CallTiming:
+            call()
+            median = next(medians)
+            return CallTiming(
+                samples_sec=(median,), median_sec=median, percentiles_sec={}, warmup=0
+            )
+
+        monkeypatch.setattr(hw_module, "time_calls", fixed_median)
+
+        spec = measure_hardware_spec(dtype=jnp.float32, matmul_size=64, triad_length=1024)
+
+        assert spec.peak_flops == 2 * 64**3 / 0.5  # XLA's count of a 64x64 matmul
+        assert spec.memory_bandwidth == 3 * 1024 * 4 / 0.25  # read b and c, write a
+        assert spec.critical_intensity == pytest.approx(spec.peak_flops / spec.memory_bandwidth)
+
+    def test_the_spec_names_the_measured_device_and_dtype(self) -> None:
+        spec = measure_hardware_spec(dtype=jnp.float32, matmul_size=128, triad_length=2**16)
+
+        assert spec.name == f"measured:{jax.devices()[0].device_kind}:float32"
+        assert spec.peak_flops > 0
+        assert spec.memory_bandwidth > 0
+        assert spec.tensor_core_shapes == ()
+
+    @pytest.mark.parametrize(("matmul_size", "triad_length"), [(0, 1024), (64, 0), (-1, 1024)])
+    def test_sizes_must_be_positive(self, matmul_size: int, triad_length: int) -> None:
+        with pytest.raises(ValueError, match="positive"):
+            measure_hardware_spec(
+                dtype=jnp.float32, matmul_size=matmul_size, triad_length=triad_length
+            )
+
+    def test_a_measured_spec_drives_the_roofline(self) -> None:
+        spec = measure_hardware_spec(dtype=jnp.float32, matmul_size=128, triad_length=2**16)
+
+        result = RooflineAnalyzer(hardware_specs=spec).analyze_operation(
+            lambda x: x @ x, [jnp.ones((64, 64))]
+        )
+
+        assert result.arithmetic_intensity > 0

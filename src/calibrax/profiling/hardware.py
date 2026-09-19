@@ -1,11 +1,12 @@
-"""Accelerator specifications for roofline analysis, and their detection from JAX's device kind.
+"""Accelerator specifications for roofline analysis: published, detected, or measured.
 
-Each entry holds a chip's dense BF16 peak (FP32 accumulate) and its memory bandwidth, from the
-vendor's published specification; the ridge point of the roofline, ``critical_intensity`` in
+Each table entry holds a chip's dense BF16 peak (FP32 accumulate) and its memory bandwidth, from
+the vendor's published specification; the ridge point of the roofline, ``critical_intensity`` in
 FLOPs per byte, is their ratio. ``detect_hardware_specs`` names the chip by the
-``jax.Device.device_kind`` JAX reports (the CUDA device name for a GPU) and returns ``None``
-for an accelerator the table does not hold: a spec is a measurement, so an unlisted chip is
-passed in by the caller rather than guessed.
+``jax.Device.device_kind`` JAX reports (the CUDA device name for a GPU) and returns ``None`` for a
+device the table does not hold, a CPU among them: a spec is a measurement, never a guess.
+``measure_hardware_spec`` measures any device's attainable ceilings through XLA instead, an
+empirical roofline (the approach of LBNL's Empirical Roofline Tool, Lo et al. 2014).
 """
 
 from __future__ import annotations
@@ -14,8 +15,14 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
 
+import jax
+import jax.numpy as jnp
+from jax.typing import DTypeLike
 from substrax.devices import detect_devices
 from substrax.typing import JsonValue
+
+from calibrax.profiling.flops import FlopsCounter
+from calibrax.profiling.timing import time_calls
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -24,7 +31,8 @@ class HardwareSpec:
 
     Attributes:
         name: The table name (``"h100_sxm"``).
-        peak_flops: Dense BF16 peak with FP32 accumulate, in FLOP/s.
+        peak_flops: Dense BF16 peak with FP32 accumulate, in FLOP/s; a measured spec's peak is
+            for the dtype it was measured in.
         memory_bandwidth: Memory bandwidth, in bytes/s.
         tensor_core_shapes: The CUDA tensor-core (WMMA) fragment shapes ``(m, n, k)`` for
             bf16 and tf32; empty for a chip without CUDA tensor cores.
@@ -72,7 +80,6 @@ def _specs(*specs: HardwareSpec) -> Mapping[str, HardwareSpec]:
 #   459 and 918 TFLOPS BF16 per chip; 1,200, 819, 2,765 and 1,638 GB/s HBM bandwidth. The v5e
 #   page's English edition now prints "800 GiBps"; the other editions and JAX's own table
 #   (jax/_src/tpu_info.py) give 819 GB/s, kept here.
-# cpu_generic is a stand-in for a modern server socket, not a measurement.
 # Tensor-core shapes: NVIDIA CUDA C++ Programming Guide (CUDA 12.3), "Element Types and Matrix
 #   Sizes" of the warp matrix functions: __nv_bfloat16 at 16x16x16, 32x8x16 and 8x32x16, tf32 at
 #   16x16x8, on compute capability 8.0 and higher ("Alternate Floating Point"); the A100 is 8.0,
@@ -131,7 +138,6 @@ HARDWARE_SPECS: Mapping[str, HardwareSpec] = _specs(
     HardwareSpec(name="tpu_v5e", peak_flops=197.0e12, memory_bandwidth=819.0e9),
     HardwareSpec(name="tpu_v5p", peak_flops=459.0e12, memory_bandwidth=2765.0e9),
     HardwareSpec(name="tpu_v6e", peak_flops=918.0e12, memory_bandwidth=1638.0e9),
-    HardwareSpec(name="cpu_generic", peak_flops=2.0e12, memory_bandwidth=200.0e9, simd_width=8),
 )
 
 # The device_kind JAX reports for each chip. GPU names are the CUDA device names JAX's own tests
@@ -153,7 +159,6 @@ _BY_DEVICE_KIND: Mapping[str, str] = MappingProxyType(
         "TPU v5p": "tpu_v5p",
         "TPU v6 lite": "tpu_v6e",
         "TPU v6e": "tpu_v6e",
-        "cpu": "cpu_generic",
     }
 )
 
@@ -187,3 +192,59 @@ def detect_hardware_specs() -> HardwareSpec | None:
         return None
     (kind,) = kinds
     return spec_for_device_kind(kind)
+
+
+# Calls made before timing (compilation, caches) and timed calls; the median is reported.
+_MEASUREMENT_WARMUP = 3
+_MEASUREMENT_ITERATIONS = 10
+
+
+def measure_hardware_spec(
+    *, dtype: DTypeLike, matmul_size: int = 4096, triad_length: int = 2**26
+) -> HardwareSpec:
+    """The default device's attainable roofline ceilings, measured through XLA.
+
+    The peak is a square ``matmul_size`` matmul: XLA's own FLOP count (``FlopsCounter``) over
+    the median time (``time_calls``). The bandwidth is STREAM's triad ``a = b + s * c``
+    (McCalpin) over ``triad_length`` elements: three arrays moved over the median time; the
+    default of 2**26 elements (768 MiB of float32) is far above any last-level cache. These are
+    the ceilings XLA's kernels reach on this device, the ones JAX code meets, and they are
+    below a vendor's peak. Choose the device with ``jax.default_device``.
+
+    Args:
+        dtype: The element type measured; the peak depends on it.
+        matmul_size: Side of the square matrices.
+        triad_length: Elements per triad array.
+
+    Returns:
+        A spec named ``measured:<device kind>:<dtype>``.
+
+    Raises:
+        ValueError: If a size is not positive.
+    """
+    if matmul_size <= 0 or triad_length <= 0:
+        msg = f"sizes must be positive, got matmul_size={matmul_size}, triad_length={triad_length}"
+        raise ValueError(msg)
+    element = jnp.dtype(dtype)
+
+    matrix = jnp.ones((matmul_size, matmul_size), element)
+    matmul = jax.jit(jnp.matmul)
+    flops = FlopsCounter().count(matmul, matrix, matrix).total_flops
+    matmul_sec = time_calls(
+        lambda: matmul(matrix, matrix),
+        warmup=_MEASUREMENT_WARMUP,
+        iterations=_MEASUREMENT_ITERATIONS,
+    ).median_sec
+
+    b, c = jnp.ones((triad_length,), element), jnp.ones((triad_length,), element)
+    triad = jax.jit(lambda x, y: x + 3.0 * y)
+    triad_sec = time_calls(
+        lambda: triad(b, c), warmup=_MEASUREMENT_WARMUP, iterations=_MEASUREMENT_ITERATIONS
+    ).median_sec
+
+    (device,) = matrix.devices()
+    return HardwareSpec(
+        name=f"measured:{device.device_kind}:{element.name}",
+        peak_flops=flops / matmul_sec,
+        memory_bandwidth=3 * triad_length * element.itemsize / triad_sec,
+    )
