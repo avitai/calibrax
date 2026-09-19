@@ -3,11 +3,11 @@
 All GPU/hardware access is mocked — no hardware dependency.
 """
 
-import builtins
 import dataclasses
 import importlib.util
 import sys
 import types
+from importlib.machinery import ModuleSpec
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -239,7 +239,7 @@ class TestGPUMemoryProfiler:
 
         with (
             patch("calibrax.profiling.gpu.PYNVML_AVAILABLE", True),
-            patch("calibrax.profiling.gpu.pynvml", fake_nvml),
+            patch.dict(sys.modules, {"pynvml": fake_nvml}),
         ):
             result = profiler._safe_nvml_query(lambda _handle: {"ok": 1.0}, {"ok": 0.0})
 
@@ -263,7 +263,7 @@ class TestGPUMemoryProfiler:
 
         with (
             patch("calibrax.profiling.gpu.PYNVML_AVAILABLE", True),
-            patch("calibrax.profiling.gpu.pynvml", fake_nvml),
+            patch.dict(sys.modules, {"pynvml": fake_nvml}),
         ):
             clocks = profiler.get_clock_info()
 
@@ -286,7 +286,7 @@ class TestGPUMemoryProfiler:
 
         with (
             patch("calibrax.profiling.gpu.PYNVML_AVAILABLE", True),
-            patch("calibrax.profiling.gpu.pynvml", fake_nvml),
+            patch.dict(sys.modules, {"pynvml": fake_nvml}),
         ):
             power = profiler.get_power_info()
 
@@ -440,15 +440,12 @@ class TestGpuModuleImportGuards:
         assert spec is not None
         assert spec.loader is not None
         probe_module = importlib.util.module_from_spec(spec)
+        real_find_spec = importlib.util.find_spec
 
-        real_import = builtins.__import__
+        def find_spec_without_nvml(name: str, package: str | None = None) -> ModuleSpec | None:
+            return None if name == "pynvml" else real_find_spec(name, package)
 
-        def _import_hook(name: str, *args: object, **kwargs: object) -> object:
-            if name == "pynvml":
-                raise ImportError("missing pynvml")
-            return real_import(name, *args, **kwargs)
-
-        with patch("builtins.__import__", side_effect=_import_hook):
+        with patch("importlib.util.find_spec", side_effect=find_spec_without_nvml):
             sys.modules[spec.name] = probe_module
             try:
                 spec.loader.exec_module(probe_module)
@@ -456,4 +453,4 @@ class TestGpuModuleImportGuards:
                 sys.modules.pop(spec.name, None)
 
         assert probe_module.PYNVML_AVAILABLE is False
-        assert probe_module.pynvml is None
+        assert "pynvml" not in vars(probe_module)
