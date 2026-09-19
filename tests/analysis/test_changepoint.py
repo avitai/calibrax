@@ -4,22 +4,12 @@ from __future__ import annotations
 
 import dataclasses
 from datetime import datetime
-from unittest.mock import patch
 
 import pytest
+from substrax.testing import run_python
 
-from calibrax.analysis.changepoint import (
-    ChangePoint,
-    detect_change_points,
-    RUPTURES_AVAILABLE,
-)
+from calibrax.analysis.changepoint import ChangePoint, detect_change_points
 from calibrax.core.models import TrendPoint, TrendSeries
-
-
-_skip_no_ruptures = pytest.mark.skipif(
-    not RUPTURES_AVAILABLE,
-    reason="ruptures not installed",
-)
 
 
 def _make_trend(values: list[float], metric: str = "throughput") -> TrendSeries:
@@ -127,30 +117,18 @@ class TestChangePoint:
 class TestDetectChangePoints:
     """Tests for detect_change_points function."""
 
-    def test_raises_import_error_when_unavailable(self) -> None:
-        """Should raise ImportError when ruptures is not installed."""
-        trend = _make_trend([1.0, 2.0, 3.0, 4.0])
-        with (
-            patch("calibrax.analysis.changepoint.RUPTURES_AVAILABLE", False),
-            pytest.raises(ImportError, match="ruptures is required"),
-        ):
-            detect_change_points(trend)
-
-    @_skip_no_ruptures
     def test_raises_value_error_too_few_points(self) -> None:
         """Should raise ValueError when trend has fewer points than min_size."""
         trend = _make_trend([1.0, 2.0])
         with pytest.raises(ValueError, match="Need at least 3 points, got 2"):
             detect_change_points(trend)
 
-    @_skip_no_ruptures
     def test_raises_value_error_custom_min_size(self) -> None:
         """Should raise ValueError with custom min_size."""
         trend = _make_trend([1.0, 2.0, 3.0, 4.0])
         with pytest.raises(ValueError, match="Need at least 5 points, got 4"):
             detect_change_points(trend, min_size=5)
 
-    @_skip_no_ruptures
     def test_detects_obvious_step_change(self) -> None:
         """Should detect a clear step change in the data."""
         values = [1.0, 1.0, 1.0, 1.0, 5.0, 5.0, 5.0, 5.0]
@@ -161,7 +139,6 @@ class TestDetectChangePoints:
         indices = [cp.index for cp in change_points]
         assert any(3 <= idx <= 5 for idx in indices)
 
-    @_skip_no_ruptures
     @pytest.mark.parametrize("method", ["pelt", "binseg", "window"])
     def test_every_method_reports_python_int_indices(self, method: str) -> None:
         """ruptures' Window returns numpy integers; a ChangePoint's index is a Python int."""
@@ -170,7 +147,6 @@ class TestDetectChangePoints:
         assert points
         assert all(type(point.index) is int for point in points)
 
-    @_skip_no_ruptures
     def test_change_point_has_positive_magnitude(self) -> None:
         """Detected change points should have positive magnitude for step change."""
         values = [1.0, 1.0, 1.0, 1.0, 10.0, 10.0, 10.0, 10.0]
@@ -180,7 +156,6 @@ class TestDetectChangePoints:
         for cp in change_points:
             assert cp.magnitude > 0.0
 
-    @_skip_no_ruptures
     def test_change_point_has_metadata(self) -> None:
         """Detected change points should carry timestamp and run_id from trend."""
         values = [1.0, 1.0, 1.0, 1.0, 5.0, 5.0, 5.0, 5.0]
@@ -191,7 +166,6 @@ class TestDetectChangePoints:
             assert cp.run_id is not None
             assert cp.run_id.startswith("r")
 
-    @_skip_no_ruptures
     def test_constant_signal_no_change_points(self) -> None:
         """A constant signal should produce no change points."""
         values = [5.0] * 10
@@ -199,7 +173,6 @@ class TestDetectChangePoints:
         change_points = detect_change_points(trend)
         assert len(change_points) == 0
 
-    @_skip_no_ruptures
     def test_method_binseg(self) -> None:
         """Should work with binseg method."""
         values = [1.0, 1.0, 1.0, 1.0, 10.0, 10.0, 10.0, 10.0]
@@ -207,7 +180,6 @@ class TestDetectChangePoints:
         change_points = detect_change_points(trend, method="binseg")
         assert len(change_points) > 0
 
-    @_skip_no_ruptures
     def test_invalid_method_raises(self) -> None:
         """Should raise ValueError for unknown detection method."""
         values = [1.0, 1.0, 1.0, 1.0, 5.0, 5.0, 5.0, 5.0]
@@ -215,7 +187,6 @@ class TestDetectChangePoints:
         with pytest.raises(ValueError, match="Unknown method"):
             detect_change_points(trend, method="invalid_method")
 
-    @_skip_no_ruptures
     def test_returns_list_of_change_points(self) -> None:
         """Return type should be a list of ChangePoint instances."""
         values = [1.0, 1.0, 1.0, 1.0, 5.0, 5.0, 5.0, 5.0]
@@ -224,3 +195,25 @@ class TestDetectChangePoints:
         assert isinstance(result, list)
         for cp in result:
             assert isinstance(cp, ChangePoint)
+
+
+def test_importing_without_ruptures_names_the_extra() -> None:
+    result = run_python(
+        "import sys; sys.modules['ruptures'] = None\n"
+        "try:\n"
+        "    import calibrax.analysis.changepoint\n"
+        "except ImportError as error:\n"
+        "    print(error)\n",
+        timeout=120,
+    )
+
+    assert "calibrax[changepoint]" in result.stdout
+
+
+def test_analysis_imports_without_ruptures() -> None:
+    result = run_python(
+        "import sys; sys.modules['ruptures'] = None\nimport calibrax.analysis\nprint('ok')\n",
+        timeout=120,
+    )
+
+    assert result.stdout.strip() == "ok"
