@@ -42,12 +42,14 @@ The `Exporter` ABC defines the interface for all exporters.
 
 ::: calibrax.exporters.mlflow
 
-## Publication Generator
+## Publication Tables
+
+::: calibrax.exporters.publication
+
+## Plots
 
 !!! warning "Optional Dependency"
 
-    Plot generation requires matplotlib: `uv pip install "calibrax[publication]"`
+    Requires matplotlib: `uv pip install "calibrax[publication]"`
 
-    Table generation (LaTeX, HTML, CSV) works without matplotlib.
-
-::: calibrax.exporters.publication
+::: calibrax.exporters.plots

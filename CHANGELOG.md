@@ -62,6 +62,14 @@ and uses semantic versioning while the public API stabilizes.
   take such a class (`AdapterClass[TargetT]`), and `adapt(target: object)` returns an `Adapter`
   (`BenchmarkAdapter[object] | NNXBenchmarkAdapter`), where every one of them was `Any`. Requires
   `typing_extensions>=4.10`, the release that added `TypeIs`.
+- Plots live in `calibrax.exporters.plots`, the matplotlib integration: `PlotGenerator(output_dir)`
+  with `comparison_plot`, `scaling_plot`, `convergence_plot` and `metric_values_plot`, each
+  returning the written path and refusing empty input with `ValueError`. Importing the module
+  without matplotlib raises `ImportError` naming the `publication` extra. `PublicationGenerator`
+  writes tables only; its plot methods, which returned `None` with a logged warning when
+  matplotlib was missing and `None` for empty input, are gone. Stateful metrics no longer carry
+  `.plot()`; plot a metric's values with
+  `PlotGenerator(dir).metric_values_plot(metric.compute(), title=metric.name, filename=metric.name)`.
 - Monitoring reports are typed: `AdvancedMonitor.get_monitoring_summary()` returns a
   `MonitoringSummary` (`thresholds`, `alert_count`, `metric_history` of `MetricHistorySummary`,
   `is_monitoring`) and `ProductionMonitor.get_pipeline_health_report()` a

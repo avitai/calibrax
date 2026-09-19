@@ -48,9 +48,6 @@ for real_batch, gen_batch in dataloader:
 result = fid.compute()
 print(f"FID: {result['fid']:.2f}")
 
-figure_path = fid.plot(output_dir="figures")
-print(f"Saved metric plot to: {figure_path}")
-
 fid.reset()  # Ready for next evaluation
 ```
 
@@ -62,19 +59,18 @@ fid.reset()  # Ready for next evaluation
 
 ### Plotting Computed Values
 
-Stateful metrics expose `.plot()` for quick scalar summaries. The method calls
-`compute()`, uses the publication exporter, and returns the generated path when
-`matplotlib` is installed.
+A metric's computed values plot through `PlotGenerator` (the `publication` extra):
 
 ```python
+from calibrax.exporters.plots import PlotGenerator
+
 metric = FIDMetric(feature_dim=2048)
 metric.update(real=real_features, generated=gen_features)
 
-figure_path = metric.plot(output_dir="figures")
+figure_path = PlotGenerator("figures").metric_values_plot(
+    metric.compute(), title=metric.name, filename=metric.name
+)
 ```
-
-The method returns `None` if plotting dependencies are unavailable, matching the
-publication exporter's other plotting methods.
 
 ### Inception Score
 
