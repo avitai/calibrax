@@ -34,7 +34,7 @@ def _get_nvml_power_mw() -> int | None:
         Power draw in milliwatts, or None if unavailable.
     """
     try:
-        import pynvml  # type: ignore[import-untyped]
+        import pynvml
     except ImportError:
         return None
 

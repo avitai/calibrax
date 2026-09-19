@@ -2,29 +2,24 @@
 
 Provides hardware detection, shape optimization, GPU memory profiling
 (satisfying GPUProfilerProtocol), and memory usage analysis.
-Includes NVML-based GPU clock and power monitoring when pynvml is available.
+Includes NVML-based GPU clock and power monitoring when NVIDIA's nvidia-ml-py is installed.
 """
 
 from __future__ import annotations
 
 import gc
+import importlib.util
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
 
 import jax
 import psutil  # pyright: ignore[reportMissingModuleSource]
 from substrax.devices import detect_devices, DeviceInfo, DeviceKind
 
 
-try:
-    import pynvml
-
-    PYNVML_AVAILABLE = True
-except ImportError:
-    pynvml = None  # type: ignore[assignment]
-    PYNVML_AVAILABLE = False
+# NVML comes from NVIDIA's nvidia-ml-py (the ``cuda12`` extra); it is imported where it is used.
+PYNVML_AVAILABLE = importlib.util.find_spec("pynvml") is not None
 
 
 # Thresholds behind the memory suggestions.
@@ -238,13 +233,14 @@ class GPUMemoryProfiler:
 
     def _safe_nvml_query(
         self,
-        query_fn: Callable[[Any], dict[str, float]],
+        query_fn: Callable[[object], dict[str, float]],
         fallback: dict[str, float],
     ) -> dict[str, float]:
         """Execute an NVML query with init and fallback on failure.
 
         Args:
-            query_fn: Function that takes an NVML handle and returns metrics.
+            query_fn: Function that takes an NVML device handle, an opaque pointer only NVML
+                reads, and returns metrics.
             fallback: Default dict to return on failure.
 
         Returns:
@@ -252,11 +248,13 @@ class GPUMemoryProfiler:
         """
         if not PYNVML_AVAILABLE or not self.has_gpu:
             return fallback
+        import pynvml
+
         try:
-            pynvml.nvmlInit()  # type: ignore[union-attr]
-            handle = pynvml.nvmlDeviceGetHandleByIndex(0)  # type: ignore[union-attr]
+            pynvml.nvmlInit()
+            handle: object = pynvml.nvmlDeviceGetHandleByIndex(0)
             return query_fn(handle)
-        except pynvml.NVMLError:  # type: ignore[union-attr]
+        except pynvml.NVMLError:
             return fallback
 
     def get_clock_info(self) -> dict[str, float]:
@@ -267,16 +265,12 @@ class GPUMemoryProfiler:
             Returns zeros if NVML is unavailable or query fails.
         """
 
-        def _query(handle: Any) -> dict[str, float]:
+        def _query(handle: object) -> dict[str, float]:
             """Query GPU and memory clock frequencies."""
-            gpu_clock = pynvml.nvmlDeviceGetClockInfo(  # type: ignore[union-attr]
-                handle,
-                pynvml.NVML_CLOCK_GRAPHICS,  # type: ignore[union-attr]
-            )
-            mem_clock = pynvml.nvmlDeviceGetClockInfo(  # type: ignore[union-attr]
-                handle,
-                pynvml.NVML_CLOCK_MEM,  # type: ignore[union-attr]
-            )
+            import pynvml
+
+            gpu_clock = pynvml.nvmlDeviceGetClockInfo(handle, pynvml.NVML_CLOCK_GRAPHICS)
+            mem_clock = pynvml.nvmlDeviceGetClockInfo(handle, pynvml.NVML_CLOCK_MEM)
             return {"gpu_clock_mhz": float(gpu_clock), "mem_clock_mhz": float(mem_clock)}
 
         return self._safe_nvml_query(_query, {"gpu_clock_mhz": 0.0, "mem_clock_mhz": 0.0})
@@ -289,12 +283,12 @@ class GPUMemoryProfiler:
             Returns zeros if NVML is unavailable or query fails.
         """
 
-        def _query(handle: Any) -> dict[str, float]:
+        def _query(handle: object) -> dict[str, float]:
             """Query GPU power draw and management limit."""
-            power_mw = pynvml.nvmlDeviceGetPowerUsage(handle)  # type: ignore[union-attr]
-            limit_mw = pynvml.nvmlDeviceGetPowerManagementLimit(  # type: ignore[union-attr]
-                handle
-            )
+            import pynvml
+
+            power_mw = pynvml.nvmlDeviceGetPowerUsage(handle)
+            limit_mw = pynvml.nvmlDeviceGetPowerManagementLimit(handle)
             return {
                 "power_draw_w": float(power_mw) / 1000.0,
                 "power_limit_w": float(limit_mw) / 1000.0,
@@ -349,10 +343,10 @@ class GPUMemoryProfiler:
 class MemoryOptimizer:
     """Memory optimization analysis for pipeline functions."""
 
-    def analyze_pipeline_memory(
+    def analyze_pipeline_memory[SampleT](
         self,
-        pipeline_fn: Callable[[Any], Any],
-        sample_data: Any,
+        pipeline_fn: Callable[[SampleT], object],
+        sample_data: SampleT,
     ) -> MemoryAnalysis | None:
         """Analyze memory usage of a pipeline function.
 

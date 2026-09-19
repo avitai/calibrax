@@ -40,6 +40,10 @@ and uses semantic versioning while the public API stabilizes.
   returns, which jax types `Any` and documents as arbitrary (a mapping, a list holding one, or
   `None`), to its numeric fields; `FlopsCounter` reads the analysis through it, and
   `FlopsCounter.count(fn, *args)` is typed with `substrax.typing.PyTree`.
+- The `cuda12` extra depends on NVIDIA's `nvidia-ml-py>=12.0.0`, which provides the `pynvml`
+  module, in place of the `pynvml` distribution, which is deprecated in its favour and warned
+  on every import. `calibrax.profiling.gpu` imports NVML where it is used, and
+  `MemoryOptimizer.analyze_pipeline_memory` is generic in the sample type.
 - Monitoring reports are typed: `AdvancedMonitor.get_monitoring_summary()` returns a
   `MonitoringSummary` (`thresholds`, `alert_count`, `metric_history` of `MetricHistorySummary`,
   `is_monitoring`) and `ProductionMonitor.get_pipeline_health_report()` a
