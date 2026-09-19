@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import builtins
 import json
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
@@ -204,28 +204,6 @@ class TestExport:
         assert result.exit_code != 0
         assert "project" in result.output.lower()
 
-    def test_export_missing_wandb(self, tmp_path: Path) -> None:
-        """Should error when wandb is not installed."""
-        from unittest.mock import patch
-
-        _setup_store(tmp_path)
-        runner = CliRunner()
-        with patch(
-            "calibrax.exporters.wandb.WANDB_AVAILABLE",
-            False,
-        ):
-            result = runner.invoke(
-                main,
-                [
-                    "export",
-                    "--data",
-                    str(tmp_path / "data"),
-                    "--project",
-                    "test",
-                ],
-            )
-        assert result.exit_code != 0
-
     def test_export_missing_store(self, tmp_path: Path) -> None:
         """Should error when store has no runs."""
         Store(tmp_path / "data")
@@ -270,18 +248,12 @@ class TestExport:
         fake_exporter.export_run.assert_called_once()
         fake_exporter.export_analysis.assert_called_once()
 
-    def test_export_import_error_reports_install_hint(self, tmp_path: Path) -> None:
-        """Should provide install command when exporter import fails."""
+    def test_export_without_wandb_reports_the_install_hint(self, tmp_path: Path) -> None:
+        """Without wandb the exporter module cannot import; export names the extra."""
         _setup_store(tmp_path)
         runner = CliRunner()
-        real_import = builtins.__import__
 
-        def _import_hook(name: str, *args: object, **kwargs: object) -> object:
-            if name == "calibrax.exporters.wandb":
-                raise ImportError("missing exporter module")
-            return real_import(name, *args, **kwargs)
-
-        with patch("builtins.__import__", side_effect=_import_hook):
+        with patch.dict(sys.modules, {"calibrax.exporters.wandb": None}):
             result = runner.invoke(
                 main,
                 [

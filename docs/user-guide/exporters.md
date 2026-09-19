@@ -104,8 +104,10 @@ exporter.export_trends(
 ### Logging Custom Artifacts
 
 ```python
-# Log matplotlib figures
-exporter.log_figures({"scaling": fig})
+import wandb
+
+# Log images; a matplotlib figure becomes one through wandb.Image
+exporter.log_images({"scaling": wandb.Image(fig)})
 
 # Log HTML artifacts
 exporter.log_html_artifacts({"report": html_string})

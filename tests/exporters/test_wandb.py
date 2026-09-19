@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-import builtins
-import importlib.util
-import sys
-from pathlib import Path
+from collections.abc import Iterator
 from unittest.mock import MagicMock, patch
 
 import pytest
+from substrax.testing import run_python
 
 from calibrax.core.models import (
     Metric,
@@ -16,6 +14,12 @@ from calibrax.core.models import (
     MetricDirection,
     Point,
     Run,
+)
+from calibrax.exporters.wandb import (
+    _log_aggregate_scores,
+    _log_pareto_front,
+    _log_rank_tables,
+    _log_regression_alerts,
 )
 from tests.factories import (
     make_dual_framework_run,
@@ -51,56 +55,33 @@ def _make_baseline() -> Run:
 
 
 @pytest.fixture
-def mock_wandb():
-    """Mock wandb module for testing without real W&B connection."""
-    with patch.dict("sys.modules", {"wandb": MagicMock()}):
-        import wandb as mock_wb
-
-        mock_run = MagicMock()
-        mock_run.url = "https://wandb.ai/test/run/123"
-        mock_wb.init.return_value = mock_run
-        mock_wb.Table = MagicMock()
-        mock_wb.Html = MagicMock()
-        mock_wb.Image = MagicMock()
-        mock_wb.AlertLevel = MagicMock()  # pyright: ignore[reportAttributeAccessIssue]
-        mock_wb.AlertLevel.WARN = "WARN"  # pyright: ignore[reportAttributeAccessIssue]
-        mock_wb.alert = MagicMock()  # pyright: ignore[reportAttributeAccessIssue]
+def mock_wandb() -> Iterator[MagicMock]:
+    """Replace the wandb module the exporter imported, so no W&B connection is made."""
+    mock_wb = MagicMock()
+    mock_run = MagicMock()
+    mock_run.url = "https://wandb.ai/test/run/123"
+    mock_wb.init.return_value = mock_run
+    with patch("calibrax.exporters.wandb.wandb", mock_wb):
         yield mock_wb
 
 
 class TestWandBExporter:
     """Tests for WandBExporter."""
 
-    def test_import_error_without_wandb(self) -> None:
-        """Should raise ImportError if wandb is not available."""
-        with patch("calibrax.exporters.wandb.WANDB_AVAILABLE", False):
-            from calibrax.exporters.wandb import WandBExporter
-
-            with pytest.raises(ImportError, match="wandb is required"):
-                WandBExporter(project="test")
-
     def test_export_run_returns_url(self, mock_wandb: MagicMock) -> None:
         """export_run should return a W&B URL."""
         from calibrax.exporters.wandb import WandBExporter
 
-        with (
-            patch("calibrax.exporters.wandb.wandb", mock_wandb),
-            patch("calibrax.exporters.wandb.WANDB_AVAILABLE", True),
-        ):
-            exporter = WandBExporter(project="test-project")
-            url = exporter.export_run(_make_run())
-        assert url == "https://wandb.ai/test/run/123"
+        exporter = WandBExporter(project="test-project")
+        url = exporter.export_run(_make_run())
+        assert url == mock_wandb.init.return_value.url == "https://wandb.ai/test/run/123"
 
     def test_export_run_calls_wandb_init(self, mock_wandb: MagicMock) -> None:
         """export_run should initialize a W&B run."""
         from calibrax.exporters.wandb import WandBExporter
 
-        with (
-            patch("calibrax.exporters.wandb.wandb", mock_wandb),
-            patch("calibrax.exporters.wandb.WANDB_AVAILABLE", True),
-        ):
-            exporter = WandBExporter(project="my-proj", entity="my-team")
-            exporter.export_run(_make_run())
+        exporter = WandBExporter(project="my-proj", entity="my-team")
+        exporter.export_run(_make_run())
         mock_wandb.init.assert_called_once()
         call_kwargs = mock_wandb.init.call_args[1]
         assert call_kwargs["project"] == "my-proj"
@@ -110,12 +91,8 @@ class TestWandBExporter:
         """export_run should log metrics for each point."""
         from calibrax.exporters.wandb import WandBExporter
 
-        with (
-            patch("calibrax.exporters.wandb.wandb", mock_wandb),
-            patch("calibrax.exporters.wandb.WANDB_AVAILABLE", True),
-        ):
-            exporter = WandBExporter(project="test")
-            exporter.export_run(_make_run())
+        exporter = WandBExporter(project="test")
+        exporter.export_run(_make_run())
         mock_run = mock_wandb.init.return_value
         assert mock_run.log.call_count > 0
 
@@ -123,49 +100,33 @@ class TestWandBExporter:
         """export_run with finish=True should call finish()."""
         from calibrax.exporters.wandb import WandBExporter
 
-        with (
-            patch("calibrax.exporters.wandb.wandb", mock_wandb),
-            patch("calibrax.exporters.wandb.WANDB_AVAILABLE", True),
-        ):
-            exporter = WandBExporter(project="test")
-            exporter.export_run(_make_run(), finish=True)
+        exporter = WandBExporter(project="test")
+        exporter.export_run(_make_run(), finish=True)
         mock_wandb.init.return_value.finish.assert_called_once()
 
     def test_export_run_finish_false(self, mock_wandb: MagicMock) -> None:
         """export_run with finish=False should not call finish()."""
         from calibrax.exporters.wandb import WandBExporter
 
-        with (
-            patch("calibrax.exporters.wandb.wandb", mock_wandb),
-            patch("calibrax.exporters.wandb.WANDB_AVAILABLE", True),
-        ):
-            exporter = WandBExporter(project="test")
-            exporter.export_run(_make_run(), finish=False)
+        exporter = WandBExporter(project="test")
+        exporter.export_run(_make_run(), finish=False)
         mock_wandb.init.return_value.finish.assert_not_called()
 
     def test_export_analysis(self, mock_wandb: MagicMock) -> None:
         """export_analysis should log rankings and scores."""
         from calibrax.exporters.wandb import WandBExporter
 
-        with (
-            patch("calibrax.exporters.wandb.wandb", mock_wandb),
-            patch("calibrax.exporters.wandb.WANDB_AVAILABLE", True),
-        ):
-            exporter = WandBExporter(project="test")
-            exporter.export_analysis(_make_run())
+        exporter = WandBExporter(project="test")
+        exporter.export_analysis(_make_run())
         mock_wandb.init.return_value.log.assert_called()
 
     def test_export_analysis_with_baseline(self, mock_wandb: MagicMock) -> None:
         """export_analysis with baseline should log regressions."""
         from calibrax.exporters.wandb import WandBExporter
 
-        with (
-            patch("calibrax.exporters.wandb.wandb", mock_wandb),
-            patch("calibrax.exporters.wandb.WANDB_AVAILABLE", True),
-        ):
-            exporter = WandBExporter(project="test")
-            exporter.export_analysis(_make_run(), baseline=_make_baseline())
-        mock_wandb.alert.assert_called()
+        exporter = WandBExporter(project="test")
+        exporter.export_analysis(_make_run(), baseline=_make_baseline())
+        mock_wandb.init.return_value.alert.assert_called()
 
     def test_export_trends(self, mock_wandb: MagicMock) -> None:
         """export_trends should log trend data."""
@@ -191,78 +152,61 @@ class TestWandBExporter:
             ),
         )
 
-        with (
-            patch("calibrax.exporters.wandb.wandb", mock_wandb),
-            patch("calibrax.exporters.wandb.WANDB_AVAILABLE", True),
-        ):
-            exporter = WandBExporter(project="test")
-            exporter.export_trends(mock_store, "throughput", "bench1", {"framework": "jax"})
+        exporter = WandBExporter(project="test")
+        exporter.export_trends(mock_store, "throughput", "bench1", {"framework": "jax"})
         mock_wandb.init.return_value.log.assert_called()
         mock_wandb.init.return_value.finish.assert_called_once()
 
-    def test_check_auth_with_api_key(
-        self, mock_wandb: MagicMock, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_check_auth_with_api_key(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """check_auth should return True when WANDB_API_KEY is set."""
         from calibrax.exporters.wandb import WandBExporter
 
         monkeypatch.setenv("WANDB_API_KEY", "test-key")
-        with (
-            patch("calibrax.exporters.wandb.wandb", mock_wandb),
-            patch("calibrax.exporters.wandb.WANDB_AVAILABLE", True),
-        ):
-            exporter = WandBExporter(project="test")
-            assert exporter.check_auth() is True
+        exporter = WandBExporter(project="test")
+        assert exporter.check_auth() is True
 
-    def test_check_auth_offline_mode(
-        self, mock_wandb: MagicMock, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_check_auth_offline_mode(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """check_auth should return True in offline mode."""
         from calibrax.exporters.wandb import WandBExporter
 
         monkeypatch.delenv("WANDB_API_KEY", raising=False)
         monkeypatch.setenv("WANDB_MODE", "offline")
-        with (
-            patch("calibrax.exporters.wandb.wandb", mock_wandb),
-            patch("calibrax.exporters.wandb.WANDB_AVAILABLE", True),
-        ):
-            exporter = WandBExporter(project="test")
-            assert exporter.check_auth() is True
+        exporter = WandBExporter(project="test")
+        assert exporter.check_auth() is True
 
-    def test_log_figures_no_run(self, mock_wandb: MagicMock) -> None:
-        """log_figures should no-op without active W&B run."""
+    def test_log_images_no_run(self, mock_wandb: MagicMock) -> None:
+        """log_images should no-op without active W&B run."""
         from calibrax.exporters.wandb import WandBExporter
 
-        with (
-            patch("calibrax.exporters.wandb.wandb", mock_wandb),
-            patch("calibrax.exporters.wandb.WANDB_AVAILABLE", True),
-        ):
-            exporter = WandBExporter(project="test")
-            exporter.log_figures({"test": MagicMock()})
+        exporter = WandBExporter(project="test")
+        exporter.log_images({"test": MagicMock()})
+
+        mock_wandb.init.assert_not_called()
+        mock_wandb.init.return_value.log.assert_not_called()
 
     def test_log_html_artifacts(self, mock_wandb: MagicMock) -> None:
         """log_html_artifacts should log HTML content."""
         from calibrax.exporters.wandb import WandBExporter
 
-        with (
-            patch("calibrax.exporters.wandb.wandb", mock_wandb),
-            patch("calibrax.exporters.wandb.WANDB_AVAILABLE", True),
-        ):
-            exporter = WandBExporter(project="test")
-            exporter.export_run(_make_run(), finish=False)
-            exporter.log_html_artifacts({"report": "<p>test</p>"})
+        exporter = WandBExporter(project="test")
+        exporter.export_run(_make_run(), finish=False)
+        exporter.log_html_artifacts({"report": "<p>test</p>"})
+
+        mock_wandb.Html.assert_called_with("<p>test</p>")
+        mock_wandb.init.return_value.log.assert_called_with(
+            {"report": mock_wandb.Html.return_value}
+        )
 
     def test_log_extra_tables(self, mock_wandb: MagicMock) -> None:
         """log_extra_tables should log W&B Table objects."""
         from calibrax.exporters.wandb import WandBExporter
 
-        with (
-            patch("calibrax.exporters.wandb.wandb", mock_wandb),
-            patch("calibrax.exporters.wandb.WANDB_AVAILABLE", True),
-        ):
-            exporter = WandBExporter(project="test")
-            exporter.export_run(_make_run(), finish=False)
-            exporter.log_extra_tables({"data": (["col1"], [["val1"]])})
+        exporter = WandBExporter(project="test")
+        exporter.export_run(_make_run(), finish=False)
+        exporter.log_extra_tables({"data": (["col1"], [["val1"]])})
+
+        mock_wandb.Table.assert_called_with(columns=["col1"], data=[["val1"]])
+        mock_wandb.init.return_value.log.assert_called_with({"data": mock_wandb.Table.return_value})
 
 
 class TestDiscoverMetricNames:
@@ -321,14 +265,10 @@ class TestWandBExporterAdditional:
         """export_analysis should reuse existing run instead of reinitializing."""
         from calibrax.exporters.wandb import WandBExporter
 
-        with (
-            patch("calibrax.exporters.wandb.wandb", mock_wandb),
-            patch("calibrax.exporters.wandb.WANDB_AVAILABLE", True),
-        ):
-            exporter = WandBExporter(project="test")
-            exporter.export_run(_make_run(), finish=False)
-            mock_wandb.init.reset_mock()
-            exporter.export_analysis(_make_run())
+        exporter = WandBExporter(project="test")
+        exporter.export_run(_make_run(), finish=False)
+        mock_wandb.init.reset_mock()
+        exporter.export_analysis(_make_run())
 
         mock_wandb.init.assert_not_called()
 
@@ -349,12 +289,8 @@ class TestWandBExporterAdditional:
         monkeypatch.delenv("WANDB_MODE", raising=False)
         mock_wandb.api = _BadAPI()
 
-        with (
-            patch("calibrax.exporters.wandb.wandb", mock_wandb),
-            patch("calibrax.exporters.wandb.WANDB_AVAILABLE", True),
-        ):
-            exporter = WandBExporter(project="test")
-            assert exporter.check_auth() is False
+        exporter = WandBExporter(project="test")
+        assert exporter.check_auth() is False
 
     def test_resolve_wandb_mode_valid_and_invalid(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """_resolve_wandb_mode should pass through only allowed values."""
@@ -366,31 +302,23 @@ class TestWandBExporterAdditional:
         monkeypatch.setenv("WANDB_MODE", "invalid")
         assert WandBExporter._resolve_wandb_mode() is None
 
-    def test_log_figures_active_run_logs_images(self, mock_wandb: MagicMock) -> None:
-        """log_figures should wrap figures as wandb.Image for active run."""
+    def test_log_images_logs_each_image_to_the_active_run(self, mock_wandb: MagicMock) -> None:
+        """log_images logs the given images to the open run as they are."""
         from calibrax.exporters.wandb import WandBExporter
 
-        fig = MagicMock()
-        with (
-            patch("calibrax.exporters.wandb.wandb", mock_wandb),
-            patch("calibrax.exporters.wandb.WANDB_AVAILABLE", True),
-        ):
-            exporter = WandBExporter(project="test")
-            exporter.export_run(_make_run(), finish=False)
-            exporter.log_figures({"plot": fig})
+        image = MagicMock()
+        exporter = WandBExporter(project="test")
+        exporter.export_run(_make_run(), finish=False)
+        exporter.log_images({"plot": image})
 
-        mock_wandb.Image.assert_called_once_with(fig)
+        mock_wandb.init.return_value.log.assert_called_with({"plot": image})
 
     def test_log_html_artifacts_no_run(self, mock_wandb: MagicMock) -> None:
         """log_html_artifacts should no-op when no run is active."""
         from calibrax.exporters.wandb import WandBExporter
 
-        with (
-            patch("calibrax.exporters.wandb.wandb", mock_wandb),
-            patch("calibrax.exporters.wandb.WANDB_AVAILABLE", True),
-        ):
-            exporter = WandBExporter(project="test")
-            exporter.log_html_artifacts({"report": "<p>test</p>"})
+        exporter = WandBExporter(project="test")
+        exporter.log_html_artifacts({"report": "<p>test</p>"})
 
         mock_wandb.Html.assert_not_called()
 
@@ -398,12 +326,8 @@ class TestWandBExporterAdditional:
         """log_extra_tables should no-op when no run is active."""
         from calibrax.exporters.wandb import WandBExporter
 
-        with (
-            patch("calibrax.exporters.wandb.wandb", mock_wandb),
-            patch("calibrax.exporters.wandb.WANDB_AVAILABLE", True),
-        ):
-            exporter = WandBExporter(project="test")
-            exporter.log_extra_tables({"data": (["col1"], [["val1"]])})
+        exporter = WandBExporter(project="test")
+        exporter.log_extra_tables({"data": (["col1"], [["val1"]])})
 
         mock_wandb.Table.assert_not_called()
 
@@ -445,12 +369,8 @@ class TestWandBExporterAdditional:
             metric_defs=defs,
         )
 
-        with (
-            patch("calibrax.exporters.wandb.wandb", mock_wandb),
-            patch("calibrax.exporters.wandb.WANDB_AVAILABLE", True),
-        ):
-            exporter = WandBExporter(project="test")
-            exporter.export_run(run)
+        exporter = WandBExporter(project="test")
+        exporter.export_run(run)
 
         table_calls = mock_wandb.Table.call_args_list
         assert table_calls
@@ -463,88 +383,47 @@ class TestWandBExporterAdditional:
 
     def test_rank_tables_skip_empty_rankings(self, mock_wandb: MagicMock) -> None:
         """_log_rank_tables should skip metrics with no ranking entries."""
-        from calibrax.exporters.wandb import WandBExporter
 
-        with (
-            patch("calibrax.exporters.wandb.wandb", mock_wandb),
-            patch("calibrax.exporters.wandb.WANDB_AVAILABLE", True),
-        ):
-            exporter = WandBExporter(project="test")
-            exporter._wandb_run = MagicMock()
-            with patch("calibrax.analysis.ranking.rank_table", return_value=[]):
-                exporter._log_rank_tables(_make_run(), ["throughput"])
+        with patch("calibrax.exporters.wandb.rank_table", return_value=[]):
+            _log_rank_tables(MagicMock(), _make_run(), ["throughput"])
 
         mock_wandb.Table.assert_not_called()
 
-    def test_regression_alerts_no_regressions(self, mock_wandb: MagicMock) -> None:
+    def test_regression_alerts_no_regressions(self) -> None:
         """_log_regression_alerts should no-op when no regressions are found."""
-        from calibrax.exporters.wandb import WandBExporter
 
         run = _make_run()
-        with (
-            patch("calibrax.exporters.wandb.wandb", mock_wandb),
-            patch("calibrax.exporters.wandb.WANDB_AVAILABLE", True),
-        ):
-            exporter = WandBExporter(project="test")
-            exporter._wandb_run = MagicMock()
-            exporter._log_regression_alerts(run, run)
+        wb_run = MagicMock()
+        _log_regression_alerts(wb_run, run, run)
 
-        mock_wandb.alert.assert_not_called()
+        wb_run.alert.assert_not_called()
 
     def test_aggregate_scores_no_scores(self, mock_wandb: MagicMock) -> None:
         """_log_aggregate_scores should no-op when aggregate_score returns empty."""
-        from calibrax.exporters.wandb import WandBExporter
 
-        with (
-            patch("calibrax.exporters.wandb.wandb", mock_wandb),
-            patch("calibrax.exporters.wandb.WANDB_AVAILABLE", True),
-        ):
-            exporter = WandBExporter(project="test")
-            exporter._wandb_run = MagicMock()
-            with patch("calibrax.analysis.ranking.aggregate_score", return_value={}):
-                exporter._log_aggregate_scores(_make_run(), ["throughput"])
+        with patch("calibrax.exporters.wandb.aggregate_score", return_value={}):
+            _log_aggregate_scores(MagicMock(), _make_run(), ["throughput"])
 
         mock_wandb.Table.assert_not_called()
 
     def test_pareto_front_early_returns(self, mock_wandb: MagicMock) -> None:
         """_log_pareto_front should return for too few metrics or empty front."""
-        from calibrax.exporters.wandb import WandBExporter
 
-        with (
-            patch("calibrax.exporters.wandb.wandb", mock_wandb),
-            patch("calibrax.exporters.wandb.WANDB_AVAILABLE", True),
-        ):
-            exporter = WandBExporter(project="test")
-            exporter._wandb_run = MagicMock()
-            exporter._log_pareto_front(_make_run(), ["throughput"])
-            with patch("calibrax.analysis.pareto.pareto_front", return_value=[]):
-                exporter._log_pareto_front(_make_run(), ["throughput", "latency"])
+        _log_pareto_front(MagicMock(), _make_run(), ["throughput"])
+        with patch("calibrax.exporters.wandb.pareto_front", return_value=[]):
+            _log_pareto_front(MagicMock(), _make_run(), ["throughput", "latency"])
 
         mock_wandb.Table.assert_not_called()
 
-    def test_module_import_sets_unavailable_when_wandb_missing(self) -> None:
-        """Module import guard should set WANDB_AVAILABLE=False on ImportError."""
-        import calibrax.exporters.wandb as wandb_mod
 
-        module_path = Path(wandb_mod.__file__)
-        spec = importlib.util.spec_from_file_location("wandb_import_probe", module_path)
-        assert spec is not None
-        assert spec.loader is not None
-        probe_module = importlib.util.module_from_spec(spec)
+def test_importing_without_wandb_names_the_extra() -> None:
+    result = run_python(
+        "import sys; sys.modules['wandb'] = None\n"
+        "try:\n"
+        "    import calibrax.exporters.wandb\n"
+        "except ImportError as error:\n"
+        "    print(error)\n",
+        timeout=120,
+    )
 
-        real_import = builtins.__import__
-
-        def _import_hook(name: str, *args: object, **kwargs: object) -> object:
-            if name == "wandb":
-                raise ImportError("missing wandb")
-            return real_import(name, *args, **kwargs)
-
-        with patch("builtins.__import__", side_effect=_import_hook):
-            sys.modules[spec.name] = probe_module
-            try:
-                spec.loader.exec_module(probe_module)
-            finally:
-                sys.modules.pop(spec.name, None)
-
-        assert probe_module.WANDB_AVAILABLE is False
-        assert probe_module.wandb is None
+    assert "calibrax[wandb]" in result.stdout
