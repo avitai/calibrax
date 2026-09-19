@@ -18,6 +18,10 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Changed
 
+- `HardwareSpec.tensor_core_shapes` for the A100, H100 and RTX 4090 are the CUDA warp matrix
+  (WMMA) shapes for bf16 (16x16x16, 32x8x16, 8x32x16) and tf32 (16x16x8), which the CUDA C++
+  Programming Guide lists for compute capability 8.0 and higher; the A100 listed two of
+  them, the H100 one and the RTX 4090 none, with no recorded source.
 - `bleu(candidate, references)` takes `references` as a `list[str]`, a `list[list[str]]` or a
   mix, where the annotation admitted only `list[str | list[str]]` (a list is invariant, so a
   plain `list[str]` did not type-check). A bare string is still refused, since it would read
@@ -251,6 +255,11 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Removed
 
+- `calibrax.profiling.gpu.AdaptiveOperation` and `HardwareConfig`. Their critical batch sizes
+  (298, 240, 128, 32) and tile sizes were copied from a guide without a source, the H100's
+  298 is the scaling book's 295 miscopied, and every GPU but an A100 or H100 was "legacy
+  float32". What they reported that can be measured is in `HardwareSpec`: the ridge point
+  `critical_intensity` (the scaling book's critical batch size) and `tensor_core_shapes`.
 - `scripts/setup_env.py`. `setup.sh` runs `python -m substrax.runtime.managed_env write --prefix
   CALIBRAX`, which writes the memory fraction as `XLA_CLIENT_MEM_FRACTION` and always unsets the
   deprecated `XLA_PYTHON_CLIENT_MEM_FRACTION` (jaxlib refuses both at once); inspect the layering

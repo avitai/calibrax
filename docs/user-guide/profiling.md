@@ -144,16 +144,16 @@ if analysis is not None:
         print(f"  - {suggestion}")
 ```
 
-`AdaptiveOperation` auto-detects hardware and optimizes tensor shapes:
+The accelerator's own figures come from `HardwareSpec`: its roofline ridge point is the
+critical batch size of the JAX scaling book (peak FLOP/s over HBM bandwidth, 295 for an H100
+SXM), and an NVIDIA GPU lists the tensor-core (WMMA) fragment shapes a kernel aligns to:
 
 ```python
-from calibrax.profiling.gpu import AdaptiveOperation
+from calibrax.profiling.hardware import HARDWARE_SPECS
 
-adaptive = AdaptiveOperation()
-print(f"Platform: {adaptive.config.platform}")
-print(f"Precision: {adaptive.config.precision}")
-
-optimized_shapes = adaptive.optimize_shapes((32, 128), (128, 64))
+spec = HARDWARE_SPECS["h100_sxm"]
+print(f"Ridge point: {spec.critical_intensity:.0f} FLOPs/byte")
+print(f"Tensor-core shapes: {spec.tensor_core_shapes}")
 ```
 
 ## Energy Monitoring

@@ -1,4 +1,4 @@
-"""Tests for GPU profiling: HardwareConfig, AdaptiveOperation, GPUMemoryProfiler, memory patterns.
+"""Tests for GPU profiling: GPUMemoryProfiler, memory patterns and pipeline memory analysis.
 
 All GPU/hardware access is mocked — no hardware dependency.
 """
@@ -8,123 +8,17 @@ from collections.abc import Mapping
 from unittest.mock import MagicMock, patch
 
 import pytest
-from substrax.devices import DeviceInfo, DeviceKind
 
 from calibrax.profiling.gpu import (
-    AdaptiveOperation,
     analyze_memory_pattern,
     GPUMemoryProfiler,
     MemoryAnalysis,
     MemoryOptimizer,
 )
 from calibrax.profiling.resources import GpuMemory, GPUProfilerProtocol
-from tests.factories import make_cpu_hardware_config
 
 
 _MB = 1024 * 1024
-
-
-class TestHardwareConfig:
-    """Tests for HardwareConfig frozen dataclass."""
-
-    def test_construction(self) -> None:
-        cfg = make_cpu_hardware_config()
-        assert cfg.platform == "cpu"
-        assert cfg.tile_size == 64
-
-    def test_frozen_immutability(self) -> None:
-        cfg = make_cpu_hardware_config()
-        with pytest.raises(dataclasses.FrozenInstanceError):
-            cfg.platform = "gpu"  # type: ignore[misc]
-
-
-class TestAdaptiveOperation:
-    """Tests for AdaptiveOperation hardware detection + shape optimization."""
-
-    @staticmethod
-    def _snapshot(platform: str, *device_kinds: str) -> DeviceInfo:
-        return DeviceInfo(
-            platform=platform,
-            kind=DeviceKind.from_platform(platform),
-            count=len(device_kinds),
-            device_kinds=device_kinds,
-        )
-
-    @patch("calibrax.profiling.gpu.detect_devices")
-    def test_cpu_default_config(self, mock_detect: MagicMock) -> None:
-        mock_detect.return_value = self._snapshot("cpu", "cpu")
-        op = AdaptiveOperation()
-        assert op.config.platform == "cpu"
-        assert op.config.precision == "float32"
-        assert op.config.tile_size == 64
-
-    @patch("calibrax.profiling.gpu.detect_devices")
-    def test_tpu_config(self, mock_detect: MagicMock) -> None:
-        mock_detect.return_value = self._snapshot("tpu", "TPU v5 lite")
-        op = AdaptiveOperation()
-        assert op.config.platform == "tpu"
-        assert op.config.precision == "bfloat16"
-        assert op.config.tile_size == 128
-        assert op.config.use_vmem_optimization is True
-
-    @patch("calibrax.profiling.gpu.detect_devices")
-    def test_gpu_modern_a100(self, mock_detect: MagicMock) -> None:
-        mock_detect.return_value = self._snapshot("gpu", "NVIDIA A100")
-        op = AdaptiveOperation()
-        assert op.config.platform == "gpu_modern"
-        assert op.config.precision == "bfloat16"
-        assert op.config.tile_size == 16
-
-    @patch("calibrax.profiling.gpu.detect_devices")
-    def test_gpu_modern_h100(self, mock_detect: MagicMock) -> None:
-        mock_detect.return_value = self._snapshot("gpu", "NVIDIA H100")
-        op = AdaptiveOperation()
-        assert op.config.platform == "gpu_modern"
-
-    @patch("calibrax.profiling.gpu.detect_devices")
-    def test_gpu_legacy(self, mock_detect: MagicMock) -> None:
-        mock_detect.return_value = self._snapshot("gpu", "NVIDIA RTX 3090")
-        op = AdaptiveOperation()
-        assert op.config.platform == "gpu_legacy"
-        assert op.config.precision == "float32"
-        assert op.config.tile_size == 32
-
-    @patch("calibrax.profiling.gpu.detect_devices")
-    def test_gpu_detection_exception_falls_back(self, mock_detect: MagicMock) -> None:
-        mock_detect.side_effect = RuntimeError("no GPU")
-        op = AdaptiveOperation()
-        assert op.config.platform == "cpu"
-
-    @patch("calibrax.profiling.gpu.detect_devices")
-    def test_gpu_backend_with_no_devices_falls_back_to_cpu(self, mock_detect: MagicMock) -> None:
-        mock_detect.return_value = self._snapshot("gpu")
-
-        op = AdaptiveOperation()
-
-        assert op.config.platform == "cpu"
-
-    def test_optimize_shapes_pads_to_tile_size(self) -> None:
-        op = AdaptiveOperation()
-        tile = op.config.tile_size
-        shapes = op.optimize_shapes((10, 100), (5, 5))
-        for shape in shapes:
-            for dim in shape:
-                assert dim % tile == 0
-
-    def test_optimize_shapes_rank1_skips_second_last_dimension(self) -> None:
-        op = AdaptiveOperation()
-        tile = op.config.tile_size
-
-        (shape,) = op.optimize_shapes((tile + 1,))
-
-        assert len(shape) == 1
-        assert shape[0] % tile == 0
-
-    def test_optimize_shapes_already_aligned(self) -> None:
-        op = AdaptiveOperation()
-        tile = op.config.tile_size
-        result = op.optimize_shapes((tile, tile * 2))
-        assert result == [(tile, tile * 2)]
 
 
 class _Device:
