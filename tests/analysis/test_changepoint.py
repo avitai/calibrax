@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import dataclasses
-from datetime import datetime
+from datetime import datetime, UTC
 
 import pytest
 from substrax.testing import run_python
@@ -38,7 +38,7 @@ class TestChangePoint:
 
     def test_creation_with_all_fields(self) -> None:
         """Should create ChangePoint with all fields populated."""
-        ts = datetime(2024, 6, 15)
+        ts = datetime(2024, 6, 15, tzinfo=UTC)
         cp = ChangePoint(index=5, timestamp=ts, run_id="run99", magnitude=3.14)
         assert cp.index == 5
         assert cp.timestamp == ts
@@ -63,7 +63,7 @@ class TestChangePoint:
 
     def test_to_dict_full(self) -> None:
         """to_dict should include all populated fields."""
-        ts = datetime(2024, 3, 10, 12, 0, 0)
+        ts = datetime(2024, 3, 10, 12, 0, 0, tzinfo=UTC)
         cp = ChangePoint(index=4, timestamp=ts, run_id="abc", magnitude=5.0)
         d = cp.to_dict()
         assert d["index"] == 4
@@ -81,7 +81,7 @@ class TestChangePoint:
 
     def test_from_dict_full(self) -> None:
         """from_dict should restore all fields."""
-        ts = datetime(2024, 8, 20, 14, 30)
+        ts = datetime(2024, 8, 20, 14, 30, tzinfo=UTC)
         cp = ChangePoint.from_dict(
             {
                 "index": 3,

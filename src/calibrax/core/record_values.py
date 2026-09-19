@@ -1,6 +1,7 @@
 """The values a record's free-form fields hold: JSON values and the array scalars a run measures.
 
-A run's metadata, environment or configuration often holds values straight from a
+A record's times are aware (:func:`aware`), so any two compare. A run's metadata,
+environment or configuration often holds values straight from a
 computation: a ``jnp.float32`` loss, a ``numpy.int64`` step count. They are kept as given and
 converted when the record is written: anything with an ``item()`` method (JAX and NumPy
 scalars) becomes the Python number it holds. A record read back from JSON holds JSON values,
@@ -10,6 +11,7 @@ which are metadata values too; :data:`Metadata` is the field type that reads the
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from datetime import datetime
 from typing import Annotated, Protocol
 
 from pydantic import PlainValidator, TypeAdapter, ValidationError
@@ -94,3 +96,18 @@ def metadata_to_json(value: MetadataValue, name: str) -> JsonValue:
         msg = f"{name}: {value!r} has no JSON value"
         raise TypeError(msg)
     return scalar
+
+
+def aware(moment: datetime) -> datetime:
+    """``moment`` with a timezone; a naive time is read as this machine's local time.
+
+    Records stamped their time with ``datetime.now()``, which is naive local time, so a stored
+    naive time is local time; it is converted, not relabelled, so the instant is kept.
+
+    Args:
+        moment: A time, aware or naive.
+
+    Returns:
+        The same instant, aware.
+    """
+    return moment if moment.tzinfo is not None else moment.astimezone()

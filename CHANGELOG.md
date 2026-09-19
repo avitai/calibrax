@@ -226,6 +226,13 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Fixed
 
+- A new `Run` is stamped with `datetime.now(UTC)`, and `Run`, `TrendPoint` and `ChangePoint`
+  timestamps are always aware (`calibrax.core.record_values.aware`). `Run` defaulted to naive
+  local time while other writers stored aware times, so `Store.latest()`, `list_runs()` and
+  trend extraction raised `TypeError` on a store holding both. A stored naive timestamp, which
+  `datetime.now()` wrote as local time, reads as local time converted to aware: the same
+  instant on the machine that wrote it. `to_dict` now writes an offset (`+00:00` for new
+  runs).
 - `CarbonTracker(country_iso_code=...)` uses codecarbon's `OfflineEmissionsTracker`, the tracker
   that takes a country. `EmissionsTracker` refuses `country_iso_code` with `TypeError`, and the
   fallback that caught it retried without the country, so the requested country was dropped

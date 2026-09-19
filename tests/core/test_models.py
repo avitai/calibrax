@@ -7,7 +7,7 @@ and the is_higher_better helper function.
 
 import dataclasses
 import json
-from datetime import datetime
+from datetime import datetime, timedelta, UTC
 
 import jax.numpy as jnp
 import pytest
@@ -268,7 +268,7 @@ class TestRun:
         assert run.branch is None
 
     def test_full_construction(self) -> None:
-        now = datetime(2026, 2, 10, 12, 0, 0)
+        now = datetime(2026, 2, 10, 12, 0, 0, tzinfo=UTC)
         run = Run(
             points=(
                 Point(
@@ -502,6 +502,34 @@ class TestScalingLaw:
         assert restored.coefficient == sl.coefficient
         assert restored.exponent == sl.exponent
         assert restored.complexity == sl.complexity
+
+
+class TestRecordTimestamps:
+    """Run, TrendPoint and ChangePoint times are aware, so any two of them compare."""
+
+    def test_a_new_run_is_stamped_in_utc(self) -> None:
+        run = Run(points=())
+
+        assert run.timestamp.utcoffset() == timedelta(0)
+
+    def test_a_naive_run_time_is_read_as_local_time(self) -> None:
+        naive = datetime(2026, 1, 2, 3, 4, 5)
+
+        assert Run(points=(), timestamp=naive).timestamp == naive.astimezone()
+
+    def test_a_stored_naive_run_time_reads_aware(self) -> None:
+        stored = Run(points=(), id="r", timestamp=datetime(2026, 1, 2, 3, 4, 5, tzinfo=UTC))
+        record = stored.to_dict()
+        record["timestamp"] = "2026-01-02T03:04:05"
+
+        restored = Run.from_dict(record)
+
+        assert restored.timestamp == datetime(2026, 1, 2, 3, 4, 5).astimezone()
+
+    def test_a_naive_trend_point_time_is_aware(self) -> None:
+        point = TrendPoint(timestamp=datetime(2026, 1, 2), value=1.0, run_id="r")
+
+        assert point.timestamp.tzinfo is not None
 
 
 class TestTrendPoint:
