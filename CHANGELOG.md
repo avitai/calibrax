@@ -24,6 +24,19 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Changed
 
+- The metric registry states what each metric does, checked for all 139 by
+  `tests/metrics/test_registry_conformance.py`: `is_jit_compatible` and
+  `is_differentiable` have precise definitions (`jax.jit` reproduces the eager value;
+  `jax.grad` in the first argument is finite and not identically zero), and each
+  signature matches the function. Differentiability was claimed for 21 metrics whose
+  first argument is labels, ranks or thresholded values (the clustering agreements,
+  coverage, the fairness metrics, IoU, Dice, pixel accuracy, Kendall, Spearman and the
+  ranking metrics) and denied for 7 with a gradient (Brier, ECE, MCE, ACE, classwise ECE,
+  event reliability, Jaccard distance). `ndcg_at_k`, `precision_at_k`, `recall_at_k`,
+  `hit_rate`, `r_squared_adjusted`, `randers_distance` and `ultrahyperbolic_distance` take a
+  required keyword and are registered `CUSTOM`; `vendi_score` is `SINGLE_INPUT`. The
+  clustering agreements are registered as `fn(predictions, targets)`, where they took the
+  ground truth first, which swapped homogeneity and completeness in `v_measure`.
 - Label-based metrics trace under `jax.jit` given a static label count: `num_classes` and
   `num_clusters` on the clustering metrics, `num_clusters` on silhouette, Calinski-Harabasz and
   Davies-Bouldin, `num_groups` on the four fairness metrics, and `num_classes` on
@@ -241,6 +254,21 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Fixed
 
+- `grassmann_distance` takes the principal angles from both their cosines and their sines, as
+  Knyazev and Argentati (2002) and `scipy.linalg.subspace_angles` do: it read 3.45e-4
+  between a subspace and itself, returned 0.0 for an angle of 1.2e-4 (float32 `arccos` near
+  1), and had a NaN gradient at identical subspaces, which is now finite.
+- `sinkhorn_divergence` is the debiased Sinkhorn divergence of Feydy et al. (2019) on the
+  entropic transport objective, computed in the log domain, and differentiable: its
+  `lax.while_loop` could not be reverse-differentiated although it was registered as
+  differentiable, `exp(-C / eps)` underflowed for costs well above `eps`, and it returned the
+  unregularised transport cost of the entropic plan. It matches OTT-JAX 0.6.0 to 5e-7 in
+  value and 2e-6 in gradient; gradients come from the dual potentials, so memory does not
+  grow with the iterations. `max_iter` defaults to 1000 and `threshold` (1e-4) bounds the
+  marginal's L1 error.
+- `vendi_score` has a finite gradient for a rank-deficient similarity matrix (more samples
+  than feature dimensions): the entropy's `log` was guarded outside only, so the zero
+  eigenvalues gave 0 * inf = NaN.
 - Clustering and fairness metrics read labels as names. `jnp.unique(labels, size=max + 1)` padded
   the missing ids with the smallest label, so clusters labelled `{0, 2}` or `{1, 2}` counted
   one cluster twice: silhouette 0.33 for a 0.99 clustering, and ARI, NMI, AMI, V-measure,
@@ -297,6 +325,8 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Removed
 
+- `MetricEntry.required_extra` and `register_metric(required_extra=...)`: no metric set it and
+  nothing read it; an optional dependency is its integration module's import.
 - `HARDWARE_SPECS["cpu_generic"]` (2 TFLOP/s, 200 GB/s), a stand-in that was not a
   measurement, and its `"cpu"` device-kind entry: `detect_hardware_specs()` returns `None` on
   the CPU backend, and `RooflineAnalyzer` raises `UnknownHardwareError` there until it is

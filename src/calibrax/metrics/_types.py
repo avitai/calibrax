@@ -57,12 +57,15 @@ class MetricProperties:
             for KL divergence, etc.
         is_proper: Is a proper scoring rule (minimized by true distribution).
             Relevant for calibration/probabilistic metrics (Brier, log loss, CRPS).
-        is_differentiable: Can be used inside jax.grad. False for metrics
-            involving argmax, sorting with non-differentiable ops, or string
-            operations.
-        is_jit_compatible: Can be used inside jax.jit. False for string-based
-            metrics (BLEU, ROUGE) that use Python control flow on
-            variable-length inputs.
+        is_differentiable: ``jax.grad`` with respect to the first argument is finite and not
+            identically zero on generic inputs: False where that argument is labels, ranks,
+            a thresholded value or text, whose gradient is zero or does not exist.
+        is_jit_compatible: ``jax.jit`` of the call reproduces the eager value, with keyword
+            arguments that set shapes (counts, cutoffs, bins) passed statically. False for
+            string-based metrics (BLEU, ROUGE).
+
+    ``tests/metrics/test_registry_conformance.py`` checks both flags, and each entry's
+    signature, against every registered metric.
         invariances: Transformation groups under which the metric is invariant,
             following the Erlangen Program. Documents what symmetries the metric
             preserves. Common values: "translation" (Lp norms), "rotation"
@@ -95,7 +98,6 @@ class MetricEntry:
         domain: Metric domain (e.g., "general", "image", "text", "audio").
         direction: Whether lower or higher values are better.
         description: Human-readable description of the metric.
-        required_extra: PyPI extra needed ("" = core, "image" = calibrax[image]).
         signature: Input signature type documenting what arguments the metric expects.
         properties: Mathematical and capability properties of the metric.
     """
@@ -106,6 +108,5 @@ class MetricEntry:
     domain: str = "general"
     direction: MetricDirection = MetricDirection.LOWER
     description: str = ""
-    required_extra: str = ""
     signature: MetricSignature = MetricSignature.PREDICTIONS_TARGETS
     properties: MetricProperties = MetricProperties()
