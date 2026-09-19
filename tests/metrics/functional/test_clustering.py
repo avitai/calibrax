@@ -6,6 +6,8 @@ import jax
 import jax.numpy as jnp
 import pytest
 
+from calibrax.core.models import MetricDirection
+from calibrax.metrics import MetricRegistry
 from calibrax.metrics.functional.clustering import (
     adjusted_mutual_information,
     adjusted_rand_index,
@@ -240,8 +242,6 @@ class TestClusteringMetricRegistration:
     """Tests for clustering metric registration."""
 
     def test_all_registered(self) -> None:
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         expected = [
             "adjusted_rand_index",
@@ -256,24 +256,16 @@ class TestClusteringMetricRegistration:
             assert registry.has(name), f"Metric '{name}' not registered"
 
     def test_clustering_domain(self) -> None:
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         clustering_metrics = registry.list_by_domain("clustering")
         assert len(clustering_metrics) == 7
 
     def test_davies_bouldin_direction_lower(self) -> None:
-        from calibrax.core.models import MetricDirection
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         db = registry.get("davies_bouldin_score")
         assert db.direction == MetricDirection.LOWER
 
     def test_others_direction_higher(self) -> None:
-        from calibrax.core.models import MetricDirection
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         higher_metrics = [
             "adjusted_rand_index",

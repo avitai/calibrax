@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
@@ -11,14 +10,15 @@ from unittest.mock import MagicMock, patch
 import click
 import pytest
 from click.testing import CliRunner
+from substrax.testing import run_python
 
-from calibrax.cli.main import (
+from calibrax.cli.main import main
+from calibrax.cli.profile import (
     _print_energy_results,
     _print_profile_results,
     _resolve_callable,
     _run_measurement,
     _save_profile_run,
-    main,
 )
 from calibrax.core.models import Run
 from calibrax.profiling.energy import EnergySummary
@@ -229,7 +229,7 @@ class TestExport:
 
         fake_exporter = MagicMock()
         fake_exporter.export_run.return_value = "https://wandb.ai/test/run"
-        with patch("calibrax.exporters.wandb.WandBExporter", return_value=fake_exporter):
+        with patch("calibrax.cli.export.WandBExporter", return_value=fake_exporter):
             result = runner.invoke(
                 main,
                 [
@@ -249,24 +249,22 @@ class TestExport:
         fake_exporter.export_analysis.assert_called_once()
 
     def test_export_without_wandb_reports_the_install_hint(self, tmp_path: Path) -> None:
-        """Without wandb the exporter module cannot import; export names the extra."""
+        """Without wandb the export command cannot load; the error names the extra."""
         _setup_store(tmp_path)
-        runner = CliRunner()
+        probe = (
+            "import sys; sys.modules['wandb'] = None\n"
+            "from click.testing import CliRunner\n"
+            "from calibrax.cli.main import main\n"
+            f"args = ['export', '--data', {str(tmp_path / 'data')!r}, '--project', 'proj']\n"
+            "result = CliRunner().invoke(main, args)\n"
+            "print(result.exit_code)\n"
+            "print(result.output)\n"
+        )
 
-        with patch.dict(sys.modules, {"calibrax.exporters.wandb": None}):
-            result = runner.invoke(
-                main,
-                [
-                    "export",
-                    "--data",
-                    str(tmp_path / "data"),
-                    "--project",
-                    "proj",
-                ],
-            )
+        result = run_python(probe, timeout=120)
 
-        assert result.exit_code != 0
-        assert "uv pip install 'calibrax[wandb]'" in result.output
+        assert result.stdout.split("\n")[0] == "1"
+        assert 'uv pip install "calibrax[wandb]"' in result.stdout
 
 
 class TestBaseline:
@@ -368,7 +366,7 @@ class TestTrend:
     def test_trend_missing_store(self, tmp_path: Path) -> None:
         """FileNotFoundError from Store should be reported as click error."""
         runner = CliRunner()
-        with patch("calibrax.cli.main.Store") as mock_store_cls:
+        with patch("calibrax.cli.store_commands.Store") as mock_store_cls:
             mock_store_cls.return_value.extract_trend.side_effect = FileNotFoundError(
                 "missing store"
             )
@@ -543,16 +541,16 @@ class TestProfileHelpers:
             _func,
             warmup=2,
             iterations=3,
-            enable_energy=False,
+            energy_monitor=None,
         )
 
         assert energy_summary is None
-        assert sample.num_batches == 5  # type: ignore[union-attr]
+        assert sample.num_batches == 5
         assert tracker["called"] == 5
         assert tracker["synced"] == 5
 
     def test_run_measurement_uses_energy_monitor_when_enabled(self) -> None:
-        """_run_measurement should wrap execution with EnergyMonitor when requested."""
+        """_run_measurement should run the calls under the energy monitor it is given."""
 
         fake_summary = object()
         fake_monitor = MagicMock()
@@ -560,13 +558,12 @@ class TestProfileHelpers:
         fake_monitor.__enter__.return_value = fake_monitor
         fake_monitor.__exit__.return_value = None
 
-        with patch("calibrax.profiling.energy.EnergyMonitor", return_value=fake_monitor):
-            _sample, energy_summary = _run_measurement(
-                lambda: 1,
-                warmup=1,
-                iterations=2,
-                enable_energy=True,
-            )
+        _sample, energy_summary = _run_measurement(
+            lambda: 1,
+            warmup=1,
+            iterations=2,
+            energy_monitor=fake_monitor,
+        )
 
         assert fake_monitor.__enter__.call_count == 1
         assert fake_monitor.__exit__.call_count == 1
@@ -592,10 +589,10 @@ class TestProfileHelpers:
             _func,
             warmup=1,
             iterations=2,
-            enable_energy=False,
+            energy_monitor=None,
         )
 
-        assert sample.num_batches == 3  # type: ignore[union-attr]
+        assert sample.num_batches == 3
         assert tracker["called"] == 3
         assert tracker["synced"] == 6
 
@@ -647,14 +644,6 @@ class TestResolveCallable:
 
 class TestProfileOutputHelpers:
     """Tests for profile-output formatting and run persistence helpers."""
-
-    def test_print_energy_results_noop_for_non_summary(
-        self,
-        capsys: pytest.CaptureFixture[str],
-    ) -> None:
-        _print_energy_results(object())
-        captured = capsys.readouterr()
-        assert captured.out == ""
 
     def test_print_energy_results_prints_available_fields(
         self,
@@ -784,11 +773,11 @@ class TestProfileCommand:
         )
 
         with (
-            patch("calibrax.cli.main._resolve_callable", return_value=lambda: 1) as resolve_mock,
-            patch("calibrax.cli.main._run_measurement", return_value=(sample, None)) as run_mock,
-            patch("calibrax.cli.main._print_profile_results") as print_mock,
-            patch("calibrax.cli.main._save_profile_run") as save_mock,
-            patch("calibrax.profiling.flops.FlopsCounter") as counter_cls,
+            patch("calibrax.cli.profile._resolve_callable", return_value=lambda: 1) as resolve_mock,
+            patch("calibrax.cli.profile._run_measurement", return_value=(sample, None)) as run_mock,
+            patch("calibrax.cli.profile._print_profile_results") as print_mock,
+            patch("calibrax.cli.profile._save_profile_run") as save_mock,
+            patch("calibrax.cli.profile.FlopsCounter") as counter_cls,
         ):
             counter_cls.return_value.count.return_value = flops_result
             result = runner.invoke(
@@ -826,10 +815,10 @@ class TestProfileCommand:
         )
 
         with (
-            patch("calibrax.cli.main._resolve_callable", return_value=lambda: 1),
-            patch("calibrax.cli.main._run_measurement", return_value=(sample, None)),
-            patch("calibrax.cli.main._print_profile_results") as print_mock,
-            patch("calibrax.profiling.flops.FlopsCounter") as counter_cls,
+            patch("calibrax.cli.profile._resolve_callable", return_value=lambda: 1),
+            patch("calibrax.cli.profile._run_measurement", return_value=(sample, None)),
+            patch("calibrax.cli.profile._print_profile_results") as print_mock,
+            patch("calibrax.cli.profile.FlopsCounter") as counter_cls,
         ):
             counter_cls.return_value.count.side_effect = RuntimeError("flops failed")
             result = runner.invoke(

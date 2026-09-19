@@ -431,8 +431,6 @@ class TestCompilationTime:
     """Tests for measure_compilation_time."""
 
     def test_measure_compilation_time_returns_positive(self) -> None:
-        import jax.numpy as jnp
-
         def simple_fn(x: jnp.ndarray) -> jnp.ndarray:
             return x + 1
 

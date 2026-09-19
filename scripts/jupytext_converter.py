@@ -67,6 +67,7 @@ IMPORTANT - Known Jupytext Limitations:
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import subprocess
 import sys
@@ -211,7 +212,6 @@ def convert_py_to_nb(py_file: Path, verbose: bool = False) -> bool:
 
     if success:
         # Post-process to remove cell IDs for deterministic output
-        import json
 
         try:
             with Path(nb_file).open() as f:
@@ -416,8 +416,6 @@ def validate_sync(directory: Path, verbose: bool = False) -> tuple[int, int, int
         # Check if files have jupytext pairing metadata
         # Check the notebook file since that's where --set-formats adds metadata
         try:
-            import json
-
             with Path(nb_file).open() as f:
                 notebook = json.load(f)
 

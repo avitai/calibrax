@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+import inspect
 from typing import Any
 
 import jax
 import jax.numpy as jnp
 import numpy as np
 import pytest
+from flax import nnx
+from substrax.testing import TraceCounter
 
+from calibrax.core.models import MetricDirection
+from calibrax.metrics import MetricRegistry
 from calibrax.metrics.functional.divergence import (
     bregman_divergence,
     chi_squared_divergence,
@@ -16,11 +21,13 @@ from calibrax.metrics.functional.divergence import (
     hellinger_distance,
     js_divergence,
     kl_divergence,
+    kolmogorov_smirnov_distance,
     mmd,
     renyi_divergence,
     reverse_kl_divergence,
     sinkhorn_divergence,
     sliced_wasserstein,
+    SLICED_WASSERSTEIN_REGISTRY_SEED,
     total_variation,
     wasserstein_1d,
 )
@@ -374,8 +381,6 @@ class TestSlicedWasserstein:
             sliced_wasserstein(x, x)  # type: ignore[call-arg]
 
     def test_an_rngs_stream_supplies_the_key(self) -> None:
-        from flax import nnx
-
         x = jnp.array([[0.0, 0.0], [1.0, 0.0]])
         y = x + 1.0
         from_rngs = sliced_wasserstein(x, y, key=nnx.Rngs(sample=7))
@@ -383,8 +388,6 @@ class TestSlicedWasserstein:
         assert float(from_rngs) == pytest.approx(float(from_key))
 
     def test_the_default_projection_count(self) -> None:
-        import inspect
-
         assert inspect.signature(sliced_wasserstein).parameters["num_projections"].default == 256
 
     def test_unequal_sample_counts_are_refused(self) -> None:
@@ -392,8 +395,6 @@ class TestSlicedWasserstein:
             sliced_wasserstein(jnp.zeros((3, 2)), jnp.zeros((4, 2)), key=jax.random.key(0))
 
     def test_jit_traces_once_for_new_keys_and_data(self) -> None:
-        from substrax.testing import TraceCounter
-
         counter = TraceCounter()
         compiled = jax.jit(counter.wrap(sliced_wasserstein), static_argnames=("num_projections",))
         x = jnp.ones((5, 3))
@@ -486,8 +487,6 @@ class TestDivergenceMetricRegistration:
     """Tests for divergence metric registration in MetricRegistry."""
 
     def test_all_divergence_metrics_registered(self) -> None:
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         expected = [
             "kl_divergence",
@@ -509,8 +508,6 @@ class TestDivergenceMetricRegistration:
             assert registry.has(name), f"Metric '{name}' not registered"
 
     def test_divergence_domain(self) -> None:
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         div_metrics = registry.list_by_domain("divergence")
         assert len(div_metrics) == 14
@@ -521,8 +518,6 @@ class TestDivergenceMetricRegistration:
         A fixed set makes values from different suite runs comparable, at the price of being
         a pseudometric, which the entry's properties record.
         """
-        from calibrax.metrics import MetricRegistry
-        from calibrax.metrics.functional.divergence import SLICED_WASSERSTEIN_REGISTRY_SEED
 
         entry = MetricRegistry().get("sliced_wasserstein")
         x = jax.random.normal(jax.random.key(8), (16, 3))
@@ -537,17 +532,12 @@ class TestDivergenceMetricRegistration:
         assert entry.properties.is_symmetric is True
 
     def test_all_direction_lower(self) -> None:
-        from calibrax.core.models import MetricDirection
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         div_metrics = registry.list_by_domain("divergence")
         for m in div_metrics:
             assert m.direction == MetricDirection.LOWER
 
     def test_symmetry_flags(self) -> None:
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         assert registry.get("js_divergence").properties.is_symmetric is True
         assert registry.get("kl_divergence").properties.is_symmetric is False
@@ -556,21 +546,15 @@ class TestDivergenceMetricRegistration:
 
 class TestKolmogorovSmirnovDistance:
     def test_identical_samples_have_zero_distance(self) -> None:
-        from calibrax.metrics.functional.divergence import kolmogorov_smirnov_distance
-
         sample = jnp.array([0.1, 0.5, 0.9, 1.3])
         assert kolmogorov_smirnov_distance(sample, sample) == pytest.approx(0.0, abs=1e-6)
 
     def test_disjoint_samples_have_distance_one(self) -> None:
-        from calibrax.metrics.functional.divergence import kolmogorov_smirnov_distance
-
         assert kolmogorov_smirnov_distance(
             jnp.array([0.0, 1.0]), jnp.array([5.0, 6.0])
         ) == pytest.approx(1.0, abs=1e-6)
 
     def test_matches_scipy(self) -> None:
-        from calibrax.metrics.functional.divergence import kolmogorov_smirnov_distance
-
         stats = pytest.importorskip("scipy.stats")
         rng = np.random.default_rng(0)
         a, b = rng.standard_normal(40), rng.standard_normal(55) + 0.3

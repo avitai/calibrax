@@ -15,6 +15,7 @@ import jax.numpy as jnp
 from jax.typing import ArrayLike
 
 from calibrax.metrics._utils import _EPSILON, safe_root
+from calibrax.metrics.functional.divergence import wasserstein_1d
 
 
 def chamfer_distance(set_a: ArrayLike, set_b: ArrayLike) -> jax.Array:
@@ -67,8 +68,6 @@ def earth_movers_distance_1d(a: ArrayLike, b: ArrayLike) -> jax.Array:
         >>> earth_movers_distance_1d(jnp.array([1.0, 2.0, 3.0]), jnp.array([1.0, 2.0, 3.0]))
         0.0
     """
-    from calibrax.metrics.functional.divergence import wasserstein_1d
-
     return wasserstein_1d(a, b)
 
 

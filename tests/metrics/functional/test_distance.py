@@ -5,7 +5,10 @@ from __future__ import annotations
 import jax
 import jax.numpy as jnp
 import pytest
+from substrax.testing import TraceCounter
 
+from calibrax.core.models import MetricDirection
+from calibrax.metrics import MetricRegistry
 from calibrax.metrics.functional.distance import (
     chebyshev_distance,
     cosine_distance,
@@ -383,8 +386,6 @@ class TestRandersDistance:
         assert float(batch) == pytest.approx(float(jnp.mean(jnp.stack(pairs))), rel=1e-6)
 
     def test_jit_traces_once_with_a_traced_direction(self) -> None:
-        from substrax.testing import TraceCounter
-
         counter = TraceCounter()
         compiled = jax.jit(counter.wrap(randers_distance), static_argnames=("magnitude",))
         a = jnp.zeros(3)
@@ -420,8 +421,6 @@ class TestDistanceMetricRegistration:
     """Tests for distance metric registration in MetricRegistry."""
 
     def test_all_distance_metrics_registered(self) -> None:
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         expected = [
             "cosine_distance",
@@ -440,24 +439,17 @@ class TestDistanceMetricRegistration:
             assert registry.has(name), f"Metric '{name}' not registered"
 
     def test_distance_domain(self) -> None:
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         distance_metrics = registry.list_by_domain("distance")
         assert len(distance_metrics) == 11
 
     def test_all_direction_lower(self) -> None:
-        from calibrax.core.models import MetricDirection
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         distance_metrics = registry.list_by_domain("distance")
         for m in distance_metrics:
             assert m.direction == MetricDirection.LOWER
 
     def test_true_metric_flags(self) -> None:
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         # True metrics
         for name in ["euclidean_distance", "manhattan_distance", "poincare_distance"]:
@@ -467,14 +459,10 @@ class TestDistanceMetricRegistration:
             assert registry.get(name).properties.is_true_metric is False
 
     def test_randers_not_symmetric(self) -> None:
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         assert registry.get("randers_distance").properties.is_symmetric is False
 
     def test_invariance_queries(self) -> None:
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         rotation_invariant = registry.list_by_invariance("rotation")
         names = {m.name for m in rotation_invariant}

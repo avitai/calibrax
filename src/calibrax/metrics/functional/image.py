@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import jax
 import jax.numpy as jnp
+from jax import image as jax_image, lax
 from jax.typing import ArrayLike
 
 from calibrax.metrics._utils import _EPSILON
@@ -66,8 +67,6 @@ def _conv2d(image: jax.Array, kernel: jax.Array) -> jax.Array:
     pad_h = kernel.shape[0] // 2
     pad_w = kernel.shape[1] // 2
     result = jnp.pad(img, ((0, 0), (0, 0), (pad_h, pad_h), (pad_w, pad_w)), mode="edge")
-
-    from jax import lax
 
     out = lax.conv_general_dilated(
         result,
@@ -306,8 +305,6 @@ def ms_ssim(
             h, w = pred_arr.shape[0], pred_arr.shape[1]
             new_h, new_w = max(h // 2, 1), max(w // 2, 1)
             if is_multichannel:
-                from jax import image as jax_image
-
                 pred_arr = jax_image.resize(
                     pred_arr, (new_h, new_w, pred_arr.shape[2]), method="bilinear"
                 )
@@ -315,8 +312,6 @@ def ms_ssim(
                     tgt_arr, (new_h, new_w, tgt_arr.shape[2]), method="bilinear"
                 )
             else:
-                from jax import image as jax_image
-
                 pred_arr = jax_image.resize(pred_arr, (new_h, new_w), method="bilinear")
                 tgt_arr = jax_image.resize(tgt_arr, (new_h, new_w), method="bilinear")
         else:

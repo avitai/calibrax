@@ -19,7 +19,7 @@ import jax
 import jax.numpy as jnp
 from jax.typing import ArrayLike
 
-from calibrax.metrics._utils import _EPSILON, _FEATURE_MATRIX_NDIM
+from calibrax.metrics._utils import _EPSILON, _FEATURE_MATRIX_NDIM, matrix_sqrtm
 
 
 # A sample covariance needs at least two samples; with one, the estimate divides by zero.
@@ -292,7 +292,6 @@ def frechet_distance(
     Returns:
         Scalar distance as a JAX array, floored at zero.
     """
-    from calibrax.metrics._utils import matrix_sqrtm
 
     def _symmetrize(matrix: jax.Array) -> jax.Array:
         return 0.5 * (matrix + matrix.T)

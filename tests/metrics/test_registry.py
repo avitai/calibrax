@@ -15,6 +15,7 @@ from calibrax.metrics import (
     MetricTier,
 )
 from calibrax.metrics._registry import register_metric
+from calibrax.metrics._types import MetricProperties
 
 
 class TestMetricTier:
@@ -81,7 +82,6 @@ class TestMetricEntry:
 
     def test_invariances(self) -> None:
         """Should accept and store invariance tuples."""
-        from calibrax.metrics._types import MetricProperties
 
         entry = MetricEntry(
             name="test",
@@ -197,7 +197,6 @@ class TestMetricRegistry:
 
     def test_list_by_invariance(self) -> None:
         """Metrics with invariances should be findable."""
-        from calibrax.metrics._types import MetricProperties
 
         registry = MetricRegistry()
         entry = MetricEntry(

@@ -13,7 +13,8 @@ calibrax <command> [options]
 
 ### `profile`
 
-Profile a JAX function with timing, resource, and optional energy/FLOP measurement.
+Profile a JAX function: timing, and optionally FLOPs and CPU energy. Each call's result is
+waited on with `jax.block_until_ready` before its time is taken.
 
 ```bash
 calibrax profile --module <PYTHON.PATH> --function <NAME> \
@@ -26,7 +27,7 @@ calibrax profile --module <PYTHON.PATH> --function <NAME> \
 | `--function` | Yes | — | Function name within the module |
 | `--warmup` | No | `1` | Number of warmup iterations to exclude |
 | `--iterations` | No | `10` | Number of timed iterations |
-| `--energy` | No | off | Enable energy monitoring |
+| `--energy` | No | off | Measure CPU energy through Linux RAPL (readable by root on most systems) |
 | `--flops` | No | off | Enable FLOP counting |
 | `--data` | No | None | Store directory to persist profiling results |
 
@@ -46,6 +47,25 @@ Timing Results:
 
 Profile complete.
 ```
+
+---
+
+### `profile-gpu`
+
+`profile` with GPU and CPU energy, the GPU's power read through NVIDIA's NVML. Needs the
+`cuda12` extra; without it the command fails with the install command.
+
+```bash
+calibrax profile-gpu --module <PYTHON.PATH> --function <NAME> \
+    [--gpu-index <N>] [--warmup <N>] [--iterations <N>] [--flops] [--data <PATH>]
+```
+
+| Option | Required | Default | Description |
+|--------|----------|---------|-------------|
+| `--gpu-index` | No | `0` | NVML index of the GPU to measure |
+
+The other options are `profile`'s. The output adds an `Energy Results` section with the GPU
+energy, the mean GPU power and, where RAPL is readable, the CPU energy.
 
 ---
 

@@ -12,7 +12,7 @@ import jax.numpy as jnp
 import pytest
 
 from calibrax.profiling.flops import FlopsUnavailableError
-from calibrax.profiling.hardware import HardwareSpec
+from calibrax.profiling.hardware import detect_hardware_specs, HardwareSpec
 from calibrax.profiling.roofline import (
     _calculate_alignment_score,
     _recommendations,
@@ -201,7 +201,6 @@ class TestRooflineAnalyzer:
 
     def test_default_hardware_specs_auto_detected(self) -> None:
         """Default factory calls detect_hardware_specs for auto-detection."""
-        from calibrax.profiling.hardware import detect_hardware_specs
 
         assert RooflineAnalyzer().hardware_specs == detect_hardware_specs()
 

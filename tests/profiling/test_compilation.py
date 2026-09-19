@@ -17,6 +17,7 @@ import jax
 import jax.numpy as jnp
 import pytest
 
+import calibrax.profiling.compilation as compilation_mod
 from calibrax.profiling.compilation import (
     _input_signature,
     _parse_hlo_instruction,
@@ -617,7 +618,6 @@ class TestCompilationProfilerAdditionalBranches:
 
     def test_module_import_falls_back_without_jax_runtime_error_attr(self) -> None:
         """Import guard should use RuntimeError when jax.errors is unavailable."""
-        import calibrax.profiling.compilation as compilation_mod
 
         module_path = Path(compilation_mod.__file__)
         spec = importlib.util.spec_from_file_location("compilation_import_probe", module_path)

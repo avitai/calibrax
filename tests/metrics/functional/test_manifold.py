@@ -6,6 +6,7 @@ import jax
 import jax.numpy as jnp
 import pytest
 
+from calibrax.metrics.functional.distance import lorentz_distance
 from calibrax.metrics.functional.manifold import (
     grassmann_distance,
     spd_affine_invariant_distance,
@@ -259,7 +260,6 @@ class TestUltrahyperbolicDistance:
 
     def test_lorentz_special_case(self) -> None:
         """signature=(1, n) matches lorentz_distance."""
-        from calibrax.metrics.functional.distance import lorentz_distance
 
         # Points on the hyperboloid: -x0^2 + x1^2 + x2^2 = -1
         a = jnp.array([jnp.sqrt(2.0), 1.0, 0.0])

@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import math
+
 import jax
 import jax.numpy as jnp
 import pytest
 
+from calibrax.metrics.functional.regression import mae, mse
 from calibrax.metrics.plugins.scientific import (
     binding_affinity_metrics,
     chemical_validity,
@@ -75,7 +78,6 @@ class TestBindingAffinityMetrics:
 
     def test_delegates_to_regression(self) -> None:
         """Results should match calling regression metrics directly."""
-        from calibrax.metrics.functional.regression import mae, mse
 
         predictions = jnp.array([1.0, 3.0, 5.0])
         targets = jnp.array([1.5, 2.5, 4.5])
@@ -119,6 +121,5 @@ class TestConformationalDiversity:
             ]
         )
         result = conformational_diversity(coords)
-        import math
 
         assert result == pytest.approx(math.sqrt(3.0), abs=1e-4)

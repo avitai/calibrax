@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import jax
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import pytest
@@ -79,7 +80,6 @@ def discover_doc_code_blocks(docs_dir: Path) -> list[CodeBlock]:
 
 def _build_preamble() -> dict[str, Any]:
     """Build the preamble namespace injected into every file's execution context."""
-    import jax
 
     mock_model = MagicMock()
     mock_model.forward = MagicMock(return_value=jnp.ones((4, 4)))

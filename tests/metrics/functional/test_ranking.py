@@ -5,7 +5,11 @@ from __future__ import annotations
 import jax
 import jax.numpy as jnp
 import pytest
+from substrax.testing import TraceCounter
 
+from calibrax.core.models import MetricDirection
+from calibrax.metrics import MetricRegistry
+from calibrax.metrics._types import MetricSignature
 from calibrax.metrics.functional.ranking import (
     coverage,
     hit_rate,
@@ -197,8 +201,6 @@ class TestCoverage:
         assert float(coverage(items, catalog_size=5)) == pytest.approx(0.2)
 
     def test_jit_traces_once_with_a_static_catalog_size(self) -> None:
-        from substrax.testing import TraceCounter
-
         counter = TraceCounter()
         compiled = jax.jit(counter.wrap(coverage), static_argnames=("catalog_size",))
         with counter.expect(new_traces=1):
@@ -219,9 +221,6 @@ class TestCoverage:
         assert result.shape == ()
 
     def test_the_registry_marks_it_custom(self) -> None:
-        from calibrax.metrics import MetricRegistry
-        from calibrax.metrics._types import MetricSignature
-
         assert MetricRegistry().get("coverage").signature == MetricSignature.CUSTOM
 
 
@@ -229,8 +228,6 @@ class TestRankingMetricRegistration:
     """Tests for ranking metric registration."""
 
     def test_all_registered(self) -> None:
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         expected = [
             "ndcg",
@@ -246,16 +243,11 @@ class TestRankingMetricRegistration:
             assert registry.has(name), f"Metric '{name}' not registered"
 
     def test_ranking_domain(self) -> None:
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         ranking_metrics = registry.list_by_domain("ranking")
         assert len(ranking_metrics) == 8
 
     def test_all_direction_higher(self) -> None:
-        from calibrax.core.models import MetricDirection
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         for m in registry.list_by_domain("ranking"):
             assert m.direction == MetricDirection.HIGHER

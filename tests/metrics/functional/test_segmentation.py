@@ -6,6 +6,8 @@ import jax
 import jax.numpy as jnp
 import pytest
 
+from calibrax.core.models import MetricDirection
+from calibrax.metrics import MetricRegistry
 from calibrax.metrics.functional.segmentation import (
     dice_coefficient,
     iou,
@@ -122,23 +124,16 @@ class TestSegmentationMetricRegistration:
     """Tests for segmentation metric registration in MetricRegistry."""
 
     def test_segmentation_metrics_registered(self) -> None:
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         for name in ["iou", "dice_coefficient", "pixel_accuracy"]:
             assert registry.has(name), f"Metric '{name}' not registered"
 
     def test_segmentation_domain(self) -> None:
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         seg_metrics = registry.list_by_domain("segmentation")
         assert len(seg_metrics) == 3
 
     def test_direction_higher(self) -> None:
-        from calibrax.core.models import MetricDirection
-        from calibrax.metrics import MetricRegistry
-
         registry = MetricRegistry()
         seg_metrics = registry.list_by_domain("segmentation")
         for m in seg_metrics:
