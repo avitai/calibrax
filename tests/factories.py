@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+import types
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
@@ -298,3 +299,37 @@ class FakeGpu:
     def power(self) -> GpuPower | None:
         """The fixed power reading."""
         return self.power_reading
+
+
+NVML_NOT_SUPPORTED = 3
+
+
+class FakeNvmlError(Exception):
+    """``pynvml.NVMLError``: carries the NVML return code as ``value``."""
+
+    def __init__(self, value: int) -> None:
+        super().__init__(value)
+        self.value = value
+
+
+def make_fake_nvml() -> types.SimpleNamespace:
+    """The NVML calls ``NvmlDevice`` makes, answering for one GPU; ``calls`` records init/shutdown.
+
+    Patch it over ``calibrax.profiling.nvml.pynvml`` to run NVML code without a GPU or driver.
+    """
+    calls: list[str] = []
+    return types.SimpleNamespace(
+        calls=calls,
+        NVMLError=FakeNvmlError,
+        NVML_ERROR_NOT_SUPPORTED=NVML_NOT_SUPPORTED,
+        NVML_CLOCK_GRAPHICS=0,
+        NVML_CLOCK_MEM=2,
+        nvmlInit=lambda: calls.append("init"),
+        nvmlShutdown=lambda: calls.append("shutdown"),
+        nvmlDeviceGetHandleByIndex=lambda index: f"gpu{index}",
+        nvmlDeviceGetMemoryInfo=lambda _h: types.SimpleNamespace(used=2 * 2**30, total=8 * 2**30),
+        nvmlDeviceGetUtilizationRates=lambda _h: types.SimpleNamespace(gpu=73, memory=40),
+        nvmlDeviceGetClockInfo=lambda _h, kind: {0: 1500, 2: 10_000}[kind],
+        nvmlDeviceGetPowerUsage=lambda _h: 240_000,
+        nvmlDeviceGetPowerManagementLimit=lambda _h: 450_000,
+    )

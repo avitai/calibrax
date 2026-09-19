@@ -27,6 +27,8 @@ import pytest
 from flax import nnx
 from matplotlib.figure import Figure
 
+from tests.factories import make_fake_nvml
+
 
 logger = logging.getLogger(__name__)
 
@@ -206,6 +208,9 @@ def _patch_external_dependencies(file_path: str):
                     return_value=None,
                 )
             )
+        if file_path == "user-guide/profiling.md":
+            # The NVML examples read a GPU; a fake NVML answers where no driver is present.
+            stack.enter_context(patch("calibrax.profiling.nvml.pynvml", make_fake_nvml()))
         yield
 
 
