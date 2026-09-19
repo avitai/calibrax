@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 import jax.numpy as jnp
 import pytest
 from flax import nnx
+from jax.typing import ArrayLike
 
 from calibrax.core.protocols import StatefulMetricProtocol
 from calibrax.exporters.plots import PlotGenerator
@@ -25,12 +25,12 @@ class MockBackboneMetric(FrozenBackboneMetric):
         """Reset accumulated state."""
         self._accumulated = []
 
-    def _extract_features(self, **kwargs: Any) -> float:
+    def _extract_features(self, **kwargs: ArrayLike) -> float:
         """Extract mean of values."""
         values = kwargs.get("values", jnp.array([0.0]))
         return float(jnp.mean(values))
 
-    def _accumulate(self, features: Any) -> None:
+    def _accumulate(self, features: float) -> None:
         """Accumulate extracted features."""
         self._accumulated.append(features)
 
@@ -115,7 +115,7 @@ class MockLearnedMetric(LearnedMetric):
         """Reset accumulated state."""
         self._accumulated = []
 
-    def update(self, **kwargs: Any) -> None:
+    def update(self, **kwargs: ArrayLike) -> None:
         """Update with mock computation."""
         values = jnp.asarray(kwargs["values"])
         output = self._linear(values)

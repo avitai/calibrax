@@ -18,6 +18,13 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Changed
 
+- `bleu(candidate, references)` takes `references` as a `list[str]`, a `list[list[str]]` or a
+  mix, where the annotation admitted only `list[str | list[str]]` (a list is invariant, so a
+  plain `list[str]` did not type-check). A bare string is still refused, since it would read
+  as one reference per character.
+- pyright checks `tests/` as well as `src/` in the pre-commit hook and in CI, with missing
+  imports, incompatible overrides and function member access reported; ruff's `ANN` rules,
+  `ANN401` (no `Any`) among them, apply to the tests too.
 - Requires `substrax>=0.1.14` and `pydantic>=2.10`; the lock moves substrax from 0.1.11 and
   nothing else (pydantic was already locked through the optional extras). Calibrax's `setup.sh`
   writes its managed environment file with `python -m substrax.runtime.managed_env` (substrax

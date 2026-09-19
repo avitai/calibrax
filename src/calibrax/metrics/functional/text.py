@@ -88,7 +88,7 @@ def _modified_precision(
 
 def bleu(
     candidate: str | list[str],
-    references: list[str | list[str]],
+    references: list[str] | list[list[str]] | list[str | list[str]],
     *,
     max_n: int = 4,
     weights: tuple[float, ...] | None = None,
@@ -99,7 +99,8 @@ def bleu(
 
     Args:
         candidate: Candidate translation (string or token list).
-        references: List of reference translations.
+        references: The reference translations, each a string or a token list. A list, not
+            any sequence: a bare string would otherwise read as one reference per character.
         max_n: Maximum n-gram order (default 4 for BLEU-4).
         weights: Weights for each n-gram order. Default: uniform (1/max_n each).
 

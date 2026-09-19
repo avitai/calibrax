@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import inspect
-from typing import Any
 
 import jax
 import jax.numpy as jnp
@@ -229,7 +228,7 @@ class TestFDivergence:
         p = jnp.array([0.3, 0.7])
         q = jnp.array([0.6, 0.4])
 
-        def kl_generator(u: Any) -> Any:
+        def kl_generator(u: jax.Array) -> jax.Array:
             return u * jnp.log(jnp.maximum(u, 1e-8))
 
         f_div = f_divergence(p, q, generator=kl_generator)
@@ -240,7 +239,7 @@ class TestFDivergence:
         p = jnp.array([0.3, 0.7])
         q = jnp.array([0.6, 0.4])
 
-        def tv_generator(u: Any) -> Any:
+        def tv_generator(u: jax.Array) -> jax.Array:
             return 0.5 * jnp.abs(u - 1.0)
 
         f_div = f_divergence(p, q, generator=tv_generator)
@@ -250,7 +249,7 @@ class TestFDivergence:
     def test_custom_generator(self) -> None:
         p = jnp.array([0.5, 0.5])
 
-        def custom_f(u: Any) -> Any:
+        def custom_f(u: jax.Array) -> jax.Array:
             return (u - 1.0) ** 2
 
         result = f_divergence(p, p, generator=custom_f)
@@ -435,7 +434,7 @@ class TestBregmanDivergence:
         x = jnp.array([1.0, 0.0])
         y = jnp.array([0.0, 1.0])
 
-        def psi(z: Any) -> Any:
+        def psi(z: jax.Array) -> jax.Array:
             return 0.5 * jnp.sum(z**2)
 
         result = bregman_divergence(x, y, generator=psi)
@@ -447,7 +446,7 @@ class TestBregmanDivergence:
         x = jnp.array([2.0, 1.0])
         y = jnp.array([1.0, 2.0])
 
-        def psi(z: Any) -> Any:
+        def psi(z: jax.Array) -> jax.Array:
             return 0.5 * jnp.sum(z**2)
 
         result = bregman_divergence(x, y, generator=psi)
@@ -458,7 +457,7 @@ class TestBregmanDivergence:
         x = jnp.array([0.3, 0.7])
         y = jnp.array([0.6, 0.4])
 
-        def psi(z: Any) -> Any:
+        def psi(z: jax.Array) -> jax.Array:
             return 0.5 * jnp.sum(z**2)
 
         result = bregman_divergence(x, y, generator=psi)
@@ -467,7 +466,7 @@ class TestBregmanDivergence:
     def test_identical_is_zero(self) -> None:
         x = jnp.array([0.5, 0.5])
 
-        def psi(z: Any) -> Any:
+        def psi(z: jax.Array) -> jax.Array:
             return 0.5 * jnp.sum(z**2)
 
         result = bregman_divergence(x, x, generator=psi)
@@ -476,7 +475,7 @@ class TestBregmanDivergence:
     def test_returns_jax_scalar(self) -> None:
         x = jnp.array([1.0])
 
-        def psi(z: Any) -> Any:
+        def psi(z: jax.Array) -> jax.Array:
             return 0.5 * jnp.sum(z**2)
 
         result = bregman_divergence(x, x, generator=psi)
@@ -520,6 +519,7 @@ class TestDivergenceMetricRegistration:
         """
 
         entry = MetricRegistry().get("sliced_wasserstein")
+        assert entry.fn is not None
         x = jax.random.normal(jax.random.key(8), (16, 3))
         y = x + 0.25
 

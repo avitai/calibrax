@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import SupportsFloat
+
 import numpy as np
 import pytest
 from scipy.linalg import sqrtm
@@ -26,9 +28,9 @@ from calibrax.metrics.plugins.image import FIDMetric
 ABS_TOL = 1e-6
 
 
-def _assert_close(actual: object, expected: float) -> None:
+def _assert_close(actual: SupportsFloat, expected: SupportsFloat) -> None:
     """Assert JAX/Python scalar numerical equivalence."""
-    assert float(actual) == pytest.approx(expected, abs=ABS_TOL)
+    assert float(actual) == pytest.approx(float(expected), abs=ABS_TOL)
 
 
 def _numpy_ensemble_crps(predictions: np.ndarray, targets: np.ndarray) -> float:

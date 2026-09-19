@@ -4,26 +4,38 @@ from __future__ import annotations
 
 import time
 import types
-from collections.abc import Mapping
-from dataclasses import dataclass
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass, replace
 from datetime import datetime
-from typing import Any
+from typing import Protocol
 
 from calibrax.core.models import Metric, MetricDef, MetricDirection, Point, Run
+from calibrax.profiling._sampling import SamplingThread
 from calibrax.profiling.energy import EnergySummary
 from calibrax.profiling.gpu import HardwareConfig
 from calibrax.profiling.resources import GpuClocks, GpuMemory, GpuPower, ResourceSummary
 from calibrax.profiling.timing_records import TimingSample
 
 
-_CPU_HARDWARE_KWARGS: dict[str, str | int | bool] = {
-    "platform": "cpu",
-    "precision": "float32",
-    "tile_size": 64,
-    "critical_batch_size": 32,
-    "memory_layout": "row_major",
-    "use_vmem_optimization": False,
-}
+def _run(
+    points: tuple[Point, ...],
+    *,
+    run_id: str,
+    commit: str | None = None,
+    branch: str | None = None,
+    metric_defs: dict[str, MetricDef] | None = None,
+    timestamp: datetime | None = None,
+    environment: Mapping[str, str] | None = None,
+) -> Run:
+    """A Run of ``points``; a field left None keeps Run's own default."""
+    run = Run(points=points, id=run_id, commit=commit, branch=branch)
+    if metric_defs is not None:
+        run = replace(run, metric_defs=metric_defs)
+    if timestamp is not None:
+        run = replace(run, timestamp=timestamp)
+    if environment is not None:
+        run = replace(run, environment=dict(environment))
+    return run
 
 
 def make_throughput_latency_defs() -> dict[str, MetricDef]:
@@ -49,20 +61,8 @@ def make_single_framework_run(
     environment: Mapping[str, str] | None = None,
 ) -> Run:
     """Build a single-point run with throughput and latency metrics."""
-    run_kwargs: dict[str, object] = {"id": run_id}
-    if commit is not None:
-        run_kwargs["commit"] = commit
-    if branch is not None:
-        run_kwargs["branch"] = branch
-    if timestamp is not None:
-        run_kwargs["timestamp"] = timestamp
-    if environment is not None:
-        run_kwargs["environment"] = dict(environment)
-    if metric_defs is not None:
-        run_kwargs["metric_defs"] = metric_defs
-
-    return Run(
-        points=(
+    return _run(
+        (
             Point(
                 name=point_name,
                 scenario=scenario,
@@ -73,7 +73,12 @@ def make_single_framework_run(
                 },
             ),
         ),
-        **run_kwargs,
+        run_id=run_id,
+        commit=commit,
+        branch=branch,
+        metric_defs=metric_defs,
+        timestamp=timestamp,
+        environment=environment,
     )
 
 
@@ -93,16 +98,8 @@ def make_dual_framework_run(
     metric_defs: dict[str, MetricDef] | None = None,
 ) -> Run:
     """Build a two-framework run used in exporter/comparison tests."""
-    run_kwargs: dict[str, object] = {"id": run_id}
-    if commit is not None:
-        run_kwargs["commit"] = commit
-    if branch is not None:
-        run_kwargs["branch"] = branch
-    if metric_defs is not None:
-        run_kwargs["metric_defs"] = metric_defs
-
-    return Run(
-        points=(
+    return _run(
+        (
             Point(
                 name=point_name,
                 scenario=scenario,
@@ -122,7 +119,10 @@ def make_dual_framework_run(
                 },
             ),
         ),
-        **run_kwargs,
+        run_id=run_id,
+        commit=commit,
+        branch=branch,
+        metric_defs=metric_defs,
     )
 
 
@@ -138,16 +138,8 @@ def make_throughput_only_run(
     metric_defs: dict[str, MetricDef] | None = None,
 ) -> Run:
     """Build a single-point run with throughput only."""
-    run_kwargs: dict[str, object] = {"id": run_id}
-    if commit is not None:
-        run_kwargs["commit"] = commit
-    if branch is not None:
-        run_kwargs["branch"] = branch
-    if metric_defs is not None:
-        run_kwargs["metric_defs"] = metric_defs
-
-    return Run(
-        points=(
+    return _run(
+        (
             Point(
                 name=point_name,
                 scenario=scenario,
@@ -155,7 +147,10 @@ def make_throughput_only_run(
                 metrics={"throughput": Metric(value=throughput)},
             ),
         ),
-        **run_kwargs,
+        run_id=run_id,
+        commit=commit,
+        branch=branch,
+        metric_defs=metric_defs,
     )
 
 
@@ -235,23 +230,45 @@ def make_default_resource_summary(
 
 def make_empty_energy_summary() -> EnergySummary:
     """Build an empty EnergySummary with all optional metrics unset."""
-    empty_values: dict[str, float | None] = {
-        "total_gpu_energy_joules": None,
-        "total_cpu_energy_joules": None,
-        "total_combined_energy_joules": None,
-        "mean_gpu_power_watts": None,
-        "peak_gpu_power_watts": None,
-    }
-    return EnergySummary(duration_sec=0.0, num_samples=0, **empty_values)
+    return EnergySummary(
+        total_gpu_energy_joules=None,
+        total_cpu_energy_joules=None,
+        total_combined_energy_joules=None,
+        mean_gpu_power_watts=None,
+        peak_gpu_power_watts=None,
+        duration_sec=0.0,
+        num_samples=0,
+    )
 
 
 def make_cpu_hardware_config() -> HardwareConfig:
     """Build a canonical CPU HardwareConfig."""
-    return HardwareConfig(**_CPU_HARDWARE_KWARGS)
+    return HardwareConfig(
+        platform="cpu",
+        precision="float32",
+        tile_size=64,
+        critical_batch_size=32,
+        memory_layout="row_major",
+        use_vmem_optimization=False,
+    )
+
+
+class _SamplingMonitor(Protocol):
+    """``ResourceMonitor`` and ``EnergyMonitor``: a context manager sampling in a thread."""
+
+    def __enter__(self) -> object: ...
+
+    def __exit__(self, *args: object) -> None: ...
+
+    @property
+    def samples(self) -> Sequence[object]: ...
+
+    @property
+    def _sampling_thread(self) -> SamplingThread: ...
 
 
 def assert_monitor_collects_samples_twice(
-    monitor: Any,
+    monitor: _SamplingMonitor,
     *,
     sleep_seconds: float = 0.15,
 ) -> None:
@@ -266,7 +283,7 @@ def assert_monitor_collects_samples_twice(
     assert second_count > 0
 
 
-def assert_monitor_thread_lifecycle(monitor: Any) -> None:
+def assert_monitor_thread_lifecycle(monitor: _SamplingMonitor) -> None:
     """Assert a monitor starts and stops its sampling thread in a context block."""
     assert monitor._sampling_thread._thread is None
     with monitor:

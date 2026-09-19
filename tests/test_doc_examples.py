@@ -14,10 +14,10 @@ from __future__ import annotations
 import logging
 import re
 import textwrap
+from collections.abc import Iterator
 from contextlib import contextmanager, ExitStack
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 from unittest.mock import MagicMock, patch
 
 import jax
@@ -80,7 +80,7 @@ def discover_doc_code_blocks(docs_dir: Path) -> list[CodeBlock]:
     return blocks
 
 
-def _build_preamble() -> dict[str, Any]:
+def _build_preamble() -> dict[str, object]:
     """Build the preamble namespace injected into every file's execution context."""
 
     mock_model = MagicMock()
@@ -134,7 +134,7 @@ def _example_figure() -> Figure:
     return fig
 
 
-def _run_code_block(code: str, namespace: dict[str, Any], label: str) -> None:
+def _run_code_block(code: str, namespace: dict[str, object], label: str) -> None:
     """Compile and run a code block in the given namespace.
 
     This intentionally runs documentation code blocks for testing — the input
@@ -146,7 +146,7 @@ def _run_code_block(code: str, namespace: dict[str, Any], label: str) -> None:
 
 
 @contextmanager
-def _patch_external_dependencies(file_path: str):
+def _patch_external_dependencies(file_path: str) -> Iterator[None]:
     """Patch external side effects for doc files that include networked examples."""
     with ExitStack() as stack:
         if file_path == "user-guide/exporters.md":

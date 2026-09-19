@@ -4,10 +4,9 @@ Verifies runtime_checkable isinstance checks for conforming and
 non-conforming classes across all protocol definitions.
 """
 
-from typing import Any
-
 import jax
 import jax.numpy as jnp
+from jax.typing import ArrayLike
 
 from calibrax.core.protocols import (
     BatchableDatasetProtocol,
@@ -63,7 +62,7 @@ class TestDatasetProtocol:
             def __len__(self) -> int:
                 return 10
 
-            def __getitem__(self, idx: int) -> Any:
+            def __getitem__(self, idx: int) -> int:
                 return idx
 
         assert isinstance(GoodDataset(), DatasetProtocol)
@@ -84,11 +83,11 @@ class TestBatchableDatasetProtocol:
             def __len__(self) -> int:
                 return 100
 
-            def __getitem__(self, idx: int) -> Any:
+            def __getitem__(self, idx: int) -> int:
                 return idx
 
-            def get_batch(self, batch_size: int, start_idx: int) -> dict[str, Any]:
-                return {"data": list(range(start_idx, start_idx + batch_size))}
+            def get_batch(self, batch_size: int, start_idx: int) -> dict[str, jax.Array]:
+                return {"data": jnp.arange(start_idx, start_idx + batch_size)}
 
         assert isinstance(GoodBatchable(), BatchableDatasetProtocol)
 
@@ -97,10 +96,10 @@ class TestBatchableDatasetProtocol:
             def __len__(self) -> int:
                 return 100
 
-            def __getitem__(self, idx: int) -> Any:
+            def __getitem__(self, idx: int) -> int:
                 return idx
 
-            def get_batch(self, batch_size: int, start_idx: int) -> dict[str, Any]:  # noqa: ARG002  # protocol stub
+            def get_batch(self, batch_size: int, start_idx: int) -> dict[str, jax.Array]:  # noqa: ARG002  # protocol stub
                 return {}
 
         instance = GoodBatchable()
@@ -112,7 +111,7 @@ class TestBatchableDatasetProtocol:
             def __len__(self) -> int:
                 return 10
 
-            def __getitem__(self, idx: int) -> Any:
+            def __getitem__(self, idx: int) -> int:
                 return idx
 
         assert isinstance(JustDataset(), DatasetProtocol)
@@ -168,7 +167,7 @@ class TestStatefulMetricProtocol:
             def name(self) -> str:
                 return "my_metric"
 
-            def update(self, **kwargs: Any) -> None:
+            def update(self, **kwargs: ArrayLike) -> None:
                 pass
 
             def compute(self) -> dict[str, float]:

@@ -6,14 +6,14 @@ from pathlib import Path
 
 import pytest
 
-from calibrax.core.models import MetricDef
+from calibrax.core.models import MetricDef, Run
 from calibrax.exporters.publication import PublicationGenerator
 from tests.factories import make_dual_framework_run, make_throughput_latency_defs
 
 
 def _make_run(
     metric_defs: dict[str, MetricDef] | None = None,
-):
+) -> Run:
     """Helper to create a benchmark run."""
     return make_dual_framework_run(
         metric_defs=metric_defs or make_throughput_latency_defs(),

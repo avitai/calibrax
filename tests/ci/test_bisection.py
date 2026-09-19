@@ -35,7 +35,7 @@ def _make_mock_subprocess(
     """Create a mock subprocess.run that simulates git operations."""
     mock = MagicMock()
 
-    def side_effect(cmd, *, check=False, **_kwargs):
+    def side_effect(cmd: list[str], *, check: bool = False, **_kwargs: object) -> MagicMock:
         """Model git as subprocess.run returns it: a non-zero exit raises only when ``check``."""
         result = MagicMock()
         result.returncode = 0
@@ -136,7 +136,7 @@ class TestBisectionEngine:
         mock_sub = _make_mock_subprocess(commits)
         original_side_effect = mock_sub.side_effect
 
-        def tracking_effect(cmd, **kwargs):
+        def tracking_effect(cmd: list[str], **kwargs: object) -> MagicMock:
             if cmd[1] == "checkout":
                 checkout_calls.append(cmd[2])
             return original_side_effect(cmd, **kwargs)
@@ -182,7 +182,7 @@ class TestBisectionEngine:
         mock_sub = _make_mock_subprocess(commits, symbolic_ref="main")
         original_side_effect = mock_sub.side_effect
 
-        def tracking_effect(cmd, **kwargs):
+        def tracking_effect(cmd: list[str], **kwargs: object) -> MagicMock:
             if cmd[1] == "checkout":
                 checkout_calls.append(cmd[2])
             return original_side_effect(cmd, **kwargs)

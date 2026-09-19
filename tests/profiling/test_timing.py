@@ -530,8 +530,11 @@ class TestTimeCalls:
         payload = timing.to_dict()
 
         assert set(payload) == {"samples_sec", "median_sec", "percentiles_sec", "warmup"}
-        assert all(isinstance(v, float) for v in payload["samples_sec"])
-        assert all(isinstance(k, str) for k in payload["percentiles_sec"])
+        samples, percentiles = payload["samples_sec"], payload["percentiles_sec"]
+        assert isinstance(samples, list)
+        assert isinstance(percentiles, dict)
+        assert all(isinstance(v, float) for v in samples)
+        assert all(isinstance(k, str) for k in percentiles)
 
 
 class TestTimingCollectorDefaultSync:

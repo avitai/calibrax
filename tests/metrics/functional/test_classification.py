@@ -346,7 +346,13 @@ class TestFBetaAveraging:
                     num_classes=num_classes,
                 )
                 reference = sk_fbeta(
-                    targets, predictions, beta=beta, average=average, labels=labels, zero_division=0
+                    targets,
+                    predictions,
+                    beta=beta,
+                    average=average,
+                    labels=labels,
+                    # sklearn ships no types; pyright infers str from the default "warn".
+                    zero_division=0,  # pyright: ignore[reportArgumentType]
                 )
                 assert jnp.allclose(ours, reference, atol=1e-6), (average, beta)
 
