@@ -1,9 +1,9 @@
 # calibrax.profiling.gpu
 
-GPU memory profiling and optimization. Includes `GPUMemoryProfiler` for memory
-readings from JAX's device statistics, `analyze_memory_pattern` for suggestions from a
-series of readings, `MemoryOptimizer` for pipeline memory analysis, and
-`AdaptiveOperation` for hardware-aware shape optimization.
+GPU memory profiling. Includes `GPUMemoryProfiler` for memory readings from JAX's device
+statistics, `analyze_memory_pattern` for suggestions from a series of readings, and
+`MemoryOptimizer` for pipeline memory analysis. An accelerator's ridge point and tensor-core
+shapes are in `calibrax.profiling.hardware`.
 
 ::: calibrax.profiling.gpu
     options:

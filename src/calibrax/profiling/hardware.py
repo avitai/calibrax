@@ -26,7 +26,8 @@ class HardwareSpec:
         name: The table name (``"h100_sxm"``).
         peak_flops: Dense BF16 peak with FP32 accumulate, in FLOP/s.
         memory_bandwidth: Memory bandwidth, in bytes/s.
-        tensor_core_shapes: Matrix-unit tile shapes ``(m, n, k)`` a kernel aligns to.
+        tensor_core_shapes: The CUDA tensor-core (WMMA) fragment shapes ``(m, n, k)`` for
+            bf16 and tf32; empty for a chip without CUDA tensor cores.
         simd_width: Vector width of a CPU, in lanes.
     """
 
@@ -72,46 +73,60 @@ def _specs(*specs: HardwareSpec) -> Mapping[str, HardwareSpec]:
 #   page's English edition now prints "800 GiBps"; the other editions and JAX's own table
 #   (jax/_src/tpu_info.py) give 819 GB/s, kept here.
 # cpu_generic is a stand-in for a modern server socket, not a measurement.
-# The tensor-core shapes are carried over from the earlier table; no vendor source is recorded
-# for them.
+# Tensor-core shapes: NVIDIA CUDA C++ Programming Guide (CUDA 12.3), "Element Types and Matrix
+#   Sizes" of the warp matrix functions: __nv_bfloat16 at 16x16x16, 32x8x16 and 8x32x16, tf32 at
+#   16x16x8, on compute capability 8.0 and higher ("Alternate Floating Point"); the A100 is 8.0,
+#   the RTX 4090 8.9 and the H100 9.0. TPUs and CPUs have no CUDA tensor cores.
+_WMMA_SHAPES: tuple[tuple[int, int, int], ...] = (
+    (16, 16, 16),
+    (32, 8, 16),
+    (8, 32, 16),
+    (16, 16, 8),
+)
+
 HARDWARE_SPECS: Mapping[str, HardwareSpec] = _specs(
     HardwareSpec(
         name="a100_sxm4_40gb",
         peak_flops=312.0e12,
         memory_bandwidth=1555.0e9,
-        tensor_core_shapes=((16, 16, 16), (16, 16, 8)),
+        tensor_core_shapes=_WMMA_SHAPES,
     ),
     HardwareSpec(
         name="a100_pcie_40gb",
         peak_flops=312.0e12,
         memory_bandwidth=1555.0e9,
-        tensor_core_shapes=((16, 16, 16), (16, 16, 8)),
+        tensor_core_shapes=_WMMA_SHAPES,
     ),
     HardwareSpec(
         name="a100_sxm4_80gb",
         peak_flops=312.0e12,
         memory_bandwidth=2039.0e9,
-        tensor_core_shapes=((16, 16, 16), (16, 16, 8)),
+        tensor_core_shapes=_WMMA_SHAPES,
     ),
     HardwareSpec(
         name="a100_pcie_80gb",
         peak_flops=312.0e12,
         memory_bandwidth=1935.0e9,
-        tensor_core_shapes=((16, 16, 16), (16, 16, 8)),
+        tensor_core_shapes=_WMMA_SHAPES,
     ),
     HardwareSpec(
         name="h100_sxm",
         peak_flops=989.4e12,
         memory_bandwidth=3350.0e9,
-        tensor_core_shapes=((16, 16, 16),),
+        tensor_core_shapes=_WMMA_SHAPES,
     ),
     HardwareSpec(
         name="h100_pcie",
         peak_flops=756.0e12,
         memory_bandwidth=2000.0e9,
-        tensor_core_shapes=((16, 16, 16),),
+        tensor_core_shapes=_WMMA_SHAPES,
     ),
-    HardwareSpec(name="rtx_4090", peak_flops=165.2e12, memory_bandwidth=1008.0e9),
+    HardwareSpec(
+        name="rtx_4090",
+        peak_flops=165.2e12,
+        memory_bandwidth=1008.0e9,
+        tensor_core_shapes=_WMMA_SHAPES,
+    ),
     HardwareSpec(name="tpu_v4", peak_flops=275.0e12, memory_bandwidth=1200.0e9),
     HardwareSpec(name="tpu_v5e", peak_flops=197.0e12, memory_bandwidth=819.0e9),
     HardwareSpec(name="tpu_v5p", peak_flops=459.0e12, memory_bandwidth=2765.0e9),

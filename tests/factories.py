@@ -12,7 +12,6 @@ from typing import Protocol
 from calibrax.core.models import Metric, MetricDef, MetricDirection, Point, Run
 from calibrax.profiling._sampling import SamplingThread
 from calibrax.profiling.energy import EnergySummary
-from calibrax.profiling.gpu import HardwareConfig
 from calibrax.profiling.resources import GpuClocks, GpuMemory, GpuPower, ResourceSummary
 from calibrax.profiling.timing_records import TimingSample
 
@@ -238,18 +237,6 @@ def make_empty_energy_summary() -> EnergySummary:
         peak_gpu_power_watts=None,
         duration_sec=0.0,
         num_samples=0,
-    )
-
-
-def make_cpu_hardware_config() -> HardwareConfig:
-    """Build a canonical CPU HardwareConfig."""
-    return HardwareConfig(
-        platform="cpu",
-        precision="float32",
-        tile_size=64,
-        critical_batch_size=32,
-        memory_layout="row_major",
-        use_vmem_optimization=False,
     )
 
 

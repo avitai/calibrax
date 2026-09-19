@@ -20,10 +20,8 @@ from .flops import (
     FlopsResult as FlopsResult,
 )
 from .gpu import (
-    AdaptiveOperation as AdaptiveOperation,
     analyze_memory_pattern as analyze_memory_pattern,
     GPUMemoryProfiler as GPUMemoryProfiler,
-    HardwareConfig as HardwareConfig,
     MemoryAnalysis as MemoryAnalysis,
     MemoryOptimizer as MemoryOptimizer,
 )

@@ -60,7 +60,33 @@ class TestHardwareSpecs:
         record = HARDWARE_SPECS["a100_sxm4_80gb"].to_dict()
         assert json.loads(json.dumps(record)) == record
         assert record["critical_intensity"] == pytest.approx(312.0e12 / 2039.0e9)
-        assert record["tensor_core_shapes"] == [[16, 16, 16], [16, 16, 8]]
+        assert record["tensor_core_shapes"] == [[16, 16, 16], [32, 8, 16], [8, 32, 16], [16, 16, 8]]
+
+    @pytest.mark.parametrize(
+        "name", [n for n in sorted(HARDWARE_SPECS) if n[:4] in {"a100", "h100"}]
+    )
+    def test_ampere_and_later_gpus_hold_the_wmma_shapes(self, name: str) -> None:
+        # CUDA C++ Programming Guide, Element Types and Matrix Sizes: bf16 16x16x16, 32x8x16 and
+        # 8x32x16, tf32 16x16x8, on compute capability 8.0 and higher.
+        assert HARDWARE_SPECS[name].tensor_core_shapes == (
+            (16, 16, 16),
+            (32, 8, 16),
+            (8, 32, 16),
+            (16, 16, 8),
+        )
+
+    def test_the_rtx_4090_has_the_same_tensor_cores(self) -> None:
+        # Ada is compute capability 8.9.
+        assert (
+            HARDWARE_SPECS["rtx_4090"].tensor_core_shapes
+            == HARDWARE_SPECS["h100_sxm"].tensor_core_shapes
+        )
+
+    @pytest.mark.parametrize(
+        "name", [n for n in sorted(HARDWARE_SPECS) if not n.startswith(("a100", "h100", "rtx"))]
+    )
+    def test_chips_without_cuda_tensor_cores_list_no_shapes(self, name: str) -> None:
+        assert HARDWARE_SPECS[name].tensor_core_shapes == ()
 
 
 class TestSpecForDeviceKind:

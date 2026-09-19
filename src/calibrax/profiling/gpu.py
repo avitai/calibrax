@@ -1,7 +1,7 @@
-"""GPU memory profiling and hardware-adaptive operations.
+"""GPU memory profiling and memory usage analysis.
 
-Provides hardware detection, shape optimization, GPU memory profiling
-(satisfying GPUProfilerProtocol), and memory usage analysis.
+Provides GPU memory readings from JAX's device statistics (satisfying GPUProfilerProtocol),
+suggestions from a series of readings, and pipeline memory analysis.
 GPU clocks, power and compute utilization come from ``calibrax.profiling.nvml``.
 """
 
@@ -15,7 +15,6 @@ from typing import Protocol
 
 import jax
 import psutil
-from substrax.devices import detect_devices, DeviceInfo, DeviceKind
 
 from calibrax.profiling.resources import GpuClocks, GpuMemory, GpuPower
 
@@ -33,27 +32,6 @@ _LOW_MEMORY_EFFICIENCY = 0.7
 
 
 logger = logging.getLogger(__name__)
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class HardwareConfig:
-    """Hardware-specific optimization configuration.
-
-    Attributes:
-        platform: Detected platform ("cpu", "tpu", "gpu_modern", "gpu_legacy").
-        precision: Recommended floating-point precision string.
-        tile_size: Tile size for matrix operation alignment.
-        critical_batch_size: Optimal batch size for the platform.
-        memory_layout: Memory layout preference.
-        use_vmem_optimization: Whether VMEM optimization is available.
-    """
-
-    platform: str
-    precision: str
-    tile_size: int
-    critical_batch_size: int
-    memory_layout: str
-    use_vmem_optimization: bool
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -75,112 +53,6 @@ class MemoryAnalysis:
     retained_memory_mb: float
     memory_efficiency: float
     suggestions: tuple[str, ...] = ()
-
-
-_CPU_DEFAULT = HardwareConfig(
-    platform="cpu",
-    precision="float32",
-    tile_size=64,
-    critical_batch_size=32,
-    memory_layout="row_major",
-    use_vmem_optimization=False,
-)
-
-
-class AdaptiveOperation:
-    """Hardware-adaptive operations with auto-detection.
-
-    Detects the current JAX backend (CPU/GPU/TPU) and provides
-    optimized configuration and shape padding.
-    """
-
-    def __init__(self) -> None:
-        """Initialize with auto-detected hardware configuration."""
-        self.config = self._detect_hardware()
-
-    def _detect_hardware(self) -> HardwareConfig:
-        """Detect hardware and return optimal configuration.
-
-        Returns:
-            HardwareConfig for the detected platform, or the CPU default when the
-            runtime cannot report its devices.
-        """
-        try:
-            info = detect_devices()
-        except RuntimeError:
-            return _CPU_DEFAULT
-
-        if info.kind is DeviceKind.TPU:
-            return HardwareConfig(
-                platform="tpu",
-                precision="bfloat16",
-                tile_size=128,
-                critical_batch_size=240,
-                memory_layout="row_major",
-                use_vmem_optimization=True,
-            )
-
-        if info.kind is DeviceKind.GPU:
-            return self._detect_gpu_config(info)
-
-        return _CPU_DEFAULT
-
-    @staticmethod
-    def _detect_gpu_config(info: DeviceInfo) -> HardwareConfig:
-        """Return the config for the GPU generation the runtime reports.
-
-        Args:
-            info: The device snapshot, whose first ``device_kinds`` entry names the GPU.
-
-        Returns:
-            HardwareConfig for the detected GPU, or CPU default without a device.
-        """
-        if not info.device_kinds:
-            return _CPU_DEFAULT
-        device_kind = info.device_kinds[0].lower()
-        if "h100" in device_kind or "a100" in device_kind:
-            return HardwareConfig(
-                platform="gpu_modern",
-                precision="bfloat16",
-                tile_size=16,
-                critical_batch_size=298,
-                memory_layout="row_major",
-                use_vmem_optimization=False,
-            )
-        return HardwareConfig(
-            platform="gpu_legacy",
-            precision="float32",
-            tile_size=32,
-            critical_batch_size=128,
-            memory_layout="row_major",
-            use_vmem_optimization=False,
-        )
-
-    def optimize_shapes(
-        self,
-        *shapes: tuple[int, ...],
-    ) -> list[tuple[int, ...]]:
-        """Pad tensor shapes to align with hardware tile size.
-
-        Args:
-            *shapes: Variable number of tensor shapes to optimize.
-
-        Returns:
-            List of optimized shapes padded to tile_size multiples.
-        """
-        tile = self.config.tile_size
-        result: list[tuple[int, ...]] = []
-
-        for shape in shapes:
-            opt = list(shape)
-            for i in [-2, -1]:
-                if len(opt) >= abs(i):
-                    dim = opt[i]
-                    if dim % tile != 0:
-                        opt[i] = ((dim + tile - 1) // tile) * tile
-            result.append(tuple(opt))
-
-        return result
 
 
 class _MemoryStatsDevice(Protocol):
