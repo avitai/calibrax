@@ -7,12 +7,13 @@ complexity analysis, and scaling characteristics for any NNX module.
 from __future__ import annotations
 
 import math
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any
 
 import jax
-import jax.numpy as jnp
 from flax import nnx
+from substrax.records import read_record
+from substrax.typing import JsonValue
 
 
 # Spectral methods take FFTs over at least two spatial dimensions.
@@ -45,7 +46,7 @@ class ComplexityResult:
     dominant_complexity: str
     scaling_characteristics: dict[str, str] = field(default_factory=dict)
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, JsonValue]:
         """Serialize to a JSON-compatible dictionary."""
         return {
             "total_parameters": int(self.total_parameters),
@@ -60,26 +61,22 @@ class ComplexityResult:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> ComplexityResult:
-        """Deserialize from a dictionary.
+    def from_dict(  # noqa: DOC502  # raised by read_record
+        cls, data: Mapping[str, JsonValue]
+    ) -> ComplexityResult:
+        """Read the record from the JSON object ``to_dict`` writes.
 
         Args:
-            data: Dictionary with complexity result fields.
+            data: The JSON object.
 
         Returns:
-            Reconstructed ComplexityResult instance.
+            The record.
+
+        Raises:
+            pydantic.ValidationError: If a field is missing or holds a value its annotation
+                does not admit.
         """
-        return cls(
-            total_parameters=data["total_parameters"],
-            parameter_memory_mb=data["parameter_memory_mb"],
-            largest_layer_name=data["largest_layer_name"],
-            largest_layer_params=data["largest_layer_params"],
-            input_shape=tuple(data["input_shape"]),
-            estimated_memory_mb=data["estimated_memory_mb"],
-            total_estimated_operations=data["total_estimated_operations"],
-            dominant_complexity=data["dominant_complexity"],
-            scaling_characteristics=data.get("scaling_characteristics", {}),
-        )
+        return read_record(cls, data)
 
 
 def analyze_complexity(model: nnx.Module, input_shape: tuple[int, ...]) -> ComplexityResult:
@@ -98,39 +95,57 @@ def analyze_complexity(model: nnx.Module, input_shape: tuple[int, ...]) -> Compl
     key = jax.random.PRNGKey(42)
     sample_input = jax.random.normal(key, input_shape)
 
-    param_info = _analyze_parameters(model)
-    memory_mb = _analyze_memory_usage(model, sample_input, param_info["parameter_memory_mb"])
-    comp_info = _analyze_computational_complexity(input_shape)
+    parameters = _analyze_parameters(model)
+    memory_mb = _analyze_memory_usage(model, sample_input, parameters.memory_mb)
+    operations = _analyze_computational_complexity(input_shape)
     scaling = _analyze_scaling_characteristics()
 
     return ComplexityResult(
-        total_parameters=param_info["total_parameters"],
-        parameter_memory_mb=param_info["parameter_memory_mb"],
-        largest_layer_name=param_info["largest_layer_name"],
-        largest_layer_params=param_info["largest_layer_params"],
+        total_parameters=parameters.total,
+        parameter_memory_mb=parameters.memory_mb,
+        largest_layer_name=parameters.largest_name,
+        largest_layer_params=parameters.largest,
         input_shape=input_shape,
         estimated_memory_mb=memory_mb,
-        total_estimated_operations=comp_info["total_ops"],
-        dominant_complexity=comp_info["dominant"],
+        total_estimated_operations=operations.total,
+        dominant_complexity=operations.dominant,
         scaling_characteristics=scaling,
     )
 
 
-def _analyze_parameters(model: nnx.Module) -> dict[str, Any]:
-    """Analyze model parameters in detail.
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _ParameterCounts:
+    """A model's parameter count and bytes, and its largest parameter array."""
+
+    total: int
+    memory_mb: float
+    largest_name: str
+    largest: int
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class _OperationCounts:
+    """The estimated operation count and the operation type that dominates it."""
+
+    total: int
+    dominant: str
+
+
+def _analyze_parameters(model: nnx.Module) -> _ParameterCounts:
+    """Count a model's parameters and their bytes, by each array's dtype.
 
     Args:
         model: Flax NNX model.
 
     Returns:
-        Dictionary with total_parameters, parameter_memory_mb,
-        largest_layer_name, and largest_layer_params.
+        The total count, its size in MiB, and the largest parameter array's path and count.
     """
     params = nnx.state(model, nnx.Param)
     params_tree = nnx.to_tree(params)
     flat_with_path = jax.tree_util.tree_leaves_with_path(params_tree)
 
     total_params = 0
+    total_bytes = 0
     largest_name = ""
     largest_count = 0
 
@@ -139,21 +154,20 @@ def _analyze_parameters(model: nnx.Module) -> dict[str, Any]:
             continue
 
         key = "/".join(str(getattr(k, "key", k)) for k in path)
-        param_count = int(jnp.prod(jnp.array(value.shape)))
+        param_count = int(value.size)
         total_params += param_count
+        total_bytes += param_count * value.dtype.itemsize
 
         if param_count > largest_count:
             largest_count = param_count
             largest_name = key
 
-    param_memory_mb = (total_params * 4) / (1024 * 1024)
-
-    return {
-        "total_parameters": total_params,
-        "parameter_memory_mb": param_memory_mb,
-        "largest_layer_name": largest_name,
-        "largest_layer_params": largest_count,
-    }
+    return _ParameterCounts(
+        total=total_params,
+        memory_mb=total_bytes / (1024 * 1024),
+        largest_name=largest_name,
+        largest=largest_count,
+    )
 
 
 def _analyze_memory_usage(
@@ -182,19 +196,17 @@ def _analyze_memory_usage(
     return param_memory_mb + input_memory_mb + output_memory_mb + estimated_intermediate_mb
 
 
-def _analyze_computational_complexity(
-    input_shape: tuple[int, ...],
-) -> dict[str, Any]:
-    """Analyze computational complexity based on input shape.
+def _analyze_computational_complexity(input_shape: tuple[int, ...]) -> _OperationCounts:
+    """Estimate the operation count from the input shape.
 
     Args:
         input_shape: Input shape (batch, *spatial_dims).
 
     Returns:
-        Dictionary with total_ops and dominant operation type.
+        The total estimated operations and the operation type with the most.
     """
     spatial_dims = input_shape[1:]
-    spatial_size = int(jnp.prod(jnp.array(spatial_dims))) if spatial_dims else 1
+    spatial_size = math.prod(spatial_dims)
 
     ops: dict[str, int] = {}
 
@@ -210,10 +222,8 @@ def _analyze_computational_complexity(
     # Linear operations
     ops["linear_operations"] = spatial_size
 
-    total_ops = sum(ops.values())
-    dominant = max(ops, key=ops.get) if ops else "unknown"  # type: ignore[arg-type]
-
-    return {"total_ops": total_ops, "dominant": dominant}
+    dominant = max(ops, key=lambda name: ops[name]) if ops else "unknown"
+    return _OperationCounts(total=sum(ops.values()), dominant=dominant)
 
 
 def _analyze_scaling_characteristics() -> dict[str, str]:

@@ -8,11 +8,13 @@ and generates optimization recommendations.
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
 import jax
+from substrax.records import read_record
+from substrax.typing import JsonValue
 
 from calibrax.profiling.hardware import detect_hardware_specs
 from calibrax.profiling.timing import time_calls
@@ -50,7 +52,7 @@ class RooflineResult:
     execution_time_ms: float
     recommendations: tuple[str, ...] = ()
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, JsonValue]:
         """Serialize to a JSON-compatible dictionary."""
         return {
             "arithmetic_intensity": float(self.arithmetic_intensity),
@@ -64,25 +66,22 @@ class RooflineResult:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> RooflineResult:
-        """Deserialize from a dictionary.
+    def from_dict(  # noqa: DOC502  # raised by read_record
+        cls, data: Mapping[str, JsonValue]
+    ) -> RooflineResult:
+        """Read the record from the JSON object ``to_dict`` writes.
 
         Args:
-            data: Dictionary with roofline result fields.
+            data: The JSON object.
 
         Returns:
-            Reconstructed RooflineResult instance.
+            The record.
+
+        Raises:
+            pydantic.ValidationError: If a field is missing or holds a value its annotation
+                does not admit.
         """
-        return cls(
-            arithmetic_intensity=data["arithmetic_intensity"],
-            critical_intensity=data["critical_intensity"],
-            memory_bandwidth_utilization=data["memory_bandwidth_utilization"],
-            flops_utilization=data["flops_utilization"],
-            bottleneck=data["bottleneck"],
-            efficiency=data["efficiency"],
-            execution_time_ms=data["execution_time_ms"],
-            recommendations=tuple(data.get("recommendations", ())),
-        )
+        return read_record(cls, data)
 
 
 def _extract_flops_from_cost(cost: dict[str, Any] | list[dict[str, Any]] | None) -> int | None:

@@ -6,15 +6,16 @@ outlier detection via modified Z-scores, and stability assessment.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any
 
 import jax
 import jax.numpy as jnp
 import numpy as np
 from flax import nnx
+from substrax.records import read_record
 from substrax.rng import key_from
+from substrax.typing import JsonValue
 
 from calibrax.statistics.bootstrap import bootstrap_interval, DEFAULT_RESAMPLES
 
@@ -67,7 +68,7 @@ class StatisticalResult:
     n: int
     is_stable: bool
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, JsonValue]:
         """Serialize to a JSON-compatible dictionary."""
         return {
             "mean": self.mean,
@@ -83,27 +84,22 @@ class StatisticalResult:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> StatisticalResult:
-        """Deserialize from a dictionary.
+    def from_dict(  # noqa: DOC502  # raised by read_record
+        cls, data: Mapping[str, JsonValue]
+    ) -> StatisticalResult:
+        """Read the record from the JSON object ``to_dict`` writes.
 
         Args:
-            data: Dictionary with statistical result fields.
+            data: The JSON object.
 
         Returns:
-            Reconstructed StatisticalResult instance.
+            The record.
+
+        Raises:
+            pydantic.ValidationError: If a field is missing or holds a value its annotation
+                does not admit.
         """
-        return cls(
-            mean=data["mean"],
-            median=data["median"],
-            std=data["std"],
-            min=data["min"],
-            max=data["max"],
-            cv=data["cv"],
-            ci_lower=data["ci_lower"],
-            ci_upper=data["ci_upper"],
-            n=data["n"],
-            is_stable=data["is_stable"],
-        )
+        return read_record(cls, data)
 
 
 class StatisticalAnalyzer:

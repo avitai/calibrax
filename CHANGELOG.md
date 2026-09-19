@@ -18,9 +18,23 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Changed
 
-- Requires `substrax>=0.1.12`; the lock moves it from 0.1.11 and nothing else. Calibrax's
-  `setup.sh` writes its managed environment file with `python -m substrax.runtime.managed_env`,
-  which that release adds.
+- Requires `substrax>=0.1.14` and `pydantic>=2.10`; the lock moves substrax from 0.1.11 and
+  nothing else (pydantic was already locked through the optional extras). Calibrax's `setup.sh`
+  writes its managed environment file with `python -m substrax.runtime.managed_env` (substrax
+  0.1.12), records are typed with `substrax.typing.JsonValue` (0.1.13) and read with
+  `substrax.records.read_record` (0.1.14).
+- Every record's `from_dict` takes `Mapping[str, JsonValue]` and reads through `read_record`:
+  each field is checked against its annotation, and a malformed record raises
+  `pydantic.ValidationError` naming each field's path, where a string in a number field or a
+  number in a string field was stored as given. JSON integers in float fields read as floats.
+  `to_dict` returns `dict[str, JsonValue]`. A stored `Run` must carry `id` and `timestamp`, and a
+  stored `BenchmarkResult` its `timestamp`; the old reader dated a `BenchmarkResult` without one at
+  0.0. Every file `to_dict` writes reads as before: all 86 stored runs and results in datarax and
+  cellifex read to the same values.
+- `Run.environment`, `Run.metadata`, `BenchmarkResult.metadata` and `BenchmarkResult.config` are
+  `calibrax.core.record_values.Metadata`: JSON values and the JAX or NumPy scalars a computation
+  produces (`MetadataValue`), written as Python numbers by `to_dict`, in place of
+  `dict[str, Any]`. A consumer reading a structured value from them narrows it.
 - `sliced_wasserstein` computes `SW_p = (mean over directions of W_p^p)^(1/p)` (Bonneel et al.
   2015; Nadjahi et al. 2020, eq. 5; POT). It returned the mean of the per-direction `W_p`, which
   for `p > 1` is lower: 0.341 against 0.379 on a 10-dimensional Gaussian pair. `key` is
@@ -105,6 +119,10 @@ and uses semantic versioning while the public API stabilizes.
   that takes a country. `EmissionsTracker` refuses `country_iso_code` with `TypeError`, and the
   fallback that caught it retried without the country, so the requested country was dropped
   without a warning and the machine's detected location was used instead.
+- `analyze_complexity` counts parameter memory from each parameter's dtype. It assumed four bytes
+  per parameter, so a bfloat16 model's parameter memory read twice its size and a float64 model's
+  half; parameter counts and the operation estimate use exact Python integers, where a product
+  of an input shape computed as an int32 array could overflow.
 
 ### Removed
 

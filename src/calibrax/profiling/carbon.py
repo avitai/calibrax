@@ -11,8 +11,12 @@ from __future__ import annotations
 
 import importlib.util
 import logging
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Protocol
+from typing import Protocol
+
+from substrax.records import read_record
+from substrax.typing import JsonValue
 
 
 CODECARBON_AVAILABLE = importlib.util.find_spec("codecarbon") is not None
@@ -58,9 +62,9 @@ class CarbonResult:
     duration_sec: float
     country_iso_code: str | None = None
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, JsonValue]:
         """Serialize to a JSON-compatible dictionary."""
-        d: dict[str, Any] = {
+        d: dict[str, JsonValue] = {
             "emissions_kg_co2": float(self.emissions_kg_co2),
             "energy_consumed_kwh": float(self.energy_consumed_kwh),
             "duration_sec": float(self.duration_sec),
@@ -70,21 +74,22 @@ class CarbonResult:
         return d
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> CarbonResult:
-        """Deserialize from a dictionary.
+    def from_dict(  # noqa: DOC502  # raised by read_record
+        cls, data: Mapping[str, JsonValue]
+    ) -> CarbonResult:
+        """Read the record from the JSON object ``to_dict`` writes.
 
         Args:
-            data: Dictionary with carbon result fields.
+            data: The JSON object.
 
         Returns:
-            Reconstructed CarbonResult instance.
+            The record.
+
+        Raises:
+            pydantic.ValidationError: If a field is missing or holds a value its annotation
+                does not admit.
         """
-        return cls(
-            emissions_kg_co2=data["emissions_kg_co2"],
-            energy_consumed_kwh=data["energy_consumed_kwh"],
-            duration_sec=data["duration_sec"],
-            country_iso_code=data.get("country_iso_code"),
-        )
+        return read_record(cls, data)
 
 
 class CarbonTracker:

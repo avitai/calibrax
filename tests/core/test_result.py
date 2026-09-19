@@ -9,6 +9,7 @@ import json
 
 import jax.numpy as jnp
 import pytest
+from pydantic import ValidationError
 
 from calibrax.core.models import Metric
 from calibrax.core.result import BenchmarkResult
@@ -107,6 +108,24 @@ class TestBenchmarkResult:
         assert restored.resources.peak_gpu_mem_mb is None
         assert restored.metrics["accuracy"].value == 0.95
         assert restored.metrics["accuracy"].lower == 0.93
+
+    def test_reading_a_result_requires_its_timestamp(self) -> None:
+        """A stored result names its time; reading one without it is refused, not dated now."""
+        data = BenchmarkResult(name="n", timestamp=5.0).to_dict()
+        del data["timestamp"]
+        with pytest.raises(ValidationError) as refused:
+            BenchmarkResult.from_dict(data)
+        assert refused.value.errors()[0]["loc"] == ("timestamp",)
+
+    def test_free_form_fields_read_only_as_json_objects(self) -> None:
+        """A stored ``metadata`` or ``config`` is a JSON object; anything else is refused."""
+        with pytest.raises(ValidationError) as refused:
+            BenchmarkResult.from_dict({"name": "n", "timestamp": 1.0, "metadata": [1, 2]})
+        assert refused.value.errors()[0]["loc"] == ("metadata",)
+        read = BenchmarkResult.from_dict(
+            {"name": "n", "timestamp": 1.0, "config": {"lr": 0.001, "layers": [2, 4]}}
+        )
+        assert read.config == {"lr": 0.001, "layers": [2, 4]}
 
     def test_to_dict_from_dict_no_timing_no_resources(self) -> None:
         original = BenchmarkResult(name="minimal", timestamp=100.0)

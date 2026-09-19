@@ -7,10 +7,13 @@ and optional GPU utilization during benchmark execution.
 from __future__ import annotations
 
 import time
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable
 
 import psutil  # pyright: ignore[reportMissingModuleSource]
+from substrax.records import read_record
+from substrax.typing import JsonValue
 
 from calibrax.profiling._sampling import SamplingThread
 
@@ -101,7 +104,7 @@ class ResourceSummary:
     mean_gpu_clock_mhz: float | None = None
     mean_gpu_power_w: float | None = None
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, JsonValue]:
         """Serialize to a JSON-compatible dictionary.
 
         Optional GPU fields are included only when not None.
@@ -110,7 +113,7 @@ class ResourceSummary:
         Returns:
             Dictionary representation with all resource summary fields.
         """
-        d: dict[str, Any] = {
+        d: dict[str, JsonValue] = {
             "peak_rss_mb": float(self.peak_rss_mb),
             "mean_rss_mb": float(self.mean_rss_mb),
             "peak_gpu_mem_mb": (
@@ -130,26 +133,22 @@ class ResourceSummary:
         return d
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> ResourceSummary:
-        """Deserialize from a dictionary.
+    def from_dict(  # noqa: DOC502  # raised by read_record
+        cls, data: Mapping[str, JsonValue]
+    ) -> ResourceSummary:
+        """Read the record from the JSON object ``to_dict`` writes.
 
         Args:
-            data: Dictionary with resource summary fields.
+            data: The JSON object.
 
         Returns:
-            Reconstructed ResourceSummary instance.
+            The record.
+
+        Raises:
+            pydantic.ValidationError: If a field is missing or holds a value its annotation
+                does not admit.
         """
-        return cls(
-            peak_rss_mb=data["peak_rss_mb"],
-            mean_rss_mb=data["mean_rss_mb"],
-            peak_gpu_mem_mb=data.get("peak_gpu_mem_mb"),
-            mean_gpu_util=data.get("mean_gpu_util"),
-            memory_growth_mb=data["memory_growth_mb"],
-            num_samples=data["num_samples"],
-            duration_sec=data["duration_sec"],
-            mean_gpu_clock_mhz=data.get("mean_gpu_clock_mhz"),
-            mean_gpu_power_w=data.get("mean_gpu_power_w"),
-        )
+        return read_record(cls, data)
 
 
 class ResourceMonitor:

@@ -9,7 +9,9 @@ from __future__ import annotations
 import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any
+
+from substrax.records import read_record
+from substrax.typing import JsonValue
 
 
 # Convergence is judged on consecutive differences, so a series needs two points.
@@ -32,7 +34,7 @@ class ConvergenceResult:
     iterations: dict[str, int] = field(default_factory=dict)
     optimal_tolerance: float | None = None
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, JsonValue]:
         """Serialize to a JSON-compatible dictionary."""
         return {
             "rates": dict(self.rates),
@@ -42,21 +44,22 @@ class ConvergenceResult:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> ConvergenceResult:
-        """Deserialize from a dictionary.
+    def from_dict(  # noqa: DOC502  # raised by read_record
+        cls, data: Mapping[str, JsonValue]
+    ) -> ConvergenceResult:
+        """Read the record from the JSON object ``to_dict`` writes.
 
         Args:
-            data: Dictionary with convergence result fields.
+            data: The JSON object.
 
         Returns:
-            Reconstructed ConvergenceResult instance.
+            The record.
+
+        Raises:
+            pydantic.ValidationError: If a field is missing or holds a value its annotation
+                does not admit.
         """
-        return cls(
-            rates=data["rates"],
-            achieved=data["achieved"],
-            iterations=data.get("iterations", {}),
-            optimal_tolerance=data.get("optimal_tolerance"),
-        )
+        return read_record(cls, data)
 
 
 def _compute_convergence_rate(values: Sequence[float]) -> float:

@@ -12,11 +12,11 @@ import re
 import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from typing import Any
 
 import jax
 import numpy as np
-from substrax.typing import PyTree
+from substrax.records import read_record
+from substrax.typing import JsonValue, PyTree
 
 
 # Thresholds behind the recommendations and the health level.
@@ -130,7 +130,7 @@ class CompilationResult:
     health_level: str
     recommendations: tuple[str, ...] = ()
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, JsonValue]:
         """Serialize to a JSON-compatible dictionary."""
         return {
             "cache_hit_rate": float(self.cache_hit_rate),
@@ -146,27 +146,22 @@ class CompilationResult:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> CompilationResult:
-        """Deserialize from a dictionary.
+    def from_dict(  # noqa: DOC502  # raised by read_record
+        cls, data: Mapping[str, JsonValue]
+    ) -> CompilationResult:
+        """Read the record from the JSON object ``to_dict`` writes.
 
         Args:
-            data: Dictionary with compilation result fields.
+            data: The JSON object.
 
         Returns:
-            Reconstructed CompilationResult instance.
+            The record.
+
+        Raises:
+            pydantic.ValidationError: If a field is missing or holds a value its annotation
+                does not admit.
         """
-        return cls(
-            cache_hit_rate=data["cache_hit_rate"],
-            total_calls=data["total_calls"],
-            cache_hits=data["cache_hits"],
-            cache_misses=data["cache_misses"],
-            avg_compilation_time_ms=data["avg_compilation_time_ms"],
-            max_compilation_time_ms=data["max_compilation_time_ms"],
-            unique_signatures=data["unique_signatures"],
-            health_score=data["health_score"],
-            health_level=data["health_level"],
-            recommendations=tuple(data.get("recommendations", ())),
-        )
+        return read_record(cls, data)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -189,7 +184,7 @@ class XLAOptimizationResult:
     total_kernels: int
     recommendations: tuple[str, ...] = ()
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, JsonValue]:
         """Serialize to a JSON-compatible dictionary."""
         return {
             "optimization_score": float(self.optimization_score),
@@ -201,23 +196,22 @@ class XLAOptimizationResult:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> XLAOptimizationResult:
-        """Deserialize from a dictionary.
+    def from_dict(  # noqa: DOC502  # raised by read_record
+        cls, data: Mapping[str, JsonValue]
+    ) -> XLAOptimizationResult:
+        """Read the record from the JSON object ``to_dict`` writes.
 
         Args:
-            data: Dictionary with XLA optimization result fields.
+            data: The JSON object.
 
         Returns:
-            Reconstructed XLAOptimizationResult instance.
+            The record.
+
+        Raises:
+            pydantic.ValidationError: If a field is missing or holds a value its annotation
+                does not admit.
         """
-        return cls(
-            optimization_score=data["optimization_score"],
-            fusion_ratio=data["fusion_ratio"],
-            arithmetic_ratio=data["arithmetic_ratio"],
-            memory_ratio=data["memory_ratio"],
-            total_kernels=data["total_kernels"],
-            recommendations=tuple(data.get("recommendations", ())),
-        )
+        return read_record(cls, data)
 
 
 class CompilationProfiler:
