@@ -12,7 +12,7 @@ from calibrax.core.models import Metric, MetricDef, MetricDirection, Point, Run
 from calibrax.profiling.energy import EnergySummary
 from calibrax.profiling.gpu import HardwareConfig
 from calibrax.profiling.resources import GpuClocks, GpuMemory, GpuPower, ResourceSummary
-from calibrax.profiling.timing import TimingSample
+from calibrax.profiling.timing_records import TimingSample
 
 
 _CPU_HARDWARE_KWARGS: dict[str, str | int | bool] = {
