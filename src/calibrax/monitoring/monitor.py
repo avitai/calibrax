@@ -13,10 +13,11 @@ from collections import deque
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Any
 
 import psutil  # pyright: ignore[reportMissingModuleSource]
+from substrax.typing import JsonValue
 
+from calibrax.core.record_values import Metadata, metadata_to_json
 from calibrax.profiling.resources import GPUProfilerProtocol, ResourceMonitor
 
 
@@ -60,9 +61,9 @@ class Alert:
     metric_value: float
     threshold: float
     timestamp: float = field(default_factory=time.time)
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: Metadata = field(default_factory=dict)
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, JsonValue]:
         """Serialize to a JSON-compatible dictionary."""
         return {
             "message": self.message,
@@ -71,7 +72,7 @@ class Alert:
             "metric_value": float(self.metric_value),
             "threshold": float(self.threshold),
             "timestamp": float(self.timestamp),
-            "metadata": dict(self.metadata),
+            "metadata": metadata_to_json(self.metadata, "metadata"),
         }
 
 
@@ -103,7 +104,7 @@ class AlertManager:
         metric_name: str,
         metric_value: float,
         threshold: float,
-        metadata: dict[str, Any] | None = None,
+        metadata: Metadata | None = None,
     ) -> None:
         """Create and store an alert, notifying all registered handlers.
 
@@ -161,6 +162,42 @@ class AlertManager:
         """Remove all stored alerts."""
         with self._lock:
             self._alerts.clear()
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class MetricHistorySummary:
+    """One metric's recorded history: its latest, lowest, highest and mean value.
+
+    Attributes:
+        latest: The most recent value.
+        min: The lowest value held.
+        max: The highest value held.
+        mean: The mean of the values held.
+        samples: How many values are held.
+    """
+
+    latest: float
+    min: float
+    max: float
+    mean: float
+    samples: int
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class MonitoringSummary:
+    """A monitor's state at one moment.
+
+    Attributes:
+        thresholds: The alert threshold of each metric.
+        alert_count: Alerts among the most recent hundred.
+        metric_history: Each metric with at least one value, summarised.
+        is_monitoring: Whether the background thread is running.
+    """
+
+    thresholds: dict[str, float]
+    alert_count: int
+    metric_history: dict[str, MetricHistorySummary]
+    is_monitoring: bool
 
 
 class AdvancedMonitor:
@@ -237,11 +274,11 @@ class AdvancedMonitor:
             thread.join(timeout=5.0)
         logger.info("Monitoring stopped")
 
-    def get_monitoring_summary(self) -> dict[str, Any]:
+    def get_monitoring_summary(self) -> MonitoringSummary:
         """Return a summary of current monitoring state.
 
         Returns:
-            Dictionary with thresholds, alert counts, and metric history summaries.
+            The thresholds, the alert count, each metric's history and whether monitoring runs.
         """
         alerts = self._alert_manager.get_recent_alerts(count=100)
         with self._state_lock:
@@ -249,22 +286,23 @@ class AdvancedMonitor:
             history_snapshot = {name: list(values) for name, values in self._metric_history.items()}
             is_monitoring = self._thread is not None and self._thread.is_alive()
 
-        history_summary: dict[str, dict[str, float]] = {}
-        for name, values in history_snapshot.items():
-            if values:
-                history_summary[name] = {
-                    "latest": float(values[-1]),
-                    "min": float(min(values)),
-                    "max": float(max(values)),
-                    "mean": float(sum(values) / len(values)),
-                    "samples": len(values),
-                }
-        return {
-            "thresholds": thresholds_snapshot,
-            "alert_count": len(alerts),
-            "metric_history": history_summary,
-            "is_monitoring": is_monitoring,
+        history_summary = {
+            name: MetricHistorySummary(
+                latest=float(values[-1]),
+                min=float(min(values)),
+                max=float(max(values)),
+                mean=float(sum(values) / len(values)),
+                samples=len(values),
+            )
+            for name, values in history_snapshot.items()
+            if values
         }
+        return MonitoringSummary(
+            thresholds=thresholds_snapshot,
+            alert_count=len(alerts),
+            metric_history=history_summary,
+            is_monitoring=is_monitoring,
+        )
 
     def _monitor_loop(self, interval: float) -> None:
         """Collect metrics and check thresholds on a loop until stopped."""
