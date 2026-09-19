@@ -3,13 +3,13 @@
 Wraps codecarbon's trackers as a context manager, exposing emissions data as a frozen
 ``CarbonResult`` dataclass: ``EmissionsTracker``, which locates the machine itself, or, when a
 country is given, ``OfflineEmissionsTracker``, the tracker codecarbon takes ``country_iso_code``
-on. codecarbon is imported when a tracker starts, since importing it loads the NVML bindings.
-Requires the optional ``codecarbon`` dependency (``uv pip install "calibrax[codecarbon]"``).
+on. This module is the codecarbon integration: it needs the ``codecarbon`` extra, importing it
+without codecarbon raises ``ImportError`` naming the extra, and it is not re-exported from
+``calibrax.profiling``.
 """
 
 from __future__ import annotations
 
-import importlib.util
 import logging
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -19,7 +19,11 @@ from substrax.records import read_record
 from substrax.typing import JsonValue
 
 
-CODECARBON_AVAILABLE = importlib.util.find_spec("codecarbon") is not None
+try:
+    from codecarbon import EmissionsTracker, OfflineEmissionsTracker
+except ImportError as error:
+    msg = 'calibrax.profiling.carbon needs codecarbon: uv pip install "calibrax[codecarbon]"'
+    raise ImportError(msg) from error
 
 
 class _EmissionsData(Protocol):
@@ -121,14 +125,7 @@ class CarbonTracker:
         Args:
             country_iso_code: Optional ISO country code.
             log_level: CodeCarbon logging level.
-
-        Raises:
-            ImportError: If codecarbon is not installed.
         """
-        if not CODECARBON_AVAILABLE:
-            msg = 'codecarbon is required for CarbonTracker: uv pip install "calibrax[codecarbon]"'
-            raise ImportError(msg)
-
         self._country_iso_code = country_iso_code
         self._log_level = log_level
         self._tracker: _Tracker | None = None
@@ -138,8 +135,6 @@ class CarbonTracker:
 
     def __enter__(self) -> CarbonTracker:
         """Start emissions tracking."""
-        from codecarbon import EmissionsTracker, OfflineEmissionsTracker
-
         tracker: _Tracker
         if self._country_iso_code is None:
             tracker = EmissionsTracker(log_level=self._log_level, save_to_file=False)
