@@ -56,6 +56,12 @@ and uses semantic versioning while the public API stabilizes.
   raises `UnknownHardwareError`. FLOPs come from `FlopsCounter`, and a function XLA cannot cost
   raises `FlopsUnavailableError`; memory traffic is the inputs' bytes plus every output leaf's
   bytes from `jax.eval_shape`. A `flops_override` of 0 is used as given.
+- `BenchmarkAdapter[TargetT]` is generic in its target (`target` returns `TargetT`), and an
+  adapter a registry holds declares `can_adapt(target) -> TypeIs[TargetT]` (PEP 742), as
+  `NNXBenchmarkAdapter` does for `nnx.Module`: `AdapterRegistry.register` and `register_adapter`
+  take such a class (`AdapterClass[TargetT]`), and `adapt(target: object)` returns an `Adapter`
+  (`BenchmarkAdapter[object] | NNXBenchmarkAdapter`), where every one of them was `Any`. Requires
+  `typing_extensions>=4.10`, the release that added `TypeIs`.
 - Monitoring reports are typed: `AdvancedMonitor.get_monitoring_summary()` returns a
   `MonitoringSummary` (`thresholds`, `alert_count`, `metric_history` of `MetricHistorySummary`,
   `is_monitoring`) and `ProductionMonitor.get_pipeline_health_report()` a
