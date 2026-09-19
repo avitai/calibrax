@@ -361,7 +361,11 @@ class TestRandersDistance:
     def test_an_array_magnitude_is_refused(self) -> None:
         with pytest.raises(TypeError, match="Python float"):
             randers_distance(
-                jnp.zeros(2), jnp.ones(2), direction=jnp.ones(2), magnitude=jnp.array(0.5)
+                jnp.zeros(2),
+                jnp.ones(2),
+                direction=jnp.ones(2),
+                # The wrong type on purpose: the runtime check is what is tested.
+                magnitude=jnp.array(0.5),  # pyright: ignore[reportArgumentType]
             )
 
     def test_positive_for_any_pair_below_the_bound(self) -> None:

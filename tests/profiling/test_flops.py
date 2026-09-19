@@ -9,6 +9,7 @@ branch, a loop body counted once.
 
 import dataclasses
 import functools
+from collections.abc import Sequence
 
 import jax
 import jax.numpy as jnp
@@ -214,7 +215,7 @@ class TestWithoutCpuBackend:
     def test_falls_back_to_the_default_device(self, monkeypatch: pytest.MonkeyPatch) -> None:
         real_devices = jax.devices
 
-        def devices_without_cpu(backend: str | None = None) -> list[jax.Device]:
+        def devices_without_cpu(backend: str | None = None) -> Sequence[object]:
             if backend == "cpu":
                 raise RuntimeError("Unknown backend cpu. Available backends are ['cuda']")
             return real_devices(backend)

@@ -32,7 +32,7 @@ jobs:
       - name: Create virtual environment
         run: uv venv
 
-      # pyright checks the optional integrations too, so it needs their packages (test, stats).
+      # pyright checks the optional integrations too, so it needs their packages (the test extra).
       - name: Install dependencies
         run: uv sync --locked --extra dev --extra test
 
@@ -40,7 +40,7 @@ jobs:
         run: uv run --no-sync pre-commit run --all-files
 
       - name: Pyright
-        run: uv run --no-sync pyright --warnings src/
+        run: uv run --no-sync pyright --warnings src/ tests/
 
       - name: Ruff check
         run: uv run --no-sync ruff check src/ tests/

@@ -175,9 +175,13 @@ class TestComparisonReportSerde:
             "b": _make_config_run("b", 200.0, 10.0, METRIC_DEFS),
         }
         report = compare_configurations(runs)
-        d = report.to_dict()
-        for mc in d["metric_comparisons"]:
-            for v in mc["values"].values():
+        comparisons = report.to_dict()["metric_comparisons"]
+        assert isinstance(comparisons, list)
+        for mc in comparisons:
+            assert isinstance(mc, dict)
+            values = mc["values"]
+            assert isinstance(values, dict)
+            for v in values.values():
                 assert type(v) is float
 
 
@@ -196,4 +200,6 @@ class TestMetricComparison:
         d = mc.to_dict()
         assert d["metric_name"] == "throughput"
         assert d["best_label"] == "b"
-        assert d["improvement_factors"]["a"] == 2.0
+        factors = d["improvement_factors"]
+        assert isinstance(factors, dict)
+        assert factors["a"] == 2.0

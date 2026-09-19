@@ -10,6 +10,7 @@ import dataclasses
 import importlib.util
 import sys
 import types
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -628,10 +629,16 @@ class TestCompilationProfilerAdditionalBranches:
         fake_jax = types.ModuleType("jax")
         real_import = builtins.__import__
 
-        def _import_hook(name: str, *args: object, **kwargs: object) -> object:
+        def _import_hook(
+            name: str,
+            globals: Mapping[str, object] | None = None,
+            locals: Mapping[str, object] | None = None,
+            fromlist: Sequence[str] = (),
+            level: int = 0,
+        ) -> types.ModuleType:
             if name == "jax":
                 return fake_jax
-            return real_import(name, *args, **kwargs)
+            return real_import(name, globals, locals, fromlist, level)
 
         with patch("builtins.__import__", side_effect=_import_hook):
             sys.modules[spec.name] = probe_module

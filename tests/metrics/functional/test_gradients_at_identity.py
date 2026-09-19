@@ -8,7 +8,6 @@ through ``safe_root``, whose derivative at 0 is 0.
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
 
 import jax
 import jax.numpy as jnp
@@ -38,13 +37,13 @@ _BASIS = jnp.linalg.qr(jax.random.normal(jax.random.key(2), (4, 2)))[0]
 _FIELDS = jax.random.normal(jax.random.key(3), (3, 4))
 
 
-def _pattern(like: Any, scale: float = 0.05) -> Any:
+def _pattern(like: jax.Array, scale: float = 0.05) -> jax.Array:
     """A non-uniform perturbation: a uniform shift is no difference to a centred RMSD."""
     return scale * jnp.arange(1.0, like.size + 1.0).reshape(like.shape) / like.size
 
 
 # name -> (distance to its identity point, the identity point, a point off it)
-CASES: dict[str, tuple[Callable[[Any], Any], Any, Any]] = {
+CASES: dict[str, tuple[Callable[[jax.Array], jax.Array], jax.Array, jax.Array]] = {
     "mahalanobis_distance": (lambda a: mahalanobis_distance(a, _VEC), _VEC, _VEC + _pattern(_VEC)),
     "mahalanobis_distance_with_precision": (
         lambda a: mahalanobis_distance(

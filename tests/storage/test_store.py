@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timedelta
+from pathlib import Path
 
 import pytest
 
@@ -12,7 +13,7 @@ from calibrax.storage.store import Store
 
 
 @pytest.fixture
-def store(tmp_path) -> Store:
+def store(tmp_path: Path) -> Store:
     """Create a Store in a temp directory."""
     return Store(tmp_path / "benchmark-data")
 
@@ -160,7 +161,7 @@ class TestBaseline:
 class TestIngest:
     """Tests for ingest."""
 
-    def test_ingest_external_json(self, store: Store, tmp_path) -> None:
+    def test_ingest_external_json(self, store: Store, tmp_path: Path) -> None:
         """Should import an external JSON file."""
         run = _make_run("imported")
         external_file = tmp_path / "external.json"
@@ -232,7 +233,7 @@ class TestExtractTrend:
 class TestDirectoryStructure:
     """Tests for directory creation."""
 
-    def test_creates_dirs_on_init(self, tmp_path) -> None:
+    def test_creates_dirs_on_init(self, tmp_path: Path) -> None:
         """Store should create runs/ and baselines/ directories on init."""
         root = tmp_path / "benchmark-data"
         Store(root)
@@ -243,7 +244,7 @@ class TestDirectoryStructure:
 class TestConfig:
     """Tests for config loading."""
 
-    def test_loads_metric_defs(self, tmp_path) -> None:
+    def test_loads_metric_defs(self, tmp_path: Path) -> None:
         """Should load metric_defs from config.json."""
         root = tmp_path / "benchmark-data"
         root.mkdir(parents=True)

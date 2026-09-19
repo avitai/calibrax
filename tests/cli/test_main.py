@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import click
@@ -24,7 +23,11 @@ from calibrax.core.models import Run
 from calibrax.profiling.energy import EnergySummary
 from calibrax.profiling.flops import FlopsResult
 from calibrax.storage.store import Store
-from tests.factories import make_single_framework_run, make_throughput_latency_defs
+from tests.factories import (
+    make_default_timing_sample,
+    make_single_framework_run,
+    make_throughput_latency_defs,
+)
 
 
 def _make_run(
@@ -670,7 +673,7 @@ class TestProfileOutputHelpers:
         self,
         capsys: pytest.CaptureFixture[str],
     ) -> None:
-        sample = SimpleNamespace(
+        sample = make_default_timing_sample(
             wall_clock_sec=0.4,
             num_batches=3,
             warmup_batches_excluded=1,
@@ -704,7 +707,7 @@ class TestProfileOutputHelpers:
         tmp_path: Path,
         capsys: pytest.CaptureFixture[str],
     ) -> None:
-        sample = SimpleNamespace(wall_clock_sec=1.5, per_batch_times=(0.5, 0.7))
+        sample = make_default_timing_sample(wall_clock_sec=1.5, per_batch_times=(0.5, 0.7))
         flops_result = FlopsResult(
             total_flops=5000,
             transcendentals=0,
@@ -739,7 +742,7 @@ class TestProfileOutputHelpers:
         assert "Saved profiling run" in capsys.readouterr().out
 
     def test_save_profile_run_without_optional_metrics(self, tmp_path: Path) -> None:
-        sample = SimpleNamespace(wall_clock_sec=1.0, per_batch_times=())
+        sample = make_default_timing_sample(wall_clock_sec=1.0, per_batch_times=())
 
         _save_profile_run(
             tmp_path / "data",
@@ -760,7 +763,7 @@ class TestProfileCommand:
 
     def test_profile_with_flops_and_data_saves_run(self, tmp_path: Path) -> None:
         runner = CliRunner()
-        sample = SimpleNamespace(
+        sample = make_default_timing_sample(
             wall_clock_sec=0.2,
             num_batches=2,
             warmup_batches_excluded=0,
@@ -807,7 +810,7 @@ class TestProfileCommand:
 
     def test_profile_flops_failure_prints_error_and_continues(self) -> None:
         runner = CliRunner()
-        sample = SimpleNamespace(
+        sample = make_default_timing_sample(
             wall_clock_sec=0.2,
             num_batches=2,
             warmup_batches_excluded=0,

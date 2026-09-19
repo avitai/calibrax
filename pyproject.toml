@@ -293,10 +293,6 @@ include = [
   "tests"
 ]
 pythonVersion = "3.12"
-reportFunctionMemberAccess = false
-reportIncompatibleMethodOverride = false
-reportIncompatibleVariableOverride = false
-reportMissingImports = false
 reportMissingTypeStubs = false
 typeCheckingMode = "standard"
 
@@ -371,8 +367,6 @@ fixable = [
   "W293"
 ]
 ignore = [
-  # Any is the honest type of a pytree leaf container.
-  "ANN401",
   # Google-style docstrings: D203 and D213 conflict with D211 and D212.
   "D203",
   "D213",
@@ -426,7 +420,7 @@ max-complexity = 10
 # The CLI's output is print by design.
 "src/calibrax/cli/*" = ["T201"]
 # Test factories are keyword-only builders with one parameter per field.
-"tests/*" = ["ANN", "D", "PLR0913", "PLR2004", "S101"]
+"tests/*" = ["D", "PLR0913", "PLR2004", "S101"]
 # Local stubs for untyped libraries spell names as the library does (NVML's camelCase).
 "typings/*" = ["N"]
 
