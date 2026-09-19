@@ -203,3 +203,7 @@ chip by the `device_kind` JAX reports.
   `None` and `RooflineAnalyzer` raises `UnknownHardwareError` until a `HardwareSpec` is
   passed. A guessed spec would report utilisation against another chip's figures, which is
   what reporting every GPU as an A100 did
+- A device the table does not hold, a CPU among them, is measured rather than guessed:
+  `measure_hardware_spec(dtype=...)` times a matmul and STREAM's triad through XLA (an
+  empirical roofline, as LBNL's Empirical Roofline Tool does) and returns the device's
+  attainable ceilings as a `HardwareSpec` named after the device and dtype

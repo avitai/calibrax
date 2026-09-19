@@ -9,6 +9,12 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Added
 
+- `calibrax.profiling.hardware.measure_hardware_spec(*, dtype, matmul_size, triad_length)`
+  measures the default device's attainable roofline ceilings through XLA, an empirical
+  roofline (the approach of LBNL's Empirical Roofline Tool): the peak is a square matmul's
+  XLA FLOP count over its median time, the bandwidth STREAM's triad (three arrays moved)
+  over its median time. It returns a `HardwareSpec` named `measured:<device kind>:<dtype>`,
+  for a CPU or any accelerator `HARDWARE_SPECS` does not hold.
 - `calibrax.statistics.bootstrap_interval(statistic, *data, key, num_resamples, confidence)`,
   the percentile bootstrap interval (Efron and Tibshirani 1993; `scipy.stats.bootstrap(method=
   "percentile")`, which the tests use as the reference) with arrays resampled together, every
@@ -262,6 +268,11 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Removed
 
+- `HARDWARE_SPECS["cpu_generic"]` (2 TFLOP/s, 200 GB/s), a stand-in that was not a
+  measurement, and its `"cpu"` device-kind entry: `detect_hardware_specs()` returns `None` on
+  the CPU backend, and `RooflineAnalyzer` raises `UnknownHardwareError` there until it is
+  given a spec, `measure_hardware_spec(dtype=...)` for one. Measured on an i7-13700, XLA reaches
+  32-34 GB/s and a ridge point of 36-44 FLOPs/byte, where the stand-in gave 200 GB/s and 10.
 - `calibrax.profiling.gpu.AdaptiveOperation` and `HardwareConfig`. Their critical batch sizes
   (298, 240, 128, 32) and tile sizes were copied from a guide without a source, the H100's
   298 is the scaling book's 295 miscopied, and every GPU but an A100 or H100 was "legacy

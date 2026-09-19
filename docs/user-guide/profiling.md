@@ -221,9 +221,13 @@ kernels) raises `FlopsUnavailableError`.
 
 `HARDWARE_SPECS` holds each accelerator's dense BF16 peak and memory bandwidth from
 the vendor's specification (A100 in its four variants, H100 SXM and PCIe, RTX 4090,
-TPU v4, v5e, v5p and v6e, and a CPU stand-in). `detect_hardware_specs()` names the chip
-by the `device_kind` JAX reports and returns its `HardwareSpec`, or `None` for an
-accelerator the table does not hold; pass a `HardwareSpec` for one.
+TPU v4, v5e, v5p and v6e). `detect_hardware_specs()` names the chip by the `device_kind`
+JAX reports and returns its `HardwareSpec`, or `None` for a device the table does not hold,
+a CPU among them. For such a device, `measure_hardware_spec(dtype=...)` measures the
+attainable ceilings through XLA, an empirical roofline: the peak from a large matmul (XLA's
+FLOP count over the median time) and the bandwidth from STREAM's triad. The figures are what
+XLA reaches on that device, below a vendor's peak, and the peak depends on the dtype; choose
+the device with `jax.default_device`.
 
 ```python
 from calibrax.profiling.hardware import HARDWARE_SPECS, HardwareSpec, detect_hardware_specs
@@ -237,6 +241,15 @@ a100 = HARDWARE_SPECS["a100_sxm4_80gb"]
 l4 = HardwareSpec(name="l4", peak_flops=121.0e12, memory_bandwidth=300.0e9)
 ```
 
+```python
+import jax.numpy as jnp
+from calibrax.profiling.hardware import measure_hardware_spec
+
+# The defaults (a 4096 matmul, a 768 MiB float32 triad) suit a server; smaller here.
+measured = measure_hardware_spec(dtype=jnp.float32, matmul_size=1024, triad_length=2**24)
+print(f"{measured.name}: ridge point {measured.critical_intensity:.0f} FLOPs/byte")
+```
+
 `RooflineAnalyzer` raises `UnknownHardwareError` when it has no spec for the chip in use.
 
 ## Roofline Analysis
@@ -246,12 +259,17 @@ hardware roofline to determine whether it is compute-bound or memory-bound:
 
 ```python
 import jax.numpy as jnp
+from calibrax.profiling.hardware import detect_hardware_specs, measure_hardware_spec
 from calibrax.profiling.roofline import RooflineAnalyzer
 
 def matmul_fn(x):
     return jnp.dot(x, x.T)
 
-analyzer = RooflineAnalyzer()
+# The published spec of a listed accelerator, else the device's measured ceilings.
+spec = detect_hardware_specs() or measure_hardware_spec(
+    dtype=jnp.float32, matmul_size=1024, triad_length=2**24
+)
+analyzer = RooflineAnalyzer(hardware_specs=spec)
 result = analyzer.analyze_operation(matmul_fn, [jnp.ones((64, 64))])
 
 print(f"Arithmetic intensity: {result.arithmetic_intensity:.2f} FLOP/byte")
