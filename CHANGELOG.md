@@ -81,6 +81,9 @@ and uses semantic versioning while the public API stabilizes.
 - `calibrax.profiling.carbon` is the codecarbon integration: it imports codecarbon at the top
   and raises `ImportError` naming the `codecarbon` extra without it; `CODECARBON_AVAILABLE` and
   the constructor's check are gone.
+- `calibrax.analysis.changepoint` is the ruptures integration: it imports ruptures at the top
+  and raises `ImportError` naming the `changepoint` extra without it; `RUPTURES_AVAILABLE` and
+  the check inside `detect_change_points` are gone.
 - Monitoring reports are typed: `AdvancedMonitor.get_monitoring_summary()` returns a
   `MonitoringSummary` (`thresholds`, `alert_count`, `metric_history` of `MetricHistorySummary`,
   `is_monitoring`) and `ProductionMonitor.get_pipeline_health_report()` a

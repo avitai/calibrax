@@ -2,13 +2,13 @@
 
 Uses the ``ruptures`` library to detect significant changes in metric
 trends, enabling automated identification of performance regressions
-or improvements over time. Requires the optional ``ruptures`` dependency
-(``uv pip install "calibrax[changepoint]"``).
+or improvements over time. This module is the ruptures integration: it needs the
+``changepoint`` extra, importing it without ruptures raises ``ImportError`` naming the extra,
+and it is not re-exported from ``calibrax.analysis``.
 """
 
 from __future__ import annotations
 
-import importlib.util
 import logging
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -19,11 +19,14 @@ import numpy as np
 from substrax.records import read_record
 from substrax.typing import JsonValue
 
+
+try:
+    import ruptures
+except ImportError as error:
+    msg = 'calibrax.analysis.changepoint needs ruptures: uv pip install "calibrax[changepoint]"'
+    raise ImportError(msg) from error
+
 from calibrax.core.models import TrendSeries
-
-
-# ruptures is the optional ``changepoint`` extra; it is imported where it is used.
-RUPTURES_AVAILABLE = importlib.util.find_spec("ruptures") is not None
 
 
 class _ChangePointAlgorithm(Protocol):
@@ -110,16 +113,8 @@ def detect_change_points(
         List of detected ChangePoint instances, ordered by index.
 
     Raises:
-        ImportError: If ruptures is not installed.
         ValueError: If the trend has fewer points than min_size.
     """
-    if not RUPTURES_AVAILABLE:
-        msg = (
-            "ruptures is required for change point detection: "
-            'uv pip install "calibrax[changepoint]"'
-        )
-        raise ImportError(msg)
-
     if len(trend.points) < min_size:
         msg = f"Need at least {min_size} points, got {len(trend.points)}"
         raise ValueError(msg)
@@ -172,8 +167,6 @@ def _get_algorithm(method: str, min_size: int) -> _ChangePointAlgorithm:
     Raises:
         ValueError: If the method is not recognized.
     """
-    import ruptures
-
     if method == "pelt":
         return ruptures.Pelt(model="l2", min_size=min_size)
     if method == "binseg":
