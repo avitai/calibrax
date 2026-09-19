@@ -32,10 +32,10 @@
 
 ## Features
 
-### Metrics (139 registered Tier 0 metrics, 20 domains, 4-tier architecture)
+### Metrics (140 registered Tier 0 metrics, 20 domains, 4-tier architecture)
 
 Calibrax provides a 4-tier metric system covering the full spectrum of ML
-evaluation. The current registry contains 139 Tier 0 pure-function metrics;
+evaluation. The current registry contains 140 Tier 0 pure-function metrics;
 Tier 1-3 APIs, optional plugins, and metric-learning losses are part of the
 package architecture but are not all registered metric entries today.
 
@@ -137,7 +137,7 @@ src/calibrax/
 ├── storage/       JSON store, baselines
 ├── exporters/     W&B, MLflow, publication-ready output
 ├── metrics/
-│   ├── functional/   139 Tier 0 pure functions across 20 domains
+│   ├── functional/   140 Tier 0 pure functions across 20 domains
 │   ├── stateful/     Tier 1-2 base classes (FrozenBackboneMetric, LearnedMetric)
 │   ├── learning/     Tier 3 metric learning losses and miners
 │   ├── plugins/      Optional-dependency metrics (FID, BERTScore, LPIPS)

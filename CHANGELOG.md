@@ -9,6 +9,10 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Added
 
+- `mmd_squared_unbiased(x, y, *, kernel, bandwidth)`, the unbiased U-statistic `MMD^2_u` of
+  Gretton et al. (2012, Lemma 6), negative about half the time between samples of one
+  distribution and not clamped, as a two-sample test and KID use it; registered in the
+  divergence domain.
 - `calibrax.profiling.hardware.measure_hardware_spec(*, dtype, matmul_size, triad_length)`
   measures the default device's attainable roofline ceilings through XLA, an empirical
   roofline (the approach of LBNL's Empirical Roofline Tool): the peak is a square matmul's
@@ -254,6 +258,11 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Fixed
 
+- `mmd` is Gretton et al.'s (2012) `MMD_b`, the kernel distance between the samples' mean
+  embeddings (eq. 5), non-negative by construction. It took the root of the unbiased `MMD^2`
+  estimate clamped at 0, which is neither: the clamp biases it upward and the root of an
+  unbiased `MMD^2` estimate is not an `MMD` estimate. An unknown `kernel` raises `ValueError`;
+  any name but `"rbf"` selected the Laplace kernel.
 - `grassmann_distance` takes the principal angles from both their cosines and their sines, as
   Knyazev and Argentati (2002) and `scipy.linalg.subspace_angles` do: it read 3.45e-4
   between a subspace and itself, returned 0.0 for an angle of 1.2e-4 (float32 `arccos` near

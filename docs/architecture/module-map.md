@@ -75,7 +75,7 @@ which depend on the foundation. No circular dependencies exist.
 | `monitoring` | `monitor`, `production` | ~6 | Alert management, threshold monitoring, pipeline health |
 | `storage` | `store` | ~2 | JSON store with baseline management |
 | `exporters` | `base`, `wandb`, `mlflow`, `publication`, `plots` | ~6 | Exporter ABC, W&B integration, MLflow integration, publication tables, matplotlib plots |
-| `metrics` | `functional/` (20 domains), `stateful/`, `learning/`, `plugins/`, `composition`, `wrappers`, `_registry` | 139 registered | 4-tier metric system: pure functions, frozen backbone, learned (NNX), metric learning losses; registry with axiom-based discovery |
+| `metrics` | `functional/` (20 domains), `stateful/`, `learning/`, `plugins/`, `composition`, `wrappers`, `_registry` | 140 registered | 4-tier metric system: pure functions, frozen backbone, learned (NNX), metric learning losses; registry with axiom-based discovery |
 | `ci` | `guard`, `bisection` | ~4 | CI guard, bisection engine |
 | `cli` | `main`, `store_commands`, `export`, `profile`, `profile_gpu` | ~1 | Click command group loading each command's module when it runs |
 

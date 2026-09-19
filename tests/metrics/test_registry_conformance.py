@@ -327,7 +327,7 @@ def _close(a: object, b: object) -> bool:
 
 
 def test_every_registered_metric_is_covered() -> None:
-    assert len(ENTRIES) == 139
+    assert len(ENTRIES) == 140
     stale = sorted(set(FIXTURES) - set(IDS))
     assert stale == [], f"fixtures for unregistered metrics: {stale}"
 
