@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, UTC
 
 import jax.numpy as jnp
 import numpy as np
 import pytest
 
-from calibrax.core.record_values import metadata_to_json, MetadataValue
+from calibrax.core.record_values import aware, metadata_to_json, MetadataValue
 
 
 def test_json_values_pass_through() -> None:
@@ -42,3 +43,21 @@ def test_an_array_of_several_elements_is_refused() -> None:
 def test_a_complex_scalar_is_refused_naming_its_path() -> None:
     with pytest.raises(TypeError, match=r"^metadata\.z: .* has no JSON value"):
         metadata_to_json({"z": np.complex64(1 + 2j)}, "metadata")
+
+
+class TestAware:
+    """``aware``: a stored or given time is aware; a naive one is the writer's local time."""
+
+    def test_an_aware_time_is_kept(self) -> None:
+        moment = datetime(2026, 9, 19, 12, 0, tzinfo=UTC)
+
+        assert aware(moment) is moment
+
+    def test_a_naive_time_is_read_as_local_time(self) -> None:
+        naive = datetime(2026, 9, 19, 12, 0)
+
+        result = aware(naive)
+
+        assert result.tzinfo is not None
+        assert result == naive.astimezone()
+        assert result.replace(tzinfo=None) == naive

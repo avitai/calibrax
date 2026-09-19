@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from pathlib import Path
 
 import pytest
@@ -261,3 +261,20 @@ class TestConfig:
         s = Store(root)
         assert "throughput" in s.metric_defs
         assert s.metric_defs["throughput"].direction == MetricDirection.HIGHER
+
+
+def test_a_store_of_naive_and_aware_runs_orders_them(tmp_path: Path) -> None:
+    """A run stored with a naive local time and one with an aware time sort together."""
+    store = Store(tmp_path / "store")
+    point = Point(name="p", scenario="s", metrics={"m": Metric(value=1.0)})
+    older = Run(points=(point,), id="older", timestamp=datetime(2026, 1, 1, tzinfo=UTC))
+    newer = Run(points=(point,), id="newer", timestamp=datetime(2026, 6, 1, tzinfo=UTC))
+    store.save(older)
+    store.save(newer)
+    stored = tmp_path / "store" / "runs" / "older.json"
+    record = json.loads(stored.read_text())
+    record["timestamp"] = "2026-01-01T00:00:00"  # as datetime.now() wrote it
+    stored.write_text(json.dumps(record))
+
+    assert store.latest().id == "newer"
+    assert [run.id for run in store.list_runs()] == ["newer", "older"]

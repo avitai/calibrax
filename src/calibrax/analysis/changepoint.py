@@ -27,6 +27,7 @@ except ImportError as error:
     raise ImportError(msg) from error
 
 from calibrax.core.models import TrendSeries
+from calibrax.core.record_values import aware
 
 
 class _ChangePointAlgorithm(Protocol):
@@ -59,6 +60,11 @@ class ChangePoint:
     timestamp: datetime | None = None
     run_id: str | None = None
     magnitude: float = 0.0
+
+    def __post_init__(self) -> None:
+        """Make the timestamp aware; a naive one is local time."""
+        if self.timestamp is not None:
+            object.__setattr__(self, "timestamp", aware(self.timestamp))
 
     def to_dict(self) -> dict[str, JsonValue]:
         """Serialize to a JSON-compatible dictionary."""

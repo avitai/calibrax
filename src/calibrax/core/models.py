@@ -12,14 +12,14 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, UTC
 from enum import StrEnum
 from uuid import uuid4
 
 from substrax.records import read_record
 from substrax.typing import JsonValue
 
-from calibrax.core.record_values import Metadata, metadata_to_json, require_stored
+from calibrax.core.record_values import aware, Metadata, metadata_to_json, require_stored
 
 
 class MetricDirection(StrEnum):
@@ -175,12 +175,16 @@ class Run:
 
     points: tuple[Point, ...]
     id: str = field(default_factory=lambda: uuid4().hex[:12])
-    timestamp: datetime = field(default_factory=datetime.now)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
     commit: str | None = None
     branch: str | None = None
     environment: Metadata = field(default_factory=dict)
     metadata: Metadata = field(default_factory=dict)
     metric_defs: dict[str, MetricDef] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        """Make the timestamp aware; a naive one is local time."""
+        object.__setattr__(self, "timestamp", aware(self.timestamp))
 
     def to_dict(self) -> dict[str, JsonValue]:
         """Serialize to a JSON-compatible dictionary."""
@@ -417,6 +421,10 @@ class TrendPoint:
     commit: str | None = None
     lower: float | None = None
     upper: float | None = None
+
+    def __post_init__(self) -> None:
+        """Make the timestamp aware; a naive one is local time."""
+        object.__setattr__(self, "timestamp", aware(self.timestamp))
 
     def to_dict(self) -> dict[str, JsonValue]:
         """Serialize to a JSON-compatible dictionary, omitting None fields."""
