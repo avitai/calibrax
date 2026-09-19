@@ -13,7 +13,8 @@ import subprocess  # nosec B404
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+
+from substrax.typing import JsonValue
 
 from calibrax.core.models import Run
 
@@ -58,7 +59,7 @@ class BisectionResult:
     tested_commits: tuple[str, ...]
     is_regression_found: bool
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, JsonValue]:
         """Serialize to a JSON-compatible dictionary."""
         return {
             "culprit_commit": self.culprit_commit,

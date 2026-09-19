@@ -9,11 +9,14 @@ or improvements over time. Requires the optional ``ruptures`` dependency
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
 import numpy as np
+from substrax.records import read_record
+from substrax.typing import JsonValue
 
 from calibrax.core.models import TrendSeries
 
@@ -46,9 +49,9 @@ class ChangePoint:
     run_id: str | None = None
     magnitude: float = 0.0
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, JsonValue]:
         """Serialize to a JSON-compatible dictionary."""
-        d: dict[str, Any] = {
+        d: dict[str, JsonValue] = {
             "index": int(self.index),
             "magnitude": float(self.magnitude),
         }
@@ -59,22 +62,22 @@ class ChangePoint:
         return d
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> ChangePoint:
-        """Deserialize from a dictionary.
+    def from_dict(  # noqa: DOC502  # raised by read_record
+        cls, data: Mapping[str, JsonValue]
+    ) -> ChangePoint:
+        """Read the record from the JSON object ``to_dict`` writes.
 
         Args:
-            data: Dictionary with change point fields.
+            data: The JSON object.
 
         Returns:
-            Reconstructed ChangePoint instance.
+            The record.
+
+        Raises:
+            pydantic.ValidationError: If a field is missing or holds a value its annotation
+                does not admit.
         """
-        ts = data.get("timestamp")
-        return cls(
-            index=data["index"],
-            timestamp=datetime.fromisoformat(ts) if ts else None,
-            run_id=data.get("run_id"),
-            magnitude=data.get("magnitude", 0.0),
-        )
+        return read_record(cls, data)
 
 
 def detect_change_points(

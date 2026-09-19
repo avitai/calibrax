@@ -7,7 +7,8 @@ flags regressions that exceed a configured threshold.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+
+from substrax.typing import JsonValue
 
 from calibrax.analysis.regression import detect_regressions
 from calibrax.core.models import Regression
@@ -32,7 +33,7 @@ class GuardResult:
     baseline_id: str | None
     current_id: str
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, JsonValue]:
         """Serialize to a JSON-compatible dictionary."""
         return {
             "passed": self.passed,

@@ -8,11 +8,15 @@ from __future__ import annotations
 
 import json
 import time
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
 
-from calibrax.core.models import _sanitize_for_json, Metric
+from substrax.records import read_record
+from substrax.typing import JsonValue
+
+from calibrax.core.models import Metric
+from calibrax.core.record_values import Metadata, metadata_to_json, require_stored
 from calibrax.profiling.resources import ResourceSummary
 from calibrax.profiling.timing import TimingSample
 
@@ -42,11 +46,11 @@ class BenchmarkResult:
     timing: TimingSample | None = None
     resources: ResourceSummary | None = None
     metrics: dict[str, Metric] = field(default_factory=dict)
-    metadata: dict[str, Any] = field(default_factory=dict)
-    config: dict[str, Any] = field(default_factory=dict)
+    metadata: Metadata = field(default_factory=dict)
+    config: Metadata = field(default_factory=dict)
     timestamp: float = field(default_factory=time.time)
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, JsonValue]:
         """Serialize to a JSON-compatible dictionary.
 
         Returns:
@@ -59,37 +63,30 @@ class BenchmarkResult:
             "timing": self.timing.to_dict() if self.timing is not None else None,
             "resources": self.resources.to_dict() if self.resources is not None else None,
             "metrics": {k: v.to_dict() for k, v in self.metrics.items()},
-            "metadata": _sanitize_for_json(self.metadata),
-            "config": _sanitize_for_json(self.config),
+            "metadata": metadata_to_json(self.metadata, "metadata"),
+            "config": metadata_to_json(self.config, "config"),
             "timestamp": float(self.timestamp),
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> BenchmarkResult:
-        """Deserialize from a dictionary.
+    def from_dict(  # noqa: DOC502  # raised by read_record
+        cls, data: Mapping[str, JsonValue]
+    ) -> BenchmarkResult:
+        """Read the record from the JSON object ``to_dict`` writes.
 
         Args:
-            data: Dictionary with benchmark result fields.
+            data: The JSON object.
 
         Returns:
-            Reconstructed BenchmarkResult instance.
-        """
-        timing_data = data.get("timing")
-        resources_data = data.get("resources")
+            The record.
 
-        return cls(
-            name=data["name"],
-            domain=data.get("domain", ""),
-            tags=data.get("tags", {}),
-            timing=TimingSample.from_dict(timing_data) if timing_data is not None else None,
-            resources=(
-                ResourceSummary.from_dict(resources_data) if resources_data is not None else None
-            ),
-            metrics={k: Metric.from_dict(v) for k, v in data.get("metrics", {}).items()},
-            metadata=data.get("metadata", {}),
-            config=data.get("config", {}),
-            timestamp=data.get("timestamp", 0.0),
-        )
+        Raises:
+            pydantic.ValidationError: If a field is missing or holds a value its annotation
+                does not admit; ``timestamp`` must be present, since their
+                defaults would invent a value.
+        """
+        require_stored(cls, data, "timestamp")
+        return read_record(cls, data)
 
     def save(self, filepath: Path) -> None:
         """Save result to a JSON file, creating parent directories.

@@ -237,11 +237,22 @@ run_dict = run.to_dict()       # Python dict, JSON-safe
 restored = Run.from_dict(run_dict)  # reconstruct the object
 ```
 
-!!! note "JAX Scalar Handling"
+`to_dict()` writes JSON values: a JAX or NumPy scalar (`jnp.float32`, `numpy.int64`) in a numeric
+field or in a free-form `metadata`, `environment` or `config` field is written as the Python number
+it holds. `from_dict()` reads the object back through `substrax.records.read_record`, which checks
+every field against its annotation: a number is never read from a string, a `bool` is not a number,
+and a malformed record raises `pydantic.ValidationError` naming each field's path. A stored `Run`
+must carry its `id` and `timestamp`, and a stored `BenchmarkResult` its `timestamp`: built in memory
+they default to a new id and the current time, which reading a file must not invent.
 
-    JAX operations return JAX scalar types (`jnp.float32`, `jnp.int32`) that
-    are not directly JSON-serializable. Calibrax automatically converts these
-    to native Python `float` and `int` in all `to_dict()` methods.
+```python
+from pydantic import ValidationError
+
+try:
+    Metric.from_dict({"value": "0.5"})
+except ValidationError as refused:
+    print(refused.errors()[0]["loc"])  # ('value',)
+```
 
 ## Next Steps
 

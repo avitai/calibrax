@@ -5,8 +5,11 @@ Compares an achieved value against a target, computing pass/fail and margin.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any
+
+from substrax.records import read_record
+from substrax.typing import JsonValue
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -29,7 +32,7 @@ class AccuracyResult:
     passed: bool
     margin: float
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, JsonValue]:
         """Serialize to a JSON-compatible dictionary."""
         return {
             "target": self.target,
@@ -41,16 +44,22 @@ class AccuracyResult:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> AccuracyResult:
-        """Deserialize from a dictionary.
+    def from_dict(  # noqa: DOC502  # raised by read_record
+        cls, data: Mapping[str, JsonValue]
+    ) -> AccuracyResult:
+        """Read the record from the JSON object ``to_dict`` writes.
 
         Args:
-            data: Dictionary with accuracy result fields.
+            data: The JSON object.
 
         Returns:
-            Reconstructed AccuracyResult instance.
+            The record.
+
+        Raises:
+            pydantic.ValidationError: If a field is missing or holds a value its annotation
+                does not admit.
         """
-        return cls(**data)
+        return read_record(cls, data)
 
 
 def check_accuracy(

@@ -385,6 +385,7 @@ dependencies = [
     { name = "jaxtyping" },
     { name = "numpy" },
     { name = "psutil" },
+    { name = "pydantic" },
     { name = "substrax" },
     { name = "typing-extensions" },
 ]
@@ -848,6 +849,7 @@ requires-dist = [
     { name = "pre-commit", marker = "extra == 'cuda-dev'", specifier = ">=4.2" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.2" },
     { name = "psutil", specifier = ">=5.9.5" },
+    { name = "pydantic", specifier = ">=2.10" },
     { name = "pydeps", marker = "extra == 'all'", specifier = ">=1.12.17" },
     { name = "pydeps", marker = "extra == 'all-cpu'", specifier = ">=1.12.17" },
     { name = "pydeps", marker = "extra == 'all-macos'", specifier = ">=1.12.17" },
@@ -956,7 +958,7 @@ requires-dist = [
     { name = "scipy", marker = "extra == 'all-cpu'", specifier = ">=1.10" },
     { name = "scipy", marker = "extra == 'all-macos'", specifier = ">=1.10" },
     { name = "scipy", marker = "extra == 'stats'", specifier = ">=1.10" },
-    { name = "substrax", specifier = ">=0.1.12" },
+    { name = "substrax", specifier = ">=0.1.14" },
     { name = "twine", marker = "extra == 'all'", specifier = ">=4.0.2" },
     { name = "twine", marker = "extra == 'all-cpu'", specifier = ">=4.0.2" },
     { name = "twine", marker = "extra == 'all-macos'", specifier = ">=4.0.2" },
@@ -5519,7 +5521,7 @@ wheels = [
 
 [[package]]
 name = "substrax"
-version = "0.1.12"
+version = "0.1.14"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "flax" },
@@ -5528,10 +5530,11 @@ dependencies = [
     { name = "numpy" },
     { name = "optax" },
     { name = "orbax-checkpoint" },
+    { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/1f/ac/b85ceb5a8d23fecb9527d549855cc65e42e9a43c02ce86cbf646f51874da/substrax-0.1.12.tar.gz", hash = "sha256:12d8e7f4d241cad1612fa9b442a1f69188dab3a0caac7f92f44ede8e9adbe87f", size = 86396, upload-time = "2026-09-18T21:10:05.555Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ec/4c/af535c6b9a1bce49e68ebb0761d4faafda8be991c75e28e59f95f23a4d11/substrax-0.1.14.tar.gz", hash = "sha256:b0bb63e4d31e87b3852d91c463811f883de457c2cfb75ed3ee37d0be3e9ee11a", size = 87648, upload-time = "2026-09-18T23:51:02.127Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/82/e0/39341fb24e355ea1b36338a248b250804eaa91c7405713ff5cea42ad0188/substrax-0.1.12-py3-none-any.whl", hash = "sha256:b7ddd0eca2c720fcd7ff91ff20a1d2904df6b9bcc61de2fd1e6db940fa85d665", size = 105066, upload-time = "2026-09-18T21:10:03.919Z" },
+    { url = "https://files.pythonhosted.org/packages/5e/bd/3e440f8c059f94666cb91e3fab7ce3023402ee837b760069418a8ec0429c/substrax-0.1.14-py3-none-any.whl", hash = "sha256:a36315e0c7df1d4e0cc7bb18eae00f578b09049f6a69c2f27d3cc794118e8313", size = 106492, upload-time = "2026-09-18T23:51:00.111Z" },
 ]
 
 [[package]]

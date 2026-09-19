@@ -11,6 +11,7 @@ from datetime import datetime
 
 import jax.numpy as jnp
 import pytest
+from pydantic import ValidationError
 
 from calibrax.core.models import (
     is_higher_better,
@@ -244,6 +245,18 @@ class TestPoint:
 
 class TestRun:
     """Tests for Run frozen dataclass."""
+
+    @pytest.mark.parametrize("missing", ["id", "timestamp"])
+    def test_reading_a_run_requires_the_fields_its_defaults_would_invent(
+        self, missing: str
+    ) -> None:
+        """A stored run names its id and time; reading one without them is refused."""
+        data = Run(points=(), id="abc", timestamp=datetime(2026, 9, 18)).to_dict()
+        del data[missing]
+        with pytest.raises(ValidationError) as refused:
+            Run.from_dict(data)
+        assert refused.value.errors()[0]["loc"] == (missing,)
+        assert refused.value.errors()[0]["type"] == "missing"
 
     def test_minimal_construction(self) -> None:
         run = Run(points=())

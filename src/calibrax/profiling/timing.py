@@ -9,13 +9,13 @@ Supports warm-up iteration exclusion and JIT compilation time measurement.
 from __future__ import annotations
 
 import time
-from collections.abc import Callable, Iterator, Sequence
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any
 
 import numpy as np
 from jax import block_until_ready
-from substrax.typing import PyTree
+from substrax.records import read_record
+from substrax.typing import JsonValue, PyTree
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -40,9 +40,9 @@ class TimingSample:
     compilation_time_sec: float | None = None
     warmup_batches_excluded: int = 0
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, JsonValue]:
         """Serialize to a JSON-compatible dictionary."""
-        d: dict[str, Any] = {
+        d: dict[str, JsonValue] = {
             "wall_clock_sec": float(self.wall_clock_sec),
             "per_batch_times": [float(t) for t in self.per_batch_times],
             "first_batch_time": float(self.first_batch_time),
@@ -55,24 +55,22 @@ class TimingSample:
         return d
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> TimingSample:
-        """Deserialize from a dictionary.
+    def from_dict(  # noqa: DOC502  # raised by read_record
+        cls, data: Mapping[str, JsonValue]
+    ) -> TimingSample:
+        """Read the record from the JSON object ``to_dict`` writes.
 
         Args:
-            data: Dictionary with TimingSample fields.
+            data: The JSON object.
 
         Returns:
-            Reconstructed TimingSample instance.
+            The record.
+
+        Raises:
+            pydantic.ValidationError: If a field is missing or holds a value its annotation
+                does not admit.
         """
-        return cls(
-            wall_clock_sec=data["wall_clock_sec"],
-            per_batch_times=tuple(data["per_batch_times"]),
-            first_batch_time=data["first_batch_time"],
-            num_batches=data["num_batches"],
-            num_elements=data["num_elements"],
-            compilation_time_sec=data.get("compilation_time_sec"),
-            warmup_batches_excluded=data.get("warmup_batches_excluded", 0),
-        )
+        return read_record(cls, data)
 
 
 class TimingCollector:
@@ -242,7 +240,7 @@ class CallTiming:
     percentiles_sec: dict[int, float]
     warmup: int
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, JsonValue]:
         """JSON-ready form; percentile keys become strings."""
         return {
             "samples_sec": [float(sample) for sample in self.samples_sec],
