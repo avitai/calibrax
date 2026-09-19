@@ -31,6 +31,8 @@ dependencies = [
   "jax>=0.11.1",
   "jaxlib>=0.11.1",
   "jaxtyping>=0.2.20",
+  # calibrax.core loads its exports on first use from its __init__.pyi stub.
+  "lazy-loader>=0.5",
   "numpy>=2.1",
   "psutil>=5.9.5",
   # Records are read with pydantic's strict validation; 2.10 is the first release that reads the

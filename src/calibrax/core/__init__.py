@@ -1,83 +1,11 @@
-"""Core data models, protocols, and abstractions."""
+"""Core data models, protocols, and abstractions.
 
-from calibrax.core.adapters import (
-    adapt,
-    AdapterRegistry,
-    BenchmarkAdapter,
-    NNXBenchmarkAdapter,
-    register_adapter,
-)
-from calibrax.core.models import (
-    extract_framework_metrics,
-    is_higher_better,
-    Metric,
-    MetricDef,
-    MetricDirection,
-    MetricPriority,
-    Point,
-    RankEntry,
-    Regression,
-    Run,
-    ScalingLaw,
-    SignificanceResult,
-    TrendPoint,
-    TrendSeries,
-)
-from calibrax.core.protocols import (
-    BatchableDatasetProtocol,
-    BenchmarkProtocol,
-    DatasetProtocol,
-    MetricLearningProtocol,
-    MetricProtocol,
-    StatefulMetricProtocol,
-)
-from calibrax.core.registry import (
-    BenchmarkRegistry,
-    get_benchmark,
-    list_benchmarks,
-    register_benchmark,
-    Registry,
-    SingletonRegistry,
-)
-from calibrax.core.result import BenchmarkResult
+Each export loads its module on first use (scientific-python SPEC 1), so importing a light
+module such as ``calibrax.core.models`` does not load the JAX-dependent adapters and
+protocols. ``__init__.pyi`` lists the exports and is what type checkers read.
+"""
+
+import lazy_loader
 
 
-__all__ = [
-    # adapters
-    "AdapterRegistry",
-    "BenchmarkAdapter",
-    "NNXBenchmarkAdapter",
-    "adapt",
-    "register_adapter",
-    # models
-    "extract_framework_metrics",
-    "Metric",
-    "MetricDef",
-    "MetricDirection",
-    "MetricPriority",
-    "Point",
-    "RankEntry",
-    "Regression",
-    "Run",
-    "ScalingLaw",
-    "SignificanceResult",
-    "TrendPoint",
-    "TrendSeries",
-    "is_higher_better",
-    # protocols
-    "BatchableDatasetProtocol",
-    "BenchmarkProtocol",
-    "DatasetProtocol",
-    "MetricLearningProtocol",
-    "MetricProtocol",
-    "StatefulMetricProtocol",
-    # registry
-    "BenchmarkRegistry",
-    "Registry",
-    "SingletonRegistry",
-    "get_benchmark",
-    "list_benchmarks",
-    "register_benchmark",
-    # result
-    "BenchmarkResult",
-]
+__getattr__, __dir__, __all__ = lazy_loader.attach_stub(__name__, __file__)

@@ -31,6 +31,11 @@ and uses semantic versioning while the public API stabilizes.
   stored `BenchmarkResult` its `timestamp`; the old reader dated a `BenchmarkResult` without one at
   0.0. Every file `to_dict` writes reads as before: all 86 stored runs and results in datarax and
   cellifex read to the same values.
+- `calibrax.core` loads each export on first use (scientific-python SPEC 1 through
+  `lazy-loader>=0.5`, from the package's `__init__.pyi`, which type checkers read), so
+  `calibrax.core.models`, `calibrax.core.registry`, `calibrax.core.record_values`,
+  `calibrax.storage`, `calibrax.ci`, `calibrax.analysis` and `calibrax.validation` import without
+  JAX or Flax; importing any of them loaded both through the package's adapters and protocols.
 - Monitoring reports are typed: `AdvancedMonitor.get_monitoring_summary()` returns a
   `MonitoringSummary` (`thresholds`, `alert_count`, `metric_history` of `MetricHistorySummary`,
   `is_monitoring`) and `ProductionMonitor.get_pipeline_health_report()` a
