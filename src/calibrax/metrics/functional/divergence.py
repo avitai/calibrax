@@ -14,6 +14,7 @@ sinkhorn_divergence, sliced_wasserstein, bregman_divergence.
 
 from __future__ import annotations
 
+import functools
 from collections.abc import Callable
 
 import jax
@@ -333,18 +334,72 @@ def mmd(
     return safe_root(jnp.maximum(mmd_sq, 0.0))
 
 
+def _entropic_ot(
+    a: jax.Array, b: jax.Array, *, epsilon: float, max_iter: int, threshold: float
+) -> jax.Array:
+    """Entropic optimal transport ``OT_eps`` between uniform point clouds, squared Euclidean cost.
+
+    Log-domain Sinkhorn (the potentials ``f``, ``g`` updated through ``logsumexp``, which the
+    kernel ``exp(-C / eps)`` underflows without) until the row marginal's L1 error is below
+    ``threshold`` or ``max_iter`` updates have run. The potentials are solved without
+    gradient and the dual objective is evaluated at them: its gradient with respect to the
+    cost is the transport plan (the envelope theorem), so ``jax.grad`` needs no pass through
+    the iterations (Feydy et al. 2019, the GeomLoss construction).
+    """
+    cost = jnp.sum((a[:, None, :] - b[None, :, :]) ** 2, axis=-1)
+    log_mu = jnp.full(a.shape[0], -jnp.log(a.shape[0]))
+    log_nu = jnp.full(b.shape[0], -jnp.log(b.shape[0]))
+    frozen = jax.lax.stop_gradient(cost)
+
+    def update(potentials: tuple[jax.Array, jax.Array]) -> tuple[jax.Array, jax.Array]:
+        f, g = potentials
+        f = -epsilon * jax.nn.logsumexp(log_nu[None, :] + (g[None, :] - frozen) / epsilon, axis=1)
+        g = -epsilon * jax.nn.logsumexp(log_mu[:, None] + (f[:, None] - frozen) / epsilon, axis=0)
+        return f, g
+
+    def marginal_error(f: jax.Array, g: jax.Array) -> jax.Array:
+        log_plan = log_mu[:, None] + log_nu[None, :] + (f[:, None] + g[None, :] - frozen) / epsilon
+        return jnp.sum(jnp.abs(jnp.exp(jax.nn.logsumexp(log_plan, axis=1)) - jnp.exp(log_mu)))
+
+    def keep_going(state: tuple[jax.Array, jax.Array, jax.Array]) -> jax.Array:
+        f, g, step = state
+        return (step < max_iter) & (marginal_error(f, g) > threshold)
+
+    def step(
+        state: tuple[jax.Array, jax.Array, jax.Array],
+    ) -> tuple[jax.Array, jax.Array, jax.Array]:
+        f, g, count = state
+        f, g = update((f, g))
+        return f, g, count + 1
+
+    zeros_a, zeros_b = jnp.zeros(a.shape[0], cost.dtype), jnp.zeros(b.shape[0], cost.dtype)
+    f, g, _ = jax.lax.while_loop(keep_going, step, (*update((zeros_a, zeros_b)), jnp.int32(1)))
+    f, g = jax.lax.stop_gradient(f), jax.lax.stop_gradient(g)
+    log_plan = log_mu[:, None] + log_nu[None, :] + (f[:, None] + g[None, :] - cost) / epsilon
+    # The dual objective: <f, mu> + <g, nu> - eps * (plan mass - 1).
+    return (
+        jnp.dot(f, jnp.exp(log_mu))
+        + jnp.dot(g, jnp.exp(log_nu))
+        - epsilon * (jnp.sum(jnp.exp(log_plan)) - 1.0)
+    )
+
+
 def sinkhorn_divergence(
     x: ArrayLike,
     y: ArrayLike,
     *,
     regularization: float = 0.1,
-    max_iter: int = 100,
-    threshold: float = 1e-5,
+    max_iter: int = 1000,
+    threshold: float = 1e-4,
 ) -> jax.Array:
-    """Debiased Sinkhorn divergence (entropic optimal transport).
+    """Debiased Sinkhorn divergence between two point clouds (Feydy et al. 2019).
 
-    ``S(x,y) = OT_reg(x,y) - 0.5*(OT_reg(x,x) + OT_reg(y,y))``.
-    Differentiable and JIT-compatible.
+    ``S_eps(x, y) = OT_eps(x, y) - (OT_eps(x, x) + OT_eps(y, y)) / 2`` with ``OT_eps`` the
+    entropic optimal transport objective under squared Euclidean cost and uniform weights
+    (Genevay et al. 2018; Feydy et al. 2019, whose Theorem 1 makes it positive, zero only for
+    equal clouds, and convex). Sinkhorn runs in the log domain until the marginal error is
+    below ``threshold``; the gradient comes from the dual potentials, so ``jax.grad`` and
+    ``jax.jit`` both hold and the memory does not grow with the iterations.
 
     Note:
         Direction: LOWER (0.0 = identical distributions).
@@ -355,55 +410,23 @@ def sinkhorn_divergence(
     Args:
         x: First sample matrix (n_samples, n_features).
         y: Second sample matrix (n_samples, n_features).
-        regularization: Entropic regularization strength.
-        max_iter: Maximum Sinkhorn iterations.
-        threshold: Convergence threshold.
+        regularization: The entropic regularization ``eps``, in the cost's units.
+        max_iter: Most Sinkhorn updates per transport problem.
+        threshold: L1 error of the row marginal at which Sinkhorn stops.
 
     Returns:
         Sinkhorn divergence as a scalar value.
     """
-    x_arr = jnp.asarray(x)
-    y_arr = jnp.asarray(y)
+    x_arr = jnp.atleast_1d(jnp.asarray(x, dtype=jnp.float32))
+    y_arr = jnp.atleast_1d(jnp.asarray(y, dtype=jnp.float32))
     if x_arr.ndim == 1:
         x_arr = x_arr[:, None]
     if y_arr.ndim == 1:
         y_arr = y_arr[:, None]
-
-    def _sinkhorn_cost(a: jax.Array, b: jax.Array) -> jax.Array:
-        # Cost matrix (squared Euclidean)
-        cost = jnp.sum((a[:, None, :] - b[None, :, :]) ** 2, axis=-1)
-        n_a = a.shape[0]
-        n_b = b.shape[0]
-        # Uniform marginals
-        mu = jnp.ones(n_a) / n_a
-        nu = jnp.ones(n_b) / n_b
-        # Gibbs kernel
-        k = jnp.exp(-cost / regularization)
-
-        # Sinkhorn iterations via lax.while_loop for JIT compatibility
-        def _not_converged(state: tuple[jax.Array, jax.Array, jax.Array, jax.Array]) -> jax.Array:
-            _, _, converged, step = state
-            return (~converged) & (step < max_iter)
-
-        def _step(
-            state: tuple[jax.Array, jax.Array, jax.Array, jax.Array],
-        ) -> tuple[jax.Array, jax.Array, jax.Array, jax.Array]:
-            u, v, _, step = state
-            u_new = mu / (k @ v + _EPSILON)
-            v_new = nu / (k.T @ u_new + _EPSILON)
-            converged = jnp.max(jnp.abs(u_new - u)) < threshold
-            return u_new, v_new, converged, step + 1
-
-        init_state = (jnp.ones(n_a), jnp.ones(n_b), jnp.bool_(False), jnp.int32(0))
-        u, v, _, _ = jax.lax.while_loop(_not_converged, _step, init_state)
-        # Transport cost: sum_{ij} u_i K_{ij} v_j C_{ij}
-        return jnp.sum(u[:, None] * k * v[None, :] * cost)
-
-    ot_xy = _sinkhorn_cost(x_arr, y_arr)
-    ot_xx = _sinkhorn_cost(x_arr, x_arr)
-    ot_yy = _sinkhorn_cost(y_arr, y_arr)
-    # Floor at 0 — small negative values from numerical precision
-    return jnp.maximum(ot_xy - 0.5 * (ot_xx + ot_yy), 0.0)
+    solve = functools.partial(
+        _entropic_ot, epsilon=regularization, max_iter=max_iter, threshold=threshold
+    )
+    return solve(x_arr, y_arr) - 0.5 * (solve(x_arr, x_arr) + solve(y_arr, y_arr))
 
 
 # The number of directions: the Monte Carlo error of the average over directions falls as
