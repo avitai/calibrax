@@ -162,6 +162,15 @@ class TestDetectChangePoints:
         assert any(3 <= idx <= 5 for idx in indices)
 
     @_skip_no_ruptures
+    @pytest.mark.parametrize("method", ["pelt", "binseg", "window"])
+    def test_every_method_reports_python_int_indices(self, method: str) -> None:
+        """ruptures' Window returns numpy integers; a ChangePoint's index is a Python int."""
+        trend = _make_trend([100.0] * 10 + [200.0] * 10)
+        points = detect_change_points(trend, method=method)
+        assert points
+        assert all(type(point.index) is int for point in points)
+
+    @_skip_no_ruptures
     def test_change_point_has_positive_magnitude(self) -> None:
         """Detected change points should have positive magnitude for step change."""
         values = [1.0, 1.0, 1.0, 1.0, 10.0, 10.0, 10.0, 10.0]

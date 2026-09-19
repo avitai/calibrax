@@ -140,6 +140,9 @@ and uses semantic versioning while the public API stabilizes.
   that takes a country. `EmissionsTracker` refuses `country_iso_code` with `TypeError`, and the
   fallback that caught it retried without the country, so the requested country was dropped
   without a warning and the machine's detected location was used instead.
+- `detect_change_points(method="window")` reports each `ChangePoint.index` as a Python `int`; ruptures'
+  `Window` returns NumPy integers, which the record stored as given. ruptures is typed through a
+  local stub (`typings/ruptures`), since it ships no type information, and imported where used.
 - `analyze_complexity` counts parameter memory from each parameter's dtype. It assumed four bytes
   per parameter, so a bfloat16 model's parameter memory read twice its size and a float64 model's
   half; parameter counts and the operation estimate use exact Python integers, where a product
