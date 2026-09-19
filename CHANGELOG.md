@@ -24,6 +24,15 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Changed
 
+- Label-based metrics trace under `jax.jit` given a static label count: `num_classes` and
+  `num_clusters` on the clustering metrics, `num_clusters` on silhouette, Calinski-Harabasz and
+  Davies-Bouldin, `num_groups` on the four fairness metrics, and `num_classes` on
+  `cohen_kappa` and `balanced_accuracy`; labels are then ids below the count, and an unused id
+  takes no part. Without a count the labels are counted from the data, eagerly.
+  `demographic_parity_ratio` is the lowest group selection rate over the highest.
+- `adaptive_calibration_error` returns a `jax.Array` and runs under `jax.jit` and `jax.grad`:
+  its equal-mass bins depend only on the sample count, so they are fixed at trace time; it
+  returned a Python float from a loop over the bins.
 - `HardwareSpec.tensor_core_shapes` for the A100, H100 and RTX 4090 are the CUDA warp matrix
   (WMMA) shapes for bf16 (16x16x16, 32x8x16, 8x32x16) and tf32 (16x16x8), which the CUDA C++
   Programming Guide lists for compute capability 8.0 and higher; the A100 listed two of
@@ -232,6 +241,19 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Fixed
 
+- Clustering and fairness metrics read labels as names. `jnp.unique(labels, size=max + 1)` padded
+  the missing ids with the smallest label, so clusters labelled `{0, 2}` or `{1, 2}` counted
+  one cluster twice: silhouette 0.33 for a 0.99 clustering, and ARI, NMI, AMI, V-measure,
+  Calinski-Harabasz and Davies-Bouldin all changed with the label values. Every one now
+  matches scikit-learn under any naming, with scikit-learn's edge-case conventions (a
+  singleton cluster's silhouette is 0) and exact zero self-distances.
+- `adjusted_mutual_information` uses the exact expected mutual information of Vinh, Epps and
+  Bailey (2010, eq. 24) in place of the approximation `(R - 1)(C - 1) / 2N`, and normalises by
+  the arithmetic mean of the entropies by default (`average=` as scikit-learn); it matches
+  scikit-learn to float32 resolution up to 20000 samples. `v_measure(beta=...)` is Rosenberg
+  and Hirschberg's `(1 + beta) h c / (beta h + c)`; it squared `beta`.
+- `balanced_accuracy` averages recall over the classes the targets hold, as scikit-learn does;
+  a predicted class no target has counted as a recall of 0.
 - `ProductionMonitor` kept every execution, so its memory grew without bound in a long-running
   process: the health report's statistics are now running tallies over every execution
   (count, success rate, mean, min and max stay exact), `executions` holds the most recent

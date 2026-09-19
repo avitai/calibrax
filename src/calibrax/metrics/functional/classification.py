@@ -488,7 +488,9 @@ def matthews_corrcoef(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:
     return safe_divide(numerator, denominator)
 
 
-def cohen_kappa(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:
+def cohen_kappa(
+    predictions: ArrayLike, targets: ArrayLike, *, num_classes: int | None = None
+) -> jax.Array:
     """Cohen's kappa coefficient for inter-rater agreement.
 
     ``kappa = (accuracy - expected_accuracy) / (1 - expected_accuracy)``
@@ -500,6 +502,8 @@ def cohen_kappa(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:
     Args:
         predictions: Predicted class indices or probability array.
         targets: Ground truth class indices.
+        num_classes: Number of classes, to trace under ``jax.jit``; None reads it from the
+            largest index, eagerly.
 
     Returns:
         Cohen's kappa as a scalar value.
@@ -508,7 +512,7 @@ def cohen_kappa(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:
     p, t = _prepare_class_arrays(p, targets)
     n = len(t)
 
-    cm = confusion_matrix(p, t)
+    cm = confusion_matrix(p, t, num_classes=num_classes)
     observed_accuracy = jnp.trace(cm) / n
 
     row_sums = jnp.sum(cm, axis=1).astype(jnp.float32)
@@ -521,8 +525,12 @@ def cohen_kappa(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:
     )
 
 
-def balanced_accuracy(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:
-    """Balanced accuracy: average recall per class.
+def balanced_accuracy(
+    predictions: ArrayLike, targets: ArrayLike, *, num_classes: int | None = None
+) -> jax.Array:
+    """Balanced accuracy: the mean recall over the classes the targets hold.
+
+    A class no target has has no recall and takes no part, as in scikit-learn.
 
     Note:
         Direction: HIGHER (1.0 = perfect).
@@ -533,6 +541,8 @@ def balanced_accuracy(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:
     Args:
         predictions: Predicted class indices or probability array.
         targets: Ground truth class indices.
+        num_classes: Number of classes, to trace under ``jax.jit``; None reads it from the
+            largest index, eagerly.
 
     Returns:
         Balanced accuracy as a scalar value.
@@ -540,12 +550,11 @@ def balanced_accuracy(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:
     p = _to_class_indices(predictions)
     p, t = _prepare_class_arrays(p, targets)
 
-    num_classes = int(jnp.maximum(jnp.max(p), jnp.max(t))) + 1
     cm = confusion_matrix(p, t, num_classes=num_classes)
-    per_class_true = jnp.sum(cm, axis=1)
-    per_class_tp = jnp.diag(cm)
-    per_class_recall = safe_divide(per_class_tp, per_class_true)
-    return jnp.mean(per_class_recall)
+    support = jnp.sum(cm, axis=1)
+    held = support > 0
+    recall = jnp.diag(cm) / jnp.where(held, support, 1)
+    return jnp.sum(jnp.where(held, recall, 0.0)) / jnp.sum(held)
 
 
 def specificity(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:

@@ -138,6 +138,45 @@ def safe_norm(x: ArrayLike, *, axis: int | tuple[int, ...] | None = None) -> jax
     return safe_root(jnp.sum(jnp.square(x), axis=axis))
 
 
+def dense_labels(labels: ArrayLike, num_labels: int | None) -> tuple[jax.Array, int]:
+    """Labels as ids ``0..k-1``, and ``k``: labels are names, so their values carry no order.
+
+    With ``num_labels`` given, ``labels`` are taken as ids in ``[0, num_labels)`` and ``k`` is
+    that static count, so a metric built on it traces; ids with no member are empty. With
+    ``None``, the distinct values are renumbered in sorted order and counted from the data,
+    which runs only eagerly (the count is a shape).
+
+    Args:
+        labels: Integer labels.
+        num_labels: The number of ids, or None to count the distinct labels.
+
+    Returns:
+        The ids and their count.
+    """
+    ids = jnp.asarray(labels, dtype=jnp.int32)
+    if num_labels is not None:
+        return ids, num_labels
+    values, inverse = jnp.unique(ids, return_inverse=True)
+    return inverse.reshape(ids.shape), int(values.shape[0])
+
+
+def label_masks(labels: ArrayLike, num_labels: int | None) -> tuple[jax.Array, jax.Array]:
+    """One-hot membership of each label id, ``(k, n)`` as floats, and each id's size ``(k,)``.
+
+    Ids come from :func:`dense_labels`: ``num_labels`` given traces, None counts eagerly.
+
+    Args:
+        labels: Integer labels, shape ``(n,)``.
+        num_labels: The number of ids, or None to count the distinct labels.
+
+    Returns:
+        The membership masks and the members per id; an unused id has size 0.
+    """
+    ids, count = dense_labels(labels, num_labels)
+    masks = (ids[None, :] == jnp.arange(count)[:, None]).astype(jnp.float32)
+    return masks, jnp.sum(masks, axis=1)
+
+
 def safe_log(x: ArrayLike, *, eps: float = _EPSILON) -> jax.Array:
     """Logarithm guarded against zero/negative inputs.
 
