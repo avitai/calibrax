@@ -58,11 +58,9 @@ class TestMetricEntry:
             domain="image",
             direction=MetricDirection.HIGHER,
             description="A test metric",
-            required_extra="image",
         )
         assert entry.fn is dummy
         assert entry.domain == "image"
-        assert entry.required_extra == "image"
 
     def test_frozen(self) -> None:
         """MetricEntry should be immutable."""

@@ -351,8 +351,9 @@ def vendi_score(similarity_matrix: ArrayLike) -> jax.Array:
     total = jnp.sum(eigenvalues)
     probs = eigenvalues / (total + _EPSILON)
 
-    # Entropy: -sum(p * log(p)) for p > 0
-    log_probs = jnp.where(probs > _EPSILON, jnp.log(probs), 0.0)
-    entropy = -jnp.sum(probs * log_probs)
+    # Entropy: -sum(p * log(p)) over p > 0. The log's argument is guarded too, so the zero
+    # eigenvalues of a rank-deficient matrix give a zero gradient rather than 0 * inf = NaN.
+    positive = probs > _EPSILON
+    entropy = -jnp.sum(jnp.where(positive, probs * jnp.log(jnp.where(positive, probs, 1.0)), 0.0))
 
     return jnp.where(total < _EPSILON, 1.0, jnp.exp(entropy))

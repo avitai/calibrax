@@ -9,7 +9,9 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import Protocol
 
+import jax
 import jax.numpy as jnp
 from jax.typing import ArrayLike
 
@@ -481,7 +483,7 @@ def _register_forecasting_metrics() -> None:
             event_reliability,
             "Reliability component of the Brier decomposition",
             MetricDirection.LOWER,
-            MetricProperties(is_differentiable=False, is_jit_compatible=True),
+            MetricProperties(is_differentiable=True, is_jit_compatible=True),
             signature=MetricSignature.PREDICTIONS_TARGETS,
             domain="forecasting",
         ),
@@ -882,10 +884,7 @@ def _register_calibration_metrics() -> None:
                 direction=direction,
                 description=desc,
                 signature=MetricSignature.PREDICTIONS_TARGETS,
-                properties=MetricProperties(
-                    is_proper=is_proper_flag,
-                    is_differentiable=False,
-                ),
+                properties=MetricProperties(is_proper=is_proper_flag),
             )
             registry.register(name, entry)
 
@@ -909,7 +908,8 @@ def _register_segmentation_metrics() -> None:
                 direction=MetricDirection.HIGHER,
                 description=desc,
                 signature=MetricSignature.PREDICTIONS_TARGETS,
-                properties=MetricProperties(is_symmetric=True),
+                # Integer masks: no gradient reaches the predictions.
+                properties=MetricProperties(is_symmetric=True, is_differentiable=False),
             )
             registry.register(name, entry)
 
@@ -988,7 +988,7 @@ def _register_distance_metrics() -> None:
             "Jaccard distance (set-based)",
             True,
             True,
-            False,
+            True,
             (),
         ),
         (
@@ -1009,15 +1009,6 @@ def _register_distance_metrics() -> None:
             True,
             ("lorentz",),
         ),
-        (
-            "randers_distance",
-            randers_distance,
-            "Randers asymmetric Finsler distance",
-            False,
-            False,
-            True,
-            (),
-        ),
     ]
     for name, fn, desc, is_true, is_sym, is_diff, invs in builtins:
         if not registry.has(name):
@@ -1037,6 +1028,21 @@ def _register_distance_metrics() -> None:
                 ),
             )
             registry.register(name, entry)
+    # A direction and a magnitude are required keywords: fn(predictions, targets) cannot call it.
+    _register_specs(
+        registry,
+        [
+            _BuiltinMetricSpec(
+                "randers_distance",
+                randers_distance,
+                "Randers asymmetric Finsler distance",
+                MetricDirection.LOWER,
+                MetricProperties(is_differentiable=True),
+                signature=MetricSignature.CUSTOM,
+                domain="distance",
+            )
+        ],
+    )
 
 
 def _register_divergence_metrics() -> None:
@@ -1251,27 +1257,41 @@ def _register_information_metrics() -> None:
 def _register_ranking_metrics() -> None:
     """Register the ranking/retrieval metrics at import time."""
     registry = MetricRegistry()
-    builtins: list[tuple[str, MetricFn, str]] = [
-        ("ndcg", ndcg, "Normalized Discounted Cumulative Gain"),
-        ("ndcg_at_k", ndcg_at_k, "NDCG truncated to top-k"),
-        ("mean_average_precision", mean_average_precision, "Mean Average Precision"),
-        ("precision_at_k", precision_at_k, "Precision at k"),
-        ("recall_at_k", recall_at_k, "Recall at k"),
-        ("mean_reciprocal_rank", mean_reciprocal_rank, "Mean Reciprocal Rank"),
-        ("hit_rate", hit_rate, "Hit rate at k"),
+    # Ranks carry no gradient to the scores; the cutoff k is a required keyword.
+    ranked = MetricProperties(is_differentiable=False)
+    at_k: list[tuple[str, MetricFn, str, MetricSignature]] = [
+        (
+            "ndcg",
+            ndcg,
+            "Normalized Discounted Cumulative Gain",
+            MetricSignature.PREDICTIONS_TARGETS,
+        ),
+        ("ndcg_at_k", ndcg_at_k, "NDCG truncated to top-k", MetricSignature.CUSTOM),
+        (
+            "mean_average_precision",
+            mean_average_precision,
+            "Mean Average Precision",
+            MetricSignature.PREDICTIONS_TARGETS,
+        ),
+        ("precision_at_k", precision_at_k, "Precision at k", MetricSignature.CUSTOM),
+        ("recall_at_k", recall_at_k, "Recall at k", MetricSignature.CUSTOM),
+        (
+            "mean_reciprocal_rank",
+            mean_reciprocal_rank,
+            "Mean Reciprocal Rank",
+            MetricSignature.PREDICTIONS_TARGETS,
+        ),
+        ("hit_rate", hit_rate, "Hit rate at k", MetricSignature.CUSTOM),
     ]
-    for name, fn, desc in builtins:
-        if not registry.has(name):
-            entry = MetricEntry(
-                name=name,
-                fn=fn,
-                tier=MetricTier.PURE_FUNCTION,
-                domain="ranking",
-                direction=MetricDirection.HIGHER,
-                description=desc,
-                signature=MetricSignature.PREDICTIONS_TARGETS,
+    _register_specs(
+        registry,
+        [
+            _BuiltinMetricSpec(
+                name, fn, desc, MetricDirection.HIGHER, ranked, signature=sig, domain="ranking"
             )
-            registry.register(name, entry)
+            for name, fn, desc, sig in at_k
+        ],
+    )
     if not registry.has("coverage"):
         # One input and a required catalog size: a suite cannot call it as fn(predictions, targets).
         registry.register(
@@ -1284,6 +1304,7 @@ def _register_ranking_metrics() -> None:
                 direction=MetricDirection.HIGHER,
                 description="Catalog coverage",
                 signature=MetricSignature.CUSTOM,
+                properties=MetricProperties(is_differentiable=False),
             ),
         )
 
@@ -1291,29 +1312,54 @@ def _register_ranking_metrics() -> None:
 def _register_statistical_metrics() -> None:
     """Register 5 statistical correlation metrics at import time."""
     registry = MetricRegistry()
-    builtins: list[tuple[str, MetricFn, str]] = [
-        ("pearson_correlation", pearson_correlation, "Pearson correlation coefficient"),
-        ("spearman_rank_correlation", spearman_rank_correlation, "Spearman rank correlation"),
-        ("kendall_tau", kendall_tau, "Kendall rank correlation coefficient"),
-        ("concordance_correlation", concordance_correlation, "Lin's concordance correlation"),
-        ("r_squared_adjusted", r_squared_adjusted, "Adjusted R-squared"),
-    ]
-    for name, fn, desc in builtins:
-        if not registry.has(name):
-            entry = MetricEntry(
-                name=name,
-                fn=fn,
-                tier=MetricTier.PURE_FUNCTION,
-                domain="statistical",
-                direction=MetricDirection.HIGHER,
-                description=desc,
-                signature=MetricSignature.PREDICTIONS_TARGETS,
-                properties=MetricProperties(is_symmetric=True),
-            )
-            registry.register(name, entry)
+    symmetric = MetricProperties(is_symmetric=True)
+    # Rank correlations carry no gradient to the values they rank.
+    ranked = MetricProperties(is_symmetric=True, is_differentiable=False)
     _register_specs(
         registry,
         [
+            _BuiltinMetricSpec(
+                "pearson_correlation",
+                pearson_correlation,
+                "Pearson correlation coefficient",
+                MetricDirection.HIGHER,
+                symmetric,
+                domain="statistical",
+            ),
+            _BuiltinMetricSpec(
+                "spearman_rank_correlation",
+                spearman_rank_correlation,
+                "Spearman rank correlation",
+                MetricDirection.HIGHER,
+                ranked,
+                domain="statistical",
+            ),
+            _BuiltinMetricSpec(
+                "kendall_tau",
+                kendall_tau,
+                "Kendall rank correlation coefficient",
+                MetricDirection.HIGHER,
+                ranked,
+                domain="statistical",
+            ),
+            _BuiltinMetricSpec(
+                "concordance_correlation",
+                concordance_correlation,
+                "Lin's concordance correlation",
+                MetricDirection.HIGHER,
+                symmetric,
+                domain="statistical",
+            ),
+            # The number of predictors is a required keyword, and R^2 is not symmetric.
+            _BuiltinMetricSpec(
+                "r_squared_adjusted",
+                r_squared_adjusted,
+                "Adjusted R-squared",
+                MetricDirection.HIGHER,
+                MetricProperties(),
+                signature=MetricSignature.CUSTOM,
+                domain="statistical",
+            ),
             _BuiltinMetricSpec(
                 "skewness",
                 skewness,
@@ -1322,7 +1368,7 @@ def _register_statistical_metrics() -> None:
                 MetricProperties(is_differentiable=True, is_jit_compatible=True),
                 signature=MetricSignature.SINGLE_INPUT,
                 domain="statistical",
-            )
+            ),
         ],
     )
 
@@ -1481,13 +1527,6 @@ def _register_manifold_metrics() -> None:
             True,
             (),
         ),
-        (
-            "ultrahyperbolic_distance",
-            ultrahyperbolic_distance,
-            "Geodesic distance on pseudo-hyperboloid with mixed signature",
-            False,
-            (),
-        ),
     ]
     for name, fn, desc, is_true, invs in builtins:
         if not registry.has(name):
@@ -1508,6 +1547,21 @@ def _register_manifold_metrics() -> None:
                     ),
                 ),
             )
+    # The signature (p, q) is a required keyword: fn(a, b) cannot call it.
+    _register_specs(
+        registry,
+        [
+            _BuiltinMetricSpec(
+                "ultrahyperbolic_distance",
+                ultrahyperbolic_distance,
+                "Geodesic distance on pseudo-hyperboloid with mixed signature",
+                MetricDirection.LOWER,
+                MetricProperties(is_symmetric=True),
+                signature=MetricSignature.CUSTOM,
+                domain="manifold",
+            )
+        ],
+    )
 
 
 def _register_graph_metrics() -> None:
@@ -1597,7 +1651,6 @@ def _register_image_metrics() -> None:
         ("psnr", psnr, "Peak Signal-to-Noise Ratio (dB)"),
         ("ssim", ssim, "Structural Similarity Index Measure"),
         ("ms_ssim", ms_ssim, "Multi-Scale Structural Similarity"),
-        ("vendi_score", vendi_score, "Vendi Score (diversity via eigenvalue entropy)"),
     ]
     for name, fn, desc in builtins:
         if not registry.has(name):
@@ -1612,6 +1665,21 @@ def _register_image_metrics() -> None:
                 properties=MetricProperties(is_symmetric=True),
             )
             registry.register(name, entry)
+    # One similarity matrix in, a diversity out.
+    _register_specs(
+        registry,
+        [
+            _BuiltinMetricSpec(
+                "vendi_score",
+                vendi_score,
+                "Vendi Score (diversity via eigenvalue entropy)",
+                MetricDirection.HIGHER,
+                MetricProperties(),
+                signature=MetricSignature.SINGLE_INPUT,
+                domain="image",
+            )
+        ],
+    )
 
 
 def _register_fairness_metrics() -> None:
@@ -1654,39 +1722,75 @@ def _register_fairness_metrics() -> None:
                 direction=direction,
                 description=desc,
                 signature=MetricSignature.CUSTOM,
+                # Predictions are thresholded: no gradient reaches them.
+                properties=MetricProperties(is_differentiable=False),
             )
             registry.register(name, entry)
 
 
+class _ContingencyMetric(Protocol):
+    """A metric of two labelings, ground truth first, with static label counts."""
+
+    def __call__(
+        self,
+        labels_true: ArrayLike,
+        labels_pred: ArrayLike,
+        *,
+        num_classes: int | None = None,
+        num_clusters: int | None = None,
+    ) -> jax.Array: ...
+
+
+def _predictions_first(metric: _ContingencyMetric) -> MetricFn:
+    """``metric`` as the registry calls a metric, ``fn(predictions, targets)``.
+
+    The clustering metrics take the ground truth first, as scikit-learn does; a suite passes
+    the predicted labels first. The counts stay keywords, static under ``jax.jit``.
+    """
+
+    def by_predictions(
+        predictions: ArrayLike,
+        targets: ArrayLike,
+        *,
+        num_classes: int | None = None,
+        num_clusters: int | None = None,
+    ) -> jax.Array:
+        return metric(targets, predictions, num_classes=num_classes, num_clusters=num_clusters)
+
+    by_predictions.__name__ = by_predictions.__qualname__ = getattr(metric, "__name__", "metric")
+    by_predictions.__doc__ = metric.__doc__
+    return by_predictions
+
+
 def _register_clustering_metrics() -> None:
-    """Register 7 clustering metrics at import time."""
+    """Register 7 clustering metrics at import time.
+
+    The four agreement scores compare predicted labels with the ground truth, so the registry
+    calls them ``fn(predictions, targets)``; labels carry no gradient. Silhouette,
+    Calinski-Harabasz and Davies-Bouldin score features by their cluster labels and are
+    differentiable in the features.
+    """
     registry = MetricRegistry()
-    # (name, fn, description, direction)
-    builtins: list[tuple[str, MetricFn, str, MetricDirection]] = [
+    agreement = MetricProperties(is_symmetric=True, is_differentiable=False)
+    agreements: list[tuple[str, _ContingencyMetric, str]] = [
         (
             "adjusted_rand_index",
             adjusted_rand_index,
             "Chance-adjusted Rand index for clustering agreement",
-            MetricDirection.HIGHER,
         ),
         (
             "normalized_mutual_information_clustering",
             normalized_mutual_information_clustering,
             "Normalized mutual information for clustering",
-            MetricDirection.HIGHER,
         ),
         (
             "adjusted_mutual_information",
             adjusted_mutual_information,
             "Chance-adjusted mutual information for clustering",
-            MetricDirection.HIGHER,
         ),
-        (
-            "v_measure",
-            v_measure,
-            "Harmonic mean of homogeneity and completeness",
-            MetricDirection.HIGHER,
-        ),
+        ("v_measure", v_measure, "Harmonic mean of homogeneity and completeness"),
+    ]
+    internal: list[tuple[str, MetricFn, str, MetricDirection]] = [
         (
             "silhouette_score",
             silhouette_score,
@@ -1706,19 +1810,34 @@ def _register_clustering_metrics() -> None:
             MetricDirection.LOWER,
         ),
     ]
-    for name, fn, desc, direction in builtins:
-        if not registry.has(name):
-            entry = MetricEntry(
-                name=name,
-                fn=fn,
-                tier=MetricTier.PURE_FUNCTION,
-                domain="clustering",
-                direction=direction,
-                description=desc,
-                signature=MetricSignature.FEATURES_LABELS,
-                properties=MetricProperties(is_symmetric=True),
-            )
-            registry.register(name, entry)
+    _register_specs(
+        registry,
+        [
+            *(
+                _BuiltinMetricSpec(
+                    name,
+                    _predictions_first(metric),
+                    desc,
+                    MetricDirection.HIGHER,
+                    agreement,
+                    domain="clustering",
+                )
+                for name, metric, desc in agreements
+            ),
+            *(
+                _BuiltinMetricSpec(
+                    name,
+                    fn,
+                    desc,
+                    direction,
+                    MetricProperties(),
+                    signature=MetricSignature.FEATURES_LABELS,
+                    domain="clustering",
+                )
+                for name, fn, desc, direction in internal
+            ),
+        ],
+    )
 
 
 def calculate_all(

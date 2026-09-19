@@ -121,7 +121,6 @@ def register_metric(
     domain: str = "general",
     direction: MetricDirection = MetricDirection.LOWER,
     description: str = "",
-    required_extra: str = "",
     signature: MetricSignature = MetricSignature.PREDICTIONS_TARGETS,
     properties: MetricProperties | None = None,
 ) -> Callable[[MetricFn], MetricFn]:
@@ -133,7 +132,6 @@ def register_metric(
         domain: Metric domain.
         direction: Whether lower or higher is better.
         description: Human-readable description.
-        required_extra: PyPI extra needed for this metric.
         signature: Input signature type.
         properties: Mathematical and capability properties of the metric.
 
@@ -149,7 +147,6 @@ def register_metric(
             domain=domain,
             direction=direction,
             description=description,
-            required_extra=required_extra,
             signature=signature,
             properties=properties if properties is not None else MetricProperties(),
         )
