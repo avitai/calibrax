@@ -142,6 +142,23 @@ metrics = {
 }
 ```
 
+**Terminal Output:**
+```
+=== Same-Shape Regression Metrics (clean data) ===
+  MSE                            = 0.031250
+  MAE                            = 0.162500
+  RMSE                           = 0.176777
+  R-squared                      = 0.994048
+  MAPE                           = 0.046399
+  SMAPE                          = 0.045775
+  Relative Error                 = 0.035007
+  Explained Variance             = 0.994077
+  Max Error                      = 0.300000
+  Huber Loss (delta=1.0)         = 0.015625
+  Quantile Loss (q=0.5)          = 0.081250
+  Log-Cosh Loss                  = 0.015489
+```
+
 ## Next Steps
 
 - [Classification Metrics](classification.md) -- binary classification, calibration, and segmentation

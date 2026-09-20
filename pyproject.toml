@@ -40,7 +40,7 @@ dependencies = [
   "pydantic>=2.10",
   # Significance tests and the chi-squared interval use SciPy, which JAX itself requires.
   "scipy>=1.15",
-  "substrax>=0.1.14",
+  "substrax>=0.1.15",
   # TypeIs, for adapter predicates, arrived in typing_extensions 4.10.
   "typing_extensions>=4.10"
 ]
@@ -131,6 +131,8 @@ dev = [
   "ruff>=0.1.5",
   # Types for scipy.stats; follows the locked scipy minor.
   "scipy-stubs>=1.17,<1.18",
+  # `substrax-compute` runs the examples on a GPU; the Modal backend needs Modal
+  "substrax[modal]>=0.1.15",
   "twine>=4.0.2"
 ]
 docs = [
@@ -429,6 +431,20 @@ convention = "google"
 
 [tool.ruff.lint.pylint]
 max-args = 8
+
+[tool.substrax.compute]
+backend = "modal"
+
+[tool.substrax.compute.backends.modal]
+outputs_volume = "calibrax-example-outputs"
+
+[tool.substrax.compute.jobs.examples]
+accelerator = {kind = "L4"}
+examples = ["examples/metrics"]
+extras = ["cuda12"]
+runtime = {platforms = ["cuda"], preallocate = false, xla_flags = ["--xla_gpu_deterministic_ops=true"]}
+task_timeout_seconds = 1800
+timeout_seconds = 10800
 
 [tool.uv]
 # calibrax does not import optax; flax does. Below 0.2.8 optax calls

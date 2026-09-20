@@ -63,6 +63,22 @@ spectral_distance(path_adj, path_adj)   # 0.0 (identical)
 spectral_distance(path_adj, cycle_adj)  # > 0 (different topology)
 ```
 
+**Terminal Output:**
+```
+=== Path Graph (4 nodes) ===
+  Adjacency matrix:
+    [0.0, 1.0, 0.0, 0.0]
+    [1.0, 0.0, 1.0, 0.0]
+    [0.0, 1.0, 0.0, 1.0]
+    [0.0, 0.0, 1.0, 0.0]
+
+  Spectral distance (path vs itself): 0.000000
+
+=== Cycle Graph (4 nodes) ===
+  Spectral distance (path vs cycle): 1.530733
+  Non-zero because the Laplacian eigenvalue spectra differ.
+```
+
 #### Shortest Path Distance (Floyd-Warshall)
 
 Computes all-pairs shortest path distances from an adjacency matrix. Returns a matrix where entry `(i, j)` is the minimum number of hops between nodes `i` and `j`.
@@ -77,6 +93,24 @@ sp_cycle = shortest_path_distance(cycle_adj)
 # sp_cycle[0, 2] = 2 (two hops either direction around the cycle)
 ```
 
+**Terminal Output:**
+```
+=== Shortest Path Distance (Floyd-Warshall) ===
+  Path graph shortest distances:
+    node 0: ['0', '1', '2', '3']
+    node 1: ['1', '0', '1', '2']
+    node 2: ['2', '1', '0', '1']
+    node 3: ['3', '2', '1', '0']
+  d(0, 3) = 3 (3 hops along the path)
+
+  Cycle graph shortest distances:
+    node 0: ['0', '1', '2', '1']
+    node 1: ['1', '0', '1', '2']
+    node 2: ['2', '1', '0', '1']
+    node 3: ['1', '2', '1', '0']
+  d(0, 2) = 2 (2 hops either direction)
+```
+
 #### Resistance Distance
 
 Resistance distance treats the graph as an electrical network where each edge has unit resistance. Nodes connected by more parallel paths have lower resistance distance. It captures richer topological information than shortest-path distance.
@@ -88,6 +122,27 @@ omega_path = resistance_distance(path_adj)
 omega_cycle = resistance_distance(cycle_adj)
 
 # Path d(0,3) > Cycle d(0,2): the cycle has parallel paths
+```
+
+**Terminal Output:**
+```
+=== Resistance Distance ===
+  Path graph resistance distances:
+    node 0: ['0.00', '1.00', '2.00', '3.00']
+    node 1: ['1.00', '0.00', '1.00', '2.00']
+    node 2: ['2.00', '1.00', '0.00', '1.00']
+    node 3: ['3.00', '2.00', '1.00', '0.00']
+
+  Cycle graph resistance distances:
+    node 0: ['0.00', '0.75', '1.00', '0.75']
+    node 1: ['0.75', '0.00', '0.75', '1.00']
+    node 2: ['1.00', '0.75', '0.00', '0.75']
+    node 3: ['0.75', '1.00', '0.75', '0.00']
+
+  Resistance distance captures topology: nodes with more
+  parallel paths have lower resistance distance.
+  Path d(0,3) = 3.00 (single path)
+  Cycle d(0,2) = 1.00 (two parallel paths)
 ```
 
 ### Manifold Metrics
@@ -117,6 +172,25 @@ spd_affine_invariant_distance(identity, scaled)
 spd_log_euclidean_distance(identity, scaled)
 ```
 
+**Terminal Output:**
+```
+=== SPD Manifold: Covariance Matrix Distances ===
+  Affine-invariant distance (geometrically exact):
+    d(I, I)         = 0.000000
+    d(I, 4*I)       = 2.401132
+    d(I, aniso)     = 1.373887
+    d(4*I, aniso)   = 1.747975
+
+  Log-Euclidean distance (faster approximation):
+    d(I, I)         = 0.000000
+    d(I, 4*I)       = 2.401132
+    d(I, aniso)     = 1.373887
+    d(4*I, aniso)   = 1.747975
+
+  Affine-invariant is congruence-invariant: d(A,B) = d(MAM',MBM').
+  Log-Euclidean is faster but only orthogonally invariant.
+```
+
 Use affine-invariant when congruence invariance matters (e.g., comparing covariance matrices under different coordinate systems). Use log-Euclidean when speed is the priority and orthogonal invariance suffices.
 
 #### Grassmann Distance
@@ -132,6 +206,15 @@ u3 = jnp.eye(4, 2, k=2) # span of last two standard basis vectors
 
 grassmann_distance(u1, u1)  # 0.0 (same subspace)
 grassmann_distance(u1, u3)  # maximum (orthogonal complement)
+```
+
+**Terminal Output:**
+```
+=== Grassmann Manifold: Subspace Distances ===
+  d(U1, U1) = 0.000000  (same subspace)
+  d(U1, U2) = 0.000000  (30-deg rotation)
+  d(U1, U3) = 0.000000  (orthogonal complement)
+  Grassmann distance is basis-independent: depends only on the subspace.
 ```
 
 Applications include subspace tracking in signal processing, PCA comparison, and dimensionality reduction evaluation.
@@ -173,6 +256,15 @@ p2 = hyperboloid_point(1.0, 0.0)
 
 ultrahyperbolic_distance(origin, p1, signature=(1, 2))  # moderate
 ultrahyperbolic_distance(origin, p2, signature=(1, 2))  # larger
+```
+
+**Terminal Output:**
+```
+=== Ultrahyperbolic Distance (Mixed Signature) ===
+  Signature (1, 2) -- standard hyperboloid:
+    d(origin, origin) = 0.000100
+    d(origin, p1)     = 0.554275
+    d(origin, p2)     = 0.881374
 ```
 
 For the (2, 2) signature, points must satisfy `-t1^2 - t2^2 + x1^2 + x2^2 = -1`:
