@@ -7,6 +7,8 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+## [0.1.10] - 2026-09-20
+
 ### Added
 
 - `mmd_squared_unbiased(x, y, *, kernel, bandwidth)`, the unbiased U-statistic `MMD^2_u` of
