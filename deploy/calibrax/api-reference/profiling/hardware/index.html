@@ -1567,6 +1567,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../nvml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NVML
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../energy/" class="md-nav__link">
         
   
@@ -1694,10 +1722,82 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#calibrax.profiling.hardware.HardwareSpec" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;HardwareSpec
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" HardwareSpec">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#calibrax.profiling.hardware.HardwareSpec.critical_intensity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;critical_intensity
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#calibrax.profiling.hardware.HardwareSpec.to_dict" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;to_dict
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.profiling.hardware.UnknownHardwareError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;UnknownHardwareError
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.profiling.hardware.spec_for_device_kind" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;spec_for_device_kind
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#calibrax.profiling.hardware.detect_hardware_specs" class="md-nav__link">
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;detect_hardware_specs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.profiling.hardware.measure_hardware_spec" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;measure_hardware_spec
       
     </span>
   </a>
@@ -3550,10 +3650,82 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#calibrax.profiling.hardware.HardwareSpec" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;HardwareSpec
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" HardwareSpec">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#calibrax.profiling.hardware.HardwareSpec.critical_intensity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;critical_intensity
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#calibrax.profiling.hardware.HardwareSpec.to_dict" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;to_dict
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.profiling.hardware.UnknownHardwareError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;UnknownHardwareError
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.profiling.hardware.spec_for_device_kind" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;spec_for_device_kind
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#calibrax.profiling.hardware.detect_hardware_specs" class="md-nav__link">
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;detect_hardware_specs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.profiling.hardware.measure_hardware_spec" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;measure_hardware_spec
       
     </span>
   </a>
@@ -3660,9 +3832,14 @@ for auto-detecting the active JAX backend.</p>
 <a id="calibrax.profiling.hardware"></a>
     <div class="doc doc-contents first">
 
-        <p>Hardware specifications and detection for profiling.</p>
-<p>Provides accelerator specs (TPU v5e, A100, H100, CPU) and utility
-functions for hardware detection and synchronized execution timing.</p>
+        <p>Accelerator specifications for roofline analysis: published, detected, or measured.</p>
+<p>Each table entry holds a chip's dense BF16 peak (FP32 accumulate) and its memory bandwidth, from
+the vendor's published specification; the ridge point of the roofline, <code>critical_intensity</code> in
+FLOPs per byte, is their ratio. <code>detect_hardware_specs</code> names the chip by the
+<code>jax.Device.device_kind</code> JAX reports (the CUDA device name for a GPU) and returns <code>None</code> for a
+device the table does not hold, a CPU among them: a spec is a measurement, never a guess.
+<code>measure_hardware_spec</code> measures any device's attainable ceilings through XLA instead, an
+empirical roofline (the approach of LBNL's Empirical Roofline Tool, Lo et al. 2014).</p>
 
 
 
@@ -3683,21 +3860,241 @@ functions for hardware detection and synchronized execution timing.</p>
 
 
 
+<div class="doc doc-object doc-class">
 
-<div class="doc doc-object doc-function">
 
 
-<h2 id="calibrax.profiling.hardware.detect_hardware_specs" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">detect_hardware_specs</span><span class="p">()</span></code>
+<h2 id="calibrax.profiling.hardware.HardwareSpec" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>              <code class="highlight language-python"><span class="n">HardwareSpec</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">peak_flops</span><span class="p">,</span> <span class="n">memory_bandwidth</span><span class="p">,</span> <span class="n">tensor_core_shapes</span><span class="o">=</span><span class="p">(),</span> <span class="n">simd_width</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
 
-<a href="#calibrax.profiling.hardware.detect_hardware_specs" class="headerlink" title="Permanent link">¤</a></h2>
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+<a href="#calibrax.profiling.hardware.HardwareSpec" class="headerlink" title="Permanent link">¤</a></h2>
 
 
     <div class="doc doc-contents ">
 
-        <p>Detect current hardware and return appropriate specifications.</p>
-<p>Reads the accelerator class from <code>substrax.devices.detect_devices</code> and
-returns the pre-configured specs for that platform.</p>
+
+
+        <p>One accelerator's roofline figures.</p>
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="calibrax.profiling.hardware.HardwareSpec.name">name</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The table name (<code>"h100_sxm"</code>).</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="calibrax.profiling.hardware.HardwareSpec.peak_flops">peak_flops</span></code></td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Dense BF16 peak with FP32 accumulate, in FLOP/s; a measured spec's peak is
+for the dtype it was measured in.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="calibrax.profiling.hardware.HardwareSpec.memory_bandwidth">memory_bandwidth</span></code></td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Memory bandwidth, in bytes/s.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="calibrax.profiling.hardware.HardwareSpec.tensor_core_shapes">tensor_core_shapes</span></code></td>
+            <td>
+                  <code><span title="tuple">tuple</span>[<span title="tuple">tuple</span>[<span title="int">int</span>, <span title="int">int</span>, <span title="int">int</span>], ...]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The CUDA tensor-core (WMMA) fragment shapes <code>(m, n, k)</code> for
+bf16 and tf32; empty for a chip without CUDA tensor cores.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="calibrax.profiling.hardware.HardwareSpec.simd_width">simd_width</span></code></td>
+            <td>
+                  <code><span title="int">int</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Vector width of a CPU, in lanes.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="calibrax.profiling.hardware.HardwareSpec.critical_intensity" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <code class="highlight language-python"><span class="n">critical_intensity</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#calibrax.profiling.hardware.HardwareSpec.critical_intensity" class="headerlink" title="Permanent link">¤</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>The roofline's ridge point: FLOPs per byte where compute and bandwidth balance.</p>
+
+    </div>
+
+</div>
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="calibrax.profiling.hardware.HardwareSpec.to_dict" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">to_dict</span><span class="p">()</span></code>
+
+<a href="#calibrax.profiling.hardware.HardwareSpec.to_dict" class="headerlink" title="Permanent link">¤</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>The JSON form, with the ridge point, as a run's environment records it.</p>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="calibrax.profiling.hardware.UnknownHardwareError" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <code>UnknownHardwareError</code>
+
+
+<a href="#calibrax.profiling.hardware.UnknownHardwareError" class="headerlink" title="Permanent link">¤</a></h2>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="LookupError">LookupError</span></code></p>
+
+
+
+        <p>The accelerator in use is not in <code>HARDWARE_SPECS</code> and no spec was given.</p>
+
+
+
+
+
+
+
+
+
+    </div>
+
+</div>
+
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="calibrax.profiling.hardware.spec_for_device_kind" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">spec_for_device_kind</span><span class="p">(</span><span class="n">device_kind</span><span class="p">)</span></code>
+
+<a href="#calibrax.profiling.hardware.spec_for_device_kind" class="headerlink" title="Permanent link">¤</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>The spec of the chip JAX names <code>device_kind</code>, or <code>None</code> when the table lacks it.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>device_kind</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A <code>jax.Device.device_kind</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
     <p><span class="doc-section-title">Returns:</span></p>
@@ -3711,21 +4108,211 @@ returns the pre-configured specs for that platform.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;              &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;HardwareSpec&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;peak_flops&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;memory_bandwidth&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;tensor_core_shapes&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;simd_width&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;kc&quot;&gt;None&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;
+
+  &lt;span class=&quot;doc doc-labels&quot;&gt;
+      &lt;small class=&quot;doc doc-label doc-label-dataclass&quot;&gt;&lt;code&gt;dataclass&lt;/code&gt;&lt;/small&gt;
+  &lt;/span&gt; (&lt;code&gt;calibrax.profiling.hardware.HardwareSpec&lt;/code&gt;)" href="#calibrax.profiling.hardware.HardwareSpec">HardwareSpec</a> | None</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Hardware specification dictionary with peak_flops, memory_bandwidth,</p>
+                <p>The chip's spec, or <code>None</code>.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="calibrax.profiling.hardware.detect_hardware_specs" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">detect_hardware_specs</span><span class="p">()</span></code>
+
+<a href="#calibrax.profiling.hardware.detect_hardware_specs" class="headerlink" title="Permanent link">¤</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>The spec of the devices this JAX process sees, when the table holds them.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;              &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;HardwareSpec&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;peak_flops&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;memory_bandwidth&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;tensor_core_shapes&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;simd_width&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;kc&quot;&gt;None&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;
+
+  &lt;span class=&quot;doc doc-labels&quot;&gt;
+      &lt;small class=&quot;doc doc-label doc-label-dataclass&quot;&gt;&lt;code&gt;dataclass&lt;/code&gt;&lt;/small&gt;
+  &lt;/span&gt; (&lt;code&gt;calibrax.profiling.hardware.HardwareSpec&lt;/code&gt;)" href="#calibrax.profiling.hardware.HardwareSpec">HardwareSpec</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The spec shared by every visible device, or <code>None</code> when a device is not in the</p>
               </div>
             </td>
           </tr>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;              &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;HardwareSpec&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;peak_flops&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;memory_bandwidth&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;tensor_core_shapes&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;simd_width&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;kc&quot;&gt;None&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;
+
+  &lt;span class=&quot;doc doc-labels&quot;&gt;
+      &lt;small class=&quot;doc doc-label doc-label-dataclass&quot;&gt;&lt;code&gt;dataclass&lt;/code&gt;&lt;/small&gt;
+  &lt;/span&gt; (&lt;code&gt;calibrax.profiling.hardware.HardwareSpec&lt;/code&gt;)" href="#calibrax.profiling.hardware.HardwareSpec">HardwareSpec</a> | None</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>and critical_intensity keys (among others).</p>
+                <p>table or the devices are of different kinds.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="calibrax.profiling.hardware.measure_hardware_spec" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">measure_hardware_spec</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">matmul_size</span><span class="o">=</span><span class="mi">4096</span><span class="p">,</span> <span class="n">triad_length</span><span class="o">=</span><span class="mi">2</span> <span class="o">**</span> <span class="mi">26</span><span class="p">)</span></code>
+
+<a href="#calibrax.profiling.hardware.measure_hardware_spec" class="headerlink" title="Permanent link">¤</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>The default device's attainable roofline ceilings, measured through XLA.</p>
+<p>The peak is a square <code>matmul_size</code> matmul: XLA's own FLOP count (<code>FlopsCounter</code>) over
+the median time (<code>time_calls</code>). The bandwidth is STREAM's triad <code>a = b + s * c</code>
+(McCalpin) over <code>triad_length</code> elements: three arrays moved over the median time; the
+default of 2**26 elements (768 MiB of float32) is far above any last-level cache. These are
+the ceilings XLA's kernels reach on this device, the ones JAX code meets, and they are
+below a vendor's peak. Choose the device with <code>jax.default_device</code>.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>dtype</code>
+            </td>
+            <td>
+                  <code><span title="jax.typing.DTypeLike">DTypeLike</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The element type measured; the peak depends on it.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>matmul_size</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Side of the square matrices.</p>
+              </div>
+            </td>
+            <td>
+                  <code>4096</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>triad_length</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Elements per triad array.</p>
+              </div>
+            </td>
+            <td>
+                  <code>2 ** 26</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;              &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;HardwareSpec&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;peak_flops&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;memory_bandwidth&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;tensor_core_shapes&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;simd_width&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;kc&quot;&gt;None&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;
+
+  &lt;span class=&quot;doc doc-labels&quot;&gt;
+      &lt;small class=&quot;doc doc-label doc-label-dataclass&quot;&gt;&lt;code&gt;dataclass&lt;/code&gt;&lt;/small&gt;
+  &lt;/span&gt; (&lt;code&gt;calibrax.profiling.hardware.HardwareSpec&lt;/code&gt;)" href="#calibrax.profiling.hardware.HardwareSpec">HardwareSpec</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A spec named <code>measured:&lt;device kind&gt;:&lt;dtype&gt;</code>.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If a size is not positive.</p>
               </div>
             </td>
           </tr>

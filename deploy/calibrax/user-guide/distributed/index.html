@@ -1667,6 +1667,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../api-reference/profiling/nvml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NVML
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../api-reference/profiling/energy/" class="md-nav__link">
         
   
@@ -3754,18 +3782,24 @@ process writes its own trace. Use <code>nsys-jax-combine</code> to merge profile
 </span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="c1"># Store trace reference in run metadata</span>
 </span></code></pre></div>
 <h2 id="resource-monitoring-across-devices">Resource Monitoring Across Devices<a class="headerlink" href="#resource-monitoring-across-devices" title="Permanent link">¤</a></h2>
-<p><code>ResourceMonitor</code> tracks CPU/memory for the local process. For GPU metrics
-across multiple GPUs, use <code>GPUMemoryProfiler</code> with device selection or
-combine with NVML queries:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">calibrax.profiling.resources</span><span class="w"> </span><span class="kn">import</span> <span class="n">ResourceMonitor</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">calibrax.profiling.gpu</span><span class="w"> </span><span class="kn">import</span> <span class="n">GPUMemoryProfiler</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">profiler</span> <span class="o">=</span> <span class="n">GPUMemoryProfiler</span><span class="p">()</span>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="k">with</span> <span class="n">ResourceMonitor</span><span class="p">(</span><span class="n">gpu_profiler</span><span class="o">=</span><span class="n">profiler</span><span class="p">)</span> <span class="k">as</span> <span class="n">mon</span><span class="p">:</span>
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="c1"># Run distributed workload</span>
-</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="k">pass</span>
-</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>
-</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="n">summary</span> <span class="o">=</span> <span class="n">mon</span><span class="o">.</span><span class="n">summary</span>
+<p><code>ResourceMonitor</code> tracks CPU/memory for the local process, and one GPU through its
+<code>gpu_profiler</code>. For several GPUs, run one monitor per device: <code>GPUMemoryProfiler</code> takes the
+JAX device whose memory it reads, and <code>NvmlDevice</code> takes an NVML index.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">contextlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExitStack</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jax</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">calibrax.profiling.gpu</span><span class="w"> </span><span class="kn">import</span> <span class="n">GPUMemoryProfiler</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">calibrax.profiling.resources</span><span class="w"> </span><span class="kn">import</span> <span class="n">ResourceMonitor</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="k">with</span> <span class="n">ExitStack</span><span class="p">()</span> <span class="k">as</span> <span class="n">stack</span><span class="p">:</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>    <span class="n">monitors</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>        <span class="n">stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="n">ResourceMonitor</span><span class="p">(</span><span class="n">gpu_profiler</span><span class="o">=</span><span class="n">GPUMemoryProfiler</span><span class="p">(</span><span class="n">device</span><span class="p">)))</span>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>        <span class="k">for</span> <span class="n">device</span> <span class="ow">in</span> <span class="n">jax</span><span class="o">.</span><span class="n">local_devices</span><span class="p">()</span>
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>    <span class="p">]</span>
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>    <span class="c1"># Run distributed workload</span>
+</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>
+</span><span id="__span-5-15"><a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a><span class="n">peak_memory</span> <span class="o">=</span> <span class="p">[</span><span class="n">mon</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">peak_gpu_mem_mb</span> <span class="k">for</span> <span class="n">mon</span> <span class="ow">in</span> <span class="n">monitors</span><span class="p">]</span>
 </span></code></pre></div>
 
 

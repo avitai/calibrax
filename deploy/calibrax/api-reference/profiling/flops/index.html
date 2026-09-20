@@ -1567,6 +1567,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../nvml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NVML
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../energy/" class="md-nav__link">
         
   
@@ -1712,6 +1740,17 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.profiling.flops.cost_mapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;cost_mapping
+      
+    </span>
+  </a>
   
 </li>
       
@@ -3638,6 +3677,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#calibrax.profiling.flops.cost_mapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;cost_mapping
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -3975,7 +4025,7 @@ are arguments or captured state.</p>
                 <code>fn</code>
             </td>
             <td>
-                  <code><span title="collections.abc.Callable">Callable</span>[..., <span title="typing.Any">Any</span>]</code>
+                  <code><span title="collections.abc.Callable">Callable</span>[..., <span title="substrax.typing.PyTree">PyTree</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3991,7 +4041,7 @@ are arguments or captured state.</p>
                 <code>*args</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="substrax.typing.PyTree">PyTree</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4086,6 +4136,91 @@ the function contains a custom call it has no model for.</p>
 
 </div>
 
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="calibrax.profiling.flops.cost_mapping" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">cost_mapping</span><span class="p">(</span><span class="n">cost</span><span class="p">)</span></code>
+
+<a href="#calibrax.profiling.flops.cost_mapping" class="headerlink" title="Permanent link">¤</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>The numeric fields of an XLA cost analysis, or <code>None</code> when there is none.</p>
+<p><code>Lowered.cost_analysis()</code> and <code>Compiled.cost_analysis()</code> are typed <code>Any</code> by jax,
+which documents their structure as arbitrary: a mapping of property names to numbers,
+a list holding one such mapping on some backends, or <code>None</code>.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>cost</code>
+            </td>
+            <td>
+                  <code><span title="object">object</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>What <code>cost_analysis()</code> returned.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="collections.abc.Mapping">Mapping</span>[<span title="str">str</span>, <span title="float">float</span>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Each numeric field as a float, or <code>None</code> for anything other than a mapping or a</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="collections.abc.Mapping">Mapping</span>[<span title="str">str</span>, <span title="float">float</span>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>list of exactly one mapping.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
 
 
 

@@ -1565,6 +1565,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../profiling/nvml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NVML
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../profiling/energy/" class="md-nav__link">
         
   
@@ -3801,7 +3829,7 @@ fisher_information_matrix.</p>
 
 
 <h2 id="calibrax.metrics.functional.information.entropy" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">entropy</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">entropy</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.information.entropy" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -3836,7 +3864,7 @@ Uses natural logarithm.</p>
                 <code>p</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3862,7 +3890,7 @@ Uses natural logarithm.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3889,7 +3917,7 @@ Uses natural logarithm.</p>
 
 
 <h2 id="calibrax.metrics.functional.information.cross_entropy" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">cross_entropy</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">q</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">cross_entropy</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">q</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.information.cross_entropy" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -3924,7 +3952,7 @@ Range: [0, inf).
                 <code>p</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3940,7 +3968,7 @@ Range: [0, inf).
                 <code>q</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3966,7 +3994,7 @@ Range: [0, inf).
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3994,7 +4022,7 @@ Range: [0, inf).
 
 
 <h2 id="calibrax.metrics.functional.information.mutual_information" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">mutual_information</span><span class="p">(</span><span class="n">joint</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">mutual_information</span><span class="p">(</span><span class="n">joint</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.information.mutual_information" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4029,7 +4057,7 @@ Symmetric: MI(X;Y) = MI(Y;X).</p>
                 <code>joint</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4056,7 +4084,7 @@ Must sum to ~1.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4085,7 +4113,7 @@ Must sum to ~1.</p>
 
 
 <h2 id="calibrax.metrics.functional.information.conditional_entropy" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">conditional_entropy</span><span class="p">(</span><span class="n">joint</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">conditional_entropy</span><span class="p">(</span><span class="n">joint</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.information.conditional_entropy" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4119,7 +4147,7 @@ Range: [0, H(Y)].</p>
                 <code>joint</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4146,7 +4174,7 @@ Must sum to ~1.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4175,7 +4203,7 @@ Must sum to ~1.</p>
 
 
 <h2 id="calibrax.metrics.functional.information.normalized_mutual_information" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">normalized_mutual_information</span><span class="p">(</span><span class="n">joint</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">normalized_mutual_information</span><span class="p">(</span><span class="n">joint</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.information.normalized_mutual_information" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4209,7 +4237,7 @@ Symmetric.</p>
                 <code>joint</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4236,7 +4264,7 @@ Must sum to ~1.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4264,7 +4292,7 @@ Must sum to ~1.</p>
 
 
 <h2 id="calibrax.metrics.functional.information.fisher_information_matrix" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">fisher_information_matrix</span><span class="p">(</span><span class="n">log_prob_fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">params</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">fisher_information_matrix</span><span class="p">(</span><span class="n">log_prob_fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span><span class="p">],</span> <span class="n">params</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.information.fisher_information_matrix" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4298,7 +4326,7 @@ Useful for natural gradient methods and information geometry.</p>
                 <code>log_prob_fn</code>
             </td>
             <td>
-                  <code><span title="collections.abc.Callable">Callable</span>[..., <span title="typing.Any">Any</span>]</code>
+                  <code><span title="collections.abc.Callable">Callable</span>[..., <span title="jax.Array">Array</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4314,7 +4342,7 @@ Useful for natural gradient methods and information geometry.</p>
                 <code>params</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4340,7 +4368,7 @@ Useful for natural gradient methods and information geometry.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4350,7 +4378,7 @@ Useful for natural gradient methods and information geometry.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">

@@ -1229,6 +1229,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#profile-gpu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        profile-gpu
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#ingest" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1717,6 +1728,34 @@
     
   
     GPU
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-reference/profiling/nvml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NVML
   
 
     
@@ -3674,6 +3713,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#profile-gpu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        profile-gpu
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#ingest" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3802,7 +3852,8 @@ All commands operate on a store directory specified via <code>--data</code>.</p>
 </span></code></pre></div>
 <h2 id="commands">Commands<a class="headerlink" href="#commands" title="Permanent link">¤</a></h2>
 <h3 id="profile"><code>profile</code><a class="headerlink" href="#profile" title="Permanent link">¤</a></h3>
-<p>Profile a JAX function with timing, resource, and optional energy/FLOP measurement.</p>
+<p>Profile a JAX function: timing, and optionally FLOPs and CPU energy. Each call's result is
+waited on with <code>jax.block_until_ready</code> before its time is taken.</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>calibrax<span class="w"> </span>profile<span class="w"> </span>--module<span class="w"> </span>&lt;PYTHON.PATH&gt;<span class="w"> </span>--function<span class="w"> </span>&lt;NAME&gt;<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">    </span><span class="o">[</span>--warmup<span class="w"> </span>&lt;N&gt;<span class="o">]</span><span class="w"> </span><span class="o">[</span>--iterations<span class="w"> </span>&lt;N&gt;<span class="o">]</span><span class="w"> </span><span class="o">[</span>--energy<span class="o">]</span><span class="w"> </span><span class="o">[</span>--flops<span class="o">]</span><span class="w"> </span><span class="o">[</span>--data<span class="w"> </span>&lt;PATH&gt;<span class="o">]</span>
 </span></code></pre></div>
@@ -3844,7 +3895,7 @@ All commands operate on a store directory specified via <code>--data</code>.</p>
 <td><code>--energy</code></td>
 <td>No</td>
 <td>off</td>
-<td>Enable energy monitoring</td>
+<td>Measure CPU energy through Linux RAPL (readable by root on most systems)</td>
 </tr>
 <tr>
 <td><code>--flops</code></td>
@@ -3874,9 +3925,36 @@ All commands operate on a store directory specified via <code>--data</code>.</p>
 </span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>Profile complete.
 </span></code></pre></div>
 <hr />
+<h3 id="profile-gpu"><code>profile-gpu</code><a class="headerlink" href="#profile-gpu" title="Permanent link">¤</a></h3>
+<p><code>profile</code> with GPU and CPU energy, the GPU's power read through NVIDIA's NVML. Needs the
+<code>cuda12</code> extra; without it the command fails with the install command.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>calibrax<span class="w"> </span>profile-gpu<span class="w"> </span>--module<span class="w"> </span>&lt;PYTHON.PATH&gt;<span class="w"> </span>--function<span class="w"> </span>&lt;NAME&gt;<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">    </span><span class="o">[</span>--gpu-index<span class="w"> </span>&lt;N&gt;<span class="o">]</span><span class="w"> </span><span class="o">[</span>--warmup<span class="w"> </span>&lt;N&gt;<span class="o">]</span><span class="w"> </span><span class="o">[</span>--iterations<span class="w"> </span>&lt;N&gt;<span class="o">]</span><span class="w"> </span><span class="o">[</span>--flops<span class="o">]</span><span class="w"> </span><span class="o">[</span>--data<span class="w"> </span>&lt;PATH&gt;<span class="o">]</span>
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Required</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--gpu-index</code></td>
+<td>No</td>
+<td><code>0</code></td>
+<td>NVML index of the GPU to measure</td>
+</tr>
+</tbody>
+</table>
+<p>The other options are <code>profile</code>'s. The output adds an <code>Energy Results</code> section with the GPU
+energy, the mean GPU power and, where RAPL is readable, the CPU energy.</p>
+<hr />
 <h3 id="ingest"><code>ingest</code><a class="headerlink" href="#ingest" title="Permanent link">¤</a></h3>
 <p>Import benchmark results from an external JSON file into the store.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>calibrax<span class="w"> </span>ingest<span class="w"> </span>--data<span class="w"> </span>&lt;PATH&gt;<span class="w"> </span>--input<span class="w"> </span>&lt;FILE&gt;
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>calibrax<span class="w"> </span>ingest<span class="w"> </span>--data<span class="w"> </span>&lt;PATH&gt;<span class="w"> </span>--input<span class="w"> </span>&lt;FILE&gt;
 </span></code></pre></div>
 <table>
 <thead>
@@ -3899,12 +3977,12 @@ All commands operate on a store directory specified via <code>--data</code>.</p>
 </tr>
 </tbody>
 </table>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>calibrax<span class="w"> </span>ingest<span class="w"> </span>--data<span class="w"> </span>./benchmark-data<span class="w"> </span>--input<span class="w"> </span>results.json
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>calibrax<span class="w"> </span>ingest<span class="w"> </span>--data<span class="w"> </span>./benchmark-data<span class="w"> </span>--input<span class="w"> </span>results.json
 </span></code></pre></div>
 <hr />
 <h3 id="export"><code>export</code><a class="headerlink" href="#export" title="Permanent link">¤</a></h3>
 <p>Export a run to Weights &amp; Biases.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>calibrax<span class="w"> </span><span class="nb">export</span><span class="w"> </span>--data<span class="w"> </span>&lt;PATH&gt;<span class="w"> </span><span class="o">[</span>--run<span class="w"> </span>&lt;ID&gt;<span class="o">]</span><span class="w"> </span><span class="o">[</span>--project<span class="w"> </span>&lt;NAME&gt;<span class="o">]</span><span class="w"> </span><span class="o">[</span>--entity<span class="w"> </span>&lt;NAME&gt;<span class="o">]</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>calibrax<span class="w"> </span><span class="nb">export</span><span class="w"> </span>--data<span class="w"> </span>&lt;PATH&gt;<span class="w"> </span><span class="o">[</span>--run<span class="w"> </span>&lt;ID&gt;<span class="o">]</span><span class="w"> </span><span class="o">[</span>--project<span class="w"> </span>&lt;NAME&gt;<span class="o">]</span><span class="w"> </span><span class="o">[</span>--entity<span class="w"> </span>&lt;NAME&gt;<span class="o">]</span>
 </span></code></pre></div>
 <table>
 <thead>
@@ -3942,7 +4020,7 @@ All commands operate on a store directory specified via <code>--data</code>.</p>
 </tr>
 </tbody>
 </table>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>calibrax<span class="w"> </span><span class="nb">export</span><span class="w"> </span>--data<span class="w"> </span>./benchmark-data<span class="w"> </span>--project<span class="w"> </span>my-benchmarks
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>calibrax<span class="w"> </span><span class="nb">export</span><span class="w"> </span>--data<span class="w"> </span>./benchmark-data<span class="w"> </span>--project<span class="w"> </span>my-benchmarks
 </span></code></pre></div>
 <div class="admonition warning">
 <p class="admonition-title">Requires wandb</p>
@@ -3952,7 +4030,7 @@ All commands operate on a store directory specified via <code>--data</code>.</p>
 <h3 id="check"><code>check</code><a class="headerlink" href="#check" title="Permanent link">¤</a></h3>
 <p>Run a regression check against the stored baseline. Exits with code 1 if any
 regressions exceed the threshold — suitable for CI pipeline gating.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>calibrax<span class="w"> </span>check<span class="w"> </span>--data<span class="w"> </span>&lt;PATH&gt;<span class="w"> </span><span class="o">[</span>--threshold<span class="w"> </span>&lt;FLOAT&gt;<span class="o">]</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>calibrax<span class="w"> </span>check<span class="w"> </span>--data<span class="w"> </span>&lt;PATH&gt;<span class="w"> </span><span class="o">[</span>--threshold<span class="w"> </span>&lt;FLOAT&gt;<span class="o">]</span>
 </span></code></pre></div>
 <table>
 <thead>
@@ -3978,15 +4056,15 @@ regressions exceed the threshold — suitable for CI pipeline gating.</p>
 </tr>
 </tbody>
 </table>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>calibrax<span class="w"> </span>check<span class="w"> </span>--data<span class="w"> </span>./benchmark-data<span class="w"> </span>--threshold<span class="w"> </span><span class="m">0</span>.05
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="nb">echo</span><span class="w"> </span><span class="nv">$?</span><span class="w">  </span><span class="c1"># 0 = pass, 1 = regression detected</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>calibrax<span class="w"> </span>check<span class="w"> </span>--data<span class="w"> </span>./benchmark-data<span class="w"> </span>--threshold<span class="w"> </span><span class="m">0</span>.05
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="nb">echo</span><span class="w"> </span><span class="nv">$?</span><span class="w">  </span><span class="c1"># 0 = pass, 1 = regression detected</span>
 </span></code></pre></div>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>PASSED: No regressions detected (threshold=0.05)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>PASSED: No regressions detected (threshold=0.05)
 </span></code></pre></div>
 <hr />
 <h3 id="baseline"><code>baseline</code><a class="headerlink" href="#baseline" title="Permanent link">¤</a></h3>
 <p>Set a run as the active baseline for regression detection.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>calibrax<span class="w"> </span>baseline<span class="w"> </span>--data<span class="w"> </span>&lt;PATH&gt;<span class="w"> </span><span class="o">[</span>--run<span class="w"> </span>&lt;ID&gt;<span class="o">]</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>calibrax<span class="w"> </span>baseline<span class="w"> </span>--data<span class="w"> </span>&lt;PATH&gt;<span class="w"> </span><span class="o">[</span>--run<span class="w"> </span>&lt;ID&gt;<span class="o">]</span>
 </span></code></pre></div>
 <table>
 <thead>
@@ -4012,12 +4090,12 @@ regressions exceed the threshold — suitable for CI pipeline gating.</p>
 </tr>
 </tbody>
 </table>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>calibrax<span class="w"> </span>baseline<span class="w"> </span>--data<span class="w"> </span>./benchmark-data<span class="w"> </span>--run<span class="w"> </span>a1b2c3d4e5f6
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>calibrax<span class="w"> </span>baseline<span class="w"> </span>--data<span class="w"> </span>./benchmark-data<span class="w"> </span>--run<span class="w"> </span>a1b2c3d4e5f6
 </span></code></pre></div>
 <hr />
 <h3 id="trend"><code>trend</code><a class="headerlink" href="#trend" title="Permanent link">¤</a></h3>
 <p>Show metric values over time for a specific point and framework.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>calibrax<span class="w"> </span>trend<span class="w"> </span>--data<span class="w"> </span>&lt;PATH&gt;<span class="w"> </span>--metric<span class="w"> </span>&lt;NAME&gt;<span class="w"> </span>--point<span class="w"> </span>&lt;NAME&gt;<span class="w"> </span>--framework<span class="w"> </span>&lt;NAME&gt;<span class="w"> </span><span class="o">[</span>--n-runs<span class="w"> </span>&lt;N&gt;<span class="o">]</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>calibrax<span class="w"> </span>trend<span class="w"> </span>--data<span class="w"> </span>&lt;PATH&gt;<span class="w"> </span>--metric<span class="w"> </span>&lt;NAME&gt;<span class="w"> </span>--point<span class="w"> </span>&lt;NAME&gt;<span class="w"> </span>--framework<span class="w"> </span>&lt;NAME&gt;<span class="w"> </span><span class="o">[</span>--n-runs<span class="w"> </span>&lt;N&gt;<span class="o">]</span>
 </span></code></pre></div>
 <table>
 <thead>
@@ -4061,18 +4139,18 @@ regressions exceed the threshold — suitable for CI pipeline gating.</p>
 </tr>
 </tbody>
 </table>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>calibrax<span class="w"> </span>trend<span class="w"> </span>--data<span class="w"> </span>./benchmark-data<span class="w"> </span>--metric<span class="w"> </span>throughput<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="w">    </span>--point<span class="w"> </span>forward_pass<span class="w"> </span>--framework<span class="w"> </span>flax<span class="w"> </span>--n-runs<span class="w"> </span><span class="m">10</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>calibrax<span class="w"> </span>trend<span class="w"> </span>--data<span class="w"> </span>./benchmark-data<span class="w"> </span>--metric<span class="w"> </span>throughput<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="w">    </span>--point<span class="w"> </span>forward_pass<span class="w"> </span>--framework<span class="w"> </span>flax<span class="w"> </span>--n-runs<span class="w"> </span><span class="m">10</span>
 </span></code></pre></div>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>Trend: throughput for forward_pass (flax)
-</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>Timestamp                           Value Commit
-</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>--------------------------------------------------------
-</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>2026-02-20 11:34:24.346877      1200.0000 -
+<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>Trend: throughput for forward_pass (flax)
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>Timestamp                           Value Commit
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>--------------------------------------------------------
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>2026-02-20 11:34:24.346877      1200.0000 -
 </span></code></pre></div>
 <hr />
 <h3 id="summary"><code>summary</code><a class="headerlink" href="#summary" title="Permanent link">¤</a></h3>
 <p>Display a summary of a run's metrics and metadata.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>calibrax<span class="w"> </span>summary<span class="w"> </span>--data<span class="w"> </span>&lt;PATH&gt;<span class="w"> </span><span class="o">[</span>--run<span class="w"> </span>&lt;ID&gt;<span class="o">]</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>calibrax<span class="w"> </span>summary<span class="w"> </span>--data<span class="w"> </span>&lt;PATH&gt;<span class="w"> </span><span class="o">[</span>--run<span class="w"> </span>&lt;ID&gt;<span class="o">]</span>
 </span></code></pre></div>
 <table>
 <thead>
@@ -4098,14 +4176,14 @@ regressions exceed the threshold — suitable for CI pipeline gating.</p>
 </tr>
 </tbody>
 </table>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>calibrax<span class="w"> </span>summary<span class="w"> </span>--data<span class="w"> </span>./benchmark-data
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>calibrax<span class="w"> </span>summary<span class="w"> </span>--data<span class="w"> </span>./benchmark-data
 </span></code></pre></div>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>Run: 84cb49fb06a9
-</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>  Timestamp: 2026-02-20 11:34:24.346877
-</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>  Points: 1
-</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>
-</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>Scenario: training
-</span><span id="__span-18-6"><a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a>  flax: latency=0.8000, throughput=1200.0000
+<div class="language-text highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>Run: 84cb49fb06a9
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>  Timestamp: 2026-02-20 11:34:24.346877
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>  Points: 1
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>Scenario: training
+</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a>  flax: latency=0.8000, throughput=1200.0000
 </span></code></pre></div>
 <h2 id="exit-codes">Exit Codes<a class="headerlink" href="#exit-codes" title="Permanent link">¤</a></h2>
 <table>
@@ -4128,24 +4206,24 @@ regressions exceed the threshold — suitable for CI pipeline gating.</p>
 </table>
 <h2 id="end-to-end-workflow">End-to-End Workflow<a class="headerlink" href="#end-to-end-workflow" title="Permanent link">¤</a></h2>
 <p>A typical workflow using the CLI:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="c1"># 1. Run benchmarks and save results to a JSON file</span>
-</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>python<span class="w"> </span>run_benchmarks.py<span class="w"> </span>--output<span class="w"> </span>results.json
-</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>
-</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="c1"># 2. Ingest into the store</span>
-</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>calibrax<span class="w"> </span>ingest<span class="w"> </span>--data<span class="w"> </span>./benchmark-data<span class="w"> </span>--input<span class="w"> </span>results.json
-</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a>
-</span><span id="__span-19-7"><a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a><span class="c1"># 3. Set baseline (first time only)</span>
-</span><span id="__span-19-8"><a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a>calibrax<span class="w"> </span>baseline<span class="w"> </span>--data<span class="w"> </span>./benchmark-data
-</span><span id="__span-19-9"><a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a>
-</span><span id="__span-19-10"><a id="__codelineno-19-10" name="__codelineno-19-10" href="#__codelineno-19-10"></a><span class="c1"># 4. Run regression check (in CI)</span>
-</span><span id="__span-19-11"><a id="__codelineno-19-11" name="__codelineno-19-11" href="#__codelineno-19-11"></a>calibrax<span class="w"> </span>check<span class="w"> </span>--data<span class="w"> </span>./benchmark-data<span class="w"> </span>--threshold<span class="w"> </span><span class="m">0</span>.05
-</span><span id="__span-19-12"><a id="__codelineno-19-12" name="__codelineno-19-12" href="#__codelineno-19-12"></a>
-</span><span id="__span-19-13"><a id="__codelineno-19-13" name="__codelineno-19-13" href="#__codelineno-19-13"></a><span class="c1"># 5. View trends</span>
-</span><span id="__span-19-14"><a id="__codelineno-19-14" name="__codelineno-19-14" href="#__codelineno-19-14"></a>calibrax<span class="w"> </span>trend<span class="w"> </span>--data<span class="w"> </span>./benchmark-data<span class="w"> </span>--metric<span class="w"> </span>throughput<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-19-15"><a id="__codelineno-19-15" name="__codelineno-19-15" href="#__codelineno-19-15"></a><span class="w">    </span>--point<span class="w"> </span>forward_pass<span class="w"> </span>--framework<span class="w"> </span>flax
-</span><span id="__span-19-16"><a id="__codelineno-19-16" name="__codelineno-19-16" href="#__codelineno-19-16"></a>
-</span><span id="__span-19-17"><a id="__codelineno-19-17" name="__codelineno-19-17" href="#__codelineno-19-17"></a><span class="c1"># 6. Export to W&amp;B</span>
-</span><span id="__span-19-18"><a id="__codelineno-19-18" name="__codelineno-19-18" href="#__codelineno-19-18"></a>calibrax<span class="w"> </span><span class="nb">export</span><span class="w"> </span>--data<span class="w"> </span>./benchmark-data<span class="w"> </span>--project<span class="w"> </span>my-benchmarks
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="c1"># 1. Run benchmarks and save results to a JSON file</span>
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>python<span class="w"> </span>run_benchmarks.py<span class="w"> </span>--output<span class="w"> </span>results.json
+</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>
+</span><span id="__span-20-4"><a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a><span class="c1"># 2. Ingest into the store</span>
+</span><span id="__span-20-5"><a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a>calibrax<span class="w"> </span>ingest<span class="w"> </span>--data<span class="w"> </span>./benchmark-data<span class="w"> </span>--input<span class="w"> </span>results.json
+</span><span id="__span-20-6"><a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a>
+</span><span id="__span-20-7"><a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a><span class="c1"># 3. Set baseline (first time only)</span>
+</span><span id="__span-20-8"><a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a>calibrax<span class="w"> </span>baseline<span class="w"> </span>--data<span class="w"> </span>./benchmark-data
+</span><span id="__span-20-9"><a id="__codelineno-20-9" name="__codelineno-20-9" href="#__codelineno-20-9"></a>
+</span><span id="__span-20-10"><a id="__codelineno-20-10" name="__codelineno-20-10" href="#__codelineno-20-10"></a><span class="c1"># 4. Run regression check (in CI)</span>
+</span><span id="__span-20-11"><a id="__codelineno-20-11" name="__codelineno-20-11" href="#__codelineno-20-11"></a>calibrax<span class="w"> </span>check<span class="w"> </span>--data<span class="w"> </span>./benchmark-data<span class="w"> </span>--threshold<span class="w"> </span><span class="m">0</span>.05
+</span><span id="__span-20-12"><a id="__codelineno-20-12" name="__codelineno-20-12" href="#__codelineno-20-12"></a>
+</span><span id="__span-20-13"><a id="__codelineno-20-13" name="__codelineno-20-13" href="#__codelineno-20-13"></a><span class="c1"># 5. View trends</span>
+</span><span id="__span-20-14"><a id="__codelineno-20-14" name="__codelineno-20-14" href="#__codelineno-20-14"></a>calibrax<span class="w"> </span>trend<span class="w"> </span>--data<span class="w"> </span>./benchmark-data<span class="w"> </span>--metric<span class="w"> </span>throughput<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-20-15"><a id="__codelineno-20-15" name="__codelineno-20-15" href="#__codelineno-20-15"></a><span class="w">    </span>--point<span class="w"> </span>forward_pass<span class="w"> </span>--framework<span class="w"> </span>flax
+</span><span id="__span-20-16"><a id="__codelineno-20-16" name="__codelineno-20-16" href="#__codelineno-20-16"></a>
+</span><span id="__span-20-17"><a id="__codelineno-20-17" name="__codelineno-20-17" href="#__codelineno-20-17"></a><span class="c1"># 6. Export to W&amp;B</span>
+</span><span id="__span-20-18"><a id="__codelineno-20-18" name="__codelineno-20-18" href="#__codelineno-20-18"></a>calibrax<span class="w"> </span><span class="nb">export</span><span class="w"> </span>--data<span class="w"> </span>./benchmark-data<span class="w"> </span>--project<span class="w"> </span>my-benchmarks
 </span></code></pre></div>
 
 

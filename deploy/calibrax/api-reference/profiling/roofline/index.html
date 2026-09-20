@@ -1567,6 +1567,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../nvml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NVML
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../energy/" class="md-nav__link">
         
   
@@ -3972,7 +4000,7 @@ and generates optimization recommendations.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Deserialize from a dictionary.</p>
+        <p>Read the record from the JSON object <code>to_dict</code> writes.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -3991,11 +4019,11 @@ and generates optimization recommendations.</p>
                 <code>data</code>
             </td>
             <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
+                  <code><span title="collections.abc.Mapping">Mapping</span>[<span title="str">str</span>, <span title="substrax.typing.JsonValue">JsonValue</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Dictionary with roofline result fields.</p>
+                <p>The JSON object.</p>
               </div>
             </td>
             <td>
@@ -4025,7 +4053,31 @@ and generates optimization recommendations.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Reconstructed RooflineResult instance.</p>
+                <p>The record.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="pydantic.ValidationError">ValidationError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If a field is missing or holds a value its annotation
+does not admit.</p>
               </div>
             </td>
           </tr>
@@ -4082,11 +4134,16 @@ it uses the available hardware resources.</p>
           <tr class="doc-section-item">
             <td><code><span title="calibrax.profiling.roofline.RooflineAnalyzer.hardware_specs">hardware_specs</span></code></td>
             <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;              &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;HardwareSpec&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;peak_flops&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;memory_bandwidth&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;tensor_core_shapes&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;simd_width&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;kc&quot;&gt;None&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;
+
+  &lt;span class=&quot;doc doc-labels&quot;&gt;
+      &lt;small class=&quot;doc doc-label doc-label-dataclass&quot;&gt;&lt;code&gt;dataclass&lt;/code&gt;&lt;/small&gt;
+  &lt;/span&gt; (&lt;code&gt;calibrax.profiling.hardware.HardwareSpec&lt;/code&gt;)" href="../hardware/#calibrax.profiling.hardware.HardwareSpec">HardwareSpec</a> | None</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Hardware specification dictionary (auto-detected if not provided).</p>
+                <p>The accelerator's figures; detected from JAX's device kind when not
+given, and <code>None</code> when the accelerator is not in <code>HARDWARE_SPECS</code>.</p>
               </div>
             </td>
           </tr>
@@ -4144,7 +4201,7 @@ it uses the available hardware resources.</p>
                 <code>func</code>
             </td>
             <td>
-                  <code><span title="collections.abc.Callable">Callable</span>[..., <span title="typing.Any">Any</span>]</code>
+                  <code><span title="collections.abc.Callable">Callable</span>[..., <span title="substrax.typing.PyTree">PyTree</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4160,7 +4217,7 @@ it uses the available hardware resources.</p>
                 <code>inputs</code>
             </td>
             <td>
-                  <code><span title="list">list</span>[<span title="jax.Array">Array</span>]</code>
+                  <code><span title="collections.abc.Sequence">Sequence</span>[<span title="jax.Array">Array</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4180,8 +4237,7 @@ it uses the available hardware resources.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>If provided, use this FLOP count instead of estimating.
-For accurate results, pass the output of <code>FlopsCounter.count()</code>.</p>
+                <p>The operation's FLOP count, used in place of XLA's estimate.</p>
               </div>
             </td>
             <td>
@@ -4212,6 +4268,40 @@ For accurate results, pass the output of <code>FlopsCounter.count()</code>.</p>
             <td>
               <div class="doc-md-description">
                 <p>RooflineResult with bottleneck classification and recommendations.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;code&gt;UnknownHardwareError&lt;/code&gt; (&lt;code&gt;calibrax.profiling.hardware.UnknownHardwareError&lt;/code&gt;)" href="../hardware/#calibrax.profiling.hardware.UnknownHardwareError">UnknownHardwareError</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If no spec was given and the accelerator is not in
+<code>HARDWARE_SPECS</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="FlopsUnavailableError">FlopsUnavailableError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If no override is given and XLA cannot estimate the cost.</p>
               </div>
             </td>
           </tr>

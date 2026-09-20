@@ -1565,6 +1565,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../profiling/nvml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NVML
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../profiling/energy/" class="md-nav__link">
         
   
@@ -4201,7 +4229,7 @@ outlier detection via modified Z-scores, and stability assessment.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Deserialize from a dictionary.</p>
+        <p>Read the record from the JSON object <code>to_dict</code> writes.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -4220,11 +4248,11 @@ outlier detection via modified Z-scores, and stability assessment.</p>
                 <code>data</code>
             </td>
             <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
+                  <code><span title="collections.abc.Mapping">Mapping</span>[<span title="str">str</span>, <span title="substrax.typing.JsonValue">JsonValue</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Dictionary with statistical result fields.</p>
+                <p>The JSON object.</p>
               </div>
             </td>
             <td>
@@ -4254,7 +4282,31 @@ outlier detection via modified Z-scores, and stability assessment.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Reconstructed StatisticalResult instance.</p>
+                <p>The record.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="pydantic.ValidationError">ValidationError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If a field is missing or holds a value its annotation
+does not admit.</p>
               </div>
             </td>
           </tr>
@@ -4279,7 +4331,7 @@ outlier detection via modified Z-scores, and stability assessment.</p>
 
 
 <h3 id="calibrax.statistics.analyzer.StatisticalAnalyzer" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>              <code class="highlight language-python"><span class="n">StatisticalAnalyzer</span><span class="p">(</span><span class="n">bootstrap_resamples</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>              <code class="highlight language-python"><span class="n">StatisticalAnalyzer</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">bootstrap_resamples</span><span class="o">=</span><span class="n">DEFAULT_RESAMPLES</span><span class="p">)</span></code>
 
 <a href="#calibrax.statistics.analyzer.StatisticalAnalyzer" class="headerlink" title="Permanent link">¤</a></h3>
 
@@ -4292,7 +4344,7 @@ outlier detection via modified Z-scores, and stability assessment.</p>
 <p>Provides summary statistics with bootstrap confidence intervals,
 modified Z-score outlier detection, and stability assessment.</p>
 
-        <p>Initialize with bootstrap parameters.</p>
+        <p>Initialize with the bootstrap's key and resample count.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -4308,6 +4360,24 @@ modified Z-score outlier detection, and stability assessment.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
+                <code>key</code>
+            </td>
+            <td>
+                  <code><span title="jax.Array">Array</span> | <span title="flax.nnx.Rngs">Rngs</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The key bootstrap resampling starts from, or an <code>nnx.Rngs</code> whose <code>sample</code>
+or <code>default</code> stream supplies it; each call splits it, so successive calls
+draw fresh resamples and the same key reproduces the sequence.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
                 <code>bootstrap_resamples</code>
             </td>
             <td>
@@ -4319,23 +4389,7 @@ modified Z-score outlier detection, and stability assessment.</p>
               </div>
             </td>
             <td>
-                  <code>1000</code>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>seed</code>
-            </td>
-            <td>
-                  <code><span title="int">int</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Random seed for reproducible bootstrap sampling.</p>
-              </div>
-            </td>
-            <td>
-                  <code>42</code>
+                  <code><span title="calibrax.statistics.bootstrap.DEFAULT_RESAMPLES">DEFAULT_RESAMPLES</span></code>
             </td>
           </tr>
       </tbody>
@@ -4632,10 +4686,6 @@ for robustness against the outliers themselves.</p>
     </div>
 
 </div><h2 id="significance-testing">Significance Testing<a class="headerlink" href="#significance-testing" title="Permanent link">¤</a></h2>
-<div class="admonition warning">
-<p class="admonition-title">Optional Dependency</p>
-<p>Significance tests require scipy: <code>uv pip install "calibrax[stats]"</code></p>
-</div>
 
 
 <div class="doc doc-object doc-module">
@@ -4651,8 +4701,8 @@ for robustness against the outliers themselves.</p>
     <div class="doc doc-contents first">
 
         <p>Statistical significance tests for benchmark comparisons.</p>
-<p>Provides Welch's t-test, Mann-Whitney U, paired Wilcoxon signed-rank test
-(with pure-Python sign test fallback), and Cohen's d effect size.</p>
+<p>Provides Welch's t-test, Mann-Whitney U, the paired Wilcoxon signed-rank test, and Cohen's d
+effect size. The tests are SciPy's, which calibrax has through JAX.</p>
 
 
 
@@ -4686,7 +4736,6 @@ for robustness against the outliers themselves.</p>
     <div class="doc doc-contents ">
 
         <p>Welch's t-test for unequal variances.</p>
-<p>Requires scipy. Raises ImportError with clear message if unavailable.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -4759,29 +4808,6 @@ for robustness against the outliers themselves.</p>
     </table>
 
 
-<p><span class="doc-section-title">Raises:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="ImportError">ImportError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>If scipy is not installed.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
     </div>
 
 </div>
@@ -4798,7 +4824,6 @@ for robustness against the outliers themselves.</p>
     <div class="doc doc-contents ">
 
         <p>Mann-Whitney U test for non-parametric distribution comparison.</p>
-<p>Requires scipy. Raises ImportError with clear message if unavailable.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -4871,29 +4896,6 @@ for robustness against the outliers themselves.</p>
     </table>
 
 
-<p><span class="doc-section-title">Raises:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="ImportError">ImportError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>If scipy is not installed.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
     </div>
 
 </div>
@@ -4910,9 +4912,8 @@ for robustness against the outliers themselves.</p>
     <div class="doc doc-contents ">
 
         <p>Wilcoxon signed-rank test for paired samples.</p>
-<p>Tests whether two related samples have the same distribution.
-Uses scipy.stats.wilcoxon when available, falls back to a pure-Python
-sign test approximation for small samples.</p>
+<p>Tests whether two related samples have the same distribution, with
+<code>scipy.stats.wilcoxon</code>.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>

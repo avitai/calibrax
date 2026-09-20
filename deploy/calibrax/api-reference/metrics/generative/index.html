@@ -1565,6 +1565,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../profiling/nvml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NVML
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../profiling/energy/" class="md-nav__link">
         
   
@@ -3918,7 +3946,7 @@ generated samples (raw values or the output of a feature extractor) and are pure
 
 
 <h2 id="calibrax.metrics.functional.generative.manifold_radii" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">manifold_radii</span><span class="p">(</span><span class="n">features</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">manifold_radii</span><span class="p">(</span><span class="n">features</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.generative.manifold_radii" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -3946,7 +3974,7 @@ Kynkaanniemi et al. 2019; the point itself (distance zero) is excluded.</p>
                 <code>features</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3988,7 +4016,7 @@ Kynkaanniemi et al. 2019; the point itself (distance zero) is excluded.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4008,7 +4036,7 @@ Kynkaanniemi et al. 2019; the point itself (distance zero) is excluded.</p>
 
 
 <h2 id="calibrax.metrics.functional.generative.manifold_precision" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">manifold_precision</span><span class="p">(</span><span class="n">real</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">generated</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">manifold_precision</span><span class="p">(</span><span class="n">real</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">generated</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.generative.manifold_precision" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4040,7 +4068,7 @@ Range: [0, 1].</p>
                 <code>real</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4056,7 +4084,7 @@ Range: [0, 1].</p>
                 <code>generated</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4098,7 +4126,7 @@ Range: [0, 1].</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4141,7 +4169,7 @@ Range: [0, 1].</p>
 
 
 <h2 id="calibrax.metrics.functional.generative.manifold_recall" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">manifold_recall</span><span class="p">(</span><span class="n">real</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">generated</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">manifold_recall</span><span class="p">(</span><span class="n">real</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">generated</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.generative.manifold_recall" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4173,7 +4201,7 @@ Range: [0, 1].</p>
                 <code>real</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4189,7 +4217,7 @@ Range: [0, 1].</p>
                 <code>generated</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4231,7 +4259,7 @@ Range: [0, 1].</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4274,7 +4302,7 @@ Range: [0, 1].</p>
 
 
 <h2 id="calibrax.metrics.functional.generative.density_weighted_precision" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">density_weighted_precision</span><span class="p">(</span><span class="n">real</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">generated</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">density_weighted_precision</span><span class="p">(</span><span class="n">real</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">generated</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.generative.density_weighted_precision" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4308,7 +4336,7 @@ Range: [0, 1].</p>
                 <code>real</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4324,7 +4352,7 @@ Range: [0, 1].</p>
                 <code>generated</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4366,7 +4394,7 @@ Range: [0, 1].</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4409,7 +4437,7 @@ Range: [0, 1].</p>
 
 
 <h2 id="calibrax.metrics.functional.generative.density_weighted_recall" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">density_weighted_recall</span><span class="p">(</span><span class="n">real</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">generated</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">density_weighted_recall</span><span class="p">(</span><span class="n">real</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">generated</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.generative.density_weighted_recall" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4441,7 +4469,7 @@ Range: [0, 1].</p>
                 <code>real</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4457,7 +4485,7 @@ Range: [0, 1].</p>
                 <code>generated</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4499,7 +4527,7 @@ Range: [0, 1].</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4542,7 +4570,7 @@ Range: [0, 1].</p>
 
 
 <h2 id="calibrax.metrics.functional.generative.distance_to_closest_record" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">distance_to_closest_record</span><span class="p">(</span><span class="n">real</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">generated</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">distance_to_closest_record</span><span class="p">(</span><span class="n">real</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">generated</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.generative.distance_to_closest_record" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4577,7 +4605,7 @@ Range: [0, n_features].</p>
                 <code>real</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4593,7 +4621,7 @@ Range: [0, n_features].</p>
                 <code>generated</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4619,7 +4647,7 @@ Range: [0, n_features].</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4662,7 +4690,7 @@ Range: [0, n_features].</p>
 
 
 <h2 id="calibrax.metrics.functional.generative.memorization_rate" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">memorization_rate</span><span class="p">(</span><span class="n">real</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">generated</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">memorization_rate</span><span class="p">(</span><span class="n">real</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">generated</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.generative.memorization_rate" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4694,7 +4722,7 @@ Range: [0, 1].</p>
                 <code>real</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4710,7 +4738,7 @@ Range: [0, 1].</p>
                 <code>generated</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4736,7 +4764,7 @@ Range: [0, 1].</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4779,7 +4807,7 @@ Range: [0, 1].</p>
 
 
 <h2 id="calibrax.metrics.functional.generative.frechet_distance" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">frechet_distance</span><span class="p">(</span><span class="n">mean_a</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">cov_a</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">mean_b</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">cov_b</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">frechet_distance</span><span class="p">(</span><span class="n">mean_a</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">cov_a</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">mean_b</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">cov_b</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.generative.frechet_distance" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4818,7 +4846,7 @@ Range: [0, inf).</p>
                 <code>mean_a</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4834,7 +4862,7 @@ Range: [0, inf).</p>
                 <code>cov_a</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4850,7 +4878,7 @@ Range: [0, inf).</p>
                 <code>mean_b</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4866,7 +4894,7 @@ Range: [0, inf).</p>
                 <code>cov_b</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4892,7 +4920,7 @@ Range: [0, inf).</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4912,7 +4940,7 @@ Range: [0, inf).</p>
 
 
 <h2 id="calibrax.metrics.functional.generative.frechet_feature_distance" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">frechet_feature_distance</span><span class="p">(</span><span class="n">real</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">generated</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">frechet_feature_distance</span><span class="p">(</span><span class="n">real</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">generated</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.generative.frechet_feature_distance" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4953,7 +4981,7 @@ Range: [0, inf).</p>
                 <code>real</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4969,7 +4997,7 @@ Range: [0, inf).</p>
                 <code>generated</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4995,7 +5023,7 @@ Range: [0, inf).</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5039,7 +5067,7 @@ than two samples.</p>
 
 
 <h2 id="calibrax.metrics.functional.generative.inception_score_per_split" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">inception_score_per_split</span><span class="p">(</span><span class="n">probabilities</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">splits</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">inception_score_per_split</span><span class="p">(</span><span class="n">probabilities</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">splits</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.generative.inception_score_per_split" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -5067,7 +5095,7 @@ marginal; the spread across chunks is the score's usual error bar.</p>
                 <code>probabilities</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5109,7 +5137,7 @@ marginal; the spread across chunks is the score's usual error bar.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5152,7 +5180,7 @@ marginal; the spread across chunks is the score's usual error bar.</p>
 
 
 <h2 id="calibrax.metrics.functional.generative.inception_score" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">inception_score</span><span class="p">(</span><span class="n">probabilities</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">splits</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">inception_score</span><span class="p">(</span><span class="n">probabilities</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">splits</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.generative.inception_score" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -5185,7 +5213,7 @@ Range: [1, n_classes].</p>
                 <code>probabilities</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5227,7 +5255,7 @@ Range: [1, n_classes].</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">

@@ -1565,6 +1565,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../profiling/nvml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NVML
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../profiling/energy/" class="md-nav__link">
         
   
@@ -3742,7 +3770,7 @@ prediction, and conformational sampling.</p>
 
 
 <h2 id="calibrax.metrics.plugins.scientific.chemical_validity" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">chemical_validity</span><span class="p">(</span><span class="n">bond_lengths</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">bond_angles</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">length_thresholds</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.8</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">),</span> <span class="n">angle_thresholds</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.5</span><span class="p">,</span> <span class="mf">3.5</span><span class="p">))</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">chemical_validity</span><span class="p">(</span><span class="n">bond_lengths</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">bond_angles</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">length_thresholds</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.8</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">),</span> <span class="n">angle_thresholds</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.5</span><span class="p">,</span> <span class="mf">3.5</span><span class="p">))</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.plugins.scientific.chemical_validity" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -3771,7 +3799,7 @@ against threshold ranges.</p>
                 <code>bond_lengths</code>
             </td>
             <td>
-                  <code><span title="jax.numpy.ndarray">ndarray</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3787,7 +3815,7 @@ against threshold ranges.</p>
                 <code>bond_angles</code>
             </td>
             <td>
-                  <code><span title="jax.numpy.ndarray">ndarray</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3847,7 +3875,7 @@ Defaults to (1.5, 3.5) radians (~86-200 degrees).</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3875,7 +3903,7 @@ Defaults to (1.5, 3.5) radians (~86-200 degrees).</p>
 
 
 <h2 id="calibrax.metrics.plugins.scientific.binding_affinity_metrics" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">binding_affinity_metrics</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">binding_affinity_metrics</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span><span class="p">]</span></code>
 
 <a href="#calibrax.metrics.plugins.scientific.binding_affinity_metrics" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -3903,7 +3931,7 @@ Delegates to existing regression and statistical functions (DRY).</p>
                 <code>predictions</code>
             </td>
             <td>
-                  <code><span title="jax.numpy.ndarray">ndarray</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3919,7 +3947,7 @@ Delegates to existing regression and statistical functions (DRY).</p>
                 <code>targets</code>
             </td>
             <td>
-                  <code><span title="jax.numpy.ndarray">ndarray</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3945,7 +3973,7 @@ Delegates to existing regression and statistical functions (DRY).</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
+                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="jax.Array">Array</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3955,7 +3983,7 @@ Delegates to existing regression and statistical functions (DRY).</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
+                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="jax.Array">Array</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3983,7 +4011,7 @@ Delegates to existing regression and statistical functions (DRY).</p>
 
 
 <h2 id="calibrax.metrics.plugins.scientific.conformational_diversity" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">conformational_diversity</span><span class="p">(</span><span class="n">coordinates</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">conformational_diversity</span><span class="p">(</span><span class="n">coordinates</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.plugins.scientific.conformational_diversity" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4011,7 +4039,7 @@ root mean square deviation (RMSD) between all pairs of structures.</p>
                 <code>coordinates</code>
             </td>
             <td>
-                  <code><span title="jax.numpy.ndarray">ndarray</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4038,7 +4066,7 @@ Each conformation is a set of 3D atomic coordinates.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4048,7 +4076,7 @@ Each conformation is a set of 3D atomic coordinates.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">

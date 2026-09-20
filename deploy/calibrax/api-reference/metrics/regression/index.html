@@ -1565,6 +1565,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../profiling/nvml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NVML
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../profiling/energy/" class="md-nav__link">
         
   
@@ -4025,7 +4053,7 @@ means the same thing in every one of them.</p>
 
 
 <h2 id="calibrax.metrics.functional.regression.mse" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">mse</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">weights</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">reduction</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">mse</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">weights</span><span class="p">:</span> <span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">reduction</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.regression.mse" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4060,7 +4088,7 @@ Not a true metric -- violates the triangle inequality.</p>
                 <code>predictions</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4076,7 +4104,7 @@ Not a true metric -- violates the triangle inequality.</p>
                 <code>targets</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4092,7 +4120,7 @@ Not a true metric -- violates the triangle inequality.</p>
                 <code>mask</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span> | None</code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span> | None</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4108,7 +4136,7 @@ Not a true metric -- violates the triangle inequality.</p>
                 <code>weights</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span> | None</code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span> | None</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4166,7 +4194,7 @@ Not a true metric -- violates the triangle inequality.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4209,7 +4237,7 @@ Not a true metric -- violates the triangle inequality.</p>
 
 
 <h2 id="calibrax.metrics.functional.regression.mae" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">mae</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">weights</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">reduction</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">mae</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">weights</span><span class="p">:</span> <span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">reduction</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.regression.mae" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4244,7 +4272,7 @@ True metric -- satisfies identity, symmetry, and triangle inequality.</p>
                 <code>predictions</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4260,7 +4288,7 @@ True metric -- satisfies identity, symmetry, and triangle inequality.</p>
                 <code>targets</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4276,7 +4304,7 @@ True metric -- satisfies identity, symmetry, and triangle inequality.</p>
                 <code>mask</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span> | None</code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span> | None</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4292,7 +4320,7 @@ True metric -- satisfies identity, symmetry, and triangle inequality.</p>
                 <code>weights</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span> | None</code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span> | None</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4350,7 +4378,7 @@ True metric -- satisfies identity, symmetry, and triangle inequality.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4393,7 +4421,7 @@ True metric -- satisfies identity, symmetry, and triangle inequality.</p>
 
 
 <h2 id="calibrax.metrics.functional.regression.rmse" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">rmse</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">rmse</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">weights</span><span class="p">:</span> <span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">reduction</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.regression.rmse" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4401,7 +4429,11 @@ True metric -- satisfies identity, symmetry, and triangle inequality.</p>
     <div class="doc doc-contents ">
 
         <p>Root mean squared error.</p>
-<p>Computes <code>sqrt(mean((predictions - targets)^2))</code>.</p>
+<p>The root of the mean squared error over <code>axis</code> (every element when <code>None</code>), after the
+mask and weights, as in <code>mse</code>: <code>sqrt(sum(w * (p - t)^2) / sum(w))</code>. <code>reduction</code> then
+combines the roots left over the remaining axes: <code>"none"</code> returns them, <code>"mean"</code>
+averages them, <code>"sum"</code> adds them. Without an <code>axis</code> there is one root, which every
+reduction returns. The derivative at a perfect prediction is 0, not NaN.</p>
 
 
 <details class="note" open>
@@ -4427,7 +4459,7 @@ True metric -- satisfies identity, symmetry, and triangle inequality.</p>
                 <code>predictions</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4443,7 +4475,7 @@ True metric -- satisfies identity, symmetry, and triangle inequality.</p>
                 <code>targets</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4452,6 +4484,70 @@ True metric -- satisfies identity, symmetry, and triangle inequality.</p>
             </td>
             <td>
                 <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>mask</code>
+            </td>
+            <td>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Elements to keep (boolean, broadcastable), or <code>None</code> for all.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>weights</code>
+            </td>
+            <td>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Element weights (broadcastable), or <code>None</code> for unit weights.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>reduction</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p><code>"none"</code>, <code>"mean"</code> or <code>"sum"</code> over the roots.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;mean&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>axis</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span> | <span title="tuple">tuple</span>[<span title="int">int</span>, ...] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Axis or axes the mean under the root runs over.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
             </td>
           </tr>
       </tbody>
@@ -4469,11 +4565,11 @@ True metric -- satisfies identity, symmetry, and triangle inequality.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Root mean squared error as a scalar value.</p>
+                <p>Root mean squared error as a scalar value, or the roots reduced.</p>
               </div>
             </td>
           </tr>
@@ -4496,7 +4592,8 @@ True metric -- satisfies identity, symmetry, and triangle inequality.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>If shapes do not match.</p>
+                <p>If shapes do not match, or <code>reduction</code> is <code>"batch_sum"</code>, which has no
+meaning for a root of a mean.</p>
               </div>
             </td>
           </tr>
@@ -4512,7 +4609,7 @@ True metric -- satisfies identity, symmetry, and triangle inequality.</p>
 
 
 <h2 id="calibrax.metrics.functional.regression.r_squared" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">r_squared</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">r_squared</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.regression.r_squared" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4547,7 +4644,7 @@ Not a true metric -- not a distance function.</p>
                 <code>predictions</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4563,7 +4660,7 @@ Not a true metric -- not a distance function.</p>
                 <code>targets</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4589,7 +4686,7 @@ Not a true metric -- not a distance function.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4632,7 +4729,7 @@ Not a true metric -- not a distance function.</p>
 
 
 <h2 id="calibrax.metrics.functional.regression.mape" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">mape</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">mape</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.regression.mape" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4667,7 +4764,7 @@ target magnitude breaks metric space axioms.</p>
                 <code>predictions</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4683,7 +4780,7 @@ target magnitude breaks metric space axioms.</p>
                 <code>targets</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4709,7 +4806,7 @@ target magnitude breaks metric space axioms.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4752,7 +4849,7 @@ target magnitude breaks metric space axioms.</p>
 
 
 <h2 id="calibrax.metrics.functional.regression.relative_error" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">relative_error</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">relative_error</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.regression.relative_error" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4787,7 +4884,7 @@ the triangle inequality.</p>
                 <code>predictions</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4803,7 +4900,7 @@ the triangle inequality.</p>
                 <code>targets</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4829,7 +4926,7 @@ the triangle inequality.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4872,7 +4969,7 @@ the triangle inequality.</p>
 
 
 <h2 id="calibrax.metrics.functional.regression.explained_variance" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">explained_variance</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">explained_variance</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.regression.explained_variance" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4909,7 +5006,7 @@ in predictions.</p>
                 <code>predictions</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4925,7 +5022,7 @@ in predictions.</p>
                 <code>targets</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4951,7 +5048,7 @@ in predictions.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4994,7 +5091,7 @@ in predictions.</p>
 
 
 <h2 id="calibrax.metrics.functional.regression.max_error" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">max_error</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">max_error</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.regression.max_error" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -5029,7 +5126,7 @@ not on distribution distance).</p>
                 <code>predictions</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5045,7 +5142,7 @@ not on distribution distance).</p>
                 <code>targets</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5071,7 +5168,7 @@ not on distribution distance).</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5114,7 +5211,7 @@ not on distribution distance).</p>
 
 
 <h2 id="calibrax.metrics.functional.regression.huber_loss" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">huber_loss</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">delta</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">weights</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">reduction</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">huber_loss</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">delta</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">weights</span><span class="p">:</span> <span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">reduction</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.regression.huber_loss" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -5151,7 +5248,7 @@ errors. More robust to outliers than MSE.</p>
                 <code>predictions</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5167,7 +5264,7 @@ errors. More robust to outliers than MSE.</p>
                 <code>targets</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5199,7 +5296,7 @@ errors. More robust to outliers than MSE.</p>
                 <code>mask</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span> | None</code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span> | None</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5215,7 +5312,7 @@ errors. More robust to outliers than MSE.</p>
                 <code>weights</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span> | None</code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span> | None</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5273,7 +5370,7 @@ errors. More robust to outliers than MSE.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5316,7 +5413,7 @@ errors. More robust to outliers than MSE.</p>
 
 
 <h2 id="calibrax.metrics.functional.regression.charbonnier_loss" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">charbonnier_loss</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">weights</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">reduction</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">charbonnier_loss</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">weights</span><span class="p">:</span> <span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">reduction</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.regression.charbonnier_loss" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -5350,7 +5447,7 @@ finite everywhere; the usual choice for image restoration losses.</p>
                 <code>predictions</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5366,7 +5463,7 @@ finite everywhere; the usual choice for image restoration losses.</p>
                 <code>targets</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5414,7 +5511,7 @@ finite everywhere; the usual choice for image restoration losses.</p>
                 <code>mask</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span> | None</code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span> | None</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5430,7 +5527,7 @@ finite everywhere; the usual choice for image restoration losses.</p>
                 <code>weights</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span> | None</code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span> | None</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5488,7 +5585,7 @@ finite everywhere; the usual choice for image restoration losses.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5531,7 +5628,7 @@ finite everywhere; the usual choice for image restoration losses.</p>
 
 
 <h2 id="calibrax.metrics.functional.regression.quantile_loss" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">quantile_loss</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">quantile</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">quantile_loss</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">quantile</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.regression.quantile_loss" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -5566,7 +5663,7 @@ Not a true metric -- asymmetric by design.</p>
                 <code>predictions</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5582,7 +5679,7 @@ Not a true metric -- asymmetric by design.</p>
                 <code>targets</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5624,7 +5721,7 @@ Not a true metric -- asymmetric by design.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5667,7 +5764,7 @@ Not a true metric -- asymmetric by design.</p>
 
 
 <h2 id="calibrax.metrics.functional.regression.log_cosh_loss" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">log_cosh_loss</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">log_cosh_loss</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.regression.log_cosh_loss" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -5704,7 +5801,7 @@ for second-order optimization methods.</p>
                 <code>predictions</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5720,7 +5817,7 @@ for second-order optimization methods.</p>
                 <code>targets</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5746,7 +5843,7 @@ for second-order optimization methods.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5789,7 +5886,7 @@ for second-order optimization methods.</p>
 
 
 <h2 id="calibrax.metrics.functional.regression.smape" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">smape</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">smape</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.regression.smape" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -5824,7 +5921,7 @@ Not a true metric -- normalization breaks metric space axioms.</p>
                 <code>predictions</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5840,7 +5937,7 @@ Not a true metric -- normalization breaks metric space axioms.</p>
                 <code>targets</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5866,7 +5963,7 @@ Not a true metric -- normalization breaks metric space axioms.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5909,7 +6006,7 @@ Not a true metric -- normalization breaks metric space axioms.</p>
 
 
 <h2 id="calibrax.metrics.functional.regression.crps" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">crps</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">crps</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.regression.crps" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -5944,7 +6041,7 @@ Proper scoring rule for probabilistic forecasts.</p>
                 <code>predictions</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5960,7 +6057,7 @@ Proper scoring rule for probabilistic forecasts.</p>
                 <code>targets</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5987,7 +6084,7 @@ is accepted for a single forecast sample.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6030,7 +6127,7 @@ is accepted for a single forecast sample.</p>
 
 
 <h2 id="calibrax.metrics.functional.regression.per_sample_relative_l2" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">per_sample_relative_l2</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">per_sample_relative_l2</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.regression.per_sample_relative_l2" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -6067,7 +6164,7 @@ Returns one value per sample, so it is not a registered metric; see
                 <code>predictions</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6083,7 +6180,7 @@ Returns one value per sample, so it is not a registered metric; see
                 <code>targets</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6109,7 +6206,7 @@ Returns one value per sample, so it is not a registered metric; see
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6152,7 +6249,7 @@ Returns one value per sample, so it is not a registered metric; see
 
 
 <h2 id="calibrax.metrics.functional.regression.relative_l2_error" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">relative_l2_error</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">weights</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">reduction</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">relative_l2_error</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">weights</span><span class="p">:</span> <span class="n">ArrayLike</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">reduction</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.regression.relative_l2_error" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -6186,7 +6283,7 @@ Range: [0, inf).</p>
                 <code>predictions</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6202,7 +6299,7 @@ Range: [0, inf).</p>
                 <code>targets</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6218,7 +6315,7 @@ Range: [0, inf).</p>
                 <code>mask</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span> | None</code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span> | None</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6234,7 +6331,7 @@ Range: [0, inf).</p>
                 <code>weights</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span> | None</code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span> | None</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6292,7 +6389,7 @@ Range: [0, inf).</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">

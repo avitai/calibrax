@@ -1563,6 +1563,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../api-reference/profiling/nvml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NVML
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../api-reference/profiling/energy/" class="md-nav__link">
         
   
@@ -3985,6 +4013,37 @@
 </span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="n">true_metrics</span> <span class="o">=</span> <span class="n">registry</span><span class="o">.</span><span class="n">list_true_metrics</span><span class="p">()</span>
 </span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;True metrics: </span><span class="si">{</span><span class="p">[</span><span class="n">e</span><span class="o">.</span><span class="n">name</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">e</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">true_metrics</span><span class="p">[:</span><span class="mi">8</span><span class="p">]]</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
 </span></code></pre></div>
+<p><strong>Terminal Output:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>=== Registry: all registered metric names ===
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>  Total registered: 140
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>  First 10: [&#39;accuracy&#39;, &#39;adaptive_calibration_error&#39;, &#39;adjusted_mutual_information&#39;, &#39;adjusted_rand_index&#39;, &#39;anees&#39;, &#39;average_precision&#39;, &#39;balanced_accuracy&#39;, &#39;bleu&#39;, &#39;bregman_divergence&#39;, &#39;brier_score&#39;]
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>=== Registry: metrics by domain ===
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>  general              (15): [&#39;mse&#39;, &#39;mae&#39;, &#39;rmse&#39;, &#39;r_squared&#39;, &#39;mape&#39;, &#39;relative_error&#39;, &#39;relative_l2_error&#39;, &#39;explained_variance&#39;, &#39;max_error&#39;, &#39;huber_loss&#39;, &#39;charbonnier_loss&#39;, &#39;quantile_loss&#39;, &#39;log_cosh_loss&#39;, &#39;smape&#39;, &#39;crps&#39;]
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>  classification       (13): [&#39;accuracy&#39;, &#39;precision&#39;, &#39;recall&#39;, &#39;f1_score&#39;, &#39;roc_auc&#39;, &#39;average_precision&#39;, &#39;log_loss&#39;, &#39;matthews_corrcoef&#39;, &#39;cohen_kappa&#39;, &#39;balanced_accuracy&#39;, &#39;specificity&#39;, &#39;sensitivity&#39;, &#39;softmax_cross_entropy&#39;]
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>  distance             (11): [&#39;cosine_distance&#39;, &#39;euclidean_distance&#39;, &#39;manhattan_distance&#39;, &#39;chebyshev_distance&#39;, &#39;mahalanobis_distance&#39;, &#39;hamming_distance&#39;, &#39;minkowski_distance&#39;, &#39;jaccard_distance&#39;, &#39;poincare_distance&#39;, &#39;lorentz_distance&#39;, &#39;randers_distance&#39;]
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>  image                (4): [&#39;psnr&#39;, &#39;ssim&#39;, &#39;ms_ssim&#39;, &#39;vendi_score&#39;]
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>=== Registry: Tier 0 pure functions ===
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>  Count: 140
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>
+</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>=== MetricEntry fields for &#39;mse&#39; ===
+</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>  name:              mse
+</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>  tier:              pure_function
+</span><span id="__span-6-17"><a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>  domain:            general
+</span><span id="__span-6-18"><a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a>  direction:         lower
+</span><span id="__span-6-19"><a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a>  description:       Mean squared error
+</span><span id="__span-6-20"><a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a>  signature:         predictions_targets
+</span><span id="__span-6-21"><a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a>  is_true_metric:    False
+</span><span id="__span-6-22"><a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a>  is_symmetric:      True
+</span><span id="__span-6-23"><a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a>  is_differentiable: True
+</span><span id="__span-6-24"><a id="__codelineno-6-24" name="__codelineno-6-24" href="#__codelineno-6-24"></a>  is_jit_compatible: True
+</span><span id="__span-6-25"><a id="__codelineno-6-25" name="__codelineno-6-25" href="#__codelineno-6-25"></a>  invariances:       ()
+</span><span id="__span-6-26"><a id="__codelineno-6-26" name="__codelineno-6-26" href="#__codelineno-6-26"></a>
+</span><span id="__span-6-27"><a id="__codelineno-6-27" name="__codelineno-6-27" href="#__codelineno-6-27"></a>=== Registry: true metrics (satisfy metric space axioms) ===
+</span><span id="__span-6-28"><a id="__codelineno-6-28" name="__codelineno-6-28" href="#__codelineno-6-28"></a>  Count: 27
+</span><span id="__span-6-29"><a id="__codelineno-6-29" name="__codelineno-6-29" href="#__codelineno-6-29"></a>  Names: [&#39;mae&#39;, &#39;rmse&#39;, &#39;euclidean_distance&#39;, &#39;manhattan_distance&#39;, &#39;chebyshev_distance&#39;, &#39;mahalanobis_distance&#39;, &#39;hamming_distance&#39;, &#39;minkowski_distance&#39;]...
+</span></code></pre></div></p>
 <h2 id="next-steps">Next Steps<a class="headerlink" href="#next-steps" title="Permanent link">¤</a></h2>
 <ul>
 <li><a href="../regression-metrics/">Regression Metrics Deep Dive</a> -- explore regression metrics with outlier, quantile, and CRPS analysis</li>

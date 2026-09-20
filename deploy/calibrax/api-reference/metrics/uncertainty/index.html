@@ -1565,6 +1565,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../profiling/nvml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NVML
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../profiling/energy/" class="md-nav__link">
         
   
@@ -3924,7 +3952,7 @@ checked.</p>
 
 
 <h2 id="calibrax.metrics.functional.uncertainty.picp" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">picp</span><span class="p">(</span><span class="n">lower</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">upper</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">picp</span><span class="p">(</span><span class="n">lower</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">upper</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.uncertainty.picp" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -3958,7 +3986,7 @@ Range: [0, 1].</p>
                 <code>lower</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3974,7 +4002,7 @@ Range: [0, 1].</p>
                 <code>upper</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3990,7 +4018,7 @@ Range: [0, 1].</p>
                 <code>targets</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4016,7 +4044,7 @@ Range: [0, 1].</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4059,7 +4087,7 @@ Range: [0, 1].</p>
 
 
 <h2 id="calibrax.metrics.functional.uncertainty.mpiw" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">mpiw</span><span class="p">(</span><span class="n">lower</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">upper</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">mpiw</span><span class="p">(</span><span class="n">lower</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">upper</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.uncertainty.mpiw" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4091,7 +4119,7 @@ Range: (-inf, inf); negative for inverted intervals.</p>
                 <code>lower</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4107,7 +4135,7 @@ Range: (-inf, inf); negative for inverted intervals.</p>
                 <code>upper</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4133,7 +4161,7 @@ Range: (-inf, inf); negative for inverted intervals.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4176,7 +4204,7 @@ Range: (-inf, inf); negative for inverted intervals.</p>
 
 
 <h2 id="calibrax.metrics.functional.uncertainty.interval_score" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">interval_score</span><span class="p">(</span><span class="n">lower</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">upper</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">interval_score</span><span class="p">(</span><span class="n">lower</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">upper</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.uncertainty.interval_score" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4211,7 +4239,7 @@ Proper scoring rule for central prediction intervals (Gneiting &amp; Raftery).</
                 <code>lower</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4227,7 +4255,7 @@ Proper scoring rule for central prediction intervals (Gneiting &amp; Raftery).</
                 <code>upper</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4243,7 +4271,7 @@ Proper scoring rule for central prediction intervals (Gneiting &amp; Raftery).</
                 <code>targets</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4285,7 +4313,7 @@ Proper scoring rule for central prediction intervals (Gneiting &amp; Raftery).</
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4328,7 +4356,7 @@ Proper scoring rule for central prediction intervals (Gneiting &amp; Raftery).</
 
 
 <h2 id="calibrax.metrics.functional.uncertainty.winkler_score" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">winkler_score</span><span class="p">(</span><span class="n">lower</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">upper</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">winkler_score</span><span class="p">(</span><span class="n">lower</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">upper</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.uncertainty.winkler_score" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4354,7 +4382,7 @@ Proper scoring rule for central prediction intervals (Gneiting &amp; Raftery).</
                 <code>lower</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4370,7 +4398,7 @@ Proper scoring rule for central prediction intervals (Gneiting &amp; Raftery).</
                 <code>upper</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4386,7 +4414,7 @@ Proper scoring rule for central prediction intervals (Gneiting &amp; Raftery).</
                 <code>targets</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4428,7 +4456,7 @@ Proper scoring rule for central prediction intervals (Gneiting &amp; Raftery).</
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4448,7 +4476,7 @@ Proper scoring rule for central prediction intervals (Gneiting &amp; Raftery).</
 
 
 <h2 id="calibrax.metrics.functional.uncertainty.gaussian_nll" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">gaussian_nll</span><span class="p">(</span><span class="n">means</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">variances</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">gaussian_nll</span><span class="p">(</span><span class="n">means</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">variances</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.uncertainty.gaussian_nll" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4482,7 +4510,7 @@ Proper scoring rule; non-positive variances give non-finite values.</p>
                 <code>means</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4498,7 +4526,7 @@ Proper scoring rule; non-positive variances give non-finite values.</p>
                 <code>variances</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4514,7 +4542,7 @@ Proper scoring rule; non-positive variances give non-finite values.</p>
                 <code>targets</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4540,7 +4568,7 @@ Proper scoring rule; non-positive variances give non-finite values.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4583,7 +4611,7 @@ Proper scoring rule; non-positive variances give non-finite values.</p>
 
 
 <h2 id="calibrax.metrics.functional.uncertainty.regression_calibration_error" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">regression_calibration_error</span><span class="p">(</span><span class="n">means</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">variances</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">quantile_levels</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">regression_calibration_error</span><span class="p">(</span><span class="n">means</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">variances</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">quantile_levels</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.uncertainty.regression_calibration_error" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4618,7 +4646,7 @@ Range: [0, 1].</p>
                 <code>means</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4634,7 +4662,7 @@ Range: [0, 1].</p>
                 <code>variances</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4650,7 +4678,7 @@ Range: [0, 1].</p>
                 <code>targets</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4666,7 +4694,7 @@ Range: [0, 1].</p>
                 <code>quantile_levels</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4692,7 +4720,7 @@ Range: [0, 1].</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4735,7 +4763,7 @@ Range: [0, 1].</p>
 
 
 <h2 id="calibrax.metrics.functional.uncertainty.predictive_entropy" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">predictive_entropy</span><span class="p">(</span><span class="n">ensemble_probabilities</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">predictive_entropy</span><span class="p">(</span><span class="n">ensemble_probabilities</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.uncertainty.predictive_entropy" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4770,7 +4798,7 @@ Returns one value per sample, so it is not a registered metric.</p>
                 <code>ensemble_probabilities</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4797,7 +4825,7 @@ Returns one value per sample, so it is not a registered metric.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4817,7 +4845,7 @@ Returns one value per sample, so it is not a registered metric.</p>
 
 
 <h2 id="calibrax.metrics.functional.uncertainty.ensemble_mutual_information" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">ensemble_mutual_information</span><span class="p">(</span><span class="n">ensemble_probabilities</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">ensemble_mutual_information</span><span class="p">(</span><span class="n">ensemble_probabilities</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.uncertainty.ensemble_mutual_information" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4853,7 +4881,7 @@ Returns one value per sample, so it is not a registered metric.</p>
                 <code>ensemble_probabilities</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4880,7 +4908,7 @@ Returns one value per sample, so it is not a registered metric.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4900,7 +4928,7 @@ Returns one value per sample, so it is not a registered metric.</p>
 
 
 <h2 id="calibrax.metrics.functional.uncertainty.anees" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">anees</span><span class="p">(</span><span class="n">predicted_means</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">predicted_covariances</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">references</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">anees</span><span class="p">(</span><span class="n">predicted_means</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">predicted_covariances</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">references</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.uncertainty.anees" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4935,7 +4963,7 @@ Range: [0, inf).</p>
                 <code>predicted_means</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4951,7 +4979,7 @@ Range: [0, inf).</p>
                 <code>predicted_covariances</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4967,7 +4995,7 @@ Range: [0, inf).</p>
                 <code>references</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4993,7 +5021,7 @@ Range: [0, inf).</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5036,7 +5064,7 @@ Range: [0, inf).</p>
 
 
 <h2 id="calibrax.metrics.functional.uncertainty.non_credibility_index" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">non_credibility_index</span><span class="p">(</span><span class="n">predicted_means</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">predicted_covariances</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">references</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">reference_covariances</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">non_credibility_index</span><span class="p">(</span><span class="n">predicted_means</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">predicted_covariances</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">references</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">reference_covariances</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.uncertainty.non_credibility_index" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -5071,7 +5099,7 @@ Range: (-inf, inf).</p>
                 <code>predicted_means</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5087,7 +5115,7 @@ Range: (-inf, inf).</p>
                 <code>predicted_covariances</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5103,7 +5131,7 @@ Range: (-inf, inf).</p>
                 <code>references</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5119,7 +5147,7 @@ Range: (-inf, inf).</p>
                 <code>reference_covariances</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5145,7 +5173,7 @@ Range: (-inf, inf).</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5188,7 +5216,7 @@ Range: (-inf, inf).</p>
 
 
 <h2 id="calibrax.metrics.functional.uncertainty.chi2_confidence_interval" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">chi2_confidence_interval</span><span class="p">(</span><span class="n">dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">percentile</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.99</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">chi2_confidence_interval</span><span class="p">(</span><span class="n">dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">percentile</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.99</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">jax</span><span class="o">.</span><span class="n">Array</span><span class="p">,</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span><span class="p">]</span></code>
 
 <a href="#calibrax.metrics.functional.uncertainty.chi2_confidence_interval" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -5197,8 +5225,8 @@ Range: (-inf, inf).</p>
 
         <p>Symmetric confidence interval of the chi-squared distribution with <code>dim</code> degrees.</p>
 <p>The <code>((1 - percentile) / 2, 1 - (1 - percentile) / 2)</code> quantiles: the band an
-ANEES-style statistic of a calibrated estimator falls in. Needs the <code>stats</code>
-extra (SciPy).</p>
+ANEES-style statistic of a calibrated estimator falls in, from SciPy's distribution on
+the host: <code>dim</code> and <code>percentile</code> are Python values, so nothing here is traced.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -5259,7 +5287,7 @@ extra (SciPy).</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="tuple">tuple</span>[<span title="typing.Any">Any</span>, <span title="typing.Any">Any</span>]</code>
+                  <code><span title="tuple">tuple</span>[<span title="jax.Array">Array</span>, <span title="jax.Array">Array</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">

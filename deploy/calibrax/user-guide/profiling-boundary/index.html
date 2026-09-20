@@ -1645,6 +1645,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../api-reference/profiling/nvml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NVML
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../api-reference/profiling/energy/" class="md-nav__link">
         
   
@@ -3663,18 +3691,18 @@ states the boundary so that the sibling packages do not grow copies.</p>
 <tbody>
 <tr>
 <td>Wall-clock timing with device synchronisation and warm-up</td>
-<td><code>timing</code></td>
-<td><code>TimingCollector</code>, <code>TimingSample</code></td>
+<td><code>timing</code>, <code>timing_records</code></td>
+<td><code>TimingCollector</code>, <code>time_calls</code>, <code>TimingSample</code>, <code>CallTiming</code></td>
 </tr>
 <tr>
 <td>Host and GPU resource sampling</td>
-<td><code>resources</code>, <code>gpu</code></td>
-<td><code>ResourceMonitor</code>, <code>GPUMemoryProfiler</code>, <code>MemoryOptimizer</code></td>
+<td><code>resources</code>, <code>gpu</code>, <code>nvml</code></td>
+<td><code>ResourceMonitor</code>, <code>GPUMemoryProfiler</code>, <code>NvmlDevice</code>, <code>MemoryOptimizer</code></td>
 </tr>
 <tr>
 <td>Energy and carbon</td>
 <td><code>energy</code>, <code>carbon</code></td>
-<td>NVML and RAPL sampling; CodeCarbon-backed emissions</td>
+<td>GPU power source and RAPL sampling; CodeCarbon-backed emissions</td>
 </tr>
 <tr>
 <td>FLOP counting</td>

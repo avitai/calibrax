@@ -1563,6 +1563,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../api-reference/profiling/nvml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NVML
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../api-reference/profiling/energy/" class="md-nav__link">
         
   
@@ -3900,24 +3928,26 @@ Baselines are stored in a separate <code>baselines/</code> directory.</p>
   acceptable for typical benchmark stores (hundreds to low thousands of runs)</li>
 </ul>
 <h2 id="7-optional-dependencies">7. Optional Dependencies<a class="headerlink" href="#7-optional-dependencies" title="Permanent link">¤</a></h2>
-<p><strong>Problem:</strong> scipy, wandb, matplotlib, mlflow, codecarbon, and ruptures are
-heavy dependencies that many users do not need. Making them required would
-bloat the install and break on minimal environments.</p>
-<p><strong>Decision:</strong> Optional dependencies are guarded by <code>try/except ImportError</code> at
-the module level, setting availability flags like <code>WANDB_AVAILABLE</code>,
-<code>MATPLOTLIB_AVAILABLE</code>, <code>CODECARBON_AVAILABLE</code>, <code>RUPTURES_AVAILABLE</code>, and
-<code>MLFLOW_AVAILABLE</code>. Features degrade gracefully: exporters and trackers raise
-<code>ImportError</code> on instantiation when their dependency is missing.</p>
+<p><strong>Problem:</strong> wandb, matplotlib, mlflow, codecarbon, NVIDIA's NVML bindings and ruptures are
+heavy dependencies that many users do not need. Making them required would bloat the install
+and break on minimal environments.</p>
+<p><strong>Decision:</strong> Each optional dependency has one integration module that imports it at the top:
+<code>calibrax.exporters.plots</code> (matplotlib), <code>calibrax.exporters.wandb</code>,
+<code>calibrax.exporters.mlflow</code>, <code>calibrax.profiling.carbon</code> (codecarbon),
+<code>calibrax.profiling.nvml</code> (nvidia-ml-py) and <code>calibrax.analysis.changepoint</code> (ruptures). Importing an integration module without its
+library raises <code>ImportError</code> naming the extra to install. Nothing else imports these modules,
+and no package <code>__init__.py</code> re-exports them, so the rest of calibrax imports without them.</p>
 <p><strong>Implications:</strong></p>
 <ul>
-<li>The base install is JAX, Flax, NumPy, jaxtyping, click, psutil, typing_extensions and
-  substrax; every heavier dependency is an extra</li>
-<li>Users install only the extras they need (<code>calibrax[stats]</code>, <code>calibrax[wandb]</code>,
-  <code>calibrax[mlflow]</code>, <code>calibrax[codecarbon]</code>, <code>calibrax[changepoint]</code>)</li>
-<li>Heavy optional modules (<code>WandBExporter</code>, <code>MLflowExporter</code>) are not re-exported
-  from their package <code>__init__.py</code> to avoid triggering an import-time load</li>
-<li>Change point detection (<code>ruptures</code>) and carbon tracking (<code>codecarbon</code>) follow
-  the same pattern: import guard at module top, <code>ImportError</code> on use</li>
+<li>The base install is JAX (which brings SciPy), Flax, NumPy, pydantic, jaxtyping, click,
+  psutil, typing_extensions, lazy-loader and substrax; every other dependency is an extra</li>
+<li>A missing extra fails where the integration is imported, with the install command, rather
+  than a method returning <code>None</code> or a flag deciding at run time</li>
+<li>There are no availability flags and no imports inside functions: a module's dependencies
+  are its imports</li>
+<li>Users install only the extras they need (<code>calibrax[wandb]</code>, <code>calibrax[mlflow]</code>,
+  <code>calibrax[publication]</code>, <code>calibrax[codecarbon]</code>, <code>calibrax[changepoint]</code>, and NVML through
+  <code>calibrax[cuda12]</code>)</li>
 </ul>
 <h2 id="8-frozen-dataclasses">8. Frozen Dataclasses<a class="headerlink" href="#8-frozen-dataclasses" title="Permanent link">¤</a></h2>
 <p><strong>Problem:</strong> Mutable benchmark results are error-prone: accidental mutation
@@ -3962,17 +3992,23 @@ external tools:</p>
 scoring, and complexity analysis need hardware-specific constants (peak FLOP/s,
 memory bandwidth) to produce meaningful results. Hardcoding these per-module
 duplicates values and makes it impossible to extend for new hardware.</p>
-<p><strong>Decision:</strong> Centralize hardware specs in <code>calibrax.profiling.hardware</code> with a
-<code>HARDWARE_SPECS</code> dictionary containing reference values for common accelerators
-(TPU v5e, A100, H100, CPU) and a <code>detect_hardware_specs()</code> function that
-auto-detects the active JAX backend.</p>
+<p><strong>Decision:</strong> Centralize hardware specs in <code>calibrax.profiling.hardware</code>: <code>HARDWARE_SPECS</code>
+maps a chip's name to a frozen <code>HardwareSpec</code> holding its dense BF16 peak and memory
+bandwidth from the vendor's published specification, and <code>detect_hardware_specs()</code> names the
+chip by the <code>device_kind</code> JAX reports.</p>
 <p><strong>Implications:</strong></p>
 <ul>
-<li>Roofline analyzer, compilation profiler, and complexity analysis all share
-  the same hardware specs, with no duplication</li>
-<li>Adding support for new hardware requires a single dictionary entry</li>
-<li><code>detect_hardware_specs()</code> returns sensible defaults for unknown platforms,
-  so profiling works everywhere (with reduced accuracy on unrecognized hardware)</li>
+<li>Roofline analysis reads one table, and the ridge point is derived from the two figures,
+  so the three cannot disagree</li>
+<li>Adding a chip is one table entry with its source and one <code>device_kind</code> mapping</li>
+<li>An accelerator the table does not hold gets no spec: <code>detect_hardware_specs()</code> returns
+  <code>None</code> and <code>RooflineAnalyzer</code> raises <code>UnknownHardwareError</code> until a <code>HardwareSpec</code> is
+  passed. A guessed spec would report utilisation against another chip's figures, which is
+  what reporting every GPU as an A100 did</li>
+<li>A device the table does not hold, a CPU among them, is measured rather than guessed:
+  <code>measure_hardware_spec(dtype=...)</code> times a matmul and STREAM's triad through XLA (an
+  empirical roofline, as LBNL's Empirical Roofline Tool does) and returns the device's
+  attainable ceilings as a <code>HardwareSpec</code> named after the device and dtype</li>
 </ul>
 
 

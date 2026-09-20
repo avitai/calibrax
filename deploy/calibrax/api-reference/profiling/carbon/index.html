@@ -1567,6 +1567,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../nvml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NVML
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../energy/" class="md-nav__link">
         
   
@@ -3820,9 +3848,12 @@ or inference runs.</p>
     <div class="doc doc-contents first">
 
         <p>Carbon emissions tracking via CodeCarbon integration.</p>
-<p>Wraps the <code>codecarbon.EmissionsTracker</code> as a context manager, exposing
-emissions data as a frozen <code>CarbonResult</code> dataclass. Requires the
-optional <code>codecarbon</code> dependency (<code>uv pip install "calibrax[codecarbon]"</code>).</p>
+<p>Wraps codecarbon's trackers as a context manager, exposing emissions data as a frozen
+<code>CarbonResult</code> dataclass: <code>EmissionsTracker</code>, which locates the machine itself, or, when a
+country is given, <code>OfflineEmissionsTracker</code>, the tracker codecarbon takes <code>country_iso_code</code>
+on. This module is the codecarbon integration: it needs the <code>codecarbon</code> extra, importing it
+without codecarbon raises <code>ImportError</code> naming the extra, and it is not re-exported from
+<code>calibrax.profiling</code>.</p>
 
 
 
@@ -3975,7 +4006,7 @@ optional <code>codecarbon</code> dependency (<code>uv pip install "calibrax[code
 
     <div class="doc doc-contents ">
 
-        <p>Deserialize from a dictionary.</p>
+        <p>Read the record from the JSON object <code>to_dict</code> writes.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -3994,11 +4025,11 @@ optional <code>codecarbon</code> dependency (<code>uv pip install "calibrax[code
                 <code>data</code>
             </td>
             <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
+                  <code><span title="collections.abc.Mapping">Mapping</span>[<span title="str">str</span>, <span title="substrax.typing.JsonValue">JsonValue</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Dictionary with carbon result fields.</p>
+                <p>The JSON object.</p>
               </div>
             </td>
             <td>
@@ -4028,7 +4059,31 @@ optional <code>codecarbon</code> dependency (<code>uv pip install "calibrax[code
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Reconstructed CarbonResult instance.</p>
+                <p>The record.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="pydantic.ValidationError">ValidationError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If a field is missing or holds a value its annotation
+does not admit.</p>
               </div>
             </td>
           </tr>
@@ -4117,29 +4172,6 @@ optional <code>codecarbon</code> dependency (<code>uv pip install "calibrax[code
             </td>
             <td>
                   <code>&#39;warning&#39;</code>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<p><span class="doc-section-title">Raises:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="ImportError">ImportError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>If codecarbon is not installed.</p>
-              </div>
             </td>
           </tr>
       </tbody>

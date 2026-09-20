@@ -1415,6 +1415,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#calibrax.core.adapters.Adapter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-type_alias"></code>&nbsp;Adapter
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#calibrax.core.adapters.BenchmarkAdapter" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1492,6 +1503,45 @@
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;can_adapt
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.core.adapters.AdapterClass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;AdapterClass
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" AdapterClass">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#calibrax.core.adapters.AdapterClass.can_adapt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;can_adapt
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#calibrax.core.adapters.AdapterClass.__call__" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__call__
       
     </span>
   </a>
@@ -1766,6 +1816,34 @@
     
   
     GPU
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../profiling/nvml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NVML
   
 
     
@@ -3700,6 +3778,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#calibrax.core.adapters.Adapter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-type_alias"></code>&nbsp;Adapter
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#calibrax.core.adapters.BenchmarkAdapter" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3777,6 +3866,45 @@
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;can_adapt
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.core.adapters.AdapterClass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;AdapterClass
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" AdapterClass">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#calibrax.core.adapters.AdapterClass.can_adapt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;can_adapt
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#calibrax.core.adapters.AdapterClass.__call__" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__call__
       
     </span>
   </a>
@@ -3986,6 +4114,23 @@ these bases.</p>
 
 
 
+<div class="doc doc-object doc-type_alias">
+
+
+
+<h2 id="calibrax.core.adapters.Adapter" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-type_alias"></code>            <code class="highlight language-python"><span class="n">Adapter</span> <span class="o">=</span> <span class="n">BenchmarkAdapter</span><span class="p">[</span><span class="nb">object</span><span class="p">]</span> <span class="o">|</span> <span class="n">NNXBenchmarkAdapter</span></code>
+
+<a href="#calibrax.core.adapters.Adapter" class="headerlink" title="Permanent link">¤</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>An adapter of either kind: a plain wrapper or an NNX module.</p>
+    </div>
+
+</div>
+
 
 <div class="doc doc-object doc-class">
 
@@ -3998,6 +4143,8 @@ these bases.</p>
 
 
     <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="abc.ABC">ABC</span></code></p>
 
 
 
@@ -4030,7 +4177,7 @@ falling back to <code>"unknown"</code>.</p>
                 <code>target</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="calibrax.core.adapters.BenchmarkAdapter[TargetT]">TargetT</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4092,7 +4239,7 @@ falling back to <code>"unknown"</code>.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="calibrax.core.adapters.BenchmarkAdapter[TargetT]">TargetT</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4162,6 +4309,7 @@ falling back to <code>"unknown"</code>.</p>
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">can_adapt</span><span class="p">(</span><span class="n">target</span><span class="p">)</span></code>
 
   <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-abstractmethod"><code>abstractmethod</code></small>
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
   </span>
 
@@ -4171,7 +4319,9 @@ falling back to <code>"unknown"</code>.</p>
     <div class="doc doc-contents ">
 
         <p>Check if this adapter can handle the given target.</p>
-<p>Returns False by default — subclasses override with specific checks.</p>
+<p><code>AdapterRegistry</code> picks the first registered adapter whose <code>can_adapt</code> accepts the
+target, so every adapter states which targets it wraps. An adapter a registry holds
+returns <code>TypeIs[TargetT]</code>, which lets the registry hand the target to its constructor.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -4432,7 +4582,7 @@ falling back to <code>"unknown"</code>.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="bool">bool</span></code>
+                  <code><span title="typing_extensions.TypeIs">TypeIs</span>[<span title="flax.nnx.Module">Module</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4442,6 +4592,90 @@ falling back to <code>"unknown"</code>.</p>
           </tr>
       </tbody>
     </table>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="calibrax.core.adapters.AdapterClass" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <code>AdapterClass</code>
+
+
+<a href="#calibrax.core.adapters.AdapterClass" class="headerlink" title="Permanent link">¤</a></h2>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="typing.Protocol">Protocol</span></code></p>
+
+
+
+        <p>An adapter class a registry holds: a type predicate and a constructor for its targets.</p>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="calibrax.core.adapters.AdapterClass.can_adapt" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">can_adapt</span><span class="p">(</span><span class="n">target</span><span class="p">)</span></code>
+
+<a href="#calibrax.core.adapters.AdapterClass.can_adapt" class="headerlink" title="Permanent link">¤</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Whether <code>target</code> is one of the adapter's targets.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="calibrax.core.adapters.AdapterClass.__call__" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__call__</span><span class="p">(</span><span class="n">target</span><span class="p">)</span></code>
+
+<a href="#calibrax.core.adapters.AdapterClass.__call__" class="headerlink" title="Permanent link">¤</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Wrap <code>target</code>.</p>
 
 
     </div>
@@ -4512,8 +4746,6 @@ NNX adapters).</p>
     <div class="doc doc-contents ">
 
         <p>Register an adapter class (highest priority first).</p>
-<p>The adapter class must have a <code>can_adapt(target)</code> classmethod
-and accept a target as its first constructor argument.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -4532,11 +4764,12 @@ and accept a target as its first constructor argument.</p>
                 <code>adapter_cls</code>
             </td>
             <td>
-                  <code><span title="type">type</span></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;code&gt;AdapterClass&lt;/code&gt; (&lt;code&gt;calibrax.core.adapters.AdapterClass&lt;/code&gt;)" href="#calibrax.core.adapters.AdapterClass">AdapterClass</a>[<span title="calibrax.core.adapters.AdapterRegistry.register[TargetT]">TargetT</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The adapter class to register.</p>
+                <p>The adapter class; its <code>can_adapt</code> is a type predicate for the
+targets its constructor takes.</p>
               </div>
             </td>
             <td>
@@ -4581,7 +4814,7 @@ and accept a target as its first constructor argument.</p>
                 <code>target</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="object">object</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4607,7 +4840,7 @@ and accept a target as its first constructor argument.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-type_alias&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;Adapter&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;BenchmarkAdapter&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;object&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;NNXBenchmarkAdapter&lt;/span&gt;&lt;/code&gt; (&lt;code&gt;calibrax.core.adapters.Adapter&lt;/code&gt;)" href="#calibrax.core.adapters.Adapter">Adapter</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4703,7 +4936,7 @@ and accept a target as its first constructor argument.</p>
                 <code>target</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="object">object</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4729,7 +4962,7 @@ and accept a target as its first constructor argument.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-type_alias&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;Adapter&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;BenchmarkAdapter&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;object&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;NNXBenchmarkAdapter&lt;/span&gt;&lt;/code&gt; (&lt;code&gt;calibrax.core.adapters.Adapter&lt;/code&gt;)" href="#calibrax.core.adapters.Adapter">Adapter</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4798,7 +5031,7 @@ and accept a target as its first constructor argument.</p>
                 <code>adapter_cls</code>
             </td>
             <td>
-                  <code><span title="type">type</span></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;code&gt;AdapterClass&lt;/code&gt; (&lt;code&gt;calibrax.core.adapters.AdapterClass&lt;/code&gt;)" href="#calibrax.core.adapters.AdapterClass">AdapterClass</a>[<span title="calibrax.core.adapters.register_adapter[TargetT]">TargetT</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">

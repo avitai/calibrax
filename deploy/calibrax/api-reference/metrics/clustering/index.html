@@ -1565,6 +1565,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../profiling/nvml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NVML
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../profiling/energy/" class="md-nav__link">
         
   
@@ -3799,9 +3827,12 @@ Harabasz, Davies-Bouldin) that evaluate structure without labels.</p>
   adjusted_mutual_information, v_measure</p>
 <p><strong>Internal evaluation</strong> (no ground truth, uses feature distances):
 - silhouette_score, calinski_harabasz_score, davies_bouldin_score</p>
-<p>All accept integer label arrays. Internal metrics additionally require
-a feature matrix. Registered with <code>domain="clustering"</code> and
-<code>signature=MetricSignature.FEATURES_LABELS</code>.</p>
+<p>All accept integer label arrays, read as names: renaming a label changes nothing. Pass the
+number of labels (<code>num_classes</code> for the ground truth, <code>num_clusters</code> for the clustering)
+to trace a metric under <code>jax.jit</code>, labels then being ids below it, empty ids allowed;
+without it the distinct labels are counted from the data, eagerly. Edge cases follow
+scikit-learn's conventions. Internal metrics additionally require a feature matrix.
+Registered with <code>domain="clustering"</code> and <code>signature=MetricSignature.FEATURES_LABELS</code>.</p>
 
 
 
@@ -3827,16 +3858,16 @@ a feature matrix. Registered with <code>domain="clustering"</code> and
 
 
 <h2 id="calibrax.metrics.functional.clustering.adjusted_rand_index" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">adjusted_rand_index</span><span class="p">(</span><span class="n">labels_true</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">labels_pred</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">adjusted_rand_index</span><span class="p">(</span><span class="n">labels_true</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">labels_pred</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">num_clusters</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.clustering.adjusted_rand_index" class="headerlink" title="Permanent link">¤</a></h2>
 
 
     <div class="doc doc-contents ">
 
-        <p>Adjusted Rand Index for clustering agreement.</p>
-<p>Measures similarity between two clusterings, corrected for chance.
-ARI = (RI - E[RI]) / (max(RI) - E[RI]).</p>
+        <p>Adjusted Rand Index for clustering agreement (Hubert and Arabie 1985).</p>
+<p>ARI = (RI - E[RI]) / (max(RI) - E[RI]) over the contingency table's pair counts. Two
+labelings that are both one cluster, or both all singletons, agree perfectly: 1.0.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -3855,7 +3886,7 @@ ARI = (RI - E[RI]) / (max(RI) - E[RI]).</p>
                 <code>labels_true</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3871,7 +3902,7 @@ ARI = (RI - E[RI]) / (max(RI) - E[RI]).</p>
                 <code>labels_pred</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3880,6 +3911,38 @@ ARI = (RI - E[RI]) / (max(RI) - E[RI]).</p>
             </td>
             <td>
                 <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>num_classes</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of ground-truth label ids, to trace; None counts them.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>num_clusters</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of predicted label ids, to trace; None counts them.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
             </td>
           </tr>
       </tbody>
@@ -3897,7 +3960,7 @@ ARI = (RI - E[RI]) / (max(RI) - E[RI]).</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3907,7 +3970,7 @@ ARI = (RI - E[RI]) / (max(RI) - E[RI]).</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3934,15 +3997,15 @@ ARI = (RI - E[RI]) / (max(RI) - E[RI]).</p>
 
 
 <h2 id="calibrax.metrics.functional.clustering.normalized_mutual_information_clustering" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">normalized_mutual_information_clustering</span><span class="p">(</span><span class="n">labels_true</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">labels_pred</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">average</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;arithmetic&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">normalized_mutual_information_clustering</span><span class="p">(</span><span class="n">labels_true</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">labels_pred</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">average</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;arithmetic&#39;</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">num_clusters</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.clustering.normalized_mutual_information_clustering" class="headerlink" title="Permanent link">¤</a></h2>
 
 
     <div class="doc doc-contents ">
 
-        <p>Normalized Mutual Information for clustering.</p>
-<p>MI(true, pred) / normalizer. Range [0, 1].</p>
+        <p>Normalized Mutual Information for clustering: MI(true, pred) over a mean of entropies.</p>
+<p>Two single-cluster labelings agree perfectly (1.0); otherwise a zero normaliser gives 0.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -3961,7 +4024,7 @@ ARI = (RI - E[RI]) / (max(RI) - E[RI]).</p>
                 <code>labels_true</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3977,7 +4040,7 @@ ARI = (RI - E[RI]) / (max(RI) - E[RI]).</p>
                 <code>labels_pred</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4005,6 +4068,38 @@ ARI = (RI - E[RI]) / (max(RI) - E[RI]).</p>
                   <code>&#39;arithmetic&#39;</code>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>num_classes</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of ground-truth label ids, to trace; None counts them.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>num_clusters</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of predicted label ids, to trace; None counts them.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -4020,34 +4115,11 @@ ARI = (RI - E[RI]) / (max(RI) - E[RI]).</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
                 <p>NMI value in [0, 1]. 1.0 = perfect agreement.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<p><span class="doc-section-title">Raises:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="ValueError">ValueError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>If average is not one of the supported options.</p>
               </div>
             </td>
           </tr>
@@ -4072,16 +4144,16 @@ ARI = (RI - E[RI]) / (max(RI) - E[RI]).</p>
 
 
 <h2 id="calibrax.metrics.functional.clustering.adjusted_mutual_information" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">adjusted_mutual_information</span><span class="p">(</span><span class="n">labels_true</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">labels_pred</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">adjusted_mutual_information</span><span class="p">(</span><span class="n">labels_true</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">labels_pred</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">average</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;arithmetic&#39;</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">num_clusters</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.clustering.adjusted_mutual_information" class="headerlink" title="Permanent link">¤</a></h2>
 
 
     <div class="doc doc-contents ">
 
-        <p>Adjusted Mutual Information for clustering.</p>
-<p>Chance-adjusted version of NMI: AMI = (MI - E[MI]) / (max(H_true, H_pred) - E[MI]).
-More robust than NMI for comparing clusterings of different sizes.</p>
+        <p>Adjusted Mutual Information (Vinh, Epps and Bailey 2010).</p>
+<p>AMI = (MI - E[MI]) / (mean(H_true, H_pred) - E[MI]), with the exact expected mutual
+information under the hypergeometric model of random labelings (their eq. 24).</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -4100,7 +4172,7 @@ More robust than NMI for comparing clusterings of different sizes.</p>
                 <code>labels_true</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4116,7 +4188,7 @@ More robust than NMI for comparing clusterings of different sizes.</p>
                 <code>labels_pred</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4125,6 +4197,55 @@ More robust than NMI for comparing clusterings of different sizes.</p>
             </td>
             <td>
                 <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>average</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The entropies' mean in the normaliser: "arithmetic" (default),
+"geometric", "min" or "max".</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;arithmetic&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>num_classes</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of ground-truth label ids, to trace; None counts them.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>num_clusters</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of predicted label ids, to trace; None counts them.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
             </td>
           </tr>
       </tbody>
@@ -4142,21 +4263,11 @@ More robust than NMI for comparing clusterings of different sizes.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>AMI value in [-1, 1]. 1.0 = perfect agreement,</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="typing.Any">Any</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>0.0 = random labeling.</p>
+                <p>AMI value, at most 1.0 (perfect agreement); 0.0 is the expected value by chance.</p>
               </div>
             </td>
           </tr>
@@ -4181,16 +4292,17 @@ More robust than NMI for comparing clusterings of different sizes.</p>
 
 
 <h2 id="calibrax.metrics.functional.clustering.v_measure" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">v_measure</span><span class="p">(</span><span class="n">labels_true</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">labels_pred</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">beta</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">v_measure</span><span class="p">(</span><span class="n">labels_true</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">labels_pred</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">beta</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">num_clusters</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.clustering.v_measure" class="headerlink" title="Permanent link">¤</a></h2>
 
 
     <div class="doc doc-contents ">
 
-        <p>V-measure: harmonic mean of homogeneity and completeness.</p>
-<p>Equivalent to NMI with arithmetic normalizer when beta=1.0.
-beta &gt; 1 weights completeness more, beta &lt; 1 weights homogeneity more.</p>
+        <p>V-measure: the weighted harmonic mean of homogeneity and completeness.</p>
+<p>Rosenberg and Hirschberg (2007): <code>V = (1 + beta) h c / (beta h + c)</code>, homogeneity
+<code>h = MI / H(true)</code> and completeness <code>c = MI / H(pred)</code>, each 1.0 where its entropy
+is zero. With beta = 1 it equals NMI with the arithmetic normaliser.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -4209,7 +4321,7 @@ beta &gt; 1 weights completeness more, beta &lt; 1 weights homogeneity more.</p>
                 <code>labels_true</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4225,7 +4337,7 @@ beta &gt; 1 weights completeness more, beta &lt; 1 weights homogeneity more.</p>
                 <code>labels_pred</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4252,6 +4364,38 @@ beta &gt; 1 weights completeness more, beta &lt; 1 weights homogeneity more.</p>
                   <code>1.0</code>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>num_classes</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of ground-truth label ids, to trace; None counts them.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>num_clusters</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of predicted label ids, to trace; None counts them.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -4267,7 +4411,7 @@ beta &gt; 1 weights completeness more, beta &lt; 1 weights homogeneity more.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4294,16 +4438,17 @@ beta &gt; 1 weights completeness more, beta &lt; 1 weights homogeneity more.</p>
 
 
 <h2 id="calibrax.metrics.functional.clustering.silhouette_score" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">silhouette_score</span><span class="p">(</span><span class="n">features</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">labels</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">silhouette_score</span><span class="p">(</span><span class="n">features</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">labels</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">num_clusters</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.clustering.silhouette_score" class="headerlink" title="Permanent link">¤</a></h2>
 
 
     <div class="doc doc-contents ">
 
-        <p>Mean silhouette coefficient across all samples.</p>
-<p>For each sample: s = (b - a) / max(a, b) where a = mean intra-cluster
-distance and b = mean nearest-cluster distance. O(n^2) complexity.</p>
+        <p>Mean silhouette coefficient across all samples (Rousseeuw 1987).</p>
+<p>For each sample: s = (b - a) / max(a, b) where a = mean intra-cluster distance and
+b = mean distance to the nearest other cluster; a sample alone in its cluster scores 0.
+O(n^2) complexity.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -4322,7 +4467,7 @@ distance and b = mean nearest-cluster distance. O(n^2) complexity.</p>
                 <code>features</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4338,7 +4483,7 @@ distance and b = mean nearest-cluster distance. O(n^2) complexity.</p>
                 <code>labels</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4347,6 +4492,22 @@ distance and b = mean nearest-cluster distance. O(n^2) complexity.</p>
             </td>
             <td>
                 <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>num_clusters</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of cluster ids, to trace; None counts the distinct labels.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
             </td>
           </tr>
       </tbody>
@@ -4364,7 +4525,7 @@ distance and b = mean nearest-cluster distance. O(n^2) complexity.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4393,16 +4554,17 @@ distance and b = mean nearest-cluster distance. O(n^2) complexity.</p>
 
 
 <h2 id="calibrax.metrics.functional.clustering.calinski_harabasz_score" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">calinski_harabasz_score</span><span class="p">(</span><span class="n">features</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">labels</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">calinski_harabasz_score</span><span class="p">(</span><span class="n">features</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">labels</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">num_clusters</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.clustering.calinski_harabasz_score" class="headerlink" title="Permanent link">¤</a></h2>
 
 
     <div class="doc doc-contents ">
 
-        <p>Calinski-Harabasz Index (Variance Ratio Criterion).</p>
-<p>Ratio of between-cluster to within-cluster dispersion, adjusted
-for cluster and sample counts. Higher = better-separated clusters.</p>
+        <p>Calinski-Harabasz Index (Variance Ratio Criterion; Calinski and Harabasz 1974).</p>
+<p>Ratio of between-cluster to within-cluster dispersion, adjusted for the counts of
+non-empty clusters <code>k</code> and samples <code>n</code>: <code>B (n - k) / (W (k - 1))</code>; 1.0 when every
+cluster is a single point (W = 0).</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -4421,7 +4583,7 @@ for cluster and sample counts. Higher = better-separated clusters.</p>
                 <code>features</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4437,7 +4599,7 @@ for cluster and sample counts. Higher = better-separated clusters.</p>
                 <code>labels</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4446,6 +4608,22 @@ for cluster and sample counts. Higher = better-separated clusters.</p>
             </td>
             <td>
                 <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>num_clusters</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of cluster ids, to trace; None counts the distinct labels.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
             </td>
           </tr>
       </tbody>
@@ -4463,7 +4641,7 @@ for cluster and sample counts. Higher = better-separated clusters.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4492,16 +4670,17 @@ for cluster and sample counts. Higher = better-separated clusters.</p>
 
 
 <h2 id="calibrax.metrics.functional.clustering.davies_bouldin_score" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">davies_bouldin_score</span><span class="p">(</span><span class="n">features</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">labels</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">davies_bouldin_score</span><span class="p">(</span><span class="n">features</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">labels</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">num_clusters</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.clustering.davies_bouldin_score" class="headerlink" title="Permanent link">¤</a></h2>
 
 
     <div class="doc doc-contents ">
 
-        <p>Davies-Bouldin Index for cluster separation.</p>
-<p>For each cluster, finds the worst-case similarity ratio with another
-cluster. Lower = better separated clusters.</p>
+        <p>Davies-Bouldin Index for cluster separation (Davies and Bouldin 1979).</p>
+<p>The mean over non-empty clusters of the largest <code>(s_i + s_j) / d(c_i, c_j)</code> against
+another cluster, <code>s</code> a cluster's mean distance to its centroid. 0 when every cluster
+is a single point or all centroids coincide. Lower = better separated clusters.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -4520,7 +4699,7 @@ cluster. Lower = better separated clusters.</p>
                 <code>features</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4536,7 +4715,7 @@ cluster. Lower = better separated clusters.</p>
                 <code>labels</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4545,6 +4724,22 @@ cluster. Lower = better separated clusters.</p>
             </td>
             <td>
                 <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>num_clusters</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of cluster ids, to trace; None counts the distinct labels.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
             </td>
           </tr>
       </tbody>
@@ -4562,7 +4757,7 @@ cluster. Lower = better separated clusters.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">

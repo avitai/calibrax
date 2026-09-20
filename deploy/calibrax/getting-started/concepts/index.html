@@ -1700,6 +1700,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../api-reference/profiling/nvml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NVML
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../api-reference/profiling/energy/" class="md-nav__link">
         
   
@@ -3983,12 +4011,20 @@ This enables discovery and lookup without hardcoded imports.</p>
 </span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="n">run_dict</span> <span class="o">=</span> <span class="n">run</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>       <span class="c1"># Python dict, JSON-safe</span>
 </span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="n">restored</span> <span class="o">=</span> <span class="n">Run</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">run_dict</span><span class="p">)</span>  <span class="c1"># reconstruct the object</span>
 </span></code></pre></div>
-<div class="admonition note">
-<p class="admonition-title">JAX Scalar Handling</p>
-<p>JAX operations return JAX scalar types (<code>jnp.float32</code>, <code>jnp.int32</code>) that
-are not directly JSON-serializable. Calibrax automatically converts these
-to native Python <code>float</code> and <code>int</code> in all <code>to_dict()</code> methods.</p>
-</div>
+<p><code>to_dict()</code> writes JSON values: a JAX or NumPy scalar (<code>jnp.float32</code>, <code>numpy.int64</code>) in a numeric
+field or in a free-form <code>metadata</code>, <code>environment</code> or <code>config</code> field is written as the Python number
+it holds. <code>from_dict()</code> reads the object back through <code>substrax.records.read_record</code>, which checks
+every field against its annotation: a number is never read from a string, a <code>bool</code> is not a number,
+and a malformed record raises <code>pydantic.ValidationError</code> naming each field's path. A stored <code>Run</code>
+must carry its <code>id</code> and <code>timestamp</code>, and a stored <code>BenchmarkResult</code> its <code>timestamp</code>: built in memory
+they default to a new id and the current time, which reading a file must not invent.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">ValidationError</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="k">try</span><span class="p">:</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="n">Metric</span><span class="o">.</span><span class="n">from_dict</span><span class="p">({</span><span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="s2">&quot;0.5&quot;</span><span class="p">})</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="k">except</span> <span class="n">ValidationError</span> <span class="k">as</span> <span class="n">refused</span><span class="p">:</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">refused</span><span class="o">.</span><span class="n">errors</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;loc&quot;</span><span class="p">])</span>  <span class="c1"># (&#39;value&#39;,)</span>
+</span></code></pre></div>
 <h2 id="next-steps">Next Steps<a class="headerlink" href="#next-steps" title="Permanent link">¤</a></h2>
 <div class="grid cards">
 <ul>

@@ -1567,6 +1567,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../nvml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NVML
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../energy/" class="md-nav__link">
         
   
@@ -3905,7 +3933,7 @@ Does not parse trace files — only links file paths to benchmark results.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Deserialize from a dictionary.</p>
+        <p>Read the record from the JSON object <code>to_dict</code> writes.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -3924,11 +3952,11 @@ Does not parse trace files — only links file paths to benchmark results.</p>
                 <code>data</code>
             </td>
             <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
+                  <code><span title="collections.abc.Mapping">Mapping</span>[<span title="str">str</span>, <span title="substrax.typing.JsonValue">JsonValue</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Dictionary with trace reference fields.</p>
+                <p>The JSON object.</p>
               </div>
             </td>
             <td>
@@ -3958,7 +3986,31 @@ Does not parse trace files — only links file paths to benchmark results.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Reconstructed TraceReference instance.</p>
+                <p>The record.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="pydantic.ValidationError">ValidationError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If a field is missing or holds a value its annotation
+does not admit.</p>
               </div>
             </td>
           </tr>

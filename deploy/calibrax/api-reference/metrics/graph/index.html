@@ -1565,6 +1565,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../profiling/nvml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NVML
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../profiling/energy/" class="md-nav__link">
         
   
@@ -3763,7 +3791,7 @@ Laplacians. No external graph libraries required -- pure JAX.</p>
 
 
 <h2 id="calibrax.metrics.functional.graph.spectral_distance" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">spectral_distance</span><span class="p">(</span><span class="n">adj_a</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">adj_b</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">num_eigenvalues</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">spectral_distance</span><span class="p">(</span><span class="n">adj_a</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">adj_b</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">num_eigenvalues</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.graph.spectral_distance" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -3792,7 +3820,7 @@ invariant). Complexity: O(n^3) for eigendecomposition.</p>
                 <code>adj_a</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3808,7 +3836,7 @@ invariant). Complexity: O(n^3) for eigendecomposition.</p>
                 <code>adj_b</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3851,7 +3879,7 @@ If None, uses all eigenvalues.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3861,7 +3889,7 @@ If None, uses all eigenvalues.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3889,7 +3917,7 @@ If None, uses all eigenvalues.</p>
 
 
 <h2 id="calibrax.metrics.functional.graph.resistance_distance" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">resistance_distance</span><span class="p">(</span><span class="n">adjacency_matrix</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">resistance_distance</span><span class="p">(</span><span class="n">adjacency_matrix</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span></code>
 
 <a href="#calibrax.metrics.functional.graph.resistance_distance" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -3923,7 +3951,7 @@ connected by many paths have lower resistance distance.</p>
                 <code>adjacency_matrix</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3978,7 +4006,7 @@ connected by many paths have lower resistance distance.</p>
 
 
 <h2 id="calibrax.metrics.functional.graph.shortest_path_distance" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">shortest_path_distance</span><span class="p">(</span><span class="n">adjacency_matrix</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">weighted</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">shortest_path_distance</span><span class="p">(</span><span class="n">adjacency_matrix</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">weighted</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span></code>
 
 <a href="#calibrax.metrics.functional.graph.shortest_path_distance" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4008,7 +4036,7 @@ almost everywhere.</p>
                 <code>adjacency_matrix</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4091,7 +4119,7 @@ all nonzero entries as unit edges.</p>
 
 
 <h2 id="calibrax.metrics.functional.graph.graph_edit_distance_approx" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">graph_edit_distance_approx</span><span class="p">(</span><span class="n">adj_a</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">adj_b</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">graph_edit_distance_approx</span><span class="p">(</span><span class="n">adj_a</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">adj_b</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.graph.graph_edit_distance_approx" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4124,7 +4152,7 @@ NOT a true metric (approximation may violate triangle inequality).</p>
                 <code>adj_a</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4140,7 +4168,7 @@ NOT a true metric (approximation may violate triangle inequality).</p>
                 <code>adj_b</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4166,7 +4194,7 @@ NOT a true metric (approximation may violate triangle inequality).</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4176,7 +4204,7 @@ NOT a true metric (approximation may violate triangle inequality).</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">

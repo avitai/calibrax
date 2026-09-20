@@ -1561,6 +1561,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../api-reference/profiling/nvml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NVML
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../api-reference/profiling/energy/" class="md-nav__link">
         
   
@@ -3758,21 +3786,21 @@ which depend on the foundation. No circular dependencies exist.</p>
 <tbody>
 <tr>
 <td><code>core</code></td>
-<td><code>models</code>, <code>protocols</code>, <code>adapters</code>, <code>registry</code>, <code>result</code></td>
+<td><code>models</code>, <code>protocols</code>, <code>adapters</code>, <code>registry</code>, <code>result</code>, <code>record_values</code></td>
 <td>~30</td>
 <td>Data models, enums, protocols, adapters, registry, result container</td>
 </tr>
 <tr>
 <td><code>profiling</code></td>
-<td><code>timing</code>, <code>resources</code>, <code>gpu</code>, <code>energy</code>, <code>flops</code>, <code>hardware</code>, <code>roofline</code>, <code>compilation</code>, <code>complexity</code>, <code>tracing</code>, <code>carbon</code></td>
-<td>~25</td>
-<td>Timing, resources, GPU, energy, FLOPs, hardware detection, roofline analysis, compilation profiling, complexity analysis, XLA tracing, carbon tracking</td>
+<td><code>timing</code>, <code>timing_records</code>, <code>resources</code>, <code>gpu</code>, <code>nvml</code>, <code>energy</code>, <code>flops</code>, <code>hardware</code>, <code>roofline</code>, <code>compilation</code>, <code>complexity</code>, <code>tracing</code>, <code>carbon</code></td>
+<td>~40</td>
+<td>Timing, resources, GPU (JAX memory statistics, NVML), energy, FLOPs, hardware specs, roofline analysis, compilation profiling, complexity analysis, XLA tracing, carbon tracking</td>
 </tr>
 <tr>
 <td><code>statistics</code></td>
-<td><code>analyzer</code>, <code>significance</code></td>
-<td>~8</td>
-<td>Statistical analyzer, significance tests, effect size</td>
+<td><code>analyzer</code>, <code>significance</code>, <code>bootstrap</code></td>
+<td>~9</td>
+<td>Statistical analyzer, significance tests, effect size, bootstrap intervals</td>
 </tr>
 <tr>
 <td><code>analysis</code></td>
@@ -3800,14 +3828,14 @@ which depend on the foundation. No circular dependencies exist.</p>
 </tr>
 <tr>
 <td><code>exporters</code></td>
-<td><code>base</code>, <code>wandb</code>, <code>mlflow</code>, <code>publication</code></td>
-<td>~5</td>
-<td>Exporter ABC, W&amp;B integration, MLflow integration, publication output</td>
+<td><code>base</code>, <code>wandb</code>, <code>mlflow</code>, <code>publication</code>, <code>plots</code></td>
+<td>~6</td>
+<td>Exporter ABC, W&amp;B integration, MLflow integration, publication tables, matplotlib plots</td>
 </tr>
 <tr>
 <td><code>metrics</code></td>
 <td><code>functional/</code> (20 domains), <code>stateful/</code>, <code>learning/</code>, <code>plugins/</code>, <code>composition</code>, <code>wrappers</code>, <code>_registry</code></td>
-<td>139 registered</td>
+<td>140 registered</td>
 <td>4-tier metric system: pure functions, frozen backbone, learned (NNX), metric learning losses; registry with axiom-based discovery</td>
 </tr>
 <tr>
@@ -3818,19 +3846,24 @@ which depend on the foundation. No circular dependencies exist.</p>
 </tr>
 <tr>
 <td><code>cli</code></td>
-<td><code>main</code></td>
+<td><code>main</code>, <code>store_commands</code>, <code>export</code>, <code>profile</code>, <code>profile_gpu</code></td>
 <td>~1</td>
-<td>Click command group</td>
+<td>Click command group loading each command's module when it runs</td>
 </tr>
 </tbody>
 </table>
 <h2 id="key-design-constraints">Key Design Constraints<a class="headerlink" href="#key-design-constraints" title="Permanent link">¤</a></h2>
 <ul>
 <li><strong><code>core</code> depends only on <code>profiling</code></strong> — <code>core.result</code> imports
-  <code>TimingSample</code> and <code>ResourceSummary</code> for serialization; otherwise <code>core</code>
-  depends only on JAX, Flax NNX (for adapters), and the standard library</li>
-<li><strong><code>exporters</code> does not import <code>wandb</code> or <code>matplotlib</code> at the module level</strong> —
-  optional dependencies are guarded by availability flags</li>
+  <code>TimingSample</code> (from <code>profiling.timing_records</code>) and <code>ResourceSummary</code> for
+  serialization; otherwise <code>core</code> depends only on JAX, Flax NNX (for adapters),
+  and the standard library</li>
+<li><strong><code>core</code> and <code>profiling</code> load each export on first use</strong> — records such as
+  <code>BenchmarkResult</code>, <code>TimingSample</code> and <code>ResourceSummary</code> import without JAX</li>
+<li><strong>Each optional dependency has one integration module</strong> — <code>exporters.plots</code>,
+  <code>exporters.wandb</code>, <code>exporters.mlflow</code>, <code>profiling.carbon</code>, <code>profiling.nvml</code> and
+  <code>analysis.changepoint</code> import their library at the top and raise <code>ImportError</code>
+  naming the extra; nothing else imports them</li>
 <li><strong><code>ci</code> depends on <code>analysis</code> and <code>storage</code></strong> — it composes regression detection
   with store-based baseline management</li>
 <li><strong><code>cli</code> is the only module that calls <code>sys.exit()</code></strong> — all other modules

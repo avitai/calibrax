@@ -1712,6 +1712,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../api-reference/profiling/nvml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NVML
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../api-reference/profiling/energy/" class="md-nav__link">
         
   
@@ -3866,11 +3894,11 @@ against configured thresholds:</p>
 </span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="c1"># Stop monitoring and get summary</span>
 </span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="n">monitor</span><span class="o">.</span><span class="n">stop_monitoring</span><span class="p">()</span>
 </span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="n">summary</span> <span class="o">=</span> <span class="n">monitor</span><span class="o">.</span><span class="n">get_monitoring_summary</span><span class="p">()</span>
-</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Thresholds: </span><span class="si">{</span><span class="n">summary</span><span class="p">[</span><span class="s1">&#39;thresholds&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Alert count: </span><span class="si">{</span><span class="n">summary</span><span class="p">[</span><span class="s1">&#39;alert_count&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="k">for</span> <span class="n">metric</span><span class="p">,</span> <span class="n">history</span> <span class="ow">in</span> <span class="n">summary</span><span class="p">[</span><span class="s2">&quot;metric_history&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-</span><span id="__span-3-20"><a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">metric</span><span class="si">}</span><span class="s2">: latest=</span><span class="si">{</span><span class="n">history</span><span class="p">[</span><span class="s1">&#39;latest&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">, &quot;</span>
-</span><span id="__span-3-21"><a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a>          <span class="sa">f</span><span class="s2">&quot;min=</span><span class="si">{</span><span class="n">history</span><span class="p">[</span><span class="s1">&#39;min&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">, max=</span><span class="si">{</span><span class="n">history</span><span class="p">[</span><span class="s1">&#39;max&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Thresholds: </span><span class="si">{</span><span class="n">summary</span><span class="o">.</span><span class="n">thresholds</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Alert count: </span><span class="si">{</span><span class="n">summary</span><span class="o">.</span><span class="n">alert_count</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="k">for</span> <span class="n">metric</span><span class="p">,</span> <span class="n">history</span> <span class="ow">in</span> <span class="n">summary</span><span class="o">.</span><span class="n">metric_history</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span><span id="__span-3-20"><a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">metric</span><span class="si">}</span><span class="s2">: latest=</span><span class="si">{</span><span class="n">history</span><span class="o">.</span><span class="n">latest</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">, &quot;</span>
+</span><span id="__span-3-21"><a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a>          <span class="sa">f</span><span class="s2">&quot;min=</span><span class="si">{</span><span class="n">history</span><span class="o">.</span><span class="n">min</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">, max=</span><span class="si">{</span><span class="n">history</span><span class="o">.</span><span class="n">max</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </span></code></pre></div>
 <p><code>AdvancedMonitor</code> optionally accepts a <code>GPUProfilerProtocol</code> and a
 <code>ResourceMonitor</code> to include GPU and resource metrics in the monitoring loop.</p>
@@ -3900,13 +3928,13 @@ and health reporting:</p>
 </span><span id="__span-4-21"><a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a>
 </span><span id="__span-4-22"><a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a><span class="c1"># Get health report</span>
 </span><span id="__span-4-23"><a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a><span class="n">report</span> <span class="o">=</span> <span class="n">monitor</span><span class="o">.</span><span class="n">get_pipeline_health_report</span><span class="p">()</span>
-</span><span id="__span-4-24"><a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Overall health: </span><span class="si">{</span><span class="n">report</span><span class="p">[</span><span class="s1">&#39;overall_health&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span id="__span-4-25"><a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a><span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">stats</span> <span class="ow">in</span> <span class="n">report</span><span class="p">[</span><span class="s2">&quot;pipelines&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span><span id="__span-4-24"><a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Overall health: </span><span class="si">{</span><span class="n">report</span><span class="o">.</span><span class="n">overall_health</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-4-25"><a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a><span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">stats</span> <span class="ow">in</span> <span class="n">report</span><span class="o">.</span><span class="n">pipelines</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
 </span><span id="__span-4-26"><a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">:&quot;</span><span class="p">)</span>
-</span><span id="__span-4-27"><a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Total executions: </span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;total_executions&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span id="__span-4-28"><a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Success rate: </span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;success_rate&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.1%</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span id="__span-4-29"><a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Mean time: </span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;mean_execution_time&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">s&quot;</span><span class="p">)</span>
-</span><span id="__span-4-30"><a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Health: </span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;health&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-4-27"><a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Total executions: </span><span class="si">{</span><span class="n">stats</span><span class="o">.</span><span class="n">total_executions</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-4-28"><a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Success rate: </span><span class="si">{</span><span class="n">stats</span><span class="o">.</span><span class="n">success_rate</span><span class="si">:</span><span class="s2">.1%</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-4-29"><a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Mean time: </span><span class="si">{</span><span class="n">stats</span><span class="o">.</span><span class="n">mean_execution_time</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">s&quot;</span><span class="p">)</span>
+</span><span id="__span-4-30"><a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Health: </span><span class="si">{</span><span class="n">stats</span><span class="o">.</span><span class="n">health</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>Overall health: degraded
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
@@ -3917,28 +3945,32 @@ and health reporting:</p>
 </span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>  Health: degraded
 </span></code></pre></div>
 <h3 id="health-status-values">Health Status Values<a class="headerlink" href="#health-status-values" title="Permanent link">¤</a></h3>
+<p><code>PipelineHealth</code> grades each pipeline by its error rate; the report's <code>overall_health</code> is
+<code>degraded</code> when any pipeline is not <code>healthy</code>. Slow executions raise alerts against the
+baselines but do not change the grade.</p>
 <table>
 <thead>
 <tr>
 <th>Status</th>
-<th>Meaning</th>
+<th>Pipeline error rate</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>healthy</code></td>
-<td>All pipelines have high success rate and normal execution times</td>
+<td>20% or less</td>
 </tr>
 <tr>
 <td><code>degraded</code></td>
-<td>Some pipelines have elevated error rates or slow execution</td>
+<td>above 20%, up to 50%</td>
 </tr>
 <tr>
 <td><code>critical</code></td>
-<td>One or more pipelines are failing consistently</td>
+<td>above 50%</td>
 </tr>
 </tbody>
 </table>
+<p><code>monitor.executions</code> holds every recorded execution with its metadata.</p>
 <h2 id="best-practices">Best Practices<a class="headerlink" href="#best-practices" title="Permanent link">¤</a></h2>
 <ul>
 <li>Use <code>AlertManager</code> directly when monitoring is event-driven (you push metrics)</li>

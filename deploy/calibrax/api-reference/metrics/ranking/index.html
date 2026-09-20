@@ -1565,6 +1565,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../profiling/nvml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NVML
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../profiling/energy/" class="md-nav__link">
         
   
@@ -3844,7 +3872,7 @@ precision_at_k, recall_at_k, mean_reciprocal_rank, hit_rate, coverage.</p>
 
 
 <h2 id="calibrax.metrics.functional.ranking.ndcg" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">ndcg</span><span class="p">(</span><span class="n">scores</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">relevance</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">ndcg</span><span class="p">(</span><span class="n">scores</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">relevance</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.ranking.ndcg" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -3877,7 +3905,7 @@ Range: [0, 1].</p>
                 <code>scores</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3893,7 +3921,7 @@ Range: [0, 1].</p>
                 <code>relevance</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3919,7 +3947,7 @@ Range: [0, 1].</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3946,7 +3974,7 @@ Range: [0, 1].</p>
 
 
 <h2 id="calibrax.metrics.functional.ranking.ndcg_at_k" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">ndcg_at_k</span><span class="p">(</span><span class="n">scores</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">relevance</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">ndcg_at_k</span><span class="p">(</span><span class="n">scores</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">relevance</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.ranking.ndcg_at_k" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -3978,7 +4006,7 @@ Range: [0, 1].</p>
                 <code>scores</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3994,7 +4022,7 @@ Range: [0, 1].</p>
                 <code>relevance</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4036,7 +4064,7 @@ Range: [0, 1].</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4056,7 +4084,7 @@ Range: [0, 1].</p>
 
 
 <h2 id="calibrax.metrics.functional.ranking.mean_average_precision" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">mean_average_precision</span><span class="p">(</span><span class="n">scores</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">relevance</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">mean_average_precision</span><span class="p">(</span><span class="n">scores</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">relevance</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.ranking.mean_average_precision" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4090,7 +4118,7 @@ Relevance must be binary (0/1).</p>
                 <code>scores</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4106,7 +4134,7 @@ Relevance must be binary (0/1).</p>
                 <code>relevance</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4132,7 +4160,7 @@ Relevance must be binary (0/1).</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4159,7 +4187,7 @@ Relevance must be binary (0/1).</p>
 
 
 <h2 id="calibrax.metrics.functional.ranking.precision_at_k" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">precision_at_k</span><span class="p">(</span><span class="n">scores</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">relevance</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">precision_at_k</span><span class="p">(</span><span class="n">scores</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">relevance</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.ranking.precision_at_k" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4191,7 +4219,7 @@ Range: [0, 1].</p>
                 <code>scores</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4207,7 +4235,7 @@ Range: [0, 1].</p>
                 <code>relevance</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4249,7 +4277,7 @@ Range: [0, 1].</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4269,7 +4297,7 @@ Range: [0, 1].</p>
 
 
 <h2 id="calibrax.metrics.functional.ranking.recall_at_k" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">recall_at_k</span><span class="p">(</span><span class="n">scores</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">relevance</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">recall_at_k</span><span class="p">(</span><span class="n">scores</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">relevance</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.ranking.recall_at_k" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4301,7 +4329,7 @@ Range: [0, 1].</p>
                 <code>scores</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4317,7 +4345,7 @@ Range: [0, 1].</p>
                 <code>relevance</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4359,7 +4387,7 @@ Range: [0, 1].</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4379,7 +4407,7 @@ Range: [0, 1].</p>
 
 
 <h2 id="calibrax.metrics.functional.ranking.mean_reciprocal_rank" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">mean_reciprocal_rank</span><span class="p">(</span><span class="n">scores</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">relevance</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">mean_reciprocal_rank</span><span class="p">(</span><span class="n">scores</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">relevance</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.ranking.mean_reciprocal_rank" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4412,7 +4440,7 @@ Returns 0.0 if no relevant items.</p>
                 <code>scores</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4428,7 +4456,7 @@ Returns 0.0 if no relevant items.</p>
                 <code>relevance</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4454,7 +4482,7 @@ Returns 0.0 if no relevant items.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4481,7 +4509,7 @@ Returns 0.0 if no relevant items.</p>
 
 
 <h2 id="calibrax.metrics.functional.ranking.hit_rate" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">hit_rate</span><span class="p">(</span><span class="n">scores</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">relevance</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">hit_rate</span><span class="p">(</span><span class="n">scores</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">relevance</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.ranking.hit_rate" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4513,7 +4541,7 @@ Range: {0.0, 1.0} (binary).</p>
                 <code>scores</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4529,7 +4557,7 @@ Range: {0.0, 1.0} (binary).</p>
                 <code>relevance</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4571,7 +4599,7 @@ Range: {0.0, 1.0} (binary).</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4591,14 +4619,18 @@ Range: {0.0, 1.0} (binary).</p>
 
 
 <h2 id="calibrax.metrics.functional.ranking.coverage" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">coverage</span><span class="p">(</span><span class="n">scores</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">relevance</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">catalog_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">coverage</span><span class="p">(</span><span class="n">items</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">catalog_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.ranking.coverage" class="headerlink" title="Permanent link">¤</a></h2>
 
 
     <div class="doc doc-contents ">
 
-        <p>Fraction of catalog covered by recommendations.</p>
+        <p>Catalog coverage: the fraction of the catalog's items that appear in the recommendations.</p>
+<p><code>|distinct recommended items| / catalog_size</code> (Ge, Delgado-Battenfeld and Jannach 2010).
+Items are integer ids in <code>[0, catalog_size)</code>; an id outside that range is not a catalog item
+and is not counted. The count uses <code>jnp.bincount</code> with a static <code>length</code>, so the function
+works under <code>jax.jit</code> (<code>catalog_size</code> static) and <code>jax.vmap</code>.</p>
 
 
 <details class="note" open>
@@ -4620,30 +4652,14 @@ Range: [0, 1].</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                <code>scores</code>
+                <code>items</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Recommended item IDs (1D integer array).</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>relevance</code>
-            </td>
-            <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Unused (present for API consistency). Pass any array.</p>
+                <p>Recommended item ids, any shape; every list in a batch is covered together.</p>
               </div>
             </td>
             <td>
@@ -4659,7 +4675,7 @@ Range: [0, 1].</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Total number of unique items in catalog.</p>
+                <p>Number of items in the catalog.</p>
               </div>
             </td>
             <td>
@@ -4681,7 +4697,7 @@ Range: [0, 1].</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">

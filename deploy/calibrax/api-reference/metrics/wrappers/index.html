@@ -1565,6 +1565,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../profiling/nvml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NVML
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../profiling/energy/" class="md-nav__link">
         
   
@@ -2769,10 +2797,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#calibrax.metrics.wrappers.BootstrapMetric--value-001-lower-0008-upper-0012-samples" class="md-nav__link">
+  <a href="#calibrax.metrics.wrappers.BootstrapMetric--resultvalue-resultlower-resultupper-resultsamples" class="md-nav__link">
     <span class="md-ellipsis">
       
-        {"value": 0.01, "lower": 0.008, "upper": 0.012, "samples": (...)}
+        result.value, result.lower, result.upper, result.samples
       
     </span>
   </a>
@@ -2791,10 +2819,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#calibrax.metrics.wrappers.BootstrapMetric.num_bootstraps" class="md-nav__link">
+  <a href="#calibrax.metrics.wrappers.BootstrapMetric.num_resamples" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;num_bootstraps
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;num_resamples
       
     </span>
   </a>
@@ -3806,10 +3834,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#calibrax.metrics.wrappers.BootstrapMetric--value-001-lower-0008-upper-0012-samples" class="md-nav__link">
+  <a href="#calibrax.metrics.wrappers.BootstrapMetric--resultvalue-resultlower-resultupper-resultsamples" class="md-nav__link">
     <span class="md-ellipsis">
       
-        {"value": 0.01, "lower": 0.008, "upper": 0.012, "samples": (...)}
+        result.value, result.lower, result.upper, result.samples
       
     </span>
   </a>
@@ -3828,10 +3856,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#calibrax.metrics.wrappers.BootstrapMetric.num_bootstraps" class="md-nav__link">
+  <a href="#calibrax.metrics.wrappers.BootstrapMetric.num_resamples" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;num_bootstraps
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;num_resamples
       
     </span>
   </a>
@@ -4183,7 +4211,7 @@ and add additional behavior without modifying the original.</p>
 
 
 <h2 id="calibrax.metrics.wrappers.BootstrapMetric" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>              <code class="highlight language-python"><span class="n">BootstrapMetric</span><span class="p">(</span><span class="n">metric_fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="o">*</span><span class="p">,</span> <span class="n">num_bootstraps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span> <span class="n">confidence</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.95</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>              <code class="highlight language-python"><span class="n">BootstrapMetric</span><span class="p">(</span><span class="n">metric_fn</span><span class="p">:</span> <span class="n">MetricFn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">num_resamples</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_RESAMPLES</span><span class="p">,</span> <span class="n">confidence</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.95</span><span class="p">)</span></code>
 
 <a href="#calibrax.metrics.wrappers.BootstrapMetric" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4192,16 +4220,17 @@ and add additional behavior without modifying the original.</p>
 
 
 
-        <p>Wrap any metric function with bootstrap confidence interval estimation.</p>
-<p>A measurement without uncertainty is incomplete. This wrapper
-provides bootstrap-based confidence intervals for any metric.</p>
+        <p>A metric's value with its percentile bootstrap confidence interval.</p>
+<p>A measurement without uncertainty is incomplete. The predictions and targets are resampled
+together and every resample is evaluated in one <code>jax.vmap</code>, through
+:func:<code>calibrax.statistics.bootstrap_interval</code>.</p>
 
 
 <details class="usage" open>
   <summary>Usage</summary>
-  <p>bootstrap = BootstrapMetric(mse, num_bootstraps=1000, confidence=0.95)
-result = bootstrap.compute(predictions, targets)</p>
-<h3 id="calibrax.metrics.wrappers.BootstrapMetric--value-001-lower-0008-upper-0012-samples">{"value": 0.01, "lower": 0.008, "upper": 0.012, "samples": (...)}<a class="headerlink" href="#calibrax.metrics.wrappers.BootstrapMetric--value-001-lower-0008-upper-0012-samples" title="Permanent link">¤</a></h3>
+  <p>bootstrap = BootstrapMetric(mse, num_resamples=1000, confidence=0.95)
+result = bootstrap.compute(predictions, targets, key=jax.random.key(0))</p>
+<h3 id="calibrax.metrics.wrappers.BootstrapMetric--resultvalue-resultlower-resultupper-resultsamples">result.value, result.lower, result.upper, result.samples<a class="headerlink" href="#calibrax.metrics.wrappers.BootstrapMetric--resultvalue-resultlower-resultupper-resultsamples" title="Permanent link">¤</a></h3>
 </details>
 
 <p><span class="doc-section-title">Attributes:</span></p>
@@ -4215,13 +4244,17 @@ result = bootstrap.compute(predictions, targets)</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-attribute&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;metric_fn&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Callable&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;...&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;float&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;&lt;/code&gt;
+            <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-attribute&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;metric_fn&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;MetricFn&lt;/span&gt;&lt;/code&gt;
 
   &lt;span class=&quot;doc doc-labels&quot;&gt;
       &lt;small class=&quot;doc doc-label doc-label-property&quot;&gt;&lt;code&gt;property&lt;/code&gt;&lt;/small&gt;
   &lt;/span&gt; (&lt;code&gt;calibrax.metrics.wrappers.BootstrapMetric.metric_fn&lt;/code&gt;)" href="#calibrax.metrics.wrappers.BootstrapMetric.metric_fn">metric_fn</a></code></td>
             <td>
-                  <code><span title="collections.abc.Callable">Callable</span>[..., <span title="float">float</span>]</code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-attribute&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;MetricFn&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Callable&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;...&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;jax&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Array&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;float&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;&lt;/code&gt;
+
+  &lt;span class=&quot;doc doc-labels&quot;&gt;
+      &lt;small class=&quot;doc doc-label doc-label-module-attribute&quot;&gt;&lt;code&gt;module-attribute&lt;/code&gt;&lt;/small&gt;
+  &lt;/span&gt; (&lt;code&gt;calibrax.metrics._types.MetricFn&lt;/code&gt;)" href="../registry/#calibrax.metrics._types.MetricFn">MetricFn</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4230,11 +4263,11 @@ result = bootstrap.compute(predictions, targets)</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-attribute&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;num_bootstraps&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;int&lt;/span&gt;&lt;/code&gt;
+            <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-attribute&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;num_resamples&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;int&lt;/span&gt;&lt;/code&gt;
 
   &lt;span class=&quot;doc doc-labels&quot;&gt;
       &lt;small class=&quot;doc doc-label doc-label-property&quot;&gt;&lt;code&gt;property&lt;/code&gt;&lt;/small&gt;
-  &lt;/span&gt; (&lt;code&gt;calibrax.metrics.wrappers.BootstrapMetric.num_bootstraps&lt;/code&gt;)" href="#calibrax.metrics.wrappers.BootstrapMetric.num_bootstraps">num_bootstraps</a></code></td>
+  &lt;/span&gt; (&lt;code&gt;calibrax.metrics.wrappers.BootstrapMetric.num_resamples&lt;/code&gt;)" href="#calibrax.metrics.wrappers.BootstrapMetric.num_resamples">num_resamples</a></code></td>
             <td>
                   <code><span title="int">int</span></code>
             </td>
@@ -4281,11 +4314,16 @@ result = bootstrap.compute(predictions, targets)</p>
                 <code>metric_fn</code>
             </td>
             <td>
-                  <code><span title="collections.abc.Callable">Callable</span>[..., <span title="float">float</span>]</code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-attribute&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;MetricFn&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Callable&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;...&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;jax&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Array&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;float&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;&lt;/code&gt;
+
+  &lt;span class=&quot;doc doc-labels&quot;&gt;
+      &lt;small class=&quot;doc doc-label doc-label-module-attribute&quot;&gt;&lt;code&gt;module-attribute&lt;/code&gt;&lt;/small&gt;
+  &lt;/span&gt; (&lt;code&gt;calibrax.metrics._types.MetricFn&lt;/code&gt;)" href="../registry/#calibrax.metrics._types.MetricFn">MetricFn</a></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Pure function with signature (predictions, targets) -&gt; float.</p>
+                <p>Metric of <code>(predictions, targets)</code> returning a scalar; it must trace
+under <code>jax.vmap</code>.</p>
               </div>
             </td>
             <td>
@@ -4294,7 +4332,7 @@ result = bootstrap.compute(predictions, targets)</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>num_bootstraps</code>
+                <code>num_resamples</code>
             </td>
             <td>
                   <code><span title="int">int</span></code>
@@ -4305,7 +4343,7 @@ result = bootstrap.compute(predictions, targets)</p>
               </div>
             </td>
             <td>
-                  <code>1000</code>
+                  <code><span title="calibrax.statistics.bootstrap.DEFAULT_RESAMPLES">DEFAULT_RESAMPLES</span></code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -4322,45 +4360,6 @@ result = bootstrap.compute(predictions, targets)</p>
             </td>
             <td>
                   <code>0.95</code>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>seed</code>
-            </td>
-            <td>
-                  <code><span title="int">int</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Random seed for reproducibility.</p>
-              </div>
-            </td>
-            <td>
-                  <code>0</code>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<p><span class="doc-section-title">Raises:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="ValueError">ValueError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>If confidence is not in (0, 1).</p>
-              </div>
             </td>
           </tr>
       </tbody>
@@ -4389,7 +4388,7 @@ result = bootstrap.compute(predictions, targets)</p>
 
 
 <h3 id="calibrax.metrics.wrappers.BootstrapMetric.metric_fn" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <code class="highlight language-python"><span class="n">metric_fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <code class="highlight language-python"><span class="n">metric_fn</span><span class="p">:</span> <span class="n">MetricFn</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-property"><code>property</code></small>
@@ -4410,14 +4409,14 @@ result = bootstrap.compute(predictions, targets)</p>
 
 
 
-<h3 id="calibrax.metrics.wrappers.BootstrapMetric.num_bootstraps" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <code class="highlight language-python"><span class="n">num_bootstraps</span><span class="p">:</span> <span class="nb">int</span></code>
+<h3 id="calibrax.metrics.wrappers.BootstrapMetric.num_resamples" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <code class="highlight language-python"><span class="n">num_resamples</span><span class="p">:</span> <span class="nb">int</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-property"><code>property</code></small>
   </span>
 
-<a href="#calibrax.metrics.wrappers.BootstrapMetric.num_bootstraps" class="headerlink" title="Permanent link">¤</a></h3>
+<a href="#calibrax.metrics.wrappers.BootstrapMetric.num_resamples" class="headerlink" title="Permanent link">¤</a></h3>
 
 
     <div class="doc doc-contents ">
@@ -4457,14 +4456,14 @@ result = bootstrap.compute(predictions, targets)</p>
 
 
 <h3 id="calibrax.metrics.wrappers.BootstrapMetric.compute" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">compute</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">compute</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span> <span class="o">|</span> <span class="n">nnx</span><span class="o">.</span><span class="n">Rngs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BootstrapInterval</span></code>
 
 <a href="#calibrax.metrics.wrappers.BootstrapMetric.compute" class="headerlink" title="Permanent link">¤</a></h3>
 
 
     <div class="doc doc-contents ">
 
-        <p>Compute metric with bootstrap confidence interval.</p>
+        <p>Compute the metric and its bootstrap interval.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -4483,7 +4482,7 @@ result = bootstrap.compute(predictions, targets)</p>
                 <code>predictions</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4499,11 +4498,27 @@ result = bootstrap.compute(predictions, targets)</p>
                 <code>targets</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Ground truth values.</p>
+                <p>Ground truth values, resampled with the predictions.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>key</code>
+            </td>
+            <td>
+                  <code><span title="jax.Array">Array</span> | <span title="flax.nnx.Rngs">Rngs</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The key the resampling is drawn from, or an <code>nnx.Rngs</code>.</p>
               </div>
             </td>
             <td>
@@ -4525,21 +4540,11 @@ result = bootstrap.compute(predictions, targets)</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
+                  <code><span title="calibrax.statistics.bootstrap.BootstrapInterval">BootstrapInterval</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Dict with "value" (point estimate), "lower" (CI lower bound),</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>"upper" (CI upper bound), "samples" (all bootstrap values).</p>
+                <p>The metric's value, the interval and the resampled values.</p>
               </div>
             </td>
           </tr>
@@ -4564,7 +4569,7 @@ result = bootstrap.compute(predictions, targets)</p>
 
 
 <h2 id="calibrax.metrics.wrappers.ClasswiseWrapper" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>              <code class="highlight language-python"><span class="n">ClasswiseWrapper</span><span class="p">(</span><span class="n">metric_fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="o">*</span><span class="p">,</span> <span class="n">class_names</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>              <code class="highlight language-python"><span class="n">ClasswiseWrapper</span><span class="p">(</span><span class="n">metric_fn</span><span class="p">:</span> <span class="n">MetricFn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">class_names</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span></code>
 
 <a href="#calibrax.metrics.wrappers.ClasswiseWrapper" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4603,7 +4608,11 @@ result = classwise.compute(predictions, targets, labels)</p>
                 <code>metric_fn</code>
             </td>
             <td>
-                  <code><span title="collections.abc.Callable">Callable</span>[..., <span title="float">float</span>]</code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-attribute&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;MetricFn&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Callable&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;...&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;jax&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Array&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;float&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;&lt;/code&gt;
+
+  &lt;span class=&quot;doc doc-labels&quot;&gt;
+      &lt;small class=&quot;doc doc-label doc-label-module-attribute&quot;&gt;&lt;code&gt;module-attribute&lt;/code&gt;&lt;/small&gt;
+  &lt;/span&gt; (&lt;code&gt;calibrax.metrics._types.MetricFn&lt;/code&gt;)" href="../registry/#calibrax.metrics._types.MetricFn">MetricFn</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4659,7 +4668,7 @@ integer indices as keys.</p>
 
 
 <h3 id="calibrax.metrics.wrappers.ClasswiseWrapper.compute" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">compute</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">labels</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">compute</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">labels</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span></code>
 
 <a href="#calibrax.metrics.wrappers.ClasswiseWrapper.compute" class="headerlink" title="Permanent link">¤</a></h3>
 
@@ -4685,7 +4694,7 @@ integer indices as keys.</p>
                 <code>predictions</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4701,7 +4710,7 @@ integer indices as keys.</p>
                 <code>targets</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4717,7 +4726,7 @@ integer indices as keys.</p>
                 <code>labels</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4772,7 +4781,7 @@ integer indices as keys.</p>
 
 
 <h2 id="calibrax.metrics.wrappers.MetricTracker" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>              <code class="highlight language-python"><span class="n">MetricTracker</span><span class="p">(</span><span class="n">metric_fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="o">*</span><span class="p">,</span> <span class="n">direction</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;lower&#39;</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>              <code class="highlight language-python"><span class="n">MetricTracker</span><span class="p">(</span><span class="n">metric_fn</span><span class="p">:</span> <span class="n">MetricFn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">direction</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;lower&#39;</span><span class="p">)</span></code>
 
 <a href="#calibrax.metrics.wrappers.MetricTracker" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4814,7 +4823,11 @@ print(tracker.best_epoch)    # 1 (0-indexed)</p>
                 <code>metric_fn</code>
             </td>
             <td>
-                  <code><span title="collections.abc.Callable">Callable</span>[..., <span title="float">float</span>]</code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-attribute&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;MetricFn&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Callable&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;...&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;jax&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Array&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;float&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;&lt;/code&gt;
+
+  &lt;span class=&quot;doc doc-labels&quot;&gt;
+      &lt;small class=&quot;doc doc-label doc-label-module-attribute&quot;&gt;&lt;code&gt;module-attribute&lt;/code&gt;&lt;/small&gt;
+  &lt;/span&gt; (&lt;code&gt;calibrax.metrics._types.MetricFn&lt;/code&gt;)" href="../registry/#calibrax.metrics._types.MetricFn">MetricFn</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4959,7 +4972,7 @@ print(tracker.best_epoch)    # 1 (0-indexed)</p>
 
 
 <h3 id="calibrax.metrics.wrappers.MetricTracker.increment" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">increment</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">increment</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span></code>
 
 <a href="#calibrax.metrics.wrappers.MetricTracker.increment" class="headerlink" title="Permanent link">¤</a></h3>
 
@@ -4985,7 +4998,7 @@ print(tracker.best_epoch)    # 1 (0-indexed)</p>
                 <code>predictions</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5001,7 +5014,7 @@ print(tracker.best_epoch)    # 1 (0-indexed)</p>
                 <code>targets</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5138,7 +5151,7 @@ print(tracker.best_epoch)    # 1 (0-indexed)</p>
 
 
 <h2 id="calibrax.metrics.wrappers.MinMaxTracker" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>              <code class="highlight language-python"><span class="n">MinMaxTracker</span><span class="p">(</span><span class="n">metric_fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="nb">float</span><span class="p">])</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>              <code class="highlight language-python"><span class="n">MinMaxTracker</span><span class="p">(</span><span class="n">metric_fn</span><span class="p">:</span> <span class="n">MetricFn</span><span class="p">)</span></code>
 
 <a href="#calibrax.metrics.wrappers.MinMaxTracker" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -5179,7 +5192,11 @@ print(tracker.max)      # Highest seen</p>
                 <code>metric_fn</code>
             </td>
             <td>
-                  <code><span title="collections.abc.Callable">Callable</span>[..., <span title="float">float</span>]</code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-attribute&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;MetricFn&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Callable&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;...&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;jax&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Array&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;float&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;&lt;/code&gt;
+
+  &lt;span class=&quot;doc doc-labels&quot;&gt;
+      &lt;small class=&quot;doc doc-label doc-label-module-attribute&quot;&gt;&lt;code&gt;module-attribute&lt;/code&gt;&lt;/small&gt;
+  &lt;/span&gt; (&lt;code&gt;calibrax.metrics._types.MetricFn&lt;/code&gt;)" href="../registry/#calibrax.metrics._types.MetricFn">MetricFn</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5284,7 +5301,7 @@ print(tracker.max)      # Highest seen</p>
 
 
 <h3 id="calibrax.metrics.wrappers.MinMaxTracker.update" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">update</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">update</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span></code>
 
 <a href="#calibrax.metrics.wrappers.MinMaxTracker.update" class="headerlink" title="Permanent link">¤</a></h3>
 
@@ -5310,7 +5327,7 @@ print(tracker.max)      # Highest seen</p>
                 <code>predictions</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5326,7 +5343,7 @@ print(tracker.max)      # Highest seen</p>
                 <code>targets</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">

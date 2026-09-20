@@ -1510,28 +1510,6 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#calibrax.core.protocols.BatchableDatasetProtocol.__len__" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__len__
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#calibrax.core.protocols.BatchableDatasetProtocol.__getitem__" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__getitem__
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#calibrax.core.protocols.BatchableDatasetProtocol.get_batch" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1916,6 +1894,34 @@
     
   
     GPU
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../profiling/nvml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NVML
   
 
     
@@ -3973,28 +3979,6 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#calibrax.core.protocols.BatchableDatasetProtocol.__len__" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__len__
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#calibrax.core.protocols.BatchableDatasetProtocol.__getitem__" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__getitem__
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#calibrax.core.protocols.BatchableDatasetProtocol.get_batch" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4507,7 +4491,7 @@ teardown, and performance target retrieval.</p>
 
 
 
-        <p>Interface for datasets used in benchmarks.</p>
+        <p>Interface for datasets used in benchmarks, whose examples are <code>ItemT</code>.</p>
 
 
 
@@ -4604,7 +4588,7 @@ teardown, and performance target retrieval.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="calibrax.core.protocols.DatasetProtocol[ItemT]">ItemT</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4641,12 +4625,11 @@ teardown, and performance target retrieval.</p>
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
-              Bases: <code><span title="typing.Protocol">Protocol</span></code></p>
+              Bases: <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;code&gt;DatasetProtocol&lt;/code&gt; (&lt;code&gt;calibrax.core.protocols.DatasetProtocol&lt;/code&gt;)" href="#calibrax.core.protocols.DatasetProtocol">DatasetProtocol</a>[<span title="calibrax.core.protocols.BatchableDatasetProtocol[ItemT]">ItemT</span>]</code>, <code><span title="typing.Protocol">Protocol</span></code></p>
 
 
 
-        <p>Interface for datasets that support batch retrieval.</p>
-<p>Extends DatasetProtocol with get_batch capability.</p>
+        <p>A dataset that also returns batches of arrays by name.</p>
 
 
 
@@ -4668,96 +4651,6 @@ teardown, and performance target retrieval.</p>
 
 
 
-
-<div class="doc doc-object doc-function">
-
-
-<h3 id="calibrax.core.protocols.BatchableDatasetProtocol.__len__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__len__</span><span class="p">()</span></code>
-
-<a href="#calibrax.core.protocols.BatchableDatasetProtocol.__len__" class="headerlink" title="Permanent link">¤</a></h3>
-
-
-    <div class="doc doc-contents ">
-
-        <p>Get the number of examples in the dataset.</p>
-
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-function">
-
-
-<h3 id="calibrax.core.protocols.BatchableDatasetProtocol.__getitem__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__getitem__</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span></code>
-
-<a href="#calibrax.core.protocols.BatchableDatasetProtocol.__getitem__" class="headerlink" title="Permanent link">¤</a></h3>
-
-
-    <div class="doc doc-contents ">
-
-        <p>Get an example by index.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>idx</code>
-            </td>
-            <td>
-                  <code><span title="int">int</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Index of the example.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="typing.Any">Any</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The example at the given index.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    </div>
-
-</div>
 
 <div class="doc doc-object doc-function">
 
@@ -4831,11 +4724,11 @@ teardown, and performance target retrieval.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
+                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="jax.Array">Array</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Batch data dictionary.</p>
+                <p>The batch's arrays by name.</p>
               </div>
             </td>
           </tr>
@@ -5013,7 +4906,7 @@ with input validation.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span> | <span title="float">float</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5224,7 +5117,7 @@ backbone features (e.g., LPIPS).</p>
                 <code>**kwargs</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">

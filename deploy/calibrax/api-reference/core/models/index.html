@@ -1510,6 +1510,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#calibrax.core.models.Run.__post_init__" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__post_init__
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#calibrax.core.models.Run.to_dict" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1703,6 +1714,17 @@
   
     <nav class="md-nav" aria-label=" TrendPoint">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#calibrax.core.models.TrendPoint.__post_init__" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__post_init__
+      
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#calibrax.core.models.TrendPoint.to_dict" class="md-nav__link">
@@ -2039,6 +2061,34 @@
     
   
     GPU
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../profiling/nvml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NVML
   
 
     
@@ -4124,6 +4174,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#calibrax.core.models.Run.__post_init__" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__post_init__
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#calibrax.core.models.Run.to_dict" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4319,6 +4380,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#calibrax.core.models.TrendPoint.__post_init__" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__post_init__
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#calibrax.core.models.TrendPoint.to_dict" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4509,10 +4581,11 @@ immutable, with <code>to_dict()</code> / <code>from_dict()</code> support for JS
     <div class="doc doc-contents first">
 
         <p>Core data models for the calibrax benchmarking framework.</p>
-<p>All types are frozen dataclasses with to_dict()/from_dict() for JSON serde.
-Uses tuple for immutable sequence fields and StrEnum for fixed value sets.</p>
-<p>Numeric fields are converted to Python primitives in to_dict() to handle
-JAX scalars (jnp.float32, jnp.int32) which are not JSON-serializable.</p>
+<p>All types are frozen dataclasses with <code>to_dict()</code> returning JSON values and <code>from_dict()</code>
+reading them back with <code>substrax.records.read_record</code>, which checks every field against its
+annotation. Tuples hold immutable sequences and <code>StrEnum</code> fixed value sets.</p>
+<p>Numeric fields are converted to Python numbers in <code>to_dict()</code>, so a JAX or NumPy scalar
+stored in a record serialises; free-form fields hold :data:<code>MetadataValue</code>.</p>
 
 
 
@@ -4703,7 +4776,7 @@ JAX scalars (jnp.float32, jnp.int32) which are not JSON-serializable.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Deserialize from a dictionary.</p>
+        <p>Read the record from the JSON object <code>to_dict</code> writes.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -4722,11 +4795,11 @@ JAX scalars (jnp.float32, jnp.int32) which are not JSON-serializable.</p>
                 <code>data</code>
             </td>
             <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
+                  <code><span title="collections.abc.Mapping">Mapping</span>[<span title="str">str</span>, <span title="substrax.typing.JsonValue">JsonValue</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Dictionary with metric definition fields.</p>
+                <p>The JSON object.</p>
               </div>
             </td>
             <td>
@@ -4756,7 +4829,31 @@ JAX scalars (jnp.float32, jnp.int32) which are not JSON-serializable.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Reconstructed MetricDef instance.</p>
+                <p>The record.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="pydantic.ValidationError">ValidationError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If a field is missing or holds a value its annotation
+does not admit.</p>
               </div>
             </td>
           </tr>
@@ -4850,7 +4947,7 @@ JAX scalars (jnp.float32, jnp.int32) which are not JSON-serializable.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Deserialize from a dictionary.</p>
+        <p>Read the record from the JSON object <code>to_dict</code> writes.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -4869,11 +4966,11 @@ JAX scalars (jnp.float32, jnp.int32) which are not JSON-serializable.</p>
                 <code>data</code>
             </td>
             <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
+                  <code><span title="collections.abc.Mapping">Mapping</span>[<span title="str">str</span>, <span title="substrax.typing.JsonValue">JsonValue</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Dictionary with metric fields.</p>
+                <p>The JSON object.</p>
               </div>
             </td>
             <td>
@@ -4903,7 +5000,31 @@ JAX scalars (jnp.float32, jnp.int32) which are not JSON-serializable.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Reconstructed Metric instance.</p>
+                <p>The record.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="pydantic.ValidationError">ValidationError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If a field is missing or holds a value its annotation
+does not admit.</p>
               </div>
             </td>
           </tr>
@@ -4997,7 +5118,7 @@ JAX scalars (jnp.float32, jnp.int32) which are not JSON-serializable.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Deserialize from a dictionary, reconstructing nested Metric objects.</p>
+        <p>Read the record from the JSON object <code>to_dict</code> writes.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -5016,11 +5137,11 @@ JAX scalars (jnp.float32, jnp.int32) which are not JSON-serializable.</p>
                 <code>data</code>
             </td>
             <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
+                  <code><span title="collections.abc.Mapping">Mapping</span>[<span title="str">str</span>, <span title="substrax.typing.JsonValue">JsonValue</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Dictionary with point fields.</p>
+                <p>The JSON object.</p>
               </div>
             </td>
             <td>
@@ -5050,7 +5171,31 @@ JAX scalars (jnp.float32, jnp.int32) which are not JSON-serializable.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Reconstructed Point instance.</p>
+                <p>The record.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="pydantic.ValidationError">ValidationError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If a field is missing or holds a value its annotation
+does not admit.</p>
               </div>
             </td>
           </tr>
@@ -5075,7 +5220,7 @@ JAX scalars (jnp.float32, jnp.int32) which are not JSON-serializable.</p>
 
 
 <h2 id="calibrax.core.models.Run" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>              <code class="highlight language-python"><span class="n">Run</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">uuid4</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span><span class="p">[:</span><span class="mi">12</span><span class="p">])(),</span> <span class="n">timestamp</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(),</span> <span class="n">commit</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">branch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">environment</span><span class="o">=</span><span class="nb">dict</span><span class="p">(),</span> <span class="n">metadata</span><span class="o">=</span><span class="nb">dict</span><span class="p">(),</span> <span class="n">metric_defs</span><span class="o">=</span><span class="nb">dict</span><span class="p">())</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>              <code class="highlight language-python"><span class="n">Run</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">uuid4</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span><span class="p">[:</span><span class="mi">12</span><span class="p">])(),</span> <span class="n">timestamp</span><span class="o">=</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">UTC</span><span class="p">))(),</span> <span class="n">commit</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">branch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">environment</span><span class="o">=</span><span class="nb">dict</span><span class="p">(),</span> <span class="n">metadata</span><span class="o">=</span><span class="nb">dict</span><span class="p">(),</span> <span class="n">metric_defs</span><span class="o">=</span><span class="nb">dict</span><span class="p">())</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
@@ -5114,6 +5259,24 @@ JAX scalars (jnp.float32, jnp.int32) which are not JSON-serializable.</p>
 <div class="doc doc-object doc-function">
 
 
+<h3 id="calibrax.core.models.Run.__post_init__" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">__post_init__</span><span class="p">()</span></code>
+
+<a href="#calibrax.core.models.Run.__post_init__" class="headerlink" title="Permanent link">¤</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Make the timestamp aware; a naive one is local time.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
 <h3 id="calibrax.core.models.Run.to_dict" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">to_dict</span><span class="p">()</span></code>
 
@@ -5144,7 +5307,7 @@ JAX scalars (jnp.float32, jnp.int32) which are not JSON-serializable.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Deserialize from a dictionary, reconstructing nested objects.</p>
+        <p>Read the record from the JSON object <code>to_dict</code> writes.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -5163,11 +5326,11 @@ JAX scalars (jnp.float32, jnp.int32) which are not JSON-serializable.</p>
                 <code>data</code>
             </td>
             <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
+                  <code><span title="collections.abc.Mapping">Mapping</span>[<span title="str">str</span>, <span title="substrax.typing.JsonValue">JsonValue</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Dictionary with run fields.</p>
+                <p>The JSON object.</p>
               </div>
             </td>
             <td>
@@ -5189,7 +5352,7 @@ JAX scalars (jnp.float32, jnp.int32) which are not JSON-serializable.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;              &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;Run&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;points&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;id&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;lambda&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;uuid4&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;hex&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;12&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;])(),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;timestamp&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;datetime&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;now&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;commit&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;kc&quot;&gt;None&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;branch&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;kc&quot;&gt;None&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;environment&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;dict&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;metadata&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;dict&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;metric_defs&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;dict&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;())&lt;/span&gt;&lt;/code&gt;
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;              &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;Run&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;points&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;id&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;lambda&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;uuid4&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;hex&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;12&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;])(),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;timestamp&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;lambda&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;datetime&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;now&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;UTC&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))(),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;commit&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;kc&quot;&gt;None&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;branch&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;kc&quot;&gt;None&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;environment&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;dict&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;metadata&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;dict&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;metric_defs&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;dict&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;())&lt;/span&gt;&lt;/code&gt;
 
   &lt;span class=&quot;doc doc-labels&quot;&gt;
       &lt;small class=&quot;doc doc-label doc-label-dataclass&quot;&gt;&lt;code&gt;dataclass&lt;/code&gt;&lt;/small&gt;
@@ -5197,7 +5360,32 @@ JAX scalars (jnp.float32, jnp.int32) which are not JSON-serializable.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Reconstructed Run instance.</p>
+                <p>The record.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="pydantic.ValidationError">ValidationError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If a field is missing or holds a value its annotation
+does not admit; <code>id</code>, <code>timestamp</code> must be present, since their
+defaults would invent a value.</p>
               </div>
             </td>
           </tr>
@@ -5291,7 +5479,7 @@ JAX scalars (jnp.float32, jnp.int32) which are not JSON-serializable.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Deserialize from a dictionary.</p>
+        <p>Read the record from the JSON object <code>to_dict</code> writes.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -5310,11 +5498,11 @@ JAX scalars (jnp.float32, jnp.int32) which are not JSON-serializable.</p>
                 <code>data</code>
             </td>
             <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
+                  <code><span title="collections.abc.Mapping">Mapping</span>[<span title="str">str</span>, <span title="substrax.typing.JsonValue">JsonValue</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Dictionary with regression fields.</p>
+                <p>The JSON object.</p>
               </div>
             </td>
             <td>
@@ -5344,7 +5532,31 @@ JAX scalars (jnp.float32, jnp.int32) which are not JSON-serializable.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Reconstructed Regression instance.</p>
+                <p>The record.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="pydantic.ValidationError">ValidationError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If a field is missing or holds a value its annotation
+does not admit.</p>
               </div>
             </td>
           </tr>
@@ -5438,7 +5650,7 @@ JAX scalars (jnp.float32, jnp.int32) which are not JSON-serializable.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Deserialize from a dictionary.</p>
+        <p>Read the record from the JSON object <code>to_dict</code> writes.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -5457,11 +5669,11 @@ JAX scalars (jnp.float32, jnp.int32) which are not JSON-serializable.</p>
                 <code>data</code>
             </td>
             <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
+                  <code><span title="collections.abc.Mapping">Mapping</span>[<span title="str">str</span>, <span title="substrax.typing.JsonValue">JsonValue</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Dictionary with rank entry fields.</p>
+                <p>The JSON object.</p>
               </div>
             </td>
             <td>
@@ -5491,7 +5703,31 @@ JAX scalars (jnp.float32, jnp.int32) which are not JSON-serializable.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Reconstructed RankEntry instance.</p>
+                <p>The record.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="pydantic.ValidationError">ValidationError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If a field is missing or holds a value its annotation
+does not admit.</p>
               </div>
             </td>
           </tr>
@@ -5585,7 +5821,7 @@ JAX scalars (jnp.float32, jnp.int32) which are not JSON-serializable.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Deserialize from a dictionary.</p>
+        <p>Read the record from the JSON object <code>to_dict</code> writes.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -5604,11 +5840,11 @@ JAX scalars (jnp.float32, jnp.int32) which are not JSON-serializable.</p>
                 <code>data</code>
             </td>
             <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
+                  <code><span title="collections.abc.Mapping">Mapping</span>[<span title="str">str</span>, <span title="substrax.typing.JsonValue">JsonValue</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Dictionary with significance result fields.</p>
+                <p>The JSON object.</p>
               </div>
             </td>
             <td>
@@ -5638,7 +5874,31 @@ JAX scalars (jnp.float32, jnp.int32) which are not JSON-serializable.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Reconstructed SignificanceResult instance.</p>
+                <p>The record.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="pydantic.ValidationError">ValidationError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If a field is missing or holds a value its annotation
+does not admit.</p>
               </div>
             </td>
           </tr>
@@ -5732,7 +5992,7 @@ JAX scalars (jnp.float32, jnp.int32) which are not JSON-serializable.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Deserialize from a dictionary.</p>
+        <p>Read the record from the JSON object <code>to_dict</code> writes.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -5751,11 +6011,11 @@ JAX scalars (jnp.float32, jnp.int32) which are not JSON-serializable.</p>
                 <code>data</code>
             </td>
             <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
+                  <code><span title="collections.abc.Mapping">Mapping</span>[<span title="str">str</span>, <span title="substrax.typing.JsonValue">JsonValue</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Dictionary with scaling law fields.</p>
+                <p>The JSON object.</p>
               </div>
             </td>
             <td>
@@ -5785,7 +6045,31 @@ JAX scalars (jnp.float32, jnp.int32) which are not JSON-serializable.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Reconstructed ScalingLaw instance.</p>
+                <p>The record.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="pydantic.ValidationError">ValidationError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If a field is missing or holds a value its annotation
+does not admit.</p>
               </div>
             </td>
           </tr>
@@ -5849,6 +6133,24 @@ JAX scalars (jnp.float32, jnp.int32) which are not JSON-serializable.</p>
 <div class="doc doc-object doc-function">
 
 
+<h3 id="calibrax.core.models.TrendPoint.__post_init__" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">__post_init__</span><span class="p">()</span></code>
+
+<a href="#calibrax.core.models.TrendPoint.__post_init__" class="headerlink" title="Permanent link">¤</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Make the timestamp aware; a naive one is local time.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
 <h3 id="calibrax.core.models.TrendPoint.to_dict" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">to_dict</span><span class="p">()</span></code>
 
@@ -5879,7 +6181,7 @@ JAX scalars (jnp.float32, jnp.int32) which are not JSON-serializable.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Deserialize from a dictionary.</p>
+        <p>Read the record from the JSON object <code>to_dict</code> writes.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -5898,11 +6200,11 @@ JAX scalars (jnp.float32, jnp.int32) which are not JSON-serializable.</p>
                 <code>data</code>
             </td>
             <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
+                  <code><span title="collections.abc.Mapping">Mapping</span>[<span title="str">str</span>, <span title="substrax.typing.JsonValue">JsonValue</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Dictionary with trend point fields.</p>
+                <p>The JSON object.</p>
               </div>
             </td>
             <td>
@@ -5932,7 +6234,31 @@ JAX scalars (jnp.float32, jnp.int32) which are not JSON-serializable.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Reconstructed TrendPoint instance.</p>
+                <p>The record.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="pydantic.ValidationError">ValidationError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If a field is missing or holds a value its annotation
+does not admit.</p>
               </div>
             </td>
           </tr>
@@ -6026,7 +6352,7 @@ JAX scalars (jnp.float32, jnp.int32) which are not JSON-serializable.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Deserialize from a dictionary, reconstructing nested TrendPoints.</p>
+        <p>Read the record from the JSON object <code>to_dict</code> writes.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -6045,11 +6371,11 @@ JAX scalars (jnp.float32, jnp.int32) which are not JSON-serializable.</p>
                 <code>data</code>
             </td>
             <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
+                  <code><span title="collections.abc.Mapping">Mapping</span>[<span title="str">str</span>, <span title="substrax.typing.JsonValue">JsonValue</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Dictionary with trend series fields.</p>
+                <p>The JSON object.</p>
               </div>
             </td>
             <td>
@@ -6079,7 +6405,31 @@ JAX scalars (jnp.float32, jnp.int32) which are not JSON-serializable.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Reconstructed TrendSeries instance.</p>
+                <p>The record.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="pydantic.ValidationError">ValidationError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If a field is missing or holds a value its annotation
+does not admit.</p>
               </div>
             </td>
           </tr>
@@ -6211,7 +6561,7 @@ metrics.  Commonly used by ranking, scoring, and publication modules.</p>
                 <code>run</code>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;              &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;Run&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;points&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;id&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;lambda&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;uuid4&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;hex&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;12&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;])(),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;timestamp&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;datetime&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;now&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;commit&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;kc&quot;&gt;None&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;branch&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;kc&quot;&gt;None&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;environment&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;dict&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;metadata&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;dict&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;metric_defs&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;dict&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;())&lt;/span&gt;&lt;/code&gt;
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;              &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;Run&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;points&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;id&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;lambda&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;uuid4&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;hex&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[:&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;12&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;])(),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;timestamp&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;lambda&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;datetime&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;now&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;UTC&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))(),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;commit&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;kc&quot;&gt;None&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;branch&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;kc&quot;&gt;None&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;environment&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;dict&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;metadata&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;dict&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;metric_defs&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;dict&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;())&lt;/span&gt;&lt;/code&gt;
 
   &lt;span class=&quot;doc doc-labels&quot;&gt;
       &lt;small class=&quot;doc doc-label doc-label-dataclass&quot;&gt;&lt;code&gt;dataclass&lt;/code&gt;&lt;/small&gt;

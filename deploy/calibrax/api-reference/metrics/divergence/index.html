@@ -1565,6 +1565,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../profiling/nvml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NVML
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../profiling/energy/" class="md-nav__link">
         
   
@@ -2391,6 +2419,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.divergence.mmd_squared_unbiased" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;mmd_squared_unbiased
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#calibrax.metrics.functional.divergence.sinkhorn_divergence" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2406,6 +2445,17 @@
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;sliced_wasserstein
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.divergence.registry_sliced_wasserstein" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;registry_sliced_wasserstein
       
     </span>
   </a>
@@ -3803,6 +3853,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.divergence.mmd_squared_unbiased" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;mmd_squared_unbiased
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#calibrax.metrics.functional.divergence.sinkhorn_divergence" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3818,6 +3879,17 @@
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;sliced_wasserstein
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.metrics.functional.divergence.registry_sliced_wasserstein" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;registry_sliced_wasserstein
       
     </span>
   </a>
@@ -3982,7 +4054,7 @@ sinkhorn_divergence, sliced_wasserstein, bregman_divergence.</p>
 
 
 <h2 id="calibrax.metrics.functional.divergence.kl_divergence" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">kl_divergence</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">q</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">kl_divergence</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">q</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.divergence.kl_divergence" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4018,7 +4090,7 @@ Requires p and q to be probability vectors (sum to ~1).</p>
                 <code>p</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4034,7 +4106,7 @@ Requires p and q to be probability vectors (sum to ~1).</p>
                 <code>q</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4060,7 +4132,7 @@ Requires p and q to be probability vectors (sum to ~1).</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4088,7 +4160,7 @@ Requires p and q to be probability vectors (sum to ~1).</p>
 
 
 <h2 id="calibrax.metrics.functional.divergence.reverse_kl_divergence" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">reverse_kl_divergence</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">q</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">reverse_kl_divergence</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">q</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.divergence.reverse_kl_divergence" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4123,7 +4195,7 @@ Not symmetric. <code>reverse_kl(p,q) = kl(q,p)</code>.</p>
                 <code>p</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4139,7 +4211,7 @@ Not symmetric. <code>reverse_kl(p,q) = kl(q,p)</code>.</p>
                 <code>q</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4165,7 +4237,7 @@ Not symmetric. <code>reverse_kl(p,q) = kl(q,p)</code>.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4185,7 +4257,7 @@ Not symmetric. <code>reverse_kl(p,q) = kl(q,p)</code>.</p>
 
 
 <h2 id="calibrax.metrics.functional.divergence.js_divergence" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">js_divergence</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">q</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">js_divergence</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">q</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.divergence.js_divergence" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4220,7 +4292,7 @@ Symmetric. Square root of JS is a true metric.</p>
                 <code>p</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4236,7 +4308,7 @@ Symmetric. Square root of JS is a true metric.</p>
                 <code>q</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4262,7 +4334,7 @@ Symmetric. Square root of JS is a true metric.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4290,7 +4362,7 @@ Symmetric. Square root of JS is a true metric.</p>
 
 
 <h2 id="calibrax.metrics.functional.divergence.total_variation" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">total_variation</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">q</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">total_variation</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">q</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.divergence.total_variation" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4325,7 +4397,7 @@ True metric. Symmetric.</p>
                 <code>p</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4341,7 +4413,7 @@ True metric. Symmetric.</p>
                 <code>q</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4367,7 +4439,7 @@ True metric. Symmetric.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4387,7 +4459,7 @@ True metric. Symmetric.</p>
 
 
 <h2 id="calibrax.metrics.functional.divergence.hellinger_distance" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">hellinger_distance</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">q</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">hellinger_distance</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">q</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.divergence.hellinger_distance" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4422,7 +4494,7 @@ True metric. Symmetric.</p>
                 <code>p</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4438,7 +4510,7 @@ True metric. Symmetric.</p>
                 <code>q</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4464,7 +4536,7 @@ True metric. Symmetric.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4484,7 +4556,7 @@ True metric. Symmetric.</p>
 
 
 <h2 id="calibrax.metrics.functional.divergence.chi_squared_divergence" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">chi_squared_divergence</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">q</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">chi_squared_divergence</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">q</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.divergence.chi_squared_divergence" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4518,7 +4590,7 @@ Not symmetric. Uses safe_divide for numerical stability.</p>
                 <code>p</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4534,7 +4606,7 @@ Not symmetric. Uses safe_divide for numerical stability.</p>
                 <code>q</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4560,7 +4632,7 @@ Not symmetric. Uses safe_divide for numerical stability.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4580,7 +4652,7 @@ Not symmetric. Uses safe_divide for numerical stability.</p>
 
 
 <h2 id="calibrax.metrics.functional.divergence.renyi_divergence" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">renyi_divergence</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">q</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">renyi_divergence</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">q</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.divergence.renyi_divergence" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4615,7 +4687,7 @@ Not symmetric.</p>
                 <code>p</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4631,7 +4703,7 @@ Not symmetric.</p>
                 <code>q</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4673,7 +4745,7 @@ Not symmetric.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4716,7 +4788,7 @@ Not symmetric.</p>
 
 
 <h2 id="calibrax.metrics.functional.divergence.f_divergence" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">f_divergence</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">q</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">generator</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">f_divergence</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">q</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">generator</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">jax</span><span class="o">.</span><span class="n">Array</span><span class="p">],</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.divergence.f_divergence" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4751,7 +4823,7 @@ Hellinger, chi-squared as special cases.</p>
                 <code>p</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4767,7 +4839,7 @@ Hellinger, chi-squared as special cases.</p>
                 <code>q</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4783,7 +4855,7 @@ Hellinger, chi-squared as special cases.</p>
                 <code>generator</code>
             </td>
             <td>
-                  <code><span title="collections.abc.Callable">Callable</span>[[<span title="typing.Any">Any</span>], <span title="typing.Any">Any</span>]</code>
+                  <code><span title="collections.abc.Callable">Callable</span>[[<span title="jax.Array">Array</span>], <span title="jax.Array">Array</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4809,7 +4881,7 @@ Hellinger, chi-squared as special cases.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4829,7 +4901,7 @@ Hellinger, chi-squared as special cases.</p>
 
 
 <h2 id="calibrax.metrics.functional.divergence.wasserstein_1d" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">wasserstein_1d</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">q</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">wasserstein_1d</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">q</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.divergence.wasserstein_1d" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4864,7 +4936,7 @@ True metric. Symmetric.</p>
                 <code>p</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4880,7 +4952,7 @@ True metric. Symmetric.</p>
                 <code>q</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4906,7 +4978,7 @@ True metric. Symmetric.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4926,16 +4998,20 @@ True metric. Symmetric.</p>
 
 
 <h2 id="calibrax.metrics.functional.divergence.mmd" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">mmd</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">kernel</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;rbf&#39;</span><span class="p">,</span> <span class="n">bandwidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">mmd</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">kernel</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;rbf&#39;</span><span class="p">,</span> <span class="n">bandwidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.divergence.mmd" class="headerlink" title="Permanent link">¤</a></h2>
 
 
     <div class="doc doc-contents ">
 
-        <p>Maximum Mean Discrepancy between sample distributions.</p>
-<p>Measures distance using kernel mean embeddings. O(n^{-&frac12;})
-estimation rate regardless of dimension.</p>
+        <p>Maximum Mean Discrepancy: the kernel distance between the samples' mean embeddings.</p>
+<p><code>MMD_b = ||mu_x - mu_y||_H</code>, Gretton et al. (2012, JMLR 13, eq. 5): the biased
+V-statistic, the root of <code>mean K(x, x) + mean K(y, y) - 2 mean K(x, y)</code>. It is a norm,
+so it is non-negative by construction, zero exactly when the empirical distributions have
+the same embedding, and for a characteristic kernel (RBF, Laplace) a metric between
+empirical distributions. For the unbiased estimate of <code>MMD^2</code> a two-sample test uses, see
+<code>mmd_squared_unbiased</code>.</p>
 
 
 <details class="note" open>
@@ -4961,7 +5037,7 @@ True metric. Symmetric.</p>
                 <code>x</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4977,11 +5053,11 @@ True metric. Symmetric.</p>
                 <code>y</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Second sample matrix (n_samples, n_features).</p>
+                <p>Second sample matrix (m_samples, n_features).</p>
               </div>
             </td>
             <td>
@@ -5035,11 +5111,188 @@ True metric. Symmetric.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
                 <p>MMD as a scalar value.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If <code>kernel</code> is not one of <code>"rbf"</code> or <code>"laplace"</code>.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="calibrax.metrics.functional.divergence.mmd_squared_unbiased" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">mmd_squared_unbiased</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">kernel</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;rbf&#39;</span><span class="p">,</span> <span class="n">bandwidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
+
+<a href="#calibrax.metrics.functional.divergence.mmd_squared_unbiased" class="headerlink" title="Permanent link">¤</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>The unbiased estimate of <code>MMD^2</code>, the U-statistic <code>MMD^2_u</code>.</p>
+<p>Gretton et al. (2012, JMLR 13, Lemma 6): the within-sample kernel means exclude the
+diagonal, so the expectation is <code>MMD^2</code> exactly. Between samples of one distribution it
+is negative about half the time; that is information a two-sample test and KID (Binkowski
+et al. 2018) use, so it is not clamped. For a distance, see <code>mmd</code>.</p>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>Direction: LOWER (0.0 in expectation for identical distributions).
+Range: (-inf, inf).
+Symmetric.</p>
+</details>
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>x</code>
+            </td>
+            <td>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>First sample matrix (n_samples, n_features), at least two samples.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>y</code>
+            </td>
+            <td>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Second sample matrix (m_samples, n_features), at least two samples.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>kernel</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Kernel type: <code>"rbf"</code> or <code>"laplace"</code>.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;rbf&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>bandwidth</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Kernel bandwidth parameter.</p>
+              </div>
+            </td>
+            <td>
+                  <code>1.0</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="jax.Array">Array</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The unbiased <code>MMD^2</code> estimate as a scalar value.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If a sample matrix holds fewer than two samples, or <code>kernel</code> is unknown.</p>
               </div>
             </td>
           </tr>
@@ -5055,16 +5308,20 @@ True metric. Symmetric.</p>
 
 
 <h2 id="calibrax.metrics.functional.divergence.sinkhorn_divergence" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">sinkhorn_divergence</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">regularization</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">max_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-05</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">sinkhorn_divergence</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">regularization</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">max_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span> <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0001</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.divergence.sinkhorn_divergence" class="headerlink" title="Permanent link">¤</a></h2>
 
 
     <div class="doc doc-contents ">
 
-        <p>Debiased Sinkhorn divergence (entropic optimal transport).</p>
-<p><code>S(x,y) = OT_reg(x,y) - 0.5*(OT_reg(x,x) + OT_reg(y,y))</code>.
-Differentiable and JIT-compatible.</p>
+        <p>Debiased Sinkhorn divergence between two point clouds (Feydy et al. 2019).</p>
+<p><code>S_eps(x, y) = OT_eps(x, y) - (OT_eps(x, x) + OT_eps(y, y)) / 2</code> with <code>OT_eps</code> the
+entropic optimal transport objective under squared Euclidean cost and uniform weights
+(Genevay et al. 2018; Feydy et al. 2019, whose Theorem 1 makes it positive, zero only for
+equal clouds, and convex). Sinkhorn runs in the log domain until the marginal error is
+below <code>threshold</code>; the gradient comes from the dual potentials, so <code>jax.grad</code> and
+<code>jax.jit</code> both hold and the memory does not grow with the iterations.</p>
 
 
 <details class="note" open>
@@ -5091,7 +5348,7 @@ Debiased: <code>S(x,x) = 0</code>.</p>
                 <code>x</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5107,7 +5364,7 @@ Debiased: <code>S(x,x) = 0</code>.</p>
                 <code>y</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5127,7 +5384,7 @@ Debiased: <code>S(x,x) = 0</code>.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Entropic regularization strength.</p>
+                <p>The entropic regularization <code>eps</code>, in the cost's units.</p>
               </div>
             </td>
             <td>
@@ -5143,11 +5400,11 @@ Debiased: <code>S(x,x) = 0</code>.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Maximum Sinkhorn iterations.</p>
+                <p>Most Sinkhorn updates per transport problem.</p>
               </div>
             </td>
             <td>
-                  <code>100</code>
+                  <code>1000</code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -5159,11 +5416,11 @@ Debiased: <code>S(x,x) = 0</code>.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Convergence threshold.</p>
+                <p>L1 error of the row marginal at which Sinkhorn stops.</p>
               </div>
             </td>
             <td>
-                  <code>1e-05</code>
+                  <code>0.0001</code>
             </td>
           </tr>
       </tbody>
@@ -5181,7 +5438,7 @@ Debiased: <code>S(x,x) = 0</code>.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5201,23 +5458,27 @@ Debiased: <code>S(x,x) = 0</code>.</p>
 
 
 <h2 id="calibrax.metrics.functional.divergence.sliced_wasserstein" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">sliced_wasserstein</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">num_projections</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">sliced_wasserstein</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span> <span class="o">|</span> <span class="n">nnx</span><span class="o">.</span><span class="n">Rngs</span><span class="p">,</span> <span class="n">num_projections</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">SLICED_WASSERSTEIN_PROJECTIONS</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.divergence.sliced_wasserstein" class="headerlink" title="Permanent link">¤</a></h2>
 
 
     <div class="doc doc-contents ">
 
-        <p>Sliced Wasserstein distance.</p>
-<p>Project onto random 1D directions, compute exact 1D Wasserstein,
-average. Practical for high-dimensional distribution comparison.</p>
+        <p>Sliced Wasserstein distance <code>SW_p = (E_theta[W_p^p(theta_# x, theta_# y)])^(1/p)</code>.</p>
+<p>Both sample sets are projected onto <code>num_projections</code> directions drawn uniformly on the
+unit sphere; along each direction the exact one-dimensional <code>W_p^p</code> is the mean of the
+<code>p</code>-th powers of the sorted differences, and the average over directions is taken before
+the <code>1/p</code> root (Bonneel et al. 2015; Nadjahi et al. 2020, eq. 5; POT's
+<code>sliced_wasserstein_distance</code>).</p>
 
 
 <details class="note" open>
   <summary>Note</summary>
   <p>Direction: LOWER (0.0 = identical distributions).
 Range: [0, inf).
-True metric. Symmetric.</p>
+Symmetric. With a fixed set of directions the value is a pseudometric: two
+distributions that agree along every drawn direction are at distance 0.</p>
 </details>
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -5236,11 +5497,11 @@ True metric. Symmetric.</p>
                 <code>x</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>First sample matrix (n_samples, n_features).</p>
+                <p>First sample matrix (n_samples, n_features), or a vector of scalar samples.</p>
               </div>
             </td>
             <td>
@@ -5252,11 +5513,29 @@ True metric. Symmetric.</p>
                 <code>y</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Second sample matrix (n_samples, n_features).</p>
+                <p>Second sample matrix with the same number of samples and features.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>key</code>
+            </td>
+            <td>
+                  <code><span title="jax.Array">Array</span> | <span title="flax.nnx.Rngs">Rngs</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The key the directions are drawn from, or an <code>nnx.Rngs</code> whose <code>sample</code> or
+<code>default</code> stream supplies it. There is no default: a fixed direction set would
+bias every estimate the same way.</p>
               </div>
             </td>
             <td>
@@ -5272,11 +5551,11 @@ True metric. Symmetric.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Number of random 1D projections.</p>
+                <p>Number of random directions.</p>
               </div>
             </td>
             <td>
-                  <code>50</code>
+                  <code><span title="calibrax.metrics.functional.divergence.SLICED_WASSERSTEIN_PROJECTIONS">SLICED_WASSERSTEIN_PROJECTIONS</span></code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -5288,27 +5567,11 @@ True metric. Symmetric.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Order of Wasserstein distance.</p>
+                <p>Order of the Wasserstein distance.</p>
               </div>
             </td>
             <td>
                   <code>2.0</code>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>key</code>
-            </td>
-            <td>
-                  <code><span title="typing.Any">Any</span> | None</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>JAX PRNG key for reproducibility. Uses fixed seed if None.</p>
-              </div>
-            </td>
-            <td>
-                  <code>None</code>
             </td>
           </tr>
       </tbody>
@@ -5326,11 +5589,124 @@ True metric. Symmetric.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Sliced Wasserstein distance as a scalar value.</p>
+                <p>The sliced Wasserstein distance as a scalar.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If <code>x</code> and <code>y</code> hold different numbers of samples.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="calibrax.metrics.functional.divergence.registry_sliced_wasserstein" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">registry_sliced_wasserstein</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
+
+<a href="#calibrax.metrics.functional.divergence.registry_sliced_wasserstein" class="headerlink" title="Permanent link">¤</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p><code>sliced_wasserstein</code> over the registry's fixed projection set.</p>
+<p>The directions come from <code>SLICED_WASSERSTEIN_REGISTRY_SEED</code>, the same in every call, so a
+suite compares like with like; over a fixed set the value is a pseudometric.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>x</code>
+            </td>
+            <td>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>First sample matrix (n_samples, n_features).</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>y</code>
+            </td>
+            <td>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Second sample matrix with the same shape.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="jax.Array">Array</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The sliced Wasserstein distance as a scalar.</p>
               </div>
             </td>
           </tr>
@@ -5346,7 +5722,7 @@ True metric. Symmetric.</p>
 
 
 <h2 id="calibrax.metrics.functional.divergence.bregman_divergence" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">bregman_divergence</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">generator</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">],</span> <span class="n">generator_grad</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">bregman_divergence</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">generator</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">jax</span><span class="o">.</span><span class="n">Array</span><span class="p">],</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span><span class="p">],</span> <span class="n">generator_grad</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">jax</span><span class="o">.</span><span class="n">Array</span><span class="p">],</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.divergence.bregman_divergence" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -5381,7 +5757,7 @@ Not symmetric in general.</p>
                 <code>x</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5397,7 +5773,7 @@ Not symmetric in general.</p>
                 <code>y</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5413,7 +5789,7 @@ Not symmetric in general.</p>
                 <code>generator</code>
             </td>
             <td>
-                  <code><span title="collections.abc.Callable">Callable</span>[[<span title="typing.Any">Any</span>], <span title="typing.Any">Any</span>]</code>
+                  <code><span title="collections.abc.Callable">Callable</span>[[<span title="jax.Array">Array</span>], <span title="jax.Array">Array</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5429,7 +5805,7 @@ Not symmetric in general.</p>
                 <code>generator_grad</code>
             </td>
             <td>
-                  <code><span title="collections.abc.Callable">Callable</span>[[<span title="typing.Any">Any</span>], <span title="typing.Any">Any</span>] | None</code>
+                  <code><span title="collections.abc.Callable">Callable</span>[[<span title="jax.Array">Array</span>], <span title="jax.Array">Array</span>] | None</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5456,7 +5832,7 @@ via <code>jax.grad(generator)</code>.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5476,7 +5852,7 @@ via <code>jax.grad(generator)</code>.</p>
 
 
 <h2 id="calibrax.metrics.functional.divergence.kolmogorov_smirnov_distance" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">kolmogorov_smirnov_distance</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">kolmogorov_smirnov_distance</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
 
 <a href="#calibrax.metrics.functional.divergence.kolmogorov_smirnov_distance" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -5511,7 +5887,7 @@ Range: [0, 1].</p>
                 <code>a</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5527,7 +5903,7 @@ Range: [0, 1].</p>
                 <code>b</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5553,7 +5929,7 @@ Range: [0, 1].</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="jax.Array">Array</span></code>
             </td>
             <td>
               <div class="doc-md-description">

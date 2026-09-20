@@ -1563,6 +1563,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../api-reference/profiling/nvml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NVML
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../api-reference/profiling/energy/" class="md-nav__link">
         
   
@@ -3973,82 +4001,147 @@
 </span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="c1"># Or build from registry by domain</span>
 </span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="n">registry_collection</span> <span class="o">=</span> <span class="n">MetricCollection</span><span class="o">.</span><span class="n">from_registry</span><span class="p">(</span><span class="n">domain</span><span class="o">=</span><span class="s2">&quot;general&quot;</span><span class="p">)</span>
 </span></code></pre></div>
+<p><strong>Terminal Output:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>=== MetricCollection ===
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>  mse          = 0.051250
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>  mae          = 0.212500
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>  rmse         = 0.226385
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>  r_squared    = 0.990238
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>  Metric names: [&#39;mse&#39;, &#39;mae&#39;, &#39;rmse&#39;, &#39;r_squared&#39;]
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>  Registry (general domain): [&#39;charbonnier_loss&#39;, &#39;explained_variance&#39;, &#39;huber_loss&#39;, &#39;log_cosh_loss&#39;, &#39;mae&#39;, &#39;mape&#39;, &#39;max_error&#39;, &#39;mse&#39;, &#39;quantile_loss&#39;, &#39;r_squared&#39;, &#39;relative_error&#39;, &#39;relative_l2_error&#39;, &#39;rmse&#39;, &#39;smape&#39;]
+</span></code></pre></div></p>
 <h3 id="weightedmetric">WeightedMetric<a class="headerlink" href="#weightedmetric" title="Permanent link">¤</a></h3>
 <p>When you need a single scalar score from multiple metrics, <code>WeightedMetric</code> applies normalised weights to a results dict.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">calibrax.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">WeightedMetric</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">weighted</span> <span class="o">=</span> <span class="n">WeightedMetric</span><span class="p">({</span><span class="s2">&quot;mse&quot;</span><span class="p">:</span> <span class="mf">0.7</span><span class="p">,</span> <span class="s2">&quot;mae&quot;</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">})</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">score</span> <span class="o">=</span> <span class="n">weighted</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="c1"># score = 0.7 * results[&quot;mse&quot;] + 0.3 * results[&quot;mae&quot;]</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">calibrax.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">WeightedMetric</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">weighted</span> <span class="o">=</span> <span class="n">WeightedMetric</span><span class="p">({</span><span class="s2">&quot;mse&quot;</span><span class="p">:</span> <span class="mf">0.7</span><span class="p">,</span> <span class="s2">&quot;mae&quot;</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">})</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">score</span> <span class="o">=</span> <span class="n">weighted</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="c1"># score = 0.7 * results[&quot;mse&quot;] + 0.3 * results[&quot;mae&quot;]</span>
 </span></code></pre></div>
+<p><strong>Terminal Output:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>=== WeightedMetric ===
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>  Weights: {&#39;mse&#39;: 0.7, &#39;mae&#39;: 0.3}
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>  Normalized weights: {&#39;mse&#39;: 0.7, &#39;mae&#39;: 0.3}
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>  Weighted score: 0.099625
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>  Breakdown: 0.7 * 0.0513 + 0.3 * 0.2125 = 0.099625
+</span></code></pre></div></p>
 <p>Weights are automatically normalised to sum to 1.0.</p>
 <h3 id="metricsuite">MetricSuite<a class="headerlink" href="#metricsuite" title="Permanent link">¤</a></h3>
 <p>A <code>MetricSuite</code> organises metrics into named groups. Each group is evaluated independently, producing a nested results dict. This is useful for separating error metrics from fit-quality metrics from robustness metrics.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">calibrax.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">MetricSuite</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">suite</span> <span class="o">=</span> <span class="n">MetricSuite</span><span class="p">()</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">suite</span><span class="o">.</span><span class="n">add_group</span><span class="p">(</span><span class="s2">&quot;error_metrics&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;mse&quot;</span><span class="p">,</span> <span class="s2">&quot;mae&quot;</span><span class="p">,</span> <span class="s2">&quot;rmse&quot;</span><span class="p">])</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="n">suite</span><span class="o">.</span><span class="n">add_group</span><span class="p">(</span><span class="s2">&quot;fit_quality&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;r_squared&quot;</span><span class="p">,</span> <span class="s2">&quot;explained_variance&quot;</span><span class="p">])</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="n">suite</span><span class="o">.</span><span class="n">add_group</span><span class="p">(</span><span class="s2">&quot;robust_metrics&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;huber_loss&quot;</span><span class="p">,</span> <span class="s2">&quot;log_cosh_loss&quot;</span><span class="p">])</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="n">suite_results</span> <span class="o">=</span> <span class="n">suite</span><span class="o">.</span><span class="n">compute_all</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="c1"># suite_results[&quot;error_metrics&quot;][&quot;mse&quot;] -&gt; 0.04</span>
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="c1"># suite_results[&quot;fit_quality&quot;][&quot;r_squared&quot;] -&gt; 0.99</span>
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>
-</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="c1"># Auto-create groups from registry domains</span>
-</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="n">auto_suite</span> <span class="o">=</span> <span class="n">MetricSuite</span><span class="o">.</span><span class="n">from_registry_domains</span><span class="p">()</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">calibrax.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">MetricSuite</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">suite</span> <span class="o">=</span> <span class="n">MetricSuite</span><span class="p">()</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">suite</span><span class="o">.</span><span class="n">add_group</span><span class="p">(</span><span class="s2">&quot;error_metrics&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;mse&quot;</span><span class="p">,</span> <span class="s2">&quot;mae&quot;</span><span class="p">,</span> <span class="s2">&quot;rmse&quot;</span><span class="p">])</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="n">suite</span><span class="o">.</span><span class="n">add_group</span><span class="p">(</span><span class="s2">&quot;fit_quality&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;r_squared&quot;</span><span class="p">,</span> <span class="s2">&quot;explained_variance&quot;</span><span class="p">])</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="n">suite</span><span class="o">.</span><span class="n">add_group</span><span class="p">(</span><span class="s2">&quot;robust_metrics&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;huber_loss&quot;</span><span class="p">,</span> <span class="s2">&quot;log_cosh_loss&quot;</span><span class="p">])</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="n">suite_results</span> <span class="o">=</span> <span class="n">suite</span><span class="o">.</span><span class="n">compute_all</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="c1"># suite_results[&quot;error_metrics&quot;][&quot;mse&quot;] -&gt; 0.04</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="c1"># suite_results[&quot;fit_quality&quot;][&quot;r_squared&quot;] -&gt; 0.99</span>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="c1"># Auto-create groups from registry domains</span>
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="n">auto_suite</span> <span class="o">=</span> <span class="n">MetricSuite</span><span class="o">.</span><span class="n">from_registry_domains</span><span class="p">()</span>
 </span></code></pre></div>
+<p><strong>Terminal Output:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>=== MetricSuite ===
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>  error_metrics:
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    mse                       = 0.051250
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    mae                       = 0.212500
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    rmse                      = 0.226385
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>  fit_quality:
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    r_squared                 = 0.990238
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    explained_variance        = 0.990982
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>  robust_metrics:
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>    huber_loss                = 0.025625
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>    log_cosh_loss             = 0.025326
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>  Groups: [&#39;error_metrics&#39;, &#39;fit_quality&#39;, &#39;robust_metrics&#39;]
+</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>  Auto-created groups: [&#39;audio&#39;, &#39;calibration&#39;, &#39;classification&#39;, &#39;clustering&#39;, &#39;distance&#39;, &#39;divergence&#39;, &#39;fairness&#39;, &#39;forecasting&#39;, &#39;general&#39;, &#39;generative&#39;, &#39;geometric&#39;, &#39;graph&#39;, &#39;image&#39;, &#39;information&#39;, &#39;manifold&#39;, &#39;ranking&#39;, &#39;segmentation&#39;, &#39;statistical&#39;, &#39;text&#39;, &#39;uncertainty&#39;]
+</span></code></pre></div></p>
 <h3 id="thresholdmetric-quality-gate">ThresholdMetric (Quality Gate)<a class="headerlink" href="#thresholdmetric-quality-gate" title="Permanent link">¤</a></h3>
 <p><code>ThresholdMetric</code> wraps a single metric with a pass/fail threshold. Use <code>max_value</code> for lower-is-better metrics and <code>min_value</code> for higher-is-better metrics.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">calibrax.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">ThresholdMetric</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="c1"># MSE must be below 0.1</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">mse_gate</span> <span class="o">=</span> <span class="n">ThresholdMetric</span><span class="p">(</span><span class="s2">&quot;mse&quot;</span><span class="p">,</span> <span class="n">max_value</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="n">result</span> <span class="o">=</span> <span class="n">mse_gate</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="c1"># result[&quot;value&quot;] = 0.04, result[&quot;passed&quot;] = True</span>
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="c1"># R-squared must be above 0.95</span>
-</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="n">r2_gate</span> <span class="o">=</span> <span class="n">ThresholdMetric</span><span class="p">(</span><span class="s2">&quot;r_squared&quot;</span><span class="p">,</span> <span class="n">min_value</span><span class="o">=</span><span class="mf">0.95</span><span class="p">)</span>
-</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="n">result_r2</span> <span class="o">=</span> <span class="n">r2_gate</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">calibrax.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">ThresholdMetric</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="c1"># MSE must be below 0.1</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="n">mse_gate</span> <span class="o">=</span> <span class="n">ThresholdMetric</span><span class="p">(</span><span class="s2">&quot;mse&quot;</span><span class="p">,</span> <span class="n">max_value</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="n">result</span> <span class="o">=</span> <span class="n">mse_gate</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="c1"># result.value = 0.04, result.passed = True</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="c1"># R-squared must be above 0.95</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="n">r2_gate</span> <span class="o">=</span> <span class="n">ThresholdMetric</span><span class="p">(</span><span class="s2">&quot;r_squared&quot;</span><span class="p">,</span> <span class="n">min_value</span><span class="o">=</span><span class="mf">0.95</span><span class="p">)</span>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="n">result_r2</span> <span class="o">=</span> <span class="n">r2_gate</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
 </span></code></pre></div>
+<p><strong>Terminal Output:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>=== ThresholdMetric (Quality Gate) ===
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>  MSE threshold: max_value=0.1
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>  Value:  0.051250
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>  Passed: True
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>  R-squared threshold: min_value=0.95
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>  Value:  0.990238
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>  Passed: True
+</span></code></pre></div></p>
 <p>This integrates naturally into CI pipelines -- see the <a href="../../../user-guide/ci-integration/">CI Integration</a> guide.</p>
 <h3 id="bootstrapmetric">BootstrapMetric<a class="headerlink" href="#bootstrapmetric" title="Permanent link">¤</a></h3>
 <p><code>BootstrapMetric</code> wraps any metric function and computes confidence intervals by resampling.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">calibrax.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">BootstrapMetric</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">bootstrap</span> <span class="o">=</span> <span class="n">BootstrapMetric</span><span class="p">(</span><span class="n">mse</span><span class="p">,</span> <span class="n">num_bootstraps</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.95</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">boot_result</span> <span class="o">=</span> <span class="n">bootstrap</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="c1"># boot_result[&quot;value&quot;]  = point estimate</span>
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="c1"># boot_result[&quot;lower&quot;]  = 2.5th percentile</span>
-</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="c1"># boot_result[&quot;upper&quot;]  = 97.5th percentile</span>
-</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="c1"># boot_result[&quot;samples&quot;] = all 200 bootstrap values</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">jax</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">calibrax.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">BootstrapMetric</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="n">bootstrap</span> <span class="o">=</span> <span class="n">BootstrapMetric</span><span class="p">(</span><span class="n">mse</span><span class="p">,</span> <span class="n">num_resamples</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.95</span><span class="p">)</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="n">boot_result</span> <span class="o">=</span> <span class="n">bootstrap</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">key</span><span class="p">(</span><span class="mi">42</span><span class="p">))</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="c1"># boot_result.value   = point estimate</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="c1"># boot_result.lower   = 2.5th percentile</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="c1"># boot_result.upper   = 97.5th percentile</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="c1"># boot_result.samples = all 200 bootstrap values</span>
 </span></code></pre></div>
+<p><strong>Terminal Output:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>=== BootstrapMetric (Confidence Intervals) ===
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>  MSE point estimate: 0.051250
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>  95% CI: [0.028750, 0.073750]
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>  Bootstrap samples:  200
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>  R-squared point estimate: 0.990238
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>  90% CI: [0.977573, 0.994095]
+</span></code></pre></div></p>
 <h3 id="metrictracker">MetricTracker<a class="headerlink" href="#metrictracker" title="Permanent link">¤</a></h3>
 <p><code>MetricTracker</code> records a metric's value at each call and tracks the best value seen so far. Useful for logging during training.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">calibrax.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">MetricTracker</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">num_epochs</span> <span class="o">=</span> <span class="mi">5</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">tracker</span> <span class="o">=</span> <span class="n">MetricTracker</span><span class="p">(</span><span class="n">mse</span><span class="p">,</span> <span class="n">direction</span><span class="o">=</span><span class="s2">&quot;lower&quot;</span><span class="p">)</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_epochs</span><span class="p">):</span>
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="n">value</span> <span class="o">=</span> <span class="n">tracker</span><span class="o">.</span><span class="n">increment</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
-</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Epoch </span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">: MSE = </span><span class="si">{</span><span class="n">value</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>
-</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Best MSE: </span><span class="si">{</span><span class="n">tracker</span><span class="o">.</span><span class="n">best</span><span class="p">()</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2"> at epoch </span><span class="si">{</span><span class="n">tracker</span><span class="o">.</span><span class="n">best_epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Full history: </span><span class="si">{</span><span class="n">tracker</span><span class="o">.</span><span class="n">history</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">calibrax.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">MetricTracker</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="n">num_epochs</span> <span class="o">=</span> <span class="mi">5</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="n">tracker</span> <span class="o">=</span> <span class="n">MetricTracker</span><span class="p">(</span><span class="n">mse</span><span class="p">,</span> <span class="n">direction</span><span class="o">=</span><span class="s2">&quot;lower&quot;</span><span class="p">)</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_epochs</span><span class="p">):</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>    <span class="n">value</span> <span class="o">=</span> <span class="n">tracker</span><span class="o">.</span><span class="n">increment</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Epoch </span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">: MSE = </span><span class="si">{</span><span class="n">value</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Best MSE: </span><span class="si">{</span><span class="n">tracker</span><span class="o">.</span><span class="n">best</span><span class="p">()</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2"> at epoch </span><span class="si">{</span><span class="n">tracker</span><span class="o">.</span><span class="n">best_epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Full history: </span><span class="si">{</span><span class="n">tracker</span><span class="o">.</span><span class="n">history</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </span></code></pre></div>
+<p><strong>Terminal Output:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>=== MetricTracker (Training History) ===
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>  Epoch 0: MSE = 0.018750
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>  Epoch 1: MSE = 0.013230
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>  Epoch 2: MSE = 0.008670
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>  Epoch 3: MSE = 0.005070
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>  Epoch 4: MSE = 0.002430
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>  Best MSE:   0.002430
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>  Best epoch: 4
+</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>  History:    [&#39;0.0187&#39;, &#39;0.0132&#39;, &#39;0.0087&#39;, &#39;0.0051&#39;, &#39;0.0024&#39;]
+</span></code></pre></div></p>
 <p>The <code>direction</code> parameter (<code>"lower"</code> or <code>"higher"</code>) determines how "best" is defined.</p>
 <h2 id="example-code">Example Code<a class="headerlink" href="#example-code" title="Permanent link">¤</a></h2>
 <p>The script ties all six components together. Here is the quality-gate section:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># MSE must be below 0.1 (lower-is-better)</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="n">mse_gate</span> <span class="o">=</span> <span class="n">ThresholdMetric</span><span class="p">(</span><span class="s2">&quot;mse&quot;</span><span class="p">,</span> <span class="n">max_value</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">result</span> <span class="o">=</span> <span class="n">mse_gate</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Value: </span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">, Passed: </span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;passed&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>
-</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="c1"># R-squared must be above 0.95 (higher-is-better)</span>
-</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="n">r2_gate</span> <span class="o">=</span> <span class="n">ThresholdMetric</span><span class="p">(</span><span class="s2">&quot;r_squared&quot;</span><span class="p">,</span> <span class="n">min_value</span><span class="o">=</span><span class="mf">0.95</span><span class="p">)</span>
-</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="n">result_r2</span> <span class="o">=</span> <span class="n">r2_gate</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
-</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Value: </span><span class="si">{</span><span class="n">result_r2</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">, Passed: </span><span class="si">{</span><span class="n">result_r2</span><span class="p">[</span><span class="s1">&#39;passed&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="c1"># MSE must be below 0.1 (lower-is-better)</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="n">mse_gate</span> <span class="o">=</span> <span class="n">ThresholdMetric</span><span class="p">(</span><span class="s2">&quot;mse&quot;</span><span class="p">,</span> <span class="n">max_value</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="n">result</span> <span class="o">=</span> <span class="n">mse_gate</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Value: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">value</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">, Passed: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">passed</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="c1"># R-squared must be above 0.95 (higher-is-better)</span>
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="n">r2_gate</span> <span class="o">=</span> <span class="n">ThresholdMetric</span><span class="p">(</span><span class="s2">&quot;r_squared&quot;</span><span class="p">,</span> <span class="n">min_value</span><span class="o">=</span><span class="mf">0.95</span><span class="p">)</span>
+</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="n">result_r2</span> <span class="o">=</span> <span class="n">r2_gate</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
+</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Value: </span><span class="si">{</span><span class="n">result_r2</span><span class="o">.</span><span class="n">value</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">, Passed: </span><span class="si">{</span><span class="n">result_r2</span><span class="o">.</span><span class="n">passed</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </span></code></pre></div>
 <h2 id="next-steps">Next Steps<a class="headerlink" href="#next-steps" title="Permanent link">¤</a></h2>
 <ul>

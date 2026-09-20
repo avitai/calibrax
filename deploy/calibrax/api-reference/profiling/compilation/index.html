@@ -1567,6 +1567,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../nvml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NVML
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../energy/" class="md-nav__link">
         
   
@@ -4136,7 +4164,7 @@ effectiveness, and provides recommendations for compilation optimization.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Deserialize from a dictionary.</p>
+        <p>Read the record from the JSON object <code>to_dict</code> writes.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -4155,11 +4183,11 @@ effectiveness, and provides recommendations for compilation optimization.</p>
                 <code>data</code>
             </td>
             <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
+                  <code><span title="collections.abc.Mapping">Mapping</span>[<span title="str">str</span>, <span title="substrax.typing.JsonValue">JsonValue</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Dictionary with compilation result fields.</p>
+                <p>The JSON object.</p>
               </div>
             </td>
             <td>
@@ -4189,7 +4217,31 @@ effectiveness, and provides recommendations for compilation optimization.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Reconstructed CompilationResult instance.</p>
+                <p>The record.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="pydantic.ValidationError">ValidationError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If a field is missing or holds a value its annotation
+does not admit.</p>
               </div>
             </td>
           </tr>
@@ -4363,7 +4415,7 @@ effectiveness, and provides recommendations for compilation optimization.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Deserialize from a dictionary.</p>
+        <p>Read the record from the JSON object <code>to_dict</code> writes.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -4382,11 +4434,11 @@ effectiveness, and provides recommendations for compilation optimization.</p>
                 <code>data</code>
             </td>
             <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
+                  <code><span title="collections.abc.Mapping">Mapping</span>[<span title="str">str</span>, <span title="substrax.typing.JsonValue">JsonValue</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Dictionary with XLA optimization result fields.</p>
+                <p>The JSON object.</p>
               </div>
             </td>
             <td>
@@ -4416,7 +4468,31 @@ effectiveness, and provides recommendations for compilation optimization.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Reconstructed XLAOptimizationResult instance.</p>
+                <p>The record.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="pydantic.ValidationError">ValidationError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If a field is missing or holds a value its annotation
+does not admit.</p>
               </div>
             </td>
           </tr>
@@ -4490,8 +4566,10 @@ to wrap a function, then call <code>get_result()</code> for aggregated analysis.
     <div class="doc doc-contents ">
 
         <p>Create an instrumented wrapper that profiles JIT compilation.</p>
-<p>The returned callable tracks cache hits/misses, compilation times,
-and input shape patterns. Results accumulate in this profiler instance.</p>
+<p>The returned callable jits <code>func</code> once per input signature (shapes, dtypes and static
+keywords), counts cache hits and misses and compilation times, and waits for every
+result. Each wrapper keeps its own compiled functions, so two functions never share
+one, whatever they are named.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -4510,7 +4588,7 @@ and input shape patterns. Results accumulate in this profiler instance.</p>
                 <code>func</code>
             </td>
             <td>
-                  <code><span title="collections.abc.Callable">Callable</span>[..., <span title="typing.Any">Any</span>]</code>
+                  <code><span title="collections.abc.Callable">Callable</span>[<span title="calibrax.profiling.compilation.CompilationProfiler.profile_jit_compilation[**P]">P</span>, <span title="calibrax.profiling.compilation.CompilationProfiler.profile_jit_compilation[R]">R</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4536,11 +4614,11 @@ and input shape patterns. Results accumulate in this profiler instance.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="collections.abc.Callable">Callable</span>[..., <span title="typing.Any">Any</span>]</code>
+                  <code><span title="collections.abc.Callable">Callable</span>[<span title="calibrax.profiling.compilation.CompilationProfiler.profile_jit_compilation[**P]">P</span>, <span title="calibrax.profiling.compilation.CompilationProfiler.profile_jit_compilation[R]">R</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Instrumented function with identical signature.</p>
+                <p>Instrumented function with the same signature.</p>
               </div>
             </td>
           </tr>
@@ -4627,7 +4705,7 @@ and input shape patterns. Results accumulate in this profiler instance.</p>
                 <code>func</code>
             </td>
             <td>
-                  <code><span title="collections.abc.Callable">Callable</span>[..., <span title="typing.Any">Any</span>]</code>
+                  <code><span title="collections.abc.Callable">Callable</span>[..., <span title="substrax.typing.PyTree">PyTree</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4643,7 +4721,7 @@ and input shape patterns. Results accumulate in this profiler instance.</p>
                 <code>*sample_args</code>
             </td>
             <td>
-                  <code><span title="typing.Any">Any</span></code>
+                  <code><span title="substrax.typing.PyTree">PyTree</span></code>
             </td>
             <td>
               <div class="doc-md-description">

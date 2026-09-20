@@ -1784,6 +1784,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../api-reference/profiling/nvml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NVML
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../api-reference/profiling/energy/" class="md-nav__link">
         
   
@@ -4015,19 +4043,21 @@ loading wandb at import time. Import it directly:</p>
 </span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="p">)</span>
 </span></code></pre></div>
 <h3 id="logging-custom-artifacts">Logging Custom Artifacts<a class="headerlink" href="#logging-custom-artifacts" title="Permanent link">¤</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># Log matplotlib figures</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">exporter</span><span class="o">.</span><span class="n">log_figures</span><span class="p">({</span><span class="s2">&quot;scaling&quot;</span><span class="p">:</span> <span class="n">fig</span><span class="p">})</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="c1"># Log HTML artifacts</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="n">exporter</span><span class="o">.</span><span class="n">log_html_artifacts</span><span class="p">({</span><span class="s2">&quot;report&quot;</span><span class="p">:</span> <span class="n">html_string</span><span class="p">})</span>
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="c1"># Log custom tables</span>
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="n">exporter</span><span class="o">.</span><span class="n">log_extra_tables</span><span class="p">({</span>
-</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="s2">&quot;results&quot;</span><span class="p">:</span> <span class="p">(</span>
-</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>        <span class="p">[</span><span class="s2">&quot;Framework&quot;</span><span class="p">,</span> <span class="s2">&quot;Throughput&quot;</span><span class="p">,</span> <span class="s2">&quot;Latency&quot;</span><span class="p">],</span>  <span class="c1"># headers</span>
-</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>        <span class="p">[[</span><span class="s2">&quot;flax&quot;</span><span class="p">,</span> <span class="mi">1200</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">],</span> <span class="p">[</span><span class="s2">&quot;pytorch&quot;</span><span class="p">,</span> <span class="mi">950</span><span class="p">,</span> <span class="mf">1.2</span><span class="p">]],</span>  <span class="c1"># rows</span>
-</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>    <span class="p">),</span>
-</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="p">})</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">wandb</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="c1"># Log images; a matplotlib figure becomes one through wandb.Image</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">exporter</span><span class="o">.</span><span class="n">log_images</span><span class="p">({</span><span class="s2">&quot;scaling&quot;</span><span class="p">:</span> <span class="n">wandb</span><span class="o">.</span><span class="n">Image</span><span class="p">(</span><span class="n">fig</span><span class="p">)})</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="c1"># Log HTML artifacts</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="n">exporter</span><span class="o">.</span><span class="n">log_html_artifacts</span><span class="p">({</span><span class="s2">&quot;report&quot;</span><span class="p">:</span> <span class="n">html_string</span><span class="p">})</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="c1"># Log custom tables</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="n">exporter</span><span class="o">.</span><span class="n">log_extra_tables</span><span class="p">({</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>    <span class="s2">&quot;results&quot;</span><span class="p">:</span> <span class="p">(</span>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>        <span class="p">[</span><span class="s2">&quot;Framework&quot;</span><span class="p">,</span> <span class="s2">&quot;Throughput&quot;</span><span class="p">,</span> <span class="s2">&quot;Latency&quot;</span><span class="p">],</span>  <span class="c1"># headers</span>
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>        <span class="p">[[</span><span class="s2">&quot;flax&quot;</span><span class="p">,</span> <span class="mi">1200</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">],</span> <span class="p">[</span><span class="s2">&quot;pytorch&quot;</span><span class="p">,</span> <span class="mi">950</span><span class="p">,</span> <span class="mf">1.2</span><span class="p">]],</span>  <span class="c1"># rows</span>
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>    <span class="p">),</span>
+</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="p">})</span>
 </span></code></pre></div>
 <h2 id="mlflow">MLflow<a class="headerlink" href="#mlflow" title="Permanent link">¤</a></h2>
 <div class="admonition warning">
@@ -4074,28 +4104,31 @@ directly:</p>
 <h2 id="publication-generator">Publication Generator<a class="headerlink" href="#publication-generator" title="Permanent link">¤</a></h2>
 <div class="admonition warning">
 <p class="admonition-title">Optional Dependency</p>
-<p>Plot generation requires matplotlib: <code>uv pip install "calibrax[publication]"</code></p>
-<p>Table generation (LaTeX, HTML, CSV) works without matplotlib.</p>
+<p><code>calibrax.exporters.plots</code> needs matplotlib: <code>uv pip install "calibrax[publication]"</code>;
+importing it without matplotlib raises <code>ImportError</code> naming the extra. Tables
+(<code>calibrax.exporters.publication</code>) need no plotting library.</p>
 </div>
-<p><code>PublicationGenerator</code> creates plots and tables suitable for papers and reports:</p>
+<p><code>PlotGenerator</code> writes plots, and <code>PublicationGenerator</code> writes tables, for papers and
+reports:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">calibrax.exporters.publication</span><span class="w"> </span><span class="kn">import</span> <span class="n">PublicationGenerator</span>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="n">pub</span> <span class="o">=</span> <span class="n">PublicationGenerator</span><span class="p">(</span><span class="n">output_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;temp/doc-examples/figures&quot;</span><span class="p">))</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">calibrax.exporters.plots</span><span class="w"> </span><span class="kn">import</span> <span class="n">PlotGenerator</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">calibrax.exporters.publication</span><span class="w"> </span><span class="kn">import</span> <span class="n">PublicationGenerator</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="n">plots</span> <span class="o">=</span> <span class="n">PlotGenerator</span><span class="p">(</span><span class="n">output_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;temp/doc-examples/figures&quot;</span><span class="p">))</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="n">pub</span> <span class="o">=</span> <span class="n">PublicationGenerator</span><span class="p">(</span><span class="n">output_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;temp/doc-examples/figures&quot;</span><span class="p">))</span>
 </span></code></pre></div>
 <h3 id="comparison-plots">Comparison Plots<a class="headerlink" href="#comparison-plots" title="Permanent link">¤</a></h3>
-<p>Bar charts comparing metrics across configurations:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">path</span> <span class="o">=</span> <span class="n">pub</span><span class="o">.</span><span class="n">generate_comparison_plot</span><span class="p">(</span>
+<p>One bar chart per metric, with a bar per configuration:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">path</span> <span class="o">=</span> <span class="n">plots</span><span class="o">.</span><span class="n">comparison_plot</span><span class="p">(</span>
 </span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    <span class="n">run</span><span class="p">,</span>
 </span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;throughput&quot;</span><span class="p">,</span> <span class="s2">&quot;latency&quot;</span><span class="p">],</span>
 </span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    <span class="n">output_format</span><span class="o">=</span><span class="s2">&quot;pdf&quot;</span><span class="p">,</span>  <span class="c1"># &quot;png&quot;, &quot;pdf&quot;, or &quot;svg&quot;</span>
 </span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="p">)</span>
-</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Plot saved to </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Plot saved to </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </span></code></pre></div>
 <h3 id="scaling-plots">Scaling Plots<a class="headerlink" href="#scaling-plots" title="Permanent link">¤</a></h3>
-<p>Log-log plots with fitted scaling laws:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">path</span> <span class="o">=</span> <span class="n">pub</span><span class="o">.</span><span class="n">generate_scaling_plot</span><span class="p">(</span>
+<p>A metric against input size:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">path</span> <span class="o">=</span> <span class="n">plots</span><span class="o">.</span><span class="n">scaling_plot</span><span class="p">(</span>
 </span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="n">sizes</span><span class="o">=</span><span class="p">[</span><span class="mi">100</span><span class="p">,</span> <span class="mi">500</span><span class="p">,</span> <span class="mi">1000</span><span class="p">,</span> <span class="mi">5000</span><span class="p">],</span>
 </span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>    <span class="n">values</span><span class="o">=</span><span class="p">[</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.10</span><span class="p">,</span> <span class="mf">0.52</span><span class="p">],</span>
 </span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    <span class="n">metric_name</span><span class="o">=</span><span class="s2">&quot;latency&quot;</span><span class="p">,</span>
@@ -4103,10 +4136,11 @@ directly:</p>
 </span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="p">)</span>
 </span></code></pre></div>
 <h3 id="convergence-plots">Convergence Plots<a class="headerlink" href="#convergence-plots" title="Permanent link">¤</a></h3>
-<p>Time series plots showing metric trends:</p>
+<p>A metric's trend across runs, with its confidence band when every point carries one:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">trend</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">extract_trend</span><span class="p">(</span><span class="s2">&quot;throughput&quot;</span><span class="p">,</span> <span class="s2">&quot;forward_pass&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;framework&quot;</span><span class="p">:</span> <span class="s2">&quot;flax&quot;</span><span class="p">})</span>
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="n">path</span> <span class="o">=</span> <span class="n">pub</span><span class="o">.</span><span class="n">generate_convergence_plot</span><span class="p">(</span><span class="n">trend</span><span class="p">,</span> <span class="n">output_format</span><span class="o">=</span><span class="s2">&quot;png&quot;</span><span class="p">)</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="n">path</span> <span class="o">=</span> <span class="n">plots</span><span class="o">.</span><span class="n">convergence_plot</span><span class="p">(</span><span class="n">trend</span><span class="p">,</span> <span class="n">output_format</span><span class="o">=</span><span class="s2">&quot;png&quot;</span><span class="p">)</span>
 </span></code></pre></div>
+<p>Each plot refuses empty input with <code>ValueError</code>.</p>
 <h3 id="tables">Tables<a class="headerlink" href="#tables" title="Permanent link">¤</a></h3>
 <p>Generate LaTeX, HTML, or CSV tables:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># LaTeX table</span>

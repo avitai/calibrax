@@ -1686,6 +1686,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../profiling/nvml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NVML
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../profiling/energy/" class="md-nav__link">
         
   
@@ -3854,7 +3882,7 @@ serializable container for cross-framework comparison.</p>
 
   &lt;span class=&quot;doc doc-labels&quot;&gt;
       &lt;small class=&quot;doc doc-label doc-label-dataclass&quot;&gt;&lt;code&gt;dataclass&lt;/code&gt;&lt;/small&gt;
-  &lt;/span&gt; (&lt;code&gt;calibrax.profiling.timing.TimingSample&lt;/code&gt;)" href="../../profiling/timing/#calibrax.profiling.timing.TimingSample">TimingSample</a> | None</code>
+  &lt;/span&gt; (&lt;code&gt;calibrax.profiling.timing_records.TimingSample&lt;/code&gt;)" href="../../profiling/timing/#calibrax.profiling.timing_records.TimingSample">TimingSample</a> | None</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3895,7 +3923,7 @@ serializable container for cross-framework comparison.</p>
           <tr class="doc-section-item">
             <td><code><span title="calibrax.core.result.BenchmarkResult.metadata">metadata</span></code></td>
             <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
+                  <code><span title="calibrax.core.record_values.Metadata">Metadata</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3906,7 +3934,7 @@ serializable container for cross-framework comparison.</p>
           <tr class="doc-section-item">
             <td><code><span title="calibrax.core.result.BenchmarkResult.config">config</span></code></td>
             <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
+                  <code><span title="calibrax.core.record_values.Metadata">Metadata</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3974,7 +4002,7 @@ serializable container for cross-framework comparison.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
+                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="substrax.typing.JsonValue">JsonValue</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4005,7 +4033,7 @@ serializable container for cross-framework comparison.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Deserialize from a dictionary.</p>
+        <p>Read the record from the JSON object <code>to_dict</code> writes.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -4024,11 +4052,11 @@ serializable container for cross-framework comparison.</p>
                 <code>data</code>
             </td>
             <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
+                  <code><span title="collections.abc.Mapping">Mapping</span>[<span title="str">str</span>, <span title="substrax.typing.JsonValue">JsonValue</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Dictionary with benchmark result fields.</p>
+                <p>The JSON object.</p>
               </div>
             </td>
             <td>
@@ -4058,7 +4086,32 @@ serializable container for cross-framework comparison.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Reconstructed BenchmarkResult instance.</p>
+                <p>The record.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="pydantic.ValidationError">ValidationError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If a field is missing or holds a value its annotation
+does not admit; <code>timestamp</code> must be present, since their
+defaults would invent a value.</p>
               </div>
             </td>
           </tr>

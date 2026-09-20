@@ -12,13 +12,13 @@
         <meta name="author" content="Mahdi Shafiei">
       
       
-        <link rel="canonical" href="https://calibrax.readthedocs.io/api-reference/metrics/audio/">
+        <link rel="canonical" href="https://calibrax.readthedocs.io/api-reference/profiling/nvml/">
       
       
-        <link rel="prev" href="../text/">
+        <link rel="prev" href="../gpu/">
       
       
-        <link rel="next" href="../geometric/">
+        <link rel="next" href="../energy/">
       
       
         
@@ -29,7 +29,7 @@
     
     
       
-        <title>Audio - Calibrax</title>
+        <title>NVML - Calibrax</title>
       
     
     
@@ -84,7 +84,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#calibraxmetricsfunctionalaudio" class="md-skip">
+        <a href="#calibraxprofilingnvml" class="md-skip">
           Skip to content
         </a>
       
@@ -120,7 +120,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Audio
+              NVML
             
           </span>
         </div>
@@ -1431,18 +1431,20 @@
                 
   
   
+    
   
   
+  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_3" checked>
         
           
           <label class="md-nav__link" for="__nav_5_3" id="__nav_5_3_label" tabindex="0">
@@ -1463,7 +1465,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_5_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1481,7 +1483,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../profiling/timing/" class="md-nav__link">
+      <a href="../timing/" class="md-nav__link">
         
   
   
@@ -1509,7 +1511,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../profiling/resources/" class="md-nav__link">
+      <a href="../resources/" class="md-nav__link">
         
   
   
@@ -1537,7 +1539,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../profiling/gpu/" class="md-nav__link">
+      <a href="../gpu/" class="md-nav__link">
         
   
   
@@ -1562,10 +1564,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../profiling/nvml/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NVML
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1581,6 +1610,131 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.profiling.nvml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;nvml
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.profiling.nvml.NvmlDevice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;NvmlDevice
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" NvmlDevice">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#calibrax.profiling.nvml.NvmlDevice.__enter__" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__enter__
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#calibrax.profiling.nvml.NvmlDevice.__exit__" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__exit__
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#calibrax.profiling.nvml.NvmlDevice.close" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;close
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#calibrax.profiling.nvml.NvmlDevice.memory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;memory
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#calibrax.profiling.nvml.NvmlDevice.utilization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;utilization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#calibrax.profiling.nvml.NvmlDevice.clocks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;clocks
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#calibrax.profiling.nvml.NvmlDevice.power" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;power
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1593,7 +1747,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../profiling/energy/" class="md-nav__link">
+      <a href="../energy/" class="md-nav__link">
         
   
   
@@ -1621,7 +1775,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../profiling/flops/" class="md-nav__link">
+      <a href="../flops/" class="md-nav__link">
         
   
   
@@ -1649,7 +1803,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../profiling/hardware/" class="md-nav__link">
+      <a href="../hardware/" class="md-nav__link">
         
   
   
@@ -1677,7 +1831,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../profiling/roofline/" class="md-nav__link">
+      <a href="../roofline/" class="md-nav__link">
         
   
   
@@ -1705,7 +1859,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../profiling/compilation/" class="md-nav__link">
+      <a href="../compilation/" class="md-nav__link">
         
   
   
@@ -1733,7 +1887,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../profiling/complexity/" class="md-nav__link">
+      <a href="../complexity/" class="md-nav__link">
         
   
   
@@ -1761,7 +1915,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../profiling/tracing/" class="md-nav__link">
+      <a href="../tracing/" class="md-nav__link">
         
   
   
@@ -1789,7 +1943,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../profiling/carbon/" class="md-nav__link">
+      <a href="../carbon/" class="md-nav__link">
         
   
   
@@ -1990,20 +2144,18 @@
                 
   
   
-    
   
   
-  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_10" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_10" >
         
           
           <label class="md-nav__link" for="__nav_5_10" id="__nav_5_10_label" tabindex="0">
@@ -2024,7 +2176,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_10_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_10_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_5_10">
             <span class="md-nav__icon md-icon"></span>
             
@@ -2042,7 +2194,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../" class="md-nav__link">
+      <a href="../../metrics/" class="md-nav__link">
         
   
   
@@ -2070,7 +2222,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../registry/" class="md-nav__link">
+      <a href="../../metrics/registry/" class="md-nav__link">
         
   
   
@@ -2098,7 +2250,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../regression/" class="md-nav__link">
+      <a href="../../metrics/regression/" class="md-nav__link">
         
   
   
@@ -2126,7 +2278,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../classification/" class="md-nav__link">
+      <a href="../../metrics/classification/" class="md-nav__link">
         
   
   
@@ -2154,7 +2306,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../calibration/" class="md-nav__link">
+      <a href="../../metrics/calibration/" class="md-nav__link">
         
   
   
@@ -2182,7 +2334,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../segmentation/" class="md-nav__link">
+      <a href="../../metrics/segmentation/" class="md-nav__link">
         
   
   
@@ -2210,7 +2362,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../distance/" class="md-nav__link">
+      <a href="../../metrics/distance/" class="md-nav__link">
         
   
   
@@ -2238,7 +2390,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../divergence/" class="md-nav__link">
+      <a href="../../metrics/divergence/" class="md-nav__link">
         
   
   
@@ -2266,7 +2418,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../information/" class="md-nav__link">
+      <a href="../../metrics/information/" class="md-nav__link">
         
   
   
@@ -2294,7 +2446,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../ranking/" class="md-nav__link">
+      <a href="../../metrics/ranking/" class="md-nav__link">
         
   
   
@@ -2322,7 +2474,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../statistical/" class="md-nav__link">
+      <a href="../../metrics/statistical/" class="md-nav__link">
         
   
   
@@ -2350,7 +2502,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../forecasting/" class="md-nav__link">
+      <a href="../../metrics/forecasting/" class="md-nav__link">
         
   
   
@@ -2378,7 +2530,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../uncertainty/" class="md-nav__link">
+      <a href="../../metrics/uncertainty/" class="md-nav__link">
         
   
   
@@ -2406,7 +2558,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../generative/" class="md-nav__link">
+      <a href="../../metrics/generative/" class="md-nav__link">
         
   
   
@@ -2434,7 +2586,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../clustering/" class="md-nav__link">
+      <a href="../../metrics/clustering/" class="md-nav__link">
         
   
   
@@ -2462,7 +2614,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../fairness/" class="md-nav__link">
+      <a href="../../metrics/fairness/" class="md-nav__link">
         
   
   
@@ -2490,7 +2642,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../image/" class="md-nav__link">
+      <a href="../../metrics/image/" class="md-nav__link">
         
   
   
@@ -2518,7 +2670,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../video/" class="md-nav__link">
+      <a href="../../metrics/video/" class="md-nav__link">
         
   
   
@@ -2546,7 +2698,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../text/" class="md-nav__link">
+      <a href="../../metrics/text/" class="md-nav__link">
         
   
   
@@ -2571,37 +2723,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Audio
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../metrics/audio/" class="md-nav__link">
         
   
   
@@ -2617,70 +2742,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#calibrax.metrics.functional.audio" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;audio
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#calibrax.metrics.functional.audio.spectral_convergence" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;spectral_convergence
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#calibrax.metrics.functional.audio.mel_cepstral_distortion" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;mel_cepstral_distortion
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#calibrax.metrics.functional.audio.signal_to_noise_ratio" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;signal_to_noise_ratio
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -2693,7 +2754,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../geometric/" class="md-nav__link">
+      <a href="../../metrics/geometric/" class="md-nav__link">
         
   
   
@@ -2721,7 +2782,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../graph/" class="md-nav__link">
+      <a href="../../metrics/graph/" class="md-nav__link">
         
   
   
@@ -2749,7 +2810,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../manifold/" class="md-nav__link">
+      <a href="../../metrics/manifold/" class="md-nav__link">
         
   
   
@@ -2777,7 +2838,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../composition/" class="md-nav__link">
+      <a href="../../metrics/composition/" class="md-nav__link">
         
   
   
@@ -2805,7 +2866,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../wrappers/" class="md-nav__link">
+      <a href="../../metrics/wrappers/" class="md-nav__link">
         
   
   
@@ -2833,7 +2894,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../stateful/" class="md-nav__link">
+      <a href="../../metrics/stateful/" class="md-nav__link">
         
   
   
@@ -2861,7 +2922,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../learning/" class="md-nav__link">
+      <a href="../../metrics/learning/" class="md-nav__link">
         
   
   
@@ -2889,7 +2950,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../scientific/" class="md-nav__link">
+      <a href="../../metrics/scientific/" class="md-nav__link">
         
   
   
@@ -3589,10 +3650,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#calibrax.metrics.functional.audio" class="md-nav__link">
+  <a href="#calibrax.profiling.nvml" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;audio
+        <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;nvml
       
     </span>
   </a>
@@ -3600,35 +3661,96 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#calibrax.metrics.functional.audio.spectral_convergence" class="md-nav__link">
+  <a href="#calibrax.profiling.nvml.NvmlDevice" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;spectral_convergence
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;NvmlDevice
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" NvmlDevice">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#calibrax.profiling.nvml.NvmlDevice.__enter__" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__enter__
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#calibrax.metrics.functional.audio.mel_cepstral_distortion" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#calibrax.profiling.nvml.NvmlDevice.__exit__" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;mel_cepstral_distortion
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;__exit__
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#calibrax.metrics.functional.audio.signal_to_noise_ratio" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#calibrax.profiling.nvml.NvmlDevice.close" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;signal_to_noise_ratio
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;close
       
     </span>
   </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#calibrax.profiling.nvml.NvmlDevice.memory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;memory
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#calibrax.profiling.nvml.NvmlDevice.utilization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;utilization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#calibrax.profiling.nvml.NvmlDevice.clocks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;clocks
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#calibrax.profiling.nvml.NvmlDevice.power" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;power
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -3693,10 +3815,10 @@
     
     
       <li class="md-path__item">
-        <a href="../" class="md-path__link">
+        <a href="../timing/" class="md-path__link">
           
   <span class="md-ellipsis">
-    Metrics
+    Profiling
   </span>
 
         </a>
@@ -3718,24 +3840,122 @@
   
 
 
-<h1 id="calibraxmetricsfunctionalaudio">calibrax.metrics.functional.audio<a class="headerlink" href="#calibraxmetricsfunctionalaudio" title="Permanent link">¤</a></h1>
-<p>Audio quality metrics for evaluating signal reconstruction and synthesis.
-Includes spectral convergence, mel cepstral distortion, and
-signal-to-noise ratio -- all operating on JAX arrays.</p>
+<h1 id="calibraxprofilingnvml">calibrax.profiling.nvml<a class="headerlink" href="#calibraxprofilingnvml" title="Permanent link">¤</a></h1>
+<p>GPU memory, compute utilization, clocks and power through NVIDIA's NVML. This module needs
+the <code>cuda12</code> extra (nvidia-ml-py); importing it without that raises <code>ImportError</code> naming the
+extra. <code>NvmlDevice</code> satisfies <code>GPUProfilerProtocol</code> and <code>GpuPowerSource</code>, so it drives both
+<code>ResourceMonitor</code> and <code>EnergyMonitor</code>.</p>
 
 
 <div class="doc doc-object doc-module">
 
 
 
-<a id="calibrax.metrics.functional.audio"></a>
+<a id="calibrax.profiling.nvml"></a>
     <div class="doc doc-contents first">
 
-        <p>Audio quality metrics -- FFT-based, pure math.</p>
-<p>All metrics are pure mathematical operations on audio signal arrays.
-No pretrained models, no external audio processing libraries.</p>
-<p>Includes: spectral_convergence, mel_cepstral_distortion, signal_to_noise_ratio.
-Registered with <code>domain="audio"</code>.</p>
+        <p>GPU readings through NVIDIA's NVML: memory, compute utilization, clocks and power.</p>
+<p>This module is the NVML integration: it needs NVIDIA's nvidia-ml-py (the <code>cuda12</code> extra),
+importing it without that raises <code>ImportError</code> naming the extra, and it is not re-exported from
+<code>calibrax.profiling</code>. <code>NvmlDevice</code> satisfies <code>GPUProfilerProtocol</code>, so a
+<code>ResourceMonitor</code> or an <code>EnergyMonitor</code> takes one to read the GPU.</p>
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="calibrax.profiling.nvml.NvmlDevice" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>              <code class="highlight language-python"><span class="n">NvmlDevice</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></code>
+
+<a href="#calibrax.profiling.nvml.NvmlDevice" class="headerlink" title="Permanent link">¤</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+
+
+        <p>One GPU read through NVML, initialised once for the device's lifetime.</p>
+<p>A reading the GPU does not support (NVML's <code>NOT_SUPPORTED</code>) is <code>None</code>; any other NVML
+error is raised.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">with</span> <span class="n">NvmlDevice</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="k">as</span> <span class="n">gpu</span><span class="p">,</span> <span class="n">ResourceMonitor</span><span class="p">(</span><span class="n">gpu_profiler</span><span class="o">=</span><span class="n">gpu</span><span class="p">)</span> <span class="k">as</span> <span class="n">monitor</span><span class="p">:</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="o">...</span>  <span class="c1"># run the benchmark</span>
+</span></code></pre></div>
+
+        <p>Initialise NVML and take the handle of GPU <code>index</code>.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>index</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The GPU's NVML index.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="pynvml.NVMLError">NVMLError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If NVML cannot start (no driver) or has no GPU <code>index</code>.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
 
 
 
@@ -3760,94 +3980,15 @@ Registered with <code>domain="audio"</code>.</p>
 <div class="doc doc-object doc-function">
 
 
-<h2 id="calibrax.metrics.functional.audio.spectral_convergence" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">spectral_convergence</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
+<h3 id="calibrax.profiling.nvml.NvmlDevice.__enter__" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__enter__</span><span class="p">()</span></code>
 
-<a href="#calibrax.metrics.functional.audio.spectral_convergence" class="headerlink" title="Permanent link">¤</a></h2>
+<a href="#calibrax.profiling.nvml.NvmlDevice.__enter__" class="headerlink" title="Permanent link">¤</a></h3>
 
 
     <div class="doc doc-contents ">
 
-        <p>Spectral convergence between predicted and target signals.</p>
-<p>Computes ||STFT(targets) - STFT(predictions)||_F / ||STFT(targets)||_F.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>predictions</code>
-            </td>
-            <td>
-                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Predicted signal array, shape (n,).</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>targets</code>
-            </td>
-            <td>
-                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Target signal array, shape (n,).</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="jax.Array">Array</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Spectral convergence ratio. Lower is better. 0.0 = identical spectra.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<p><span class="doc-section-title">Examples:</span></p>
-    <div class="language-pycon highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">jax.numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">jnp</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">sig</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">256</span><span class="p">))</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">spectral_convergence</span><span class="p">(</span><span class="n">sig</span><span class="p">,</span> <span class="n">sig</span><span class="p">)</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="go">0.0</span>
-</span></code></pre></div>
+        <p>The device.</p>
 
 
     </div>
@@ -3857,111 +3998,15 @@ Registered with <code>domain="audio"</code>.</p>
 <div class="doc doc-object doc-function">
 
 
-<h2 id="calibrax.metrics.functional.audio.mel_cepstral_distortion" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">mel_cepstral_distortion</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">num_mels</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">80</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
+<h3 id="calibrax.profiling.nvml.NvmlDevice.__exit__" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__exit__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></code>
 
-<a href="#calibrax.metrics.functional.audio.mel_cepstral_distortion" class="headerlink" title="Permanent link">¤</a></h2>
+<a href="#calibrax.profiling.nvml.NvmlDevice.__exit__" class="headerlink" title="Permanent link">¤</a></h3>
 
 
     <div class="doc doc-contents ">
 
-        <p>Mel Cepstral Distortion between two signals.</p>
-<p>Computes (10/ln(10)) * sqrt(2 * sum((c_pred - c_tgt)^2)) on
-cepstral coefficients derived from the signal spectra.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>predictions</code>
-            </td>
-            <td>
-                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Predicted signal array, shape (n,).</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>targets</code>
-            </td>
-            <td>
-                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Target signal array, shape (n,).</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>num_mels</code>
-            </td>
-            <td>
-                  <code><span title="int">int</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Number of mel-frequency coefficients to use.</p>
-              </div>
-            </td>
-            <td>
-                  <code>80</code>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="jax.Array">Array</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>MCD value in dB. Lower is better. 0.0 = identical signals.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<p><span class="doc-section-title">Examples:</span></p>
-    <div class="language-pycon highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">jax.numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">jnp</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">sig</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">256</span><span class="p">))</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">mel_cepstral_distortion</span><span class="p">(</span><span class="n">sig</span><span class="p">,</span> <span class="n">sig</span><span class="p">)</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="go">0.0</span>
-</span></code></pre></div>
+        <p>Shut NVML down.</p>
 
 
     </div>
@@ -3971,100 +4016,101 @@ cepstral coefficients derived from the signal spectra.</p>
 <div class="doc doc-object doc-function">
 
 
-<h2 id="calibrax.metrics.functional.audio.signal_to_noise_ratio" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">signal_to_noise_ratio</span><span class="p">(</span><span class="n">signal</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">,</span> <span class="n">noise</span><span class="p">:</span> <span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jax</span><span class="o">.</span><span class="n">Array</span></code>
+<h3 id="calibrax.profiling.nvml.NvmlDevice.close" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">close</span><span class="p">()</span></code>
 
-<a href="#calibrax.metrics.functional.audio.signal_to_noise_ratio" class="headerlink" title="Permanent link">¤</a></h2>
+<a href="#calibrax.profiling.nvml.NvmlDevice.close" class="headerlink" title="Permanent link">¤</a></h3>
 
 
     <div class="doc doc-contents ">
 
-        <p>Signal-to-Noise Ratio in dB.</p>
-<p>SNR = 10 * log10(|signal|^2 / |noise|^2).</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>signal</code>
-            </td>
-            <td>
-                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Clean signal array.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>noise</code>
-            </td>
-            <td>
-                  <code><span title="jax.typing.ArrayLike">ArrayLike</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Noise signal array (same shape as signal).</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="jax.Array">Array</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>SNR value in dB. Higher is better.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<p><span class="doc-section-title">Examples:</span></p>
-    <div class="language-pycon highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">jax.numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">jnp</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">signal</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">noise</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.01</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">signal_to_noise_ratio</span><span class="p">(</span><span class="n">signal</span><span class="p">,</span> <span class="n">noise</span><span class="p">)</span>  <span class="c1"># ~40 dB</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="gp">...</span>
-</span></code></pre></div>
+        <p>Shut NVML down; the device takes no readings after.</p>
 
 
     </div>
 
 </div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="calibrax.profiling.nvml.NvmlDevice.memory" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">memory</span><span class="p">()</span></code>
+
+<a href="#calibrax.profiling.nvml.NvmlDevice.memory" class="headerlink" title="Permanent link">¤</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>The GPU's memory in use and in total.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="calibrax.profiling.nvml.NvmlDevice.utilization" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">utilization</span><span class="p">()</span></code>
+
+<a href="#calibrax.profiling.nvml.NvmlDevice.utilization" class="headerlink" title="Permanent link">¤</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>The GPU's compute utilization over NVML's last sample period, in percent.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="calibrax.profiling.nvml.NvmlDevice.clocks" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">clocks</span><span class="p">()</span></code>
+
+<a href="#calibrax.profiling.nvml.NvmlDevice.clocks" class="headerlink" title="Permanent link">¤</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>The GPU's current graphics and memory clocks.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="calibrax.profiling.nvml.NvmlDevice.power" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">power</span><span class="p">()</span></code>
+
+<a href="#calibrax.profiling.nvml.NvmlDevice.power" class="headerlink" title="Permanent link">¤</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>The GPU's current power draw and management limit.</p>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
 
 
 

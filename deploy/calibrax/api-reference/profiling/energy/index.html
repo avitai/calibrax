@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://calibrax.readthedocs.io/api-reference/profiling/energy/">
       
       
-        <link rel="prev" href="../gpu/">
+        <link rel="prev" href="../nvml/">
       
       
         <link rel="next" href="../flops/">
@@ -1564,6 +1564,34 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../nvml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NVML
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -1634,6 +1662,34 @@
       
     </span>
   </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibrax.profiling.energy.GpuPowerSource" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;GpuPowerSource
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" GpuPowerSource">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#calibrax.profiling.energy.GpuPowerSource.power" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;power
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -3622,6 +3678,34 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#calibrax.profiling.energy.GpuPowerSource" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;GpuPowerSource
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" GpuPowerSource">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#calibrax.profiling.energy.GpuPowerSource.power" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;power
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#calibrax.profiling.energy.EnergySample" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3791,8 +3875,8 @@
 
 
 <h1 id="calibraxprofilingenergy">calibrax.profiling.energy<a class="headerlink" href="#calibraxprofilingenergy" title="Permanent link">¤</a></h1>
-<p>Energy monitoring for GPU (via NVML) and CPU (via Intel RAPL). <code>EnergyMonitor</code>
-runs as a context manager, sampling power draw at a configurable interval.</p>
+<p>Energy monitoring for a GPU power source (such as <code>NvmlDevice</code>) and the CPU (via Linux
+RAPL). <code>EnergyMonitor</code> runs as a context manager, sampling at a configurable interval.</p>
 
 
 <div class="doc doc-object doc-module">
@@ -3802,10 +3886,10 @@ runs as a context manager, sampling power draw at a configurable interval.</p>
 <a id="calibrax.profiling.energy"></a>
     <div class="doc doc-contents first">
 
-        <p>Energy monitoring via NVML (GPU) and RAPL (CPU).</p>
-<p>Provides EnergyMonitor context manager for tracking power consumption
-during benchmark execution. Gracefully degrades when hardware
-interfaces are unavailable.</p>
+        <p>Energy monitoring: GPU power through a power source such as NVML, CPU energy through RAPL.</p>
+<p><code>EnergyMonitor</code> samples in a background thread during a benchmark. GPU power comes from the
+source it is given (<code>calibrax.profiling.nvml.NvmlDevice</code> reads NVML); CPU energy comes from the
+Linux RAPL package counter. A reading that is not available leaves its fields <code>None</code>.</p>
 
 
 
@@ -3825,6 +3909,72 @@ interfaces are unavailable.</p>
 
 
 
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="calibrax.profiling.energy.GpuPowerSource" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <code>GpuPowerSource</code>
+
+
+<a href="#calibrax.profiling.energy.GpuPowerSource" class="headerlink" title="Permanent link">¤</a></h2>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="typing.Protocol">Protocol</span></code></p>
+
+
+
+        <p>Anything that reads a GPU's power; <code>NvmlDevice</code> is one.</p>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="calibrax.profiling.energy.GpuPowerSource.power" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">power</span><span class="p">()</span></code>
+
+<a href="#calibrax.profiling.energy.GpuPowerSource.power" class="headerlink" title="Permanent link">¤</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>The GPU's current power draw and limit, or None when it cannot be read.</p>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
 
 <div class="doc doc-object doc-class">
 
@@ -4078,7 +4228,7 @@ interfaces are unavailable.</p>
 
 
 <h2 id="calibrax.profiling.energy.EnergyMonitor" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>              <code class="highlight language-python"><span class="n">EnergyMonitor</span><span class="p">(</span><span class="n">sample_interval_sec</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>              <code class="highlight language-python"><span class="n">EnergyMonitor</span><span class="p">(</span><span class="n">sample_interval_sec</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">gpu</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
 
 <a href="#calibrax.profiling.energy.EnergyMonitor" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -4087,13 +4237,13 @@ interfaces are unavailable.</p>
 
 
 
-        <p>Background energy monitoring via NVML and RAPL.</p>
-<p>Uses daemon thread sampling at configurable interval.
-Gracefully degrades when NVML or RAPL is unavailable.</p>
-<p>Usage:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">with</span> <span class="n">EnergyMonitor</span><span class="p">()</span> <span class="k">as</span> <span class="n">mon</span><span class="p">:</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="c1"># ... run benchmark ...</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">summary</span> <span class="o">=</span> <span class="n">mon</span><span class="o">.</span><span class="n">summary</span>
+        <p>Background energy monitoring of a GPU power source and the CPU's RAPL counter.</p>
+<p>GPU energy integrates the source's power draw over the sampling interval (rectangular
+rule); CPU energy is the RAPL counter's increase, across its wraparound. Without a GPU
+source, or where RAPL is unreadable, those fields stay <code>None</code>.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">with</span> <span class="n">NvmlDevice</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="k">as</span> <span class="n">gpu</span><span class="p">,</span> <span class="n">EnergyMonitor</span><span class="p">(</span><span class="n">gpu</span><span class="o">=</span><span class="n">gpu</span><span class="p">)</span> <span class="k">as</span> <span class="n">monitor</span><span class="p">:</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="o">...</span>  <span class="c1"># run the benchmark</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">summary</span> <span class="o">=</span> <span class="n">monitor</span><span class="o">.</span><span class="n">summary</span>
 </span></code></pre></div>
 
         <p>Initialize EnergyMonitor.</p>
@@ -4124,6 +4274,22 @@ Gracefully degrades when NVML or RAPL is unavailable.</p>
             </td>
             <td>
                   <code>0.1</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>gpu</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;code&gt;GpuPowerSource&lt;/code&gt; (&lt;code&gt;calibrax.profiling.energy.GpuPowerSource&lt;/code&gt;)" href="#calibrax.profiling.energy.GpuPowerSource">GpuPowerSource</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The GPU power source; None measures the CPU only.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
             </td>
           </tr>
       </tbody>
