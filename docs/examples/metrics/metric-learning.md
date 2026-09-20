@@ -145,6 +145,12 @@ print(f"Gradient norm: {grad_norm:.6f}")
 print(f"Non-zero elements: {nonzero_count}/{grads.size}")
 ```
 
+**Terminal Output:**
+```
+  ContrastiveLoss gradient norm: 0.352296
+    Non-zero elements: 128/128
+```
+
 The miner verification validates that all produced triplets are semantically correct:
 
 ```python

@@ -128,6 +128,39 @@ true_metrics = registry.list_true_metrics()
 print(f"True metrics: {[e.name for e in true_metrics[:8]]}...")
 ```
 
+**Terminal Output:**
+```
+=== Registry: all registered metric names ===
+  Total registered: 140
+  First 10: ['accuracy', 'adaptive_calibration_error', 'adjusted_mutual_information', 'adjusted_rand_index', 'anees', 'average_precision', 'balanced_accuracy', 'bleu', 'bregman_divergence', 'brier_score']
+
+=== Registry: metrics by domain ===
+  general              (15): ['mse', 'mae', 'rmse', 'r_squared', 'mape', 'relative_error', 'relative_l2_error', 'explained_variance', 'max_error', 'huber_loss', 'charbonnier_loss', 'quantile_loss', 'log_cosh_loss', 'smape', 'crps']
+  classification       (13): ['accuracy', 'precision', 'recall', 'f1_score', 'roc_auc', 'average_precision', 'log_loss', 'matthews_corrcoef', 'cohen_kappa', 'balanced_accuracy', 'specificity', 'sensitivity', 'softmax_cross_entropy']
+  distance             (11): ['cosine_distance', 'euclidean_distance', 'manhattan_distance', 'chebyshev_distance', 'mahalanobis_distance', 'hamming_distance', 'minkowski_distance', 'jaccard_distance', 'poincare_distance', 'lorentz_distance', 'randers_distance']
+  image                (4): ['psnr', 'ssim', 'ms_ssim', 'vendi_score']
+
+=== Registry: Tier 0 pure functions ===
+  Count: 140
+
+=== MetricEntry fields for 'mse' ===
+  name:              mse
+  tier:              pure_function
+  domain:            general
+  direction:         lower
+  description:       Mean squared error
+  signature:         predictions_targets
+  is_true_metric:    False
+  is_symmetric:      True
+  is_differentiable: True
+  is_jit_compatible: True
+  invariances:       ()
+
+=== Registry: true metrics (satisfy metric space axioms) ===
+  Count: 27
+  Names: ['mae', 'rmse', 'euclidean_distance', 'manhattan_distance', 'chebyshev_distance', 'mahalanobis_distance', 'hamming_distance', 'minkowski_distance']...
+```
+
 ## Next Steps
 
 - [Regression Metrics Deep Dive](regression-metrics.md) -- explore regression metrics with outlier, quantile, and CRPS analysis

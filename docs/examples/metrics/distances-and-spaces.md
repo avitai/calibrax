@@ -51,6 +51,25 @@ cosine_distance(a, b)     # 1 - cosine_similarity; 0 = identical, 1 = orthogonal
 manhattan_distance(a, b)  # L1 norm of (a - b)
 ```
 
+**Terminal Output:**
+```
+=== Vector Distances ===
+  a = [1.0, 0.0, 0.0]
+  b = [0.0, 1.0, 0.0]
+  c = [1.0, 1.0, 0.0]
+
+  Euclidean(a, b) = 1.4142
+  Euclidean(a, c) = 1.0000
+  Euclidean(b, c) = 1.0000
+
+  Cosine(a, b)    = 1.0000  (orthogonal -> 1.0)
+  Cosine(a, c)    = 0.2929  (45 degrees)
+  Cosine(a, a)    = 0.0000  (identical -> 0.0)
+
+  Manhattan(a, b) = 2.0000
+  Manhattan(a, c) = 1.0000
+```
+
 - **Euclidean**: rotation-invariant, sensitive to magnitude.
 - **Cosine**: scale-invariant, measures angular separation only.
 - **Manhattan**: axis-aligned, more robust to high-dimensional noise.
@@ -72,6 +91,16 @@ poincare_distance(origin, near)  # moderate
 poincare_distance(origin, far)   # much larger -- exponential growth near boundary
 ```
 
+**Terminal Output:**
+```
+=== Hyperbolic Distances ===
+  Poincare ball model (points must satisfy ||x|| < 1):
+    d(origin, near) = 0.6190
+    d(origin, far)  = 2.1972
+    d(near, far)    = 1.5782
+    Distance grows rapidly as points approach the ball boundary.
+```
+
 **Lorentz hyperboloid**: the first component is timelike (`x_0 = sqrt(1 + ||x_spatial||^2)`). This model is numerically more stable near the boundary.
 
 ```python
@@ -82,6 +111,15 @@ spatial = jnp.array([0.5, 0.3])
 p2 = jnp.concatenate([jnp.sqrt(1.0 + jnp.sum(spatial**2))[None], spatial])
 
 lorentz_distance(p1, p2)
+```
+
+**Terminal Output:**
+```
+  Lorentz hyperboloid model (first component is timelike):
+    d(p1, p2) = 0.5543
+    d(p1, p3) = 0.8130
+    d(p2, p3) = 0.4014
+    Lorentz model is numerically more stable near the boundary.
 ```
 
 ### Distribution Divergences
@@ -98,6 +136,22 @@ q = jnp.array([0.25, 0.25, 0.25, 0.25])
 
 kl_divergence(p, q)  # asymmetric: KL(p||q) != KL(q||p)
 js_divergence(p, q)  # symmetric: JS(p,q) == JS(q,p)
+```
+
+**Terminal Output:**
+```
+=== Distribution Divergences ===
+  p = [0.4000000059604645, 0.30000001192092896, 0.20000000298023224, 0.10000000149011612]
+  q = [0.25, 0.25, 0.25, 0.25] (uniform)
+  r = [0.10000000149011612, 0.20000000298023224, 0.30000001192092896, 0.4000000059604645]
+
+  KL(p || q) = 0.106440
+  KL(q || p) = 0.121777  (asymmetric!)
+  KL(p || r) = 0.456435
+
+  JS(p, q)   = 0.027866  (symmetric)
+  JS(q, p)   = 0.027866  (same value)
+  JS(p, r)   = 0.106440
 ```
 
 - **KL divergence**: measures information lost when `q` is used to approximate `p`. Asymmetric and unbounded.
@@ -119,6 +173,21 @@ points_y = jnp.array([[0.5, 0.5], [1.5, 0.5], [0.5, 1.5], [1.5, 1.5]])
 sinkhorn_divergence(points_x, points_y, regularization=0.1)
 ```
 
+**Terminal Output:**
+```
+=== Sample-Based Distances ===
+  samples_a = [1.0, 2.0, 3.0, 4.0, 5.0]
+  samples_b = [2.0, 3.0, 4.0, 5.0, 6.0] (shifted)
+  samples_c = [1.0, 1.5, 3.0, 4.5, 5.0] (different shape)
+
+  Wasserstein(a, b) = 1.0000
+  Wasserstein(a, c) = 0.2000
+  Wasserstein(a, a) = 0.0000
+
+  Sinkhorn(2D cloud X, Y) = 0.499959
+  Sinkhorn(X, X)          = 0.000000  (debiased -> ~0)
+```
+
 Sinkhorn divergence is a debiased version of the entropic optimal transport cost. It satisfies `S(X, X) = 0` (unlike raw Sinkhorn distance).
 
 ### Information-Theoretic Metrics
@@ -137,6 +206,16 @@ entropy(peaked)   # low -- most mass on one outcome
 # Mutual information from a joint probability table
 joint = jnp.array([[0.45, 0.05], [0.05, 0.45]])
 mutual_information(joint)  # high -- strong dependence
+```
+
+**Terminal Output:**
+```
+=== Information-Theoretic Metrics ===
+  Entropy(uniform)  = 1.3863  (max entropy for 4 outcomes)
+  Entropy(peaked)   = 0.4280  (low uncertainty)
+
+  MI(independent) = 0.000000  (~0)
+  MI(dependent)   = 0.368064  (strong dependence)
 ```
 
 ## Example Code

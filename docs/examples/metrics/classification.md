@@ -58,6 +58,29 @@ roc_auc(preds_soft, targets)   # requires probabilities
 log_loss(preds_soft, targets)  # requires probabilities
 ```
 
+**Terminal Output:**
+```
+=== Binary Classification Metrics ===
+  Targets:     [1, 1, 1, 1, 0, 0, 0, 0, 1, 0]
+  Predictions: [1, 1, 0, 1, 0, 1, 0, 0, 1, 0]
+  Probabilities: [0.8999999761581421, 0.800000011920929, 0.4000000059604645, 0.699999988079071, 0.20000000298023224, 0.6000000238418579, 0.30000001192092896, 0.10000000149011612, 0.8500000238418579, 0.15000000596046448]
+
+  --- Core metrics (hard predictions) ---
+  Accuracy:          0.8000
+  Balanced Accuracy: 0.8000
+  Precision:         0.8000
+  Recall:            0.8000
+  F1 Score:          0.8000
+  Sensitivity (TPR): 0.8000
+  Specificity (TNR): 0.8000
+  Matthews CC:       0.6000
+  Cohen's Kappa:     0.6000
+
+  --- Probabilistic metrics (soft predictions) ---
+  ROC-AUC:           0.9600
+  Log Loss:          0.3528
+```
+
 **Balanced accuracy** corrects for class imbalance by averaging per-class recall. **Matthews correlation coefficient** and **Cohen's kappa** account for chance agreement, making them more informative than raw accuracy on skewed datasets.
 
 ### Confusion Matrix
@@ -68,6 +91,17 @@ The confusion matrix gives a complete picture of classification errors. Calibrax
 cm = confusion_matrix(preds_hard, targets, num_classes=2)
 # cm[0, 0] = TN, cm[0, 1] = FP
 # cm[1, 0] = FN, cm[1, 1] = TP
+```
+
+**Terminal Output:**
+```
+=== Confusion Matrix ===
+  [[TN=4, FP=1],
+   [FN=1, TP=4]]
+  True Positives:  4
+  False Positives: 1
+  False Negatives: 1
+  True Negatives:  4
 ```
 
 ### Calibration Metrics
@@ -128,6 +162,18 @@ expected_calibration_error(well_calibrated_probs, calibration_targets)
 # Overconfident: higher Brier score, higher ECE
 brier_score(overconfident_probs, calibration_targets)
 expected_calibration_error(overconfident_probs, calibration_targets)
+```
+
+**Terminal Output:**
+```
+=== Calibration Metrics ===
+  Well-calibrated model:
+    Brier Score: 0.0852
+    ECE:         0.2550
+  Overconfident model:
+    Brier Score: 0.0063
+    ECE:         0.0750
+  Lower Brier score and ECE indicate better calibration.
 ```
 
 ## Next Steps

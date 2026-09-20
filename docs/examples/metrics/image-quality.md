@@ -165,6 +165,24 @@ psnr(noisy_large, original)  # lower dB
 ssim(noisy_large, original)  # noticeably below 1.0
 ```
 
+**Terminal Output:**
+```
+=== Image Quality Metrics ===
+  Image size: 32x32, range [0, 1]
+
+  --- Original vs itself ---
+    PSNR: 80.00 dB  (very high = identical)
+    SSIM: 1.000000  (1.0 = identical)
+
+  --- Original vs slightly noisy (sigma=0.02) ---
+    PSNR: 33.99 dB
+    SSIM: 0.884453
+
+  --- Original vs very noisy (sigma=0.15) ---
+    PSNR: 17.76 dB
+    SSIM: 0.167855
+```
+
 ## Next Steps
 
 - [Metric Learning Losses](metric-learning.md) -- contrastive, triplet, NTXent, and ArcFace losses for embedding training
