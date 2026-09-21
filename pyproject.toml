@@ -130,7 +130,7 @@ dev = [
   "radon>=6.0",
   "ruff>=0.1.5",
   # Types for scipy.stats; follows the locked scipy minor.
-  "scipy-stubs>=1.17,<1.18",
+  "scipy-stubs>=1.17,<1.19",
   # `substrax-compute` runs the examples on a GPU; the Modal backend needs Modal
   "substrax[modal]>=0.1.15",
   "twine>=4.0.2"
