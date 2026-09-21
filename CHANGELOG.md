@@ -7,6 +7,8 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+## [0.1.11] - 2026-09-20
+
 ### Added
 
 - `calibrax.statistics.summarize(samples)` returns a `SampleSummary` — `mean`, `median`, `std`,
