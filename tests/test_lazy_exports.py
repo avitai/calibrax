@@ -61,8 +61,35 @@ def test_every_stub_export_resolves_to_its_module(package: str) -> None:
         assert getattr(lazy, name) is getattr(importlib.import_module(module), name)
 
 
+def _unexported_name(package: str) -> str:
+    """A public name one of the package's own modules defines and its stub does not re-export.
+
+    Derived rather than named, so exporting a name later cannot quietly turn this check into a
+    second copy of the ``NoSuchExport`` one.
+
+    Args:
+        package: The lazy package.
+
+    Returns:
+        The name.
+
+    Raises:
+        AssertionError: If the package's modules define nothing the stub leaves out.
+    """
+    exports = _stub_exports(package)
+    for module_name in dict.fromkeys(exports.values()):
+        module = importlib.import_module(module_name)
+        for name, value in vars(module).items():
+            defined_here = getattr(value, "__module__", None) == module_name
+            if defined_here and not name.startswith("_") and name not in exports:
+                return name
+    raise AssertionError(f"{package}: every name its modules define is exported")
+
+
 @pytest.mark.parametrize("package", _LAZY_PACKAGES)
-@pytest.mark.parametrize("name", ["NoSuchExport", "MetadataValue"])
-def test_a_name_the_stub_does_not_export_is_an_attribute_error(package: str, name: str) -> None:
-    with pytest.raises(AttributeError):
-        getattr(importlib.import_module(package), name)
+def test_a_name_the_stub_does_not_export_is_an_attribute_error(package: str) -> None:
+    lazy = importlib.import_module(package)
+
+    for name in ("NoSuchExport", _unexported_name(package)):
+        with pytest.raises(AttributeError):
+            getattr(lazy, name)

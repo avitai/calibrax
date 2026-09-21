@@ -10,9 +10,10 @@ which are metadata values too; :data:`Metadata` is the field type that reads the
 
 from __future__ import annotations
 
+import functools
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Annotated, Protocol
+from typing import Annotated, cast, Protocol
 
 from pydantic import PlainValidator, TypeAdapter, ValidationError
 from substrax.typing import JsonValue
@@ -26,13 +27,39 @@ class SupportsItem(Protocol):
         ...
 
 
+def _array_scalar(value: object) -> SupportsItem:
+    """An array scalar, recognised by carrying ``item()``.
+
+    A bare protocol has no validator, and a union holding one cannot be built into a schema at
+    all, so :data:`MetadataValue` names this one. It recognises the value rather than converting
+    it, keeping a run's ``jnp.float32`` loss as the scalar it recorded.
+
+    It asks what the value carries rather than what it is, because this module is on the light
+    import path: a record's models read without loading JAX, and naming an array type here would
+    end that.
+
+    Args:
+        value: The value.
+
+    Returns:
+        The value, unchanged.
+
+    Raises:
+        ValueError: If the value is not an array scalar.
+    """
+    if callable(getattr(value, "item", None)):
+        return cast(SupportsItem, value)
+    msg = f"{value!r} is not an array scalar"
+    raise ValueError(msg)
+
+
 type MetadataValue = (
     str
     | int
     | float
     | bool
     | None
-    | SupportsItem
+    | Annotated[SupportsItem, PlainValidator(_array_scalar)]
     | Sequence[MetadataValue]
     | Mapping[str, MetadataValue]
 )
@@ -70,6 +97,42 @@ def require_stored(record_type: type[object], data: Mapping[str, JsonValue], *ke
             record_type.__name__,
             [{"type": "missing", "loc": (key,), "input": data} for key in missing],
         )
+
+
+@functools.cache
+def _value_adapter(kind: object) -> TypeAdapter[object]:
+    """One validator per type, built on first use (about 15 ms each)."""
+    return TypeAdapter(kind)
+
+
+def read_metadata[T](kind: type[T], value: object, name: str) -> T:
+    """A record's free-form value as the type the caller expects.
+
+    A field such as a run's ``config`` or ``metadata`` holds a :data:`MetadataValue`: the value
+    a run recorded, or the JSON it was read back as. Reading one means saying what it should
+    be, and being refused when it is not — a missing key and a key holding a string both reach
+    the same arithmetic otherwise, and fail somewhere else.
+
+    Array scalars are read as the numbers they hold, so ``jnp.int32(8)`` and ``8`` both read as
+    ``8``.
+
+    Args:
+        kind: The type the value should have, such as ``int`` or ``list[int]``.
+        value: The value, as the record holds it. It is whatever was stored, which is the
+            reason to read it through here rather than to trust it.
+        name: The value's path in the record, for the refusal (``"config.batch_size"``).
+
+    Returns:
+        The value as ``kind``.
+
+    Raises:
+        ValueError: If the value is not a ``kind``, naming its path and what was there.
+    """
+    try:
+        return _value_adapter(kind).validate_python(value)  # type: ignore[return-value]
+    except ValidationError as error:
+        msg = f"{name}: expected {kind}, got {value!r}"
+        raise ValueError(msg) from error
 
 
 def metadata_to_json(value: MetadataValue, name: str) -> JsonValue:

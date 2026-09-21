@@ -25,7 +25,7 @@ from source docstrings using [mkdocstrings](https://mkdocstrings.github.io/).
 
     ---
 
-    Statistical analyzer, bootstrap CI, outlier detection, significance tests
+    Summary statistics, outlier detection, bootstrap CI, significance tests
 
     [:octicons-arrow-right-24: Statistics API](statistics.md)
 

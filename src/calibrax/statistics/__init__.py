@@ -1,12 +1,5 @@
-"""Statistical analysis: bootstrap CI, hypothesis testing, and effect sizes."""
+"""Statistical analysis: summary statistics, bootstrap CI, hypothesis testing, effect sizes."""
 
-from calibrax.statistics.analyzer import (
-    BOOTSTRAP_CI_ALPHA,
-    OUTLIER_Z_THRESHOLD,
-    STABILITY_CV_THRESHOLD,
-    StatisticalAnalyzer,
-    StatisticalResult,
-)
 from calibrax.statistics.bootstrap import (
     bootstrap_interval,
     BootstrapInterval,
@@ -18,19 +11,26 @@ from calibrax.statistics.significance import (
     paired_significance_test,
     welch_t_test,
 )
+from calibrax.statistics.summary import (
+    outlier_mask,
+    OUTLIER_Z_THRESHOLD,
+    SampleSummary,
+    STABILITY_CV_THRESHOLD,
+    summarize,
+)
 
 
 __all__ = [
-    "BOOTSTRAP_CI_ALPHA",
     "DEFAULT_RESAMPLES",
-    "BootstrapInterval",
     "OUTLIER_Z_THRESHOLD",
     "STABILITY_CV_THRESHOLD",
-    "StatisticalAnalyzer",
-    "StatisticalResult",
+    "BootstrapInterval",
+    "SampleSummary",
     "bootstrap_interval",
     "effect_size",
     "mann_whitney_u",
+    "outlier_mask",
     "paired_significance_test",
+    "summarize",
     "welch_t_test",
 ]

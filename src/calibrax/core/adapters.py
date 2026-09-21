@@ -20,6 +20,18 @@ from typing_extensions import TypeIs
 from flax import nnx
 
 
+def _resolved_name(target: object) -> str:
+    """What an adapted object calls itself.
+
+    Args:
+        target: The adapted object.
+
+    Returns:
+        Its ``name``, else its ``model_name``, else ``"unknown"``.
+    """
+    return getattr(target, "name", None) or getattr(target, "model_name", None) or "unknown"
+
+
 class BenchmarkAdapter[TargetT](ABC):
     """Base class for non-NNX benchmark adapters.
 
@@ -42,9 +54,7 @@ class BenchmarkAdapter[TargetT](ABC):
             target: The object to adapt for benchmarking.
         """
         self._target = target
-        self._name: str = (
-            getattr(target, "name", None) or getattr(target, "model_name", None) or "unknown"
-        )
+        self._name: str = _resolved_name(target)
 
     @property
     def target(self) -> TargetT:
@@ -110,9 +120,7 @@ class NNXBenchmarkAdapter(nnx.Module):
             model: The NNX module to adapt.
         """
         self.model = model
-        self._name_value: str = (
-            getattr(model, "name", None) or getattr(model, "model_name", None) or "unknown"
-        )
+        self._name_value: str = _resolved_name(model)
 
     @property
     def name(self) -> str:

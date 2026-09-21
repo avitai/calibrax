@@ -6,22 +6,20 @@ sizes.
 
 ## Summarizing Samples
 
-`StatisticalAnalyzer` computes descriptive statistics and bootstrap confidence
-intervals for a sequence of measurements:
+`summarize` describes a sample — where it sits, how far it spreads, and whether that spread is
+small enough to call the measurement stable:
 
 ```python
-import jax
-from calibrax.statistics.analyzer import StatisticalAnalyzer
+import jax.numpy as jnp
+from calibrax.statistics import summarize
 
-analyzer = StatisticalAnalyzer(key=jax.random.key(42), bootstrap_resamples=1000)
-result = analyzer.summarize([0.45, 0.47, 0.44, 0.46, 0.48, 0.43, 0.45])
+summary = summarize([0.45, 0.47, 0.44, 0.46, 0.48, 0.43, 0.45])
 
-print(f"Mean: {result.mean:.4f}")
-print(f"Median: {result.median:.4f}")
-print(f"Std: {result.std:.4f}")
-print(f"CV: {result.cv:.2%}")
-print(f"95% CI: [{result.ci_lower:.4f}, {result.ci_upper:.4f}]")
-print(f"Stable: {result.is_stable}")  # True when CV < 10%
+print(f"Mean: {summary.mean:.4f}")
+print(f"Median: {summary.median:.4f}")
+print(f"Std: {summary.std:.4f}")
+print(f"CV: {summary.cv:.2%}")
+print(f"Stable: {bool(summary.is_stable)}")  # True when CV < 10%
 ```
 
 ```text
@@ -29,44 +27,61 @@ Mean: 0.4543
 Median: 0.4500
 Std: 0.0172
 CV: 3.78%
-95% CI: [0.4429, 0.4671]
 Stable: True
 ```
 
-The `StatisticalResult` dataclass contains:
+The `SampleSummary` it returns holds:
 
 | Field | Description |
 |-------|-------------|
 | `mean`, `median`, `std` | Central tendency and spread |
-| `min`, `max` | Range |
-| `cv` | Coefficient of variation (std / mean) |
-| `ci_lower`, `ci_upper` | Bootstrap confidence interval bounds |
-| `n` | Sample count |
+| `minimum`, `maximum` | Range |
+| `cv` | Coefficient of variation (std / mean), zero at a zero mean |
 | `is_stable` | `True` when `cv < 0.10` |
 
-## Bootstrap Confidence Intervals
+Every field is a `jax.Array` and `SampleSummary` is a pytree, so a summary crosses a transform
+boundary like any other value: `summarize` traces under `jax.jit`, maps under `jax.vmap` and
+differentiates under `jax.grad`.
 
-For more control over the confidence level, use `bootstrap_ci()` directly:
+## Confidence Intervals
+
+An interval is the part that resamples, so it takes the key it draws with — the same key gives
+the same interval, and `summarize` stays free of randomness:
 
 ```python
-samples = [0.45, 0.47, 0.44, 0.46, 0.48, 0.43, 0.45]
-lower, upper = analyzer.bootstrap_ci(samples, confidence=0.99)
-print(f"99% CI: [{lower:.4f}, {upper:.4f}]")
+import jax
+from calibrax.statistics import bootstrap_interval
+
+samples = jnp.asarray([0.45, 0.47, 0.44, 0.46, 0.48, 0.43, 0.45])
+interval = bootstrap_interval(jnp.mean, samples, key=jax.random.key(42), confidence=0.99)
+
+print(f"99% CI: [{interval.lower:.4f}, {interval.upper:.4f}]")
 ```
+
+`bootstrap_interval` takes the statistic, so an interval around a median or a ratio costs the
+same call. It resamples several arrays together when they are given together, as scipy's `paired=True` does.
 
 ## Outlier Detection
 
-Detect outliers using the Median Absolute Deviation (MAD) method, which is robust
-to skewed distributions:
+`outlier_mask` measures each observation against the median absolute deviation (MAD) rather
+than the standard deviation, so the outliers do not inflate the scale that judges them:
 
 ```python
+from calibrax.statistics import outlier_mask
+
 samples = [0.45, 0.47, 0.44, 0.46, 1.20, 0.43, 0.45]  # 1.20 is an outlier
-outlier_indices = analyzer.detect_outliers(samples, threshold=3.5)
-print(f"Outlier indices: {outlier_indices}")  # [4]
+mask = outlier_mask(samples, threshold=3.5)
+
+print(f"Outlier indices: {[int(index) for index in jnp.flatnonzero(mask)]}")
 ```
 
-The `threshold` parameter controls sensitivity — lower values flag more samples
-as outliers. The default of 3.5 is conservative.
+```text
+Outlier indices: [4]
+```
+
+The mask has the shape of the sample, so it traces and maps like `summarize`; take the indices
+with `jnp.flatnonzero` at the point you need them on the host. A lower `threshold` flags more
+observations; the default of 3.5 is conservative.
 
 ## Significance Tests
 
@@ -145,33 +160,32 @@ print(f"Cohen's d: {d:.2f}")
 
 ```python
 import jax
-from calibrax.statistics.analyzer import StatisticalAnalyzer
-from calibrax.statistics.significance import paired_significance_test, effect_size
+import jax.numpy as jnp
+from calibrax.statistics import bootstrap_interval, outlier_mask, summarize
+from calibrax.statistics.significance import effect_size, paired_significance_test
 
-analyzer = StatisticalAnalyzer(key=jax.random.key(0))
+baseline_samples = jnp.asarray([0.45, 0.47, 0.44, 0.46, 0.48])
+current_samples = jnp.asarray([0.52, 0.54, 0.51, 0.53, 0.55])
 
-baseline_samples = [0.45, 0.47, 0.44, 0.46, 0.48]
-current_samples = [0.52, 0.54, 0.51, 0.53, 0.55]
+# Drop the observations that stand apart before comparing
+clean_baseline = baseline_samples[~outlier_mask(baseline_samples)]
+clean_current = current_samples[~outlier_mask(current_samples)]
 
-# Summarize each group
-baseline_stats = analyzer.summarize(baseline_samples)
-current_stats = analyzer.summarize(current_samples)
+baseline_summary = summarize(clean_baseline)
+current_summary = summarize(clean_current)
 
-# Remove outliers
-clean_baseline = [s for i, s in enumerate(baseline_samples)
-                  if i not in analyzer.detect_outliers(baseline_samples)]
-clean_current = [s for i, s in enumerate(current_samples)
-                 if i not in analyzer.detect_outliers(current_samples)]
+baseline_interval = bootstrap_interval(jnp.mean, clean_baseline, key=jax.random.key(0))
+current_interval = bootstrap_interval(jnp.mean, clean_current, key=jax.random.key(1))
 
-# Test significance
-sig = paired_significance_test(clean_baseline, clean_current)
-d = effect_size(clean_baseline, clean_current)
+# The significance tests run on the host, so give them Python numbers
+significance = paired_significance_test(clean_baseline.tolist(), clean_current.tolist())
+d = effect_size(clean_baseline.tolist(), clean_current.tolist())
 
-print(f"Baseline: {baseline_stats.mean:.4f} [{baseline_stats.ci_lower:.4f}, "
-      f"{baseline_stats.ci_upper:.4f}]")
-print(f"Current:  {current_stats.mean:.4f} [{current_stats.ci_lower:.4f}, "
-      f"{current_stats.ci_upper:.4f}]")
-print(f"Significant: {sig.significant} (p={sig.p_value:.4f})")
+print(f"Baseline: {baseline_summary.mean:.4f} "
+      f"[{baseline_interval.lower:.4f}, {baseline_interval.upper:.4f}]")
+print(f"Current:  {current_summary.mean:.4f} "
+      f"[{current_interval.lower:.4f}, {current_interval.upper:.4f}]")
+print(f"Significant: {significance.significant} (p={significance.p_value:.4f})")
 print(f"Effect size: {d:.2f} ({'large' if abs(d) > 0.8 else 'medium' if abs(d) > 0.5 else 'small'})")
 ```
 

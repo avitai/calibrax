@@ -187,14 +187,15 @@ we construct a distribution of the statistic without assuming normality.
 
 ```python
 # doctest: +SKIP — template showing API usage pattern
-from calibrax.statistics import StatisticalAnalyzer
+from calibrax.statistics import bootstrap_interval, summarize
 
 import jax
-analyzer = StatisticalAnalyzer(key=jax.random.key(0))
-result = analyzer.summarize(measurements)
-print(f"Mean: {result.mean:.4f}")
-print(f"95% CI: [{result.ci_lower:.4f}, {result.ci_upper:.4f}]")
-print(f"Stable: {result.is_stable}")
+import jax.numpy as jnp
+summary = summarize(measurements)
+interval = bootstrap_interval(jnp.mean, measurements, key=jax.random.key(0))
+print(f"Mean: {summary.mean:.4f}")
+print(f"95% CI: [{interval.lower:.4f}, {interval.upper:.4f}]")
+print(f"Stable: {bool(summary.is_stable)}")
 ```
 `````
 
@@ -800,7 +801,7 @@ graph LR
     end
 
     subgraph Analysis
-        C[StatisticalAnalyzer]
+        C[summarize]
         D[detect_regressions]
     end
 
@@ -835,7 +836,7 @@ If you're familiar with pytest-benchmark, here's how Calibrax compares:
 | pytest-benchmark | Calibrax |
 |------------------|----------|
 | `benchmark(func)` | `TimingCollector().measure_iteration(iterator, num_batches=N)` |
-| `benchmark.stats["mean"]` | `StatisticalAnalyzer(key=jax.random.key(0)).summarize(samples).mean` |
+| `benchmark.stats["mean"]` | `summarize(samples).mean` |
 | `--benchmark-compare` | `compare_configurations(run_a, run_b)` |
 | `--benchmark-save=NAME` | `Store(path).save(run)` |
 | `--benchmark-json=FILE` | `Store(path).save(run)` (JSON-per-run) |
@@ -1047,7 +1048,7 @@ from flax import nnx
 # Calibrax
 from calibrax.core import Metric, MetricDef, MetricDirection, Point, Run
 from calibrax.profiling import TimingCollector, ResourceMonitor
-from calibrax.statistics import StatisticalAnalyzer
+from calibrax.statistics import summarize
 from calibrax.analysis import detect_regressions
 from calibrax.storage import Store
 ```
@@ -1715,7 +1716,7 @@ graph TD
     end
 
     subgraph "Analysis Layer"
-        A1[StatisticalAnalyzer]
+        A1[summarize]
         A2[detect_regressions]
     end
 
@@ -1778,7 +1779,7 @@ from flax import nnx
 # Calibrax
 from calibrax.core import Metric, MetricDef, MetricDirection, Point, Run
 from calibrax.profiling import TimingCollector, ResourceMonitor
-from calibrax.statistics import StatisticalAnalyzer
+from calibrax.statistics import summarize
 from calibrax.storage import Store
 
 # Verify setup
@@ -1909,10 +1910,9 @@ sample = collector.measure_iteration(
 
 # Check stability
 import jax
-analyzer = StatisticalAnalyzer(key=jax.random.key(0))
-result = analyzer.summarize(sample.per_batch_times)
-print(f"CV: {result.cv:.3f}")  # Should be < 0.10
-print(f"Stable: {result.is_stable}")
+summary = summarize(sample.per_batch_times)
+print(f"CV: {summary.cv:.3f}")  # Should be < 0.10
+print(f"Stable: {bool(summary.is_stable)}")
 ```
 
 **Prevention**: Always use `jax.block_until_ready()` and allow sufficient
@@ -2159,7 +2159,7 @@ from calibrax.core import Metric, MetricDef, MetricDirection, Point, Run
 # Calibrax submodules (alphabetical)
 from calibrax.analysis import detect_regressions, compare_configurations
 from calibrax.profiling import TimingCollector, ResourceMonitor
-from calibrax.statistics import StatisticalAnalyzer
+from calibrax.statistics import summarize
 from calibrax.storage import Store
 ```
 
@@ -2494,14 +2494,15 @@ print(f"Wall clock: {sample.wall_clock_sec:.3f} sec ({sample.num_batches} batche
 
 # %%
 # Add bootstrap confidence intervals
-from calibrax.statistics import StatisticalAnalyzer
+from calibrax.statistics import bootstrap_interval, summarize
 
 import jax
-analyzer = StatisticalAnalyzer(key=jax.random.key(0))
-result = analyzer.summarize(sample.per_batch_times)
-print(f"Mean: {result.mean:.4f} sec")
-print(f"95% CI: [{result.ci_lower:.4f}, {result.ci_upper:.4f}]")
-print(f"Stable: {result.is_stable}")
+import jax.numpy as jnp
+summary = summarize(sample.per_batch_times)
+interval = bootstrap_interval(jnp.mean, jnp.asarray(sample.per_batch_times), key=jax.random.key(0))
+print(f"Mean: {summary.mean:.4f} sec")
+print(f"95% CI: [{interval.lower:.4f}, {interval.upper:.4f}]")
+print(f"Stable: {bool(summary.is_stable)}")
 
 # %% [markdown]
 """
@@ -2917,7 +2918,7 @@ Metrics documentation must link to related calibrax modules:
 | Metrics Concept | Links To |
 |-----------------|----------|
 | Direction (higher/lower is better) | `core/models.py` — `MetricDirection`, `is_higher_better()` |
-| Confidence intervals | `calibrax.statistics` — `StatisticalAnalyzer` |
+| Confidence intervals | `calibrax.statistics` — `summarize`, `bootstrap_interval` |
 | Regression detection | `calibrax.analysis.regression` — `detect_regressions()` |
 | Multi-metric ranking | `calibrax.analysis.ranking` — `rank_by_metric()` |
 | Storage of metric results | `calibrax.storage` — `Store`, `Run`, `Metric` dataclass |
