@@ -1,13 +1,17 @@
 # calibrax.statistics
 
-Statistical analysis tools for benchmark measurements. Provides descriptive
-statistics with bootstrap confidence intervals, MAD-based outlier detection,
-significance tests (Welch's t, Mann-Whitney U, Wilcoxon), and Cohen's d
-effect size.
+Statistical analysis tools for benchmark measurements. Provides summary
+statistics, MAD-based outlier detection, percentile bootstrap confidence
+intervals, significance tests (Welch's t, Mann-Whitney U, Wilcoxon), and
+Cohen's d effect size.
 
-## Analyzer
+## Summary
 
-::: calibrax.statistics.analyzer
+::: calibrax.statistics.summary
+
+## Bootstrap
+
+::: calibrax.statistics.bootstrap
 
 ## Significance Testing
 

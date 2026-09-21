@@ -130,7 +130,7 @@ src/calibrax/
 ├── core/          Data models, protocols, adapters, result container, registry
 ├── profiling/     Timing, resources, GPU, energy, FLOPS, roofline, compilation,
 │                  complexity, hardware, tracing, carbon
-├── statistics/    Statistical analyzer, significance testing
+├── statistics/    Summary statistics, outliers, bootstrap, significance testing
 ├── analysis/      Regression, comparison, ranking, scaling, Pareto, changepoint
 ├── validation/    Convergence, accuracy, validation framework
 ├── monitoring/    Alerts, production monitoring

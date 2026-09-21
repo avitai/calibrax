@@ -31,6 +31,12 @@ from .protocols import (
     MetricProtocol as MetricProtocol,
     StatefulMetricProtocol as StatefulMetricProtocol,
 )
+from .record_values import (
+    Metadata as Metadata,
+    MetadataValue as MetadataValue,
+    read_metadata as read_metadata,
+    SupportsItem as SupportsItem,
+)
 from .registry import (
     BenchmarkRegistry as BenchmarkRegistry,
     get_benchmark as get_benchmark,
@@ -65,6 +71,11 @@ __all__ = [
     "TrendPoint",
     "TrendSeries",
     "is_higher_better",
+    # record values
+    "Metadata",
+    "MetadataValue",
+    "SupportsItem",
+    "read_metadata",
     # protocols
     "BatchableDatasetProtocol",
     "BenchmarkProtocol",

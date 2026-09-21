@@ -7,6 +7,44 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+### Added
+
+- `calibrax.statistics.summarize(samples)` returns a `SampleSummary` — `mean`, `median`, `std`,
+  `minimum`, `maximum`, `cv`, `is_stable` — computed in `jax.numpy` and registered as a pytree,
+  so it traces under `jax.jit`, maps under `jax.vmap` and differentiates under `jax.grad`. It
+  draws no random number and takes no key. `calibrax.statistics.outlier_mask(samples, *,
+  threshold)` returns the modified Z-score mask (Iglewicz and Hoaglin 1993) with the shape of
+  the sample, so it traces too.
+- `calibrax.core.read_metadata(kind, value, name)` reads a record's free-form value back as the
+  type the caller expects, refusing anything else with the value's path in the message. Array
+  scalars read as the numbers they hold, so `jnp.int32(8)` and `8` both read as `8`.
+  `Metadata`, `MetadataValue` and `SupportsItem` are now exported from `calibrax.core`.
+
+### Changed
+
+- `StatisticalAnalyzer` is gone, and with it the only object in the library that carried a
+  private PRNG key. It bundled a description, a bootstrap interval and outlier detection, so
+  the two that need no randomness could not be reached without a key, and its `summarize`
+  returned a different interval each call — the key advanced with every draw, making a report's
+  interval depend on how many had been taken before it. The parts are now separate functions:
+  `summarize` and `outlier_mask` for the deterministic ones, `bootstrap_interval(..., key=)` for
+  the interval, which states the key it resamples with as JAX asks
+  (`jax/docs/random-numbers.md`: "JAX avoids implicit global random state").
+- `StatisticalResult` is replaced by `SampleSummary`, whose fields are `jax.Array`. It carries no
+  `ci_lower`/`ci_upper`: an interval comes from `bootstrap_interval`, and a persisted record's
+  interval lives on `Metric`. `min` and `max` are `minimum` and `maximum`, which shadow nothing.
+- `MetadataValue` can be built into a validator: its array-scalar arm names one, so a type
+  holding it — `dict[str, MetadataValue]` — is readable rather than raising
+  `PydanticSchemaGenerationError`. The validator recognises an array scalar by the `item()` it
+  carries, keeping a `jnp.float32` loss as the scalar it was, and keeps the record modules free
+  of JAX.
+- `calibrax.statistics.significance` says in the module what it is: SciPy's exact p-values run on
+  the host and cannot be traced, unlike the rest of `calibrax.statistics`.
+
+### Removed
+
+- `BOOTSTRAP_CI_ALPHA`, which nothing read; `bootstrap_interval` takes `confidence`.
+
 ## [0.1.10] - 2026-09-20
 
 ### Added

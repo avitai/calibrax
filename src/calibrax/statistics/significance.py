@@ -2,6 +2,11 @@
 
 Provides Welch's t-test, Mann-Whitney U, the paired Wilcoxon signed-rank test, and Cohen's d
 effect size. The tests are SciPy's, which calibrax has through JAX.
+
+These run on the host and return Python numbers: SciPy computes the exact p-values that JAX has
+no equivalent of, so a significance test cannot be traced. The statistics that can be are
+:func:`calibrax.statistics.summarize`, :func:`calibrax.statistics.outlier_mask` and
+:func:`calibrax.statistics.bootstrap_interval`.
 """
 
 from __future__ import annotations
