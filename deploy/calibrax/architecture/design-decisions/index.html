@@ -4008,7 +4008,9 @@ chip by the <code>device_kind</code> JAX reports.</p>
 <li>A device the table does not hold, a CPU among them, is measured rather than guessed:
   <code>measure_hardware_spec(dtype=...)</code> times a matmul and STREAM's triad through XLA (an
   empirical roofline, as LBNL's Empirical Roofline Tool does) and returns the device's
-  attainable ceilings as a <code>HardwareSpec</code> named after the device and dtype</li>
+  attainable ceilings as a <code>HardwareSpec</code> named after the device and dtype;
+  <code>resolve_hardware_spec(dtype=...)</code> is the listed spec or that measurement, taken once per
+  dtype per process</li>
 </ul>
 
 
