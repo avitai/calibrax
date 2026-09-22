@@ -7,6 +7,8 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+## [0.1.12] - 2026-09-21
+
 ### Added
 
 - `calibrax.core.read_metadata_entry(kind, metadata, key, *, default=..., name=None)` reads one
