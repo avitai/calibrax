@@ -3985,7 +3985,9 @@ Measures linear association only.</p>
     <div class="doc doc-contents ">
 
         <p>Spearman's rank correlation coefficient.</p>
-<p>Pearson correlation computed on ranks. Measures monotonic association.</p>
+<p>Pearson correlation computed on ranks, which tied values share as their average
+(<code>jax.scipy.stats.rankdata</code>), so the coefficient does not depend on the order the pairs
+are given in.</p>
 
 
 <details class="note" open>
@@ -4088,7 +4090,9 @@ Range: [-1, 1].</p>
     <div class="doc doc-contents ">
 
         <p>Kendall rank correlation coefficient (tau-b).</p>
-<p><code>(concordant - discordant) / (n*(n-1)/2)</code>.</p>
+<p><code>(concordant - discordant) / sqrt((n0 - n1) * (n0 - n2))</code>, where <code>n0</code> is the number of
+pairs and <code>n1</code>, <code>n2</code> are the pairs tied in <code>a</code> and in <code>b</code>. Without ties this is
+<code>(concordant - discordant) / n0</code>, tau-a.</p>
 
 
 <details class="note" open>

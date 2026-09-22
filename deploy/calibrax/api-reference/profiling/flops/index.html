@@ -3863,7 +3863,7 @@ kernels, Pallas kernels), or when no backend provides an analysis at all.</p>
 
 
 <h2 id="calibrax.profiling.flops.FlopsResult" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>              <code class="highlight language-python"><span class="n">FlopsResult</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">total_flops</span><span class="p">,</span> <span class="n">transcendentals</span><span class="p">,</span> <span class="n">function_name</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>              <code class="highlight language-python"><span class="n">FlopsResult</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">total_flops</span><span class="p">,</span> <span class="n">transcendentals</span><span class="p">,</span> <span class="n">bytes_accessed</span><span class="p">,</span> <span class="n">function_name</span><span class="p">)</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
@@ -3908,6 +3908,19 @@ kernels, Pallas kernels), or when no backend provides an analysis at all.</p>
             <td>
               <div class="doc-md-description">
                 <p>Transcendental operations (<code>sin</code>, <code>exp</code>, <code>tanh</code>, ...).</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="calibrax.profiling.flops.FlopsResult.bytes_accessed">bytes_accessed</span></code></td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Bytes the operation reads and writes, XLA's <code>bytes accessed</code>. It
+counts the intermediates materialised between kernels, which the inputs and
+outputs alone do not.</p>
               </div>
             </td>
           </tr>
@@ -3999,7 +4012,7 @@ are arguments or captured state.</p>
 
 
 <h3 id="calibrax.profiling.flops.FlopsCounter.count" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">count</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">static_argnums</span><span class="o">=</span><span class="p">())</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">count</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">static_argnums</span><span class="o">=</span><span class="p">(),</span> <span class="n">optimized</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
 
 <a href="#calibrax.profiling.flops.FlopsCounter.count" class="headerlink" title="Permanent link">¤</a></h3>
 
@@ -4069,6 +4082,23 @@ for the static ones.</p>
                   <code>()</code>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>optimized</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Analyse the compiled executable, whose fusions decide how many bytes
+move, instead of the unoptimised HLO.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -4084,7 +4114,7 @@ for the static ones.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;              &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;FlopsResult&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;total_flops&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;transcendentals&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;function_name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;              &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;FlopsResult&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;total_flops&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;transcendentals&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;bytes_accessed&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;function_name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;
 
   &lt;span class=&quot;doc doc-labels&quot;&gt;
       &lt;small class=&quot;doc doc-label doc-label-dataclass&quot;&gt;&lt;code&gt;dataclass&lt;/code&gt;&lt;/small&gt;
@@ -4092,7 +4122,7 @@ for the static ones.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>FlopsResult with the FLOP and transcendental counts.</p>
+                <p>FlopsResult with the FLOP, transcendental and byte counts.</p>
               </div>
             </td>
           </tr>

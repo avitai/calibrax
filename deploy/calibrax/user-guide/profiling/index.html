@@ -4142,7 +4142,13 @@ reports. Nothing is executed and no data is copied:</p>
 </span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>
 </span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Total FLOPs: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">total_flops</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Transcendentals: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">transcendentals</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Bytes accessed: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">bytes_accessed</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </span></code></pre></div>
+<p><code>count</code> reads the unoptimised HLO, the estimate <code>nnx.tabulate</code> reports. Pass
+<code>optimized=True</code> for the compiled executable's analysis, where XLA's fusions decide how
+many bytes move; jax documents the same split on <code>Lowered.cost_analysis</code> and
+<code>Compiled.cost_analysis</code>. <code>RooflineAnalyzer</code> reads the compiled one, because it divides by
+a measured execution time.</p>
 <p>XLA's conventions: a matmul <code>(M, K) @ (K, N)</code> is <code>2 * M * K * N</code>, an elementwise op
 is one FLOP per output element, <code>sin</code>, <code>exp</code> and friends are transcendentals rather
 than FLOPs, a conditional costs its most expensive branch, and a loop body is
