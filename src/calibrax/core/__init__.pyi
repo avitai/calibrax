@@ -35,6 +35,7 @@ from .record_values import (
     Metadata as Metadata,
     MetadataValue as MetadataValue,
     read_metadata as read_metadata,
+    read_metadata_entry as read_metadata_entry,
     SupportsItem as SupportsItem,
 )
 from .registry import (
@@ -76,6 +77,7 @@ __all__ = [
     "MetadataValue",
     "SupportsItem",
     "read_metadata",
+    "read_metadata_entry",
     # protocols
     "BatchableDatasetProtocol",
     "BenchmarkProtocol",

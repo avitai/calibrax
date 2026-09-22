@@ -7,6 +7,17 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+### Added
+
+- `calibrax.core.read_metadata_entry(kind, metadata, key, *, default=..., name=None)` reads one
+  entry of a free-form field (a result's `metadata`, a run's `config`) as `kind`. An entry that
+  is absent or recorded as `None` is `default`, and is refused naming its path when no default
+  is given; a value of the wrong type is refused either way.
+- `calibrax.profiling.resolve_hardware_spec(*, dtype)` returns the published spec of the visible
+  devices, else their ceilings measured for `dtype`, measured once per dtype per process. It is
+  what `RooflineAnalyzer(hardware_specs=...)` takes for a device `HARDWARE_SPECS` does not list,
+  and `UnknownHardwareError` now names it.
+
 ## [0.1.11] - 2026-09-20
 
 ### Added
