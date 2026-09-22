@@ -202,7 +202,14 @@ result = counter.count(matmul_workload, jnp.ones((64, 128)), jnp.ones((128, 32))
 
 print(f"Total FLOPs: {result.total_flops:,}")
 print(f"Transcendentals: {result.transcendentals:,}")
+print(f"Bytes accessed: {result.bytes_accessed:,}")
 ```
+
+`count` reads the unoptimised HLO, the estimate `nnx.tabulate` reports. Pass
+`optimized=True` for the compiled executable's analysis, where XLA's fusions decide how
+many bytes move; jax documents the same split on `Lowered.cost_analysis` and
+`Compiled.cost_analysis`. `RooflineAnalyzer` reads the compiled one, because it divides by
+a measured execution time.
 
 XLA's conventions: a matmul `(M, K) @ (K, N)` is `2 * M * K * N`, an elementwise op
 is one FLOP per output element, `sin`, `exp` and friends are transcendentals rather

@@ -47,11 +47,15 @@ class FlopsResult:
     Attributes:
         total_flops: Floating-point operations, excluding transcendentals.
         transcendentals: Transcendental operations (``sin``, ``exp``, ``tanh``, ...).
+        bytes_accessed: Bytes the operation reads and writes, XLA's ``bytes accessed``. It
+            counts the intermediates materialised between kernels, which the inputs and
+            outputs alone do not.
         function_name: Name of the analyzed function.
     """
 
     total_flops: int
     transcendentals: int
+    bytes_accessed: int
     function_name: str
 
 
@@ -104,16 +108,20 @@ def _cost_field(cost: Mapping[str, float], key: str) -> int:
     return 0 if value is None else int(value)
 
 
-def _analyse(jitted: Wrapped, spec: tuple[PyTree, ...]) -> Mapping[str, float]:
+def _analyse(
+    jitted: Wrapped, spec: tuple[PyTree, ...], *, optimized: bool = False
+) -> Mapping[str, float]:
     """Return XLA's cost analysis for ``jitted`` applied to ``spec``.
 
     Prefers the analysis of the HLO lowered for the CPU backend. Without a CPU
     backend, or when that lowering carries no analysis, falls back to the default
-    device and then to the compiled executable.
+    device and then to the compiled executable. ``optimized`` reads the compiled
+    executable instead: the HLO that runs, whose fusions decide how many bytes move.
 
     Args:
         jitted: The ``jax.jit``-wrapped function.
         spec: Abstract (or static) arguments to lower it with.
+        optimized: Read the compiled executable's analysis.
 
     Returns:
         The analysis mapping, with at least the keys XLA populated.
@@ -127,7 +135,10 @@ def _analyse(jitted: Wrapped, spec: tuple[PyTree, ...]) -> Mapping[str, float]:
         cpu = None
     if cpu is not None:
         with jax.default_device(cpu):
-            cost = cost_mapping(jitted.lower(*spec).cost_analysis())
+            lowering = jitted.lower(*spec)
+            cost = cost_mapping(
+                lowering.compile().cost_analysis() if optimized else lowering.cost_analysis()
+            )
         if cost is not None:
             return cost
     lowered = jitted.lower(*spec)
@@ -154,6 +165,7 @@ class FlopsCounter:
         fn: Callable[..., PyTree],
         *args: PyTree,
         static_argnums: tuple[int, ...] = (),
+        optimized: bool = False,
     ) -> FlopsResult:
         """Count FLOPs for a function with given example arguments.
 
@@ -162,9 +174,11 @@ class FlopsCounter:
             *args: Example arguments; only their shapes and dtypes are used, except
                 for the static ones.
             static_argnums: Argument indices ``jax.jit`` treats as static.
+            optimized: Analyse the compiled executable, whose fusions decide how many bytes
+                move, instead of the unoptimised HLO.
 
         Returns:
-            FlopsResult with the FLOP and transcendental counts.
+            FlopsResult with the FLOP, transcendental and byte counts.
 
         Raises:
             FlopsUnavailableError: If XLA cannot estimate the cost, typically because
@@ -174,7 +188,7 @@ class FlopsCounter:
             arg if index in static_argnums else jax.tree.map(_abstract, arg)
             for index, arg in enumerate(args)
         )
-        cost = _analyse(jax.jit(fn, static_argnums=static_argnums), spec)
+        cost = _analyse(jax.jit(fn, static_argnums=static_argnums), spec, optimized=optimized)
         name = getattr(fn, "__name__", type(fn).__name__)
         total_flops = _cost_field(cost, "flops")
         transcendentals = _cost_field(cost, "transcendentals")
@@ -187,5 +201,6 @@ class FlopsCounter:
         return FlopsResult(
             total_flops=total_flops,
             transcendentals=transcendentals,
+            bytes_accessed=_cost_field(cost, "bytes accessed"),
             function_name=name,
         )

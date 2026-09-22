@@ -130,10 +130,9 @@ class RooflineAnalyzer:
             raise UnknownHardwareError(msg)
         compiled = jax.jit(func)
         execution_time = time_calls(lambda: compiled(*inputs)).median_sec
-        theoretical_flops = (
-            flops_override if flops_override is not None else self._estimate_flops(func, inputs)
-        )
-        memory_traffic = self._estimate_memory_traffic(func, inputs)
+        counted = FlopsCounter().count(func, *inputs, optimized=True)
+        theoretical_flops = flops_override if flops_override is not None else counted.total_flops
+        memory_traffic = counted.bytes_accessed or self._estimate_memory_traffic(func, inputs)
 
         achieved_flops = theoretical_flops / execution_time if execution_time > 0 else 0.0
         memory_bw = memory_traffic / execution_time if execution_time > 0 else 0.0
@@ -168,24 +167,14 @@ class RooflineAnalyzer:
             recommendations=tuple(recommendations),
         )
 
-    def _estimate_flops(self, func: Callable[..., PyTree], inputs: Sequence[jax.Array]) -> int:
-        """The operation's FLOPs from XLA's cost analysis of its lowering.
-
-        Args:
-            func: JAX function.
-            inputs: Input arrays.
-
-        Returns:
-            The FLOP count ``FlopsCounter`` reports.
-        """
-        return FlopsCounter().count(func, *inputs).total_flops
-
     def _estimate_memory_traffic(
         self, func: Callable[..., PyTree], inputs: Sequence[jax.Array]
     ) -> int:
-        """The bytes read and written: every input and every output leaf once.
+        """The bytes read and written, when XLA reports none: inputs and outputs once.
 
-        The outputs' shapes come from ``jax.eval_shape``, which traces the function without
+        XLA's ``bytes accessed`` is what ``analyze_operation`` uses; it counts the
+        intermediates materialised between kernels, which this lower bound does not. The
+        outputs' shapes come from ``jax.eval_shape``, which traces the function without
         running it.
 
         Args:

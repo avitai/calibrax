@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 import pytest
+from scipy import stats
 
 from calibrax.core.models import MetricDirection
 from calibrax.metrics import MetricRegistry
@@ -85,6 +87,43 @@ class TestKendallTau:
         a = jnp.array([1.0, 2.0])
         result = kendall_tau(a, a)
         assert isinstance(result, jax.Array)
+
+
+class TestRankCorrelationsWithTies:
+    """Tied values rank by their average rank, as scipy's do."""
+
+    TIED_A = jnp.array([1.0, 2.0, 2.0, 3.0, 4.0, 4.0, 5.0])
+    TIED_B = jnp.array([2.0, 1.0, 3.0, 3.0, 5.0, 4.0, 6.0])
+
+    def test_spearman_matches_scipy_with_ties(self) -> None:
+        reference = stats.spearmanr(np.asarray(self.TIED_A), np.asarray(self.TIED_B)).statistic
+
+        assert spearman_rank_correlation(self.TIED_A, self.TIED_B) == pytest.approx(
+            reference, abs=1e-5
+        )
+
+    def test_spearman_does_not_depend_on_the_order_of_the_pairs(self) -> None:
+        order = jnp.array([4, 0, 6, 2, 5, 1, 3])
+
+        assert spearman_rank_correlation(self.TIED_A, self.TIED_B) == pytest.approx(
+            float(spearman_rank_correlation(self.TIED_A[order], self.TIED_B[order])), abs=1e-6
+        )
+
+    def test_kendall_tau_is_tau_b_with_ties(self) -> None:
+        reference = stats.kendalltau(np.asarray(self.TIED_A), np.asarray(self.TIED_B)).statistic
+
+        assert kendall_tau(self.TIED_A, self.TIED_B) == pytest.approx(reference, abs=1e-5)
+
+    def test_a_tied_variable_agrees_perfectly_with_itself(self) -> None:
+        assert kendall_tau(self.TIED_A, self.TIED_A) == pytest.approx(1.0, abs=1e-5)
+        assert spearman_rank_correlation(self.TIED_A, self.TIED_A) == pytest.approx(1.0, abs=1e-5)
+
+    def test_both_trace_under_jit(self) -> None:
+        for metric in (spearman_rank_correlation, kendall_tau):
+            eager = float(metric(self.TIED_A, self.TIED_B))
+            assert float(jax.jit(metric)(self.TIED_A, self.TIED_B)) == pytest.approx(
+                eager, abs=1e-6
+            )
 
 
 class TestConcordanceCorrelation:

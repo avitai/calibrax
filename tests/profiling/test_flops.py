@@ -33,13 +33,17 @@ class TestFlopsResult:
     """Tests for FlopsResult frozen dataclass."""
 
     def test_construction(self) -> None:
-        result = FlopsResult(total_flops=100, transcendentals=4, function_name="f")
+        result = FlopsResult(
+            total_flops=100, transcendentals=4, bytes_accessed=0, function_name="f"
+        )
         assert result.total_flops == 100
         assert result.transcendentals == 4
         assert result.function_name == "f"
 
     def test_frozen_immutability(self) -> None:
-        result = FlopsResult(total_flops=100, transcendentals=0, function_name="f")
+        result = FlopsResult(
+            total_flops=100, transcendentals=0, bytes_accessed=0, function_name="f"
+        )
         with pytest.raises(dataclasses.FrozenInstanceError):
             result.total_flops = 1  # type: ignore[misc]
 
