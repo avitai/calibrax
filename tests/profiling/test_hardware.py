@@ -8,6 +8,7 @@ from collections.abc import Callable
 import jax
 import jax.numpy as jnp
 import pytest
+from jax.typing import DTypeLike
 from substrax.devices import DeviceInfo, DeviceKind
 from substrax.typing import PyTree
 
@@ -17,6 +18,7 @@ from calibrax.profiling.hardware import (
     HARDWARE_SPECS,
     HardwareSpec,
     measure_hardware_spec,
+    resolve_hardware_spec,
     spec_for_device_kind,
 )
 from calibrax.profiling.roofline import RooflineAnalyzer
@@ -202,6 +204,61 @@ class TestMeasureHardwareSpec:
 
     def test_a_measured_spec_drives_the_roofline(self) -> None:
         spec = measure_hardware_spec(dtype=jnp.float32, matmul_size=128, triad_length=2**16)
+
+        result = RooflineAnalyzer(hardware_specs=spec).analyze_operation(
+            lambda x: x @ x, [jnp.ones((64, 64))]
+        )
+
+        assert result.arithmetic_intensity > 0
+
+
+class TestResolveHardwareSpec:
+    """The listed spec of the visible devices, else their measured ceilings, measured once."""
+
+    @pytest.fixture(autouse=True)
+    def _fresh_cache(self) -> None:
+        hw_module._resolved_spec.cache_clear()
+
+    @staticmethod
+    def _counting_measure(monkeypatch: pytest.MonkeyPatch) -> list[str]:
+        calls: list[str] = []
+
+        def measure(*, dtype: DTypeLike) -> HardwareSpec:
+            name = jnp.dtype(dtype).name
+            calls.append(name)
+            return HardwareSpec(
+                name=f"measured:test:{name}", peak_flops=1e12, memory_bandwidth=1e11
+            )
+
+        monkeypatch.setattr(hw_module, "measure_hardware_spec", measure)
+        return calls
+
+    def test_a_listed_device_is_its_published_spec_and_is_not_measured(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        calls = self._counting_measure(monkeypatch)
+        monkeypatch.setattr(hw_module, "detect_hardware_specs", lambda: HARDWARE_SPECS["h100_sxm"])
+
+        assert resolve_hardware_spec(dtype=jnp.bfloat16) is HARDWARE_SPECS["h100_sxm"]
+        assert calls == []
+
+    def test_an_unlisted_device_is_measured_once_per_dtype(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        calls = self._counting_measure(monkeypatch)
+        monkeypatch.setattr(hw_module, "detect_hardware_specs", lambda: None)
+
+        first = resolve_hardware_spec(dtype=jnp.float32)
+        again = resolve_hardware_spec(dtype="float32")
+        other = resolve_hardware_spec(dtype=jnp.bfloat16)
+
+        assert first is again
+        assert first.name == "measured:test:float32"
+        assert other.name == "measured:test:bfloat16"
+        assert calls == ["float32", "bfloat16"]
+
+    def test_the_resolved_spec_drives_the_roofline(self) -> None:
+        spec = resolve_hardware_spec(dtype=jnp.float32)
 
         result = RooflineAnalyzer(hardware_specs=spec).analyze_operation(
             lambda x: x @ x, [jnp.ones((64, 64))]

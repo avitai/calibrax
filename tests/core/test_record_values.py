@@ -15,6 +15,7 @@ from calibrax.core.record_values import (
     metadata_to_json,
     MetadataValue,
     read_metadata,
+    read_metadata_entry,
 )
 
 
@@ -126,3 +127,38 @@ class TestReadMetadata:
 
         assert "config.workers" in str(refusal.value)
         assert "'many'" in str(refusal.value)
+
+
+class TestReadMetadataEntry:
+    """Reading one entry of a free-form field, with an explicit default for its absence."""
+
+    def test_a_recorded_entry_reads_as_the_kind(self) -> None:
+        assert read_metadata_entry(float, {"execution_time": 3}, "execution_time") == 3.0
+
+    def test_an_array_scalar_entry_reads_as_the_number_it_holds(self) -> None:
+        assert read_metadata_entry(int, {"steps": jnp.int32(8)}, "steps") == 8
+
+    def test_an_absent_entry_is_the_default(self) -> None:
+        assert read_metadata_entry(float, {}, "execution_time", default=-1.0) == -1.0
+
+    def test_an_entry_recorded_as_none_is_the_default(self) -> None:
+        metadata: dict[str, MetadataValue] = {"execution_time": None}
+        assert read_metadata_entry(float, metadata, "execution_time", default=-1.0) == -1.0
+
+    def test_an_absent_entry_without_a_default_is_refused_naming_it(self) -> None:
+        with pytest.raises(ValueError, match="execution_time"):
+            read_metadata_entry(float, {}, "execution_time")
+
+    def test_an_entry_recorded_as_none_without_a_default_is_refused(self) -> None:
+        with pytest.raises(ValueError, match="execution_time"):
+            read_metadata_entry(float, {"execution_time": None}, "execution_time")
+
+    def test_a_value_of_the_wrong_kind_is_refused_even_with_a_default(self) -> None:
+        with pytest.raises(ValueError, match="'fast'"):
+            read_metadata_entry(float, {"execution_time": "fast"}, "execution_time", default=0.0)
+
+    def test_the_refusal_names_the_path_the_caller_gives(self) -> None:
+        with pytest.raises(ValueError, match=r"config\.dataset_size"):
+            read_metadata_entry(
+                int, {"dataset_size": 2.5}, "dataset_size", name="config.dataset_size"
+            )

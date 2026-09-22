@@ -11,6 +11,7 @@ empirical roofline (the approach of LBNL's Empirical Roofline Tool, Lo et al. 20
 
 from __future__ import annotations
 
+import functools
 from collections.abc import Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
@@ -248,3 +249,25 @@ def measure_hardware_spec(
         peak_flops=flops / matmul_sec,
         memory_bandwidth=3 * triad_length * element.itemsize / triad_sec,
     )
+
+
+def resolve_hardware_spec(*, dtype: DTypeLike) -> HardwareSpec:
+    """The roofline figures of the devices this JAX process sees.
+
+    The published spec when ``HARDWARE_SPECS`` lists the devices (:func:`detect_hardware_specs`),
+    else their ceilings measured for ``dtype`` (:func:`measure_hardware_spec`). A measurement
+    runs once per dtype per process, because the devices a process sees do not change.
+
+    Args:
+        dtype: The element type the workload computes in; a measured peak depends on it.
+
+    Returns:
+        The listed or the measured spec.
+    """
+    return _resolved_spec(jnp.dtype(dtype).name)
+
+
+@functools.cache
+def _resolved_spec(dtype_name: str) -> HardwareSpec:
+    """The spec for one dtype, cached by its name so ``jnp.float32`` and ``"float32"`` share it."""
+    return detect_hardware_specs() or measure_hardware_spec(dtype=dtype_name)

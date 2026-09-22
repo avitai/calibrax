@@ -124,8 +124,8 @@ class RooflineAnalyzer:
             kinds = ", ".join(sorted(set(detect_devices().device_kinds)))
             msg = (
                 f"no roofline figures for the accelerator in use ({kinds}); pass "
-                "RooflineAnalyzer(hardware_specs=HardwareSpec(...)) with its peak FLOP/s and "
-                "memory bandwidth"
+                "RooflineAnalyzer(hardware_specs=resolve_hardware_spec(dtype=...)) to measure "
+                "its ceilings, or a HardwareSpec with its peak FLOP/s and memory bandwidth"
             )
             raise UnknownHardwareError(msg)
         compiled = jax.jit(func)

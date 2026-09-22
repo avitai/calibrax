@@ -259,17 +259,15 @@ hardware roofline to determine whether it is compute-bound or memory-bound:
 
 ```python
 import jax.numpy as jnp
-from calibrax.profiling.hardware import detect_hardware_specs, measure_hardware_spec
+from calibrax.profiling.hardware import resolve_hardware_spec
 from calibrax.profiling.roofline import RooflineAnalyzer
 
 def matmul_fn(x):
     return jnp.dot(x, x.T)
 
-# The published spec of a listed accelerator, else the device's measured ceilings.
-spec = detect_hardware_specs() or measure_hardware_spec(
-    dtype=jnp.float32, matmul_size=1024, triad_length=2**24
-)
-analyzer = RooflineAnalyzer(hardware_specs=spec)
+# The published spec of a listed accelerator, else the device's ceilings measured once for
+# float32 and reused for the rest of the process.
+analyzer = RooflineAnalyzer(hardware_specs=resolve_hardware_spec(dtype=jnp.float32))
 result = analyzer.analyze_operation(matmul_fn, [jnp.ones((64, 64))])
 
 print(f"Arithmetic intensity: {result.arithmetic_intensity:.2f} FLOP/byte")

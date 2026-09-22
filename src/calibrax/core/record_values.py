@@ -10,6 +10,7 @@ which are metadata values too; :data:`Metadata` is the field type that reads the
 
 from __future__ import annotations
 
+import enum
 import functools
 from collections.abc import Mapping, Sequence
 from datetime import datetime
@@ -133,6 +134,50 @@ def read_metadata[T](kind: type[T], value: object, name: str) -> T:
     except ValidationError as error:
         msg = f"{name}: expected {kind}, got {value!r}"
         raise ValueError(msg) from error
+
+
+class _NoDefault(enum.Enum):
+    """The absence of a default: an absent entry is then refused."""
+
+    TOKEN = enum.auto()
+
+
+def read_metadata_entry[T](
+    kind: type[T],
+    metadata: Mapping[str, MetadataValue],
+    key: str,
+    *,
+    default: T | _NoDefault = _NoDefault.TOKEN,
+    name: str | None = None,
+) -> T:
+    """One entry of a free-form field as the type the caller expects.
+
+    An entry that is absent, or recorded as ``None`` (not measured), is ``default``; without a
+    default it is refused, as a value of the wrong type always is. The entry is otherwise read
+    by :func:`read_metadata`.
+
+    Args:
+        kind: The type the entry should have, such as ``float``.
+        metadata: The field, such as a result's ``metadata`` or a run's ``config``.
+        key: The entry's key.
+        default: The value of an absent entry; omitted, an absent entry is refused.
+        name: The entry's path in the record for the refusal; ``key`` when omitted.
+
+    Returns:
+        The entry as ``kind``, or ``default``.
+
+    Raises:
+        ValueError: If the entry is absent and there is no default, or is not a ``kind``,
+            naming its path.
+    """
+    path = key if name is None else name
+    value = metadata.get(key)
+    if value is not None:
+        return read_metadata(kind, value, path)
+    if default is _NoDefault.TOKEN:
+        msg = f"{path}: expected {kind}, but it was not recorded"
+        raise ValueError(msg)
+    return default
 
 
 def metadata_to_json(value: MetadataValue, name: str) -> JsonValue:
