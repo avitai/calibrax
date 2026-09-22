@@ -6,12 +6,14 @@ classification, and alignment score calculation.
 """
 
 import dataclasses
+from collections.abc import Callable, Mapping
+from typing import Any
 
 import jax
 import jax.numpy as jnp
 import pytest
 
-from calibrax.profiling.flops import FlopsUnavailableError
+from calibrax.profiling.flops import cost_mapping, FlopsCounter, FlopsUnavailableError
 from calibrax.profiling.hardware import detect_hardware_specs, HardwareSpec
 from calibrax.profiling.roofline import (
     _calculate_alignment_score,
@@ -204,10 +206,17 @@ class TestRooflineAnalyzer:
 
         assert RooflineAnalyzer().hardware_specs == detect_hardware_specs()
 
-    def test_flops_come_from_xla_through_the_flops_counter(self) -> None:
-        analyzer = RooflineAnalyzer(hardware_specs=SPEC)
+    def test_flops_come_from_xla(self) -> None:
         x = jnp.ones((8, 8))
-        assert analyzer._estimate_flops(jnp.matmul, [x, x]) == 2 * 8 * 8 * 8
+        cost = cost_mapping(jax.jit(jnp.matmul).lower(x, x).compile().cost_analysis())
+        assert cost is not None
+
+        result = RooflineAnalyzer(hardware_specs=SPEC).analyze_operation(jnp.matmul, [x, x])
+
+        assert cost["flops"] == 2 * 8 * 8 * 8
+        assert result.arithmetic_intensity == pytest.approx(
+            cost["flops"] / cost["bytes accessed"], rel=1e-6
+        )
 
     def test_a_function_xla_cannot_cost_is_refused_not_guessed(self) -> None:
         def with_callback(x: jax.Array) -> jax.Array:
@@ -315,3 +324,43 @@ class TestCalculateAlignmentScore:
         assert _calculate_alignment_score((32,)) == 0.8
         assert _calculate_alignment_score((8,)) == 0.5
         assert _calculate_alignment_score((5,)) == 0.2
+
+
+class TestMemoryTrafficIsXlasOwnFigure:
+    """The intensity is XLA's FLOPs over XLA's bytes accessed, which counts intermediates."""
+
+    @staticmethod
+    def _cost(fn: Callable[..., Any], *inputs: jax.Array) -> Mapping[str, float]:
+        cost = cost_mapping(jax.jit(fn).lower(*inputs).compile().cost_analysis())
+        assert cost is not None
+        return cost
+
+    @pytest.mark.parametrize(
+        "name",
+        ["matmul", "fused_chain", "softmax"],
+    )
+    def test_intensity_matches_the_cost_analysis(self, name: str) -> None:
+        a = jnp.ones((256, 256))
+        b = jnp.ones((256, 256))
+        functions = {
+            "matmul": (lambda x, y: x @ y, (a, b)),
+            "fused_chain": (lambda x, y: jnp.tanh(x @ y) @ y, (a, b)),
+            "softmax": (lambda x, y: jax.nn.softmax(x @ y, axis=-1), (a, b)),
+        }
+        fn, inputs = functions[name]
+        cost = self._cost(fn, *inputs)
+        expected = cost["flops"] / cost["bytes accessed"]
+
+        result = RooflineAnalyzer(
+            hardware_specs=HardwareSpec(name="t", peak_flops=1.0e12, memory_bandwidth=1.0e11)
+        ).analyze_operation(fn, list(inputs))
+
+        assert result.arithmetic_intensity == pytest.approx(expected, rel=1e-6)
+
+    def test_the_flops_counter_reports_the_bytes_too(self) -> None:
+        a = jnp.ones((128, 128))
+        counted = FlopsCounter().count(lambda x: jnp.tanh(x @ x) @ x, a, optimized=True)
+
+        assert counted.bytes_accessed == pytest.approx(
+            self._cost(lambda x: jnp.tanh(x @ x) @ x, a)["bytes accessed"]
+        )

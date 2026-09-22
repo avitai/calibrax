@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import jax
 import jax.numpy as jnp
+from jax.scipy.stats import rankdata
 from jax.typing import ArrayLike
 
 from calibrax.metrics._utils import (
@@ -59,7 +60,9 @@ def pearson_correlation(a: ArrayLike, b: ArrayLike) -> jax.Array:
 def spearman_rank_correlation(a: ArrayLike, b: ArrayLike) -> jax.Array:
     """Spearman's rank correlation coefficient.
 
-    Pearson correlation computed on ranks. Measures monotonic association.
+    Pearson correlation computed on ranks, which tied values share as their average
+    (``jax.scipy.stats.rankdata``), so the coefficient does not depend on the order the pairs
+    are given in.
 
     Note:
         Direction: HIGHER (1.0 = perfect monotonic relationship).
@@ -80,16 +83,15 @@ def spearman_rank_correlation(a: ArrayLike, b: ArrayLike) -> jax.Array:
     """
     a_arr = jnp.asarray(a).ravel()
     b_arr = jnp.asarray(b).ravel()
-    # Convert to ranks (0-indexed)
-    rank_a = jnp.argsort(jnp.argsort(a_arr)).astype(jnp.float32)
-    rank_b = jnp.argsort(jnp.argsort(b_arr)).astype(jnp.float32)
-    return pearson_correlation(rank_a, rank_b)
+    return pearson_correlation(rankdata(a_arr), rankdata(b_arr))
 
 
 def kendall_tau(a: ArrayLike, b: ArrayLike) -> jax.Array:
     """Kendall rank correlation coefficient (tau-b).
 
-    ``(concordant - discordant) / (n*(n-1)/2)``.
+    ``(concordant - discordant) / sqrt((n0 - n1) * (n0 - n2))``, where ``n0`` is the number of
+    pairs and ``n1``, ``n2`` are the pairs tied in ``a`` and in ``b``. Without ties this is
+    ``(concordant - discordant) / n0``, tau-a.
 
     Note:
         Direction: HIGHER (1.0 = perfect agreement).
@@ -118,13 +120,14 @@ def kendall_tau(a: ArrayLike, b: ArrayLike) -> jax.Array:
 
     # Upper triangle only (avoid double counting and diagonal)
     mask = jnp.triu(jnp.ones((n, n), dtype=jnp.bool_), k=1)
-    concordant = jnp.sum(mask & (jnp.sign(a_diff) == jnp.sign(b_diff)) & (a_diff != 0))
-    discordant = jnp.sum(
-        mask & (jnp.sign(a_diff) != jnp.sign(b_diff)) & (a_diff != 0) & (b_diff != 0)
-    )
+    agreement = jnp.sign(a_diff) * jnp.sign(b_diff)
+    concordant_minus_discordant = jnp.sum(jnp.where(mask, agreement, 0.0))
     total_pairs = n * (n - 1) / 2
+    tied_in_a = jnp.sum(mask & (a_diff == 0))
+    tied_in_b = jnp.sum(mask & (b_diff == 0))
+    untied_pairs = jnp.sqrt((total_pairs - tied_in_a) * (total_pairs - tied_in_b))
 
-    return (concordant - discordant) / (total_pairs + _EPSILON)
+    return concordant_minus_discordant / (untied_pairs + _EPSILON)
 
 
 def concordance_correlation(a: ArrayLike, b: ArrayLike) -> jax.Array:

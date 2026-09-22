@@ -7,6 +7,26 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+### Fixed
+
+- `spearman_rank_correlation` ranks tied values by their average rank
+  (`jax.scipy.stats.rankdata`), as its docstring says and as `scipy.stats.spearmanr` does.
+  It ranked by order of appearance, which biased every tied sample and made the coefficient
+  depend on the order the pairs were given in.
+- `kendall_tau` is the tau-b its docstring names: the concordance excess over
+  `sqrt((n0 - n1) * (n0 - n2))`, which excludes the pairs tied in either variable. It divided
+  by the pair count, tau-a, which understates the coefficient whenever a variable has ties.
+- `RooflineAnalyzer` takes memory traffic from XLA's `bytes accessed` for the compiled
+  executable, so the intermediates materialised between kernels count. It summed the input
+  and output arrays only, which overstated arithmetic intensity (measured 85.3 against XLA's
+  32.0 on `tanh(a @ b) @ b`) and could report a memory-bound operation as compute-bound.
+
+### Added
+
+- `FlopsResult.bytes_accessed`, XLA's `bytes accessed` for the analysed function, and
+  `FlopsCounter.count(..., optimized=True)`, which analyses the compiled executable instead
+  of the unoptimised HLO.
+
 ## [0.1.12] - 2026-09-21
 
 ### Added

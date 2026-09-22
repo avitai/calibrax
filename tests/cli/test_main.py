@@ -682,6 +682,7 @@ class TestProfileOutputHelpers:
         flops_result = FlopsResult(
             total_flops=1234,
             transcendentals=7,
+            bytes_accessed=0,
             function_name="bench_fn",
         )
         energy_summary = EnergySummary(
@@ -711,6 +712,7 @@ class TestProfileOutputHelpers:
         flops_result = FlopsResult(
             total_flops=5000,
             transcendentals=0,
+            bytes_accessed=0,
             function_name="bench_fn",
         )
         energy_summary = EnergySummary(
@@ -772,6 +774,7 @@ class TestProfileCommand:
         flops_result = FlopsResult(
             total_flops=100,
             transcendentals=0,
+            bytes_accessed=0,
             function_name="bench_fn",
         )
 
