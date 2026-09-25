@@ -1,6 +1,8 @@
 version: 2
 updates:
-  - package-ecosystem: "pip"
+  # uv, not pip: every CI job installs with `uv sync --locked`, and the pip ecosystem
+  # edits pyproject.toml without touching uv.lock, so its pull requests cannot install.
+  - package-ecosystem: "uv"
     directory: "/"
     schedule:
       interval: "weekly"
