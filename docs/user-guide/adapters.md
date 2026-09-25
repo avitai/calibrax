@@ -17,11 +17,13 @@ but not the `setup()` / `run_training()` / `run_evaluation()` interface that
 as PyTorch models or plain Python objects:
 
 ```python
+from typing import TypeGuard
+
 from calibrax.core.adapters import BenchmarkAdapter
 
-class PyTorchAdapter(BenchmarkAdapter):
+class PyTorchAdapter(BenchmarkAdapter[object]):
     @classmethod
-    def can_adapt(cls, target: object) -> bool:
+    def can_adapt(cls, target: object) -> TypeGuard[object]:
         # Return True if this adapter can wrap the given target
         return hasattr(target, "forward")
 
@@ -38,7 +40,10 @@ print(adapter.target)        # the original model
 Key points:
 
 - Subclass `BenchmarkAdapter` and override `can_adapt()` to declare which
-  objects your adapter supports
+  objects your adapter supports. It returns `TypeGuard[T]` for the `T` the constructor takes,
+  which is what lets a registry hand it an accepted target. `TypeGuard`, not `TypeIs`: an
+  adapter may accept only part of a type (say, modules with a `sample` method), and a registry
+  acts only on acceptance
 - Access the wrapped object via the `target` property
 - The `name` property defaults to `target.name`, then `target.model_name`,
   falling back to `"unknown"`
@@ -78,7 +83,8 @@ print(adapter.name)  # "unknown" (nnx.Linear has no .name attribute)
     result = nnx.jit(adapter.predict)(x)
     ```
 
-`NNXBenchmarkAdapter.can_adapt()` returns `True` for any `nnx.Module` instance.
+`NNXBenchmarkAdapter.can_adapt()` returns `True` for any `nnx.Module` instance, typed
+`TypeGuard[nnx.Module]`.
 
 ## AdapterRegistry
 
@@ -110,9 +116,9 @@ wrapped = adapt(my_nnx_model)  # returns NNXBenchmarkAdapter
 For isolated testing or custom resolution logic:
 
 ```python
-from calibrax.core.adapters import AdapterRegistry
+from calibrax.core.adapters import Adapter, AdapterRegistry
 
-registry = AdapterRegistry()
+registry = AdapterRegistry[Adapter]()
 registry.register(PyTorchAdapter)
 registry.register(NNXBenchmarkAdapter)
 
@@ -120,18 +126,50 @@ wrapped = registry.adapt(model)
 registry.reset()  # clear all registrations
 ```
 
+### A Registry of One Adapter Family
+
+The registry's type parameter is the family of adapters it holds, and `adapt()` returns that
+type. A library whose adapters share a base class types its registry with that base, so its
+callers get the base's methods back without a cast, and a class outside the family is refused
+when it is registered:
+
+```python
+from typing import TypeGuard
+
+import jax
+from flax import nnx
+from calibrax.core.adapters import AdapterRegistry, NNXBenchmarkAdapter
+
+class GenerativeAdapter(NNXBenchmarkAdapter):
+    def sample(self, n: int) -> jax.Array: ...
+
+class DiffusionAdapter(GenerativeAdapter):
+    @classmethod
+    def can_adapt(cls, target: object) -> TypeGuard[nnx.Module]:
+        return isinstance(target, nnx.Module) and hasattr(target, "denoise")
+
+registry = AdapterRegistry[GenerativeAdapter]()
+registry.register(GenerativeAdapter)
+registry.register(DiffusionAdapter)
+
+adapter = registry.adapt(model)  # typed GenerativeAdapter
+adapter.sample(16)
+```
+
 ## Custom Adapter Example
 
 A complete adapter for a hypothetical framework:
 
 ```python
+from typing import TypeGuard
+
 from calibrax.core.adapters import BenchmarkAdapter, register_adapter
 
-class SklearnAdapter(BenchmarkAdapter):
+class SklearnAdapter(BenchmarkAdapter[object]):
     """Adapter for scikit-learn estimators."""
 
     @classmethod
-    def can_adapt(cls, target: object) -> bool:
+    def can_adapt(cls, target: object) -> TypeGuard[object]:
         return hasattr(target, "fit") and hasattr(target, "predict")
 
     @property

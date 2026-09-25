@@ -14,8 +14,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Callable
-from typing import Protocol
-from typing_extensions import TypeIs
+from typing import Protocol, TypeGuard
 
 from flax import nnx
 
@@ -81,7 +80,10 @@ class BenchmarkAdapter[TargetT](ABC):
 
         ``AdapterRegistry`` picks the first registered adapter whose ``can_adapt`` accepts the
         target, so every adapter states which targets it wraps. An adapter a registry holds
-        returns ``TypeIs[TargetT]``, which lets the registry hand the target to its constructor.
+        returns ``TypeGuard[TargetT]``, which lets the registry hand an accepted target to its
+        constructor. ``TypeGuard`` rather than ``TypeIs``: a registry acts only on acceptance,
+        and an adapter may accept part of a type (modules with a given method), where a
+        ``TypeIs`` refusal would wrongly narrow the rest of that type away.
 
         Args:
             target: The object to check.
@@ -132,7 +134,7 @@ class NNXBenchmarkAdapter(nnx.Module):
         return self._name_value
 
     @classmethod
-    def can_adapt(cls, target: object) -> TypeIs[nnx.Module]:
+    def can_adapt(cls, target: object) -> TypeGuard[nnx.Module]:
         """Check if the target is a Flax NNX Module.
 
         Args:
@@ -148,34 +150,36 @@ type Adapter = BenchmarkAdapter[object] | NNXBenchmarkAdapter
 """An adapter of either kind: a plain wrapper or an NNX module."""
 
 
-class AdapterClass[TargetT](Protocol):
-    """An adapter class a registry holds: a type predicate and a constructor for its targets."""
+class AdapterClass[TargetT, AdapterT](Protocol):
+    """An adapter class a registry holds: a predicate for its targets and a constructor.
 
-    def can_adapt(self, target: object, /) -> TypeIs[TargetT]:
-        """Whether ``target`` is one of the adapter's targets."""
+    ``AdapterT`` is what the constructor builds, so a registry of one adapter family
+    (``AdapterRegistry[MyAdapter]``) takes only that family's classes and hands back that type.
+    """
+
+    def can_adapt(self, target: object, /) -> TypeGuard[TargetT]:
+        """Whether the adapter accepts ``target``."""
         ...
 
-    def __call__(self, target: TargetT, /) -> BenchmarkAdapter[TargetT] | NNXBenchmarkAdapter:
+    def __call__(self, target: TargetT, /) -> AdapterT:
         """Wrap ``target``."""
         ...
 
 
-class AdapterRegistry:
-    """Registry of benchmark adapters.
+class AdapterRegistry[AdapterT]:
+    """Registry of benchmark adapters of one family, ``AdapterT``.
 
-    Maintains an ordered list of adapter classes and resolves
-    the appropriate adapter for a given target via can_adapt checks.
-
-    Accepts both BenchmarkAdapter subclasses (for non-NNX targets)
-    and NNXBenchmarkAdapter subclasses (nnx.Module-based, for JIT-compatible
-    NNX adapters).
+    Maintains an ordered list of adapter classes and resolves the appropriate adapter for a
+    given target via ``can_adapt`` checks. The family is the registry's type parameter:
+    ``AdapterRegistry[Adapter]`` holds adapters of either kind (as the default registry does),
+    and a consumer's ``AdapterRegistry[MyAdapter]`` returns ``MyAdapter`` from ``adapt``.
     """
 
     def __init__(self) -> None:
         """Initialize an empty adapter registry."""
-        self._factories: list[Callable[[object], Adapter | None]] = []
+        self._factories: list[Callable[[object], AdapterT | None]] = []
 
-    def register[TargetT](self, adapter_cls: AdapterClass[TargetT]) -> None:
+    def register[TargetT](self, adapter_cls: AdapterClass[TargetT, AdapterT]) -> None:
         """Register an adapter class (highest priority first).
 
         Args:
@@ -183,12 +187,12 @@ class AdapterRegistry:
                 targets its constructor takes.
         """
 
-        def wrap(target: object) -> Adapter | None:
+        def wrap(target: object) -> AdapterT | None:
             return adapter_cls(target) if adapter_cls.can_adapt(target) else None
 
         self._factories.insert(0, wrap)
 
-    def adapt(self, target: object) -> Adapter:
+    def adapt(self, target: object) -> AdapterT:
         """Find and apply a suitable adapter for the target.
 
         Args:
@@ -215,7 +219,7 @@ class AdapterRegistry:
 
 
 # Default registry with NNX adapter pre-registered
-_default_registry = AdapterRegistry()
+_default_registry = AdapterRegistry[Adapter]()
 _default_registry.register(NNXBenchmarkAdapter)
 
 
@@ -234,7 +238,7 @@ def adapt(target: object) -> Adapter:  # noqa: DOC502  # raised by AdapterRegist
     return _default_registry.adapt(target)
 
 
-def register_adapter[TargetT](adapter_cls: AdapterClass[TargetT]) -> None:
+def register_adapter[TargetT](adapter_cls: AdapterClass[TargetT, Adapter]) -> None:
     """Register an adapter class into the default registry.
 
     Args:
