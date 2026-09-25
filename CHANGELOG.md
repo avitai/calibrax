@@ -7,6 +7,8 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+## [0.1.13] - 2026-09-25
+
 ### Fixed
 
 - `register_metric` returns the function it decorates typed as it was declared. It was typed
