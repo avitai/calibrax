@@ -40,9 +40,7 @@ dependencies = [
   "pydantic>=2.10",
   # Significance tests and the chi-squared interval use SciPy, which JAX itself requires.
   "scipy>=1.15",
-  "substrax>=0.1.15",
-  # TypeIs, for adapter predicates, arrived in typing_extensions 4.10.
-  "typing_extensions>=4.10"
+  "substrax>=0.1.15"
 ]
 description = "JAX benchmarking, profiling and evaluation metrics for Flax NNX: a metric registry across regression, classification, calibration, uncertainty, forecasting, generative, image, text, audio, graph and fairness domains, XLA FLOP counting, roofline analysis, GPU and energy monitoring, regression detection, publication exports, W&B and MLflow"
 dynamic = ["version"]
@@ -406,7 +404,6 @@ select = [
 
 [tool.ruff.lint.isort]
 combine-as-imports = true
-extra-standard-library = ["typing_extensions"]
 known-first-party = ["calibrax", "tests"]
 lines-after-imports = 2
 order-by-type = false

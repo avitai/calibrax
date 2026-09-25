@@ -7,6 +7,22 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+### Changed
+
+- `AdapterRegistry` is generic in the adapter family it holds, `AdapterRegistry[AdapterT]`, and
+  `adapt()` returns `AdapterT`. It returned the `Adapter` union whatever it held, so a library
+  whose adapters share a base class (artifex's `NNXGenerativeModelAdapter`) could not return
+  that base from its own `adapt_model` without a cast. `AdapterClass` takes the family as a
+  second parameter, `AdapterClass[TargetT, AdapterT]`, and `register()` refuses a class outside
+  the family. The default registry is `AdapterRegistry[Adapter]`, so `adapt()` and
+  `register_adapter()` are unchanged for callers.
+  `calibrax.core` exports `AdapterClass` and `Adapter`, which a consumer's registry is typed with.
+- An adapter's `can_adapt` is a `TypeGuard[TargetT]`, not a `TypeIs[TargetT]`, and
+  `NNXBenchmarkAdapter.can_adapt` returns `TypeGuard[nnx.Module]`. A registry acts only on
+  acceptance, and an adapter may accept part of a type (modules with a given method); a
+  `TypeIs` refusal would narrow the rest of that type away, which is false. `TypeGuard` is in
+  the standard library, so calibrax no longer depends on `typing_extensions`.
+
 ## [0.1.13] - 2026-09-25
 
 ### Fixed

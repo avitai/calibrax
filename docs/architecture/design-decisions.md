@@ -130,7 +130,7 @@ and no package `__init__.py` re-exports them, so the rest of calibrax imports wi
 **Implications:**
 
 - The base install is JAX (which brings SciPy), Flax, NumPy, pydantic, jaxtyping, click,
-  psutil, typing_extensions, lazy-loader and substrax; every other dependency is an extra
+  psutil, lazy-loader and substrax; every other dependency is an extra
 - A missing extra fails where the integration is imported, with the install command, rather
   than a method returning `None` or a flag deciding at run time
 - There are no availability flags and no imports inside functions: a module's dependencies

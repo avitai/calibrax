@@ -5,7 +5,7 @@ and generic target wrapping without domain-specific methods.
 """
 
 import inspect
-from typing_extensions import TypeIs
+from typing import assert_type, TypeGuard
 from unittest.mock import MagicMock
 
 import jax
@@ -15,6 +15,7 @@ from flax import nnx
 
 from calibrax.core.adapters import (
     adapt,
+    Adapter,
     AdapterRegistry,
     BenchmarkAdapter,
     NNXBenchmarkAdapter,
@@ -194,21 +195,61 @@ class TestAdapterRegistry:
 
     def test_register_and_adapt(self) -> None:
         """Registered adapter is used to wrap matching targets."""
-        registry = AdapterRegistry()
+        registry = AdapterRegistry[NNXBenchmarkAdapter]()
         registry.register(NNXBenchmarkAdapter)
         model = nnx.Linear(2, 3, rngs=nnx.Rngs(0))
         adapter = registry.adapt(model)
         assert isinstance(adapter, NNXBenchmarkAdapter)
 
+    def test_a_registry_returns_the_adapter_type_it_holds(self) -> None:
+        """A registry of one adapter family hands back that family, with no cast."""
+
+        class ModelAdapter(NNXBenchmarkAdapter):
+            """The adapter family a consumer's registry holds."""
+
+        class LinearAdapter(ModelAdapter):
+            """A member of the family for one kind of module."""
+
+            @classmethod
+            def can_adapt(cls, target: object) -> TypeGuard[nnx.Linear]:
+                return isinstance(target, nnx.Linear)
+
+        registry = AdapterRegistry[ModelAdapter]()
+        registry.register(ModelAdapter)
+        registry.register(LinearAdapter)
+
+        adapter = registry.adapt(nnx.Linear(2, 3, rngs=nnx.Rngs(0)))
+
+        assert_type(adapter, ModelAdapter)
+        assert isinstance(adapter, LinearAdapter)
+
+    def test_an_adapter_for_a_subset_of_a_type_falls_through_outside_it(self) -> None:
+        """A predicate that accepts only some modules passes the others to the next adapter."""
+
+        class NamedModuleAdapter(NNXBenchmarkAdapter):
+            """Adapter for modules that carry a name."""
+
+            @classmethod
+            def can_adapt(cls, target: object) -> TypeGuard[nnx.Module]:
+                return isinstance(target, nnx.Module) and hasattr(target, "name")
+
+        registry = AdapterRegistry[NNXBenchmarkAdapter]()
+        registry.register(NNXBenchmarkAdapter)
+        registry.register(NamedModuleAdapter)
+
+        adapter = registry.adapt(nnx.Linear(2, 3, rngs=nnx.Rngs(0)))
+
+        assert type(adapter) is NNXBenchmarkAdapter
+
     def test_adapt_unknown_raises(self) -> None:
         """Raises ValueError when no adapter can handle the target."""
-        registry = AdapterRegistry()
+        registry = AdapterRegistry[Adapter]()
         with pytest.raises(ValueError, match="No adapter found"):
             registry.adapt("not a model")
 
     def test_reset_clears_adapters(self) -> None:
         """Reset removes all registered adapters."""
-        registry = AdapterRegistry()
+        registry = AdapterRegistry[NNXBenchmarkAdapter]()
         registry.register(NNXBenchmarkAdapter)
         registry.reset()
         with pytest.raises(ValueError, match="No adapter found"):
@@ -221,10 +262,10 @@ class TestAdapterRegistry:
             """Higher-priority adapter that handles all objects."""
 
             @classmethod
-            def can_adapt(cls, target: object) -> TypeIs[nnx.Module]:
+            def can_adapt(cls, target: object) -> TypeGuard[nnx.Module]:
                 return isinstance(target, nnx.Module)
 
-        registry = AdapterRegistry()
+        registry = AdapterRegistry[Adapter]()
         registry.register(NNXBenchmarkAdapter)
         registry.register(SpecialAdapter)
 
@@ -240,6 +281,7 @@ class TestModuleConvenience:
         """Default registry resolves NNX modules to NNXBenchmarkAdapter."""
         model = nnx.Linear(2, 3, rngs=nnx.Rngs(0))
         adapter = adapt(model)
+        assert_type(adapter, Adapter)
         assert isinstance(adapter, NNXBenchmarkAdapter)
 
     def test_register_custom_adapter(self) -> None:
@@ -249,7 +291,7 @@ class TestModuleConvenience:
             """Custom adapter for dict targets."""
 
             @classmethod
-            def can_adapt(cls, target: object) -> TypeIs[dict[str, str]]:
+            def can_adapt(cls, target: object) -> TypeGuard[dict[str, str]]:
                 return isinstance(target, dict)
 
         register_adapter(DictAdapter)

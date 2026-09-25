@@ -2,6 +2,8 @@
 
 from .adapters import (
     adapt as adapt,
+    Adapter as Adapter,
+    AdapterClass as AdapterClass,
     AdapterRegistry as AdapterRegistry,
     BenchmarkAdapter as BenchmarkAdapter,
     NNXBenchmarkAdapter as NNXBenchmarkAdapter,
@@ -52,6 +54,8 @@ from .result import (
 
 __all__ = [
     # adapters
+    "Adapter",
+    "AdapterClass",
     "AdapterRegistry",
     "BenchmarkAdapter",
     "NNXBenchmarkAdapter",
