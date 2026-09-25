@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import assert_type
+
 import jax
 import jax.numpy as jnp
 import pytest
@@ -247,6 +249,24 @@ class TestRegisterMetricDecorator:
         assert entry.tier == MetricTier.PURE_FUNCTION
         # Cleanup
         registry.remove("test_custom_metric")
+
+    def test_decorator_keeps_the_decorated_signature(self) -> None:
+        """A decorated metric keeps the type it was declared with.
+
+        The decorator returns the function it registers; typing it as the registry's generic
+        ``MetricFn`` would make every caller see ``jax.Array | float`` for a metric declared to
+        return ``float``. pyright checks the ``assert_type`` below (the gate covers tests).
+        """
+
+        @register_metric("test_typed_metric", description="Test")
+        def typed_metric(predictions: jax.Array, targets: jax.Array) -> float:
+            return float(jnp.mean(predictions - targets))
+
+        value = typed_metric(jnp.ones(3), jnp.zeros(3))
+
+        assert_type(value, float)
+        assert value == 1.0
+        MetricRegistry().remove("test_typed_metric")
 
 
 class TestCalculateAllFused:
