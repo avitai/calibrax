@@ -4321,7 +4321,10 @@ falling back to <code>"unknown"</code>.</p>
         <p>Check if this adapter can handle the given target.</p>
 <p><code>AdapterRegistry</code> picks the first registered adapter whose <code>can_adapt</code> accepts the
 target, so every adapter states which targets it wraps. An adapter a registry holds
-returns <code>TypeIs[TargetT]</code>, which lets the registry hand the target to its constructor.</p>
+returns <code>TypeGuard[TargetT]</code>, which lets the registry hand an accepted target to its
+constructor. <code>TypeGuard</code> rather than <code>TypeIs</code>: a registry acts only on acceptance,
+and an adapter may accept part of a type (modules with a given method), where a
+<code>TypeIs</code> refusal would wrongly narrow the rest of that type away.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -4582,7 +4585,7 @@ falling back to <code>"unknown"</code>.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="typing_extensions.TypeIs">TypeIs</span>[<span title="flax.nnx.Module">Module</span>]</code>
+                  <code><span title="typing.TypeGuard">TypeGuard</span>[<span title="flax.nnx.Module">Module</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4623,7 +4626,9 @@ falling back to <code>"unknown"</code>.</p>
 
 
 
-        <p>An adapter class a registry holds: a type predicate and a constructor for its targets.</p>
+        <p>An adapter class a registry holds: a predicate for its targets and a constructor.</p>
+<p><code>AdapterT</code> is what the constructor builds, so a registry of one adapter family
+(<code>AdapterRegistry[MyAdapter]</code>) takes only that family's classes and hands back that type.</p>
 
 
 
@@ -4657,7 +4662,7 @@ falling back to <code>"unknown"</code>.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Whether <code>target</code> is one of the adapter's targets.</p>
+        <p>Whether the adapter accepts <code>target</code>.</p>
 
 
     </div>
@@ -4704,12 +4709,11 @@ falling back to <code>"unknown"</code>.</p>
 
 
 
-        <p>Registry of benchmark adapters.</p>
-<p>Maintains an ordered list of adapter classes and resolves
-the appropriate adapter for a given target via can_adapt checks.</p>
-<p>Accepts both BenchmarkAdapter subclasses (for non-NNX targets)
-and NNXBenchmarkAdapter subclasses (nnx.Module-based, for JIT-compatible
-NNX adapters).</p>
+        <p>Registry of benchmark adapters of one family, <code>AdapterT</code>.</p>
+<p>Maintains an ordered list of adapter classes and resolves the appropriate adapter for a
+given target via <code>can_adapt</code> checks. The family is the registry's type parameter:
+<code>AdapterRegistry[Adapter]</code> holds adapters of either kind (as the default registry does),
+and a consumer's <code>AdapterRegistry[MyAdapter]</code> returns <code>MyAdapter</code> from <code>adapt</code>.</p>
 
         <p>Initialize an empty adapter registry.</p>
 
@@ -4764,7 +4768,7 @@ NNX adapters).</p>
                 <code>adapter_cls</code>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;code&gt;AdapterClass&lt;/code&gt; (&lt;code&gt;calibrax.core.adapters.AdapterClass&lt;/code&gt;)" href="#calibrax.core.adapters.AdapterClass">AdapterClass</a>[<span title="calibrax.core.adapters.AdapterRegistry.register[TargetT]">TargetT</span>]</code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;code&gt;AdapterClass&lt;/code&gt; (&lt;code&gt;calibrax.core.adapters.AdapterClass&lt;/code&gt;)" href="#calibrax.core.adapters.AdapterClass">AdapterClass</a>[<span title="calibrax.core.adapters.AdapterRegistry.register[TargetT]">TargetT</span>, <span title="calibrax.core.adapters.AdapterRegistry[AdapterT]">AdapterT</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4840,7 +4844,7 @@ targets its constructor takes.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-type_alias&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;Adapter&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;BenchmarkAdapter&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;object&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;NNXBenchmarkAdapter&lt;/span&gt;&lt;/code&gt; (&lt;code&gt;calibrax.core.adapters.Adapter&lt;/code&gt;)" href="#calibrax.core.adapters.Adapter">Adapter</a></code>
+                  <code><span title="calibrax.core.adapters.AdapterRegistry[AdapterT]">AdapterT</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5031,7 +5035,7 @@ targets its constructor takes.</p>
                 <code>adapter_cls</code>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;code&gt;AdapterClass&lt;/code&gt; (&lt;code&gt;calibrax.core.adapters.AdapterClass&lt;/code&gt;)" href="#calibrax.core.adapters.AdapterClass">AdapterClass</a>[<span title="calibrax.core.adapters.register_adapter[TargetT]">TargetT</span>]</code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;code&gt;AdapterClass&lt;/code&gt; (&lt;code&gt;calibrax.core.adapters.AdapterClass&lt;/code&gt;)" href="#calibrax.core.adapters.AdapterClass">AdapterClass</a>[<span title="calibrax.core.adapters.register_adapter[TargetT]">TargetT</span>, <a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-type_alias&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;Adapter&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;BenchmarkAdapter&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;object&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;NNXBenchmarkAdapter&lt;/span&gt;&lt;/code&gt; (&lt;code&gt;calibrax.core.adapters.Adapter&lt;/code&gt;)" href="#calibrax.core.adapters.Adapter">Adapter</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
