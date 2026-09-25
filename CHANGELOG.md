@@ -9,6 +9,11 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Fixed
 
+- `register_metric` returns the function it decorates typed as it was declared. It was typed
+  `Callable[[MetricFn], MetricFn]`, so a type checker saw every decorated metric as the
+  registry's generic `MetricFn` and every call as returning `jax.Array | float`, whatever the
+  metric declared: a caller of a `-> float` metric failed its own `-> float` contract (artifex's
+  `FIDMetric.compute`). It is now generic in the decorated type, as `profile_options` is.
 - `spearman_rank_correlation` ranks tied values by their average rank
   (`jax.scipy.stats.rankdata`), as its docstring says and as `scipy.stats.spearmanr` does.
   It ranked by order of appearance, which biased every tied sample and made the coefficient

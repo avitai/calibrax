@@ -114,7 +114,7 @@ class MetricRegistry(SingletonRegistry[MetricEntry]):
         ]
 
 
-def register_metric(
+def register_metric[F: MetricFn](
     name: str,
     *,
     tier: MetricTier = MetricTier.PURE_FUNCTION,
@@ -123,7 +123,7 @@ def register_metric(
     description: str = "",
     signature: MetricSignature = MetricSignature.PREDICTIONS_TARGETS,
     properties: MetricProperties | None = None,
-) -> Callable[[MetricFn], MetricFn]:
+) -> Callable[[F], F]:
     """Decorator that registers a function in the MetricRegistry.
 
     Args:
@@ -136,10 +136,11 @@ def register_metric(
         properties: Mathematical and capability properties of the metric.
 
     Returns:
-        Decorator that registers the function and returns it unchanged.
+        Decorator that registers the function and returns it unchanged, typed as it was
+        declared (the registry stores it as a ``MetricFn``).
     """
 
-    def decorator(fn: MetricFn) -> MetricFn:
+    def decorator(fn: F) -> F:
         entry = MetricEntry(
             name=name,
             fn=fn,
