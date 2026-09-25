@@ -7,6 +7,8 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+## [0.1.14] - 2026-09-25
+
 ### Changed
 
 - `AdapterRegistry` is generic in the adapter family it holds, `AdapterRegistry[AdapterT]`, and
