@@ -5110,7 +5110,7 @@ print(entry.tier, entry.domain)</p>
 
 
 <h2 id="calibrax.metrics._registry.register_metric" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">register_metric</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">tier</span><span class="p">:</span> <span class="n">MetricTier</span> <span class="o">=</span> <span class="n">MetricTier</span><span class="o">.</span><span class="n">PURE_FUNCTION</span><span class="p">,</span> <span class="n">domain</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;general&#39;</span><span class="p">,</span> <span class="n">direction</span><span class="p">:</span> <span class="n">MetricDirection</span> <span class="o">=</span> <span class="n">MetricDirection</span><span class="o">.</span><span class="n">LOWER</span><span class="p">,</span> <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">signature</span><span class="p">:</span> <span class="n">MetricSignature</span> <span class="o">=</span> <span class="n">MetricSignature</span><span class="o">.</span><span class="n">PREDICTIONS_TARGETS</span><span class="p">,</span> <span class="n">properties</span><span class="p">:</span> <span class="n">MetricProperties</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">MetricFn</span><span class="p">],</span> <span class="n">MetricFn</span><span class="p">]</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">register_metric</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">tier</span><span class="p">:</span> <span class="n">MetricTier</span> <span class="o">=</span> <span class="n">MetricTier</span><span class="o">.</span><span class="n">PURE_FUNCTION</span><span class="p">,</span> <span class="n">domain</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;general&#39;</span><span class="p">,</span> <span class="n">direction</span><span class="p">:</span> <span class="n">MetricDirection</span> <span class="o">=</span> <span class="n">MetricDirection</span><span class="o">.</span><span class="n">LOWER</span><span class="p">,</span> <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">signature</span><span class="p">:</span> <span class="n">MetricSignature</span> <span class="o">=</span> <span class="n">MetricSignature</span><span class="o">.</span><span class="n">PREDICTIONS_TARGETS</span><span class="p">,</span> <span class="n">properties</span><span class="p">:</span> <span class="n">MetricProperties</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">F</span><span class="p">],</span> <span class="n">F</span><span class="p">]</span></code>
 
 <a href="#calibrax.metrics._registry.register_metric" class="headerlink" title="Permanent link">¤</a></h2>
 
@@ -5262,19 +5262,21 @@ print(entry.tier, entry.domain)</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="collections.abc.Callable">Callable</span>[[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-attribute&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;MetricFn&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Callable&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;...&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;jax&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Array&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;float&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;&lt;/code&gt;
-
-  &lt;span class=&quot;doc doc-labels&quot;&gt;
-      &lt;small class=&quot;doc doc-label doc-label-module-attribute&quot;&gt;&lt;code&gt;module-attribute&lt;/code&gt;&lt;/small&gt;
-  &lt;/span&gt; (&lt;code&gt;calibrax.metrics._types.MetricFn&lt;/code&gt;)" href="#calibrax.metrics._types.MetricFn">MetricFn</a>], <a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-attribute&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;MetricFn&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Callable&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;...&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;jax&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Array&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;float&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;&lt;/code&gt;
-
-  &lt;span class=&quot;doc doc-labels&quot;&gt;
-      &lt;small class=&quot;doc doc-label doc-label-module-attribute&quot;&gt;&lt;code&gt;module-attribute&lt;/code&gt;&lt;/small&gt;
-  &lt;/span&gt; (&lt;code&gt;calibrax.metrics._types.MetricFn&lt;/code&gt;)" href="#calibrax.metrics._types.MetricFn">MetricFn</a>]</code>
+                  <code><span title="collections.abc.Callable">Callable</span>[[<span title="calibrax.metrics._registry.register_metric[F]">F</span>], <span title="calibrax.metrics._registry.register_metric[F]">F</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Decorator that registers the function and returns it unchanged.</p>
+                <p>Decorator that registers the function and returns it unchanged, typed as it was</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="collections.abc.Callable">Callable</span>[[<span title="calibrax.metrics._registry.register_metric[F]">F</span>], <span title="calibrax.metrics._registry.register_metric[F]">F</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>declared (the registry stores it as a <code>MetricFn</code>).</p>
               </div>
             </td>
           </tr>
