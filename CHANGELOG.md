@@ -16,6 +16,7 @@ and uses semantic versioning while the public API stabilizes.
   second parameter, `AdapterClass[TargetT, AdapterT]`, and `register()` refuses a class outside
   the family. The default registry is `AdapterRegistry[Adapter]`, so `adapt()` and
   `register_adapter()` are unchanged for callers.
+  `calibrax.core` exports `AdapterClass` and `Adapter`, which a consumer's registry is typed with.
 - An adapter's `can_adapt` is a `TypeGuard[TargetT]`, not a `TypeIs[TargetT]`, and
   `NNXBenchmarkAdapter.can_adapt` returns `TypeGuard[nnx.Module]`. A registry acts only on
   acceptance, and an adapter may accept part of a type (modules with a given method); a
