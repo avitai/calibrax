@@ -1,5 +1,8 @@
 name: Documentation
 
+# Read the Docs builds and hosts the documentation (.readthedocs.yaml). This workflow only checks
+# that the site builds strictly, so a change that breaks it fails before it reaches Read the Docs.
+
 on:
   push:
     branches: [main]
@@ -7,17 +10,26 @@ on:
       - "docs/**"
       - "mkdocs.yml"
       - "src/calibrax/**"
+      - ".github/workflows/docs.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "mkdocs.yml"
+      - "src/calibrax/**"
+      - ".github/workflows/docs.yml"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # A newer push to a pull request cancels its superseded run; a push to main always completes.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  deploy:
-    name: Deploy Docs
+  build:
+    name: Build Docs
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
     steps:
       - uses: actions/checkout@v7
 
@@ -38,11 +50,3 @@ jobs:
 
       - name: Build docs
         run: uv run mkdocs build --strict --clean
-
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./site
-          destination_dir: deploy/calibrax
-          cname: docs.avitai.bio
