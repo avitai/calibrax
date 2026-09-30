@@ -86,3 +86,31 @@ def test_pytest_measures_coverage_by_source_directory() -> None:
     for where, sources in (("addopts", _cov_sources(addopts)), ("ci.yml", _cov_sources(command))):
         assert sources, f"{where} measures no coverage source"
         assert [source for source in sources if not (ROOT / source).is_dir()] == [], where
+
+
+def test_every_uv_cache_is_pruned_before_it_is_saved() -> None:
+    """A saved uv cache holds only what uv built, not every wheel it downloaded.
+
+    setup-uv prunes only when asked (``prune-cache`` defaults to false from v9); unpruned, the
+    caches of the heavy extras grow to gigabytes each and evict the repository's other caches.
+    """
+    github = ROOT / ".github"
+    documents = [
+        *sorted(github.glob("workflows/*.yml")),
+        *sorted(github.glob("actions/*/action.yml")),
+    ]
+    checked = 0
+    unpruned: list[str] = []
+    for path in documents:
+        document = yaml.safe_load(path.read_text(encoding="utf-8"))
+        owners = {**document.get("jobs", {}), "runs": document.get("runs") or {}}
+        for owner, body in owners.items():
+            for step in body.get("steps", []):
+                if not str(step.get("uses", "")).startswith("astral-sh/setup-uv@"):
+                    continue
+                checked += 1
+                if (step.get("with") or {}).get("prune-cache") is not True:
+                    unpruned.append(f"{path.relative_to(ROOT)}:{owner}")
+
+    assert checked, "no setup-uv step found; the contract is reading the wrong files"
+    assert unpruned == [], f"setup-uv steps saving an unpruned cache: {unpruned}"
