@@ -7,6 +7,11 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+### Removed
+
+- Dependabot version updates: no bot opens dependency pull requests; dependency updates come
+  from pull requests the maintainers open. Dependabot alerts are unaffected.
+
 ## [0.1.14] - 2026-09-25
 
 ### Changed
