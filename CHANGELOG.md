@@ -12,6 +12,17 @@ and uses semantic versioning while the public API stabilizes.
 - Dependabot version updates: no bot opens dependency pull requests; dependency updates come
   from pull requests the maintainers open. Dependabot alerts are unaffected.
 
+### Security
+
+- The lock takes the fixed releases of the seventeen packages pip-audit reports across every
+  extra: aiohttp 3.14.5, bleach 6.4.0, certifi 2026.10.23, filelock 4.2.4, fsspec 2026.9.0,
+  gitpython 3.2.1, graphql-core 3.2.13, mistune 3.4.0, mkdocs-material 9.8.0, mlflow 3.17.2,
+  multidict 7.2.1, opentelemetry-api 1.45.1, pillow 13.0.0, pymdown-extensions 12.3,
+  soupsieve 3.0.4, virtualenv 21.14.13 and werkzeug 3.1.9. mkdocstrings moves to 1.0.8 with
+  them: pymdown-extensions 12.2 and later need mkdocstrings 1.0.7 or later, and the docs did not
+  build on 1.0.3. distlib, mkdocstrings-python, mlflow-skinny, mlflow-tracing, opentelemetry-sdk,
+  opentelemetry-semantic-conventions and yarl follow.
+
 ## [0.1.14] - 2026-09-25
 
 ### Changed
