@@ -86,3 +86,16 @@ def test_the_docs_build_is_strict() -> None:
 
     assert builds, "docs.yml never builds the site"
     assert all("--strict" in command for command in builds), builds
+
+
+@pytest.mark.parametrize("event", ["pull_request", "push"])
+def test_a_dependency_change_rebuilds_the_docs(event: str) -> None:
+    """The site's build tools come from the lock: a relock alone can break the strict build.
+
+    mkdocstrings 1.0.3 with pymdown-extensions 12.3 fails it, and the change that locked that pair
+    touched only ``uv.lock`` and ``pyproject.toml``.
+    """
+    paths = _triggers(_load(DOCS_WORKFLOW))[event]["paths"]
+
+    assert "uv.lock" in paths
+    assert "pyproject.toml" in paths

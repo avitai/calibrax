@@ -9,6 +9,8 @@ on:
     paths:
       - "docs/**"
       - "mkdocs.yml"
+      - "pyproject.toml"
+      - "uv.lock"
       - "src/calibrax/**"
       - ".github/workflows/docs.yml"
   pull_request:
@@ -16,6 +18,8 @@ on:
     paths:
       - "docs/**"
       - "mkdocs.yml"
+      - "pyproject.toml"
+      - "uv.lock"
       - "src/calibrax/**"
       - ".github/workflows/docs.yml"
 
