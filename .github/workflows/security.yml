@@ -41,7 +41,9 @@ jobs:
       - name: Audit the locked dependencies
         uses: avitai/substrax/.github/actions/audit-lock@13e98b78127606be04437bd7c5de894fb765a28e
 
+      # Bandit reports whatever the audit found, so a red job names every scan that failed.
       - name: Bandit
+        if: ${{ !cancelled() }}
         run: |
           uv run bandit -r src/calibrax/ -c pyproject.toml -ll
           uv run bandit -r src/calibrax/ -c pyproject.toml -f json -o bandit-report.json -q
