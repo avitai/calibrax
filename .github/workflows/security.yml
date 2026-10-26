@@ -34,16 +34,12 @@ jobs:
       - name: Install dependencies
         run: uv sync --locked --extra dev
 
-      - name: Pip audit
-        # PYSEC-2026-3552 is a PKCS#7 EnvelopedData Bleichenbacher oracle in
-        # pkcs7_decrypt_*. cryptography is transitive here, through mlflow and
-        # google-auth, and nothing under src/ imports it or names pkcs7, so the
-        # affected API is unreachable. Its fix is cryptography 50.0.0 and mlflow
-        # requires cryptography<50, so the resolver cannot take it. Reviewed
-        # 2026-08-27; revisit when mlflow relaxes that ceiling.
-        run: >-
-          uv run pip-audit --ignore-vuln PYSEC-2022-42969
-          --ignore-vuln CVE-2026-3219 --ignore-vuln PYSEC-2026-3552
+      # Every extra the lock resolves, each audited by a pinned pip-audit with a fresh advisory
+      # cache. Ignored advisories and their reasons would live in
+      # [tool.substrax.audit-lock.ignore] in pyproject.toml; the action also fails on an ignore
+      # that no longer matches anything.
+      - name: Audit the locked dependencies
+        uses: avitai/substrax/.github/actions/audit-lock@13e98b78127606be04437bd7c5de894fb765a28e
 
       - name: Bandit
         run: |

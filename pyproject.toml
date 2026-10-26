@@ -110,7 +110,6 @@ dev = [
   "interrogate>=1.5",
   "ipykernel>=6.29.5",
   "jupytext>=1.16.6",
-  "pip-audit>=2.7",
   "pre-commit>=4.2",
   "pydeps>=1.12.17",
   "pydoclint>=0.5",

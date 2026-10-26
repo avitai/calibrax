@@ -7,6 +7,13 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+### Changed
+
+- The Security workflow audits every extra of the lock with substrax's `audit-lock` action, and
+  Quality Checks no longer runs pip-audit. Both ran pip-audit on an environment synced with the
+  `dev` extra, which never held the packages of the `docs`, `mlflow` and `wandb` extras.
+  pip-audit leaves the `dev` extra: the action runs its own pinned copy.
+
 ### Removed
 
 - Dependabot version updates: no bot opens dependency pull requests; dependency updates come
