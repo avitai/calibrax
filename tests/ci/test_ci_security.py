@@ -60,3 +60,12 @@ def test_no_workflow_runs_pip_audit_on_an_environment() -> None:
     ]
 
     assert runs == []
+
+
+def test_bandit_runs_whatever_the_audit_found_and_its_failure_fails_the_job() -> None:
+    """A failed audit skipped Bandit, so the job reported one scan's verdict, not two."""
+    bandit = next(step for step in _security_steps() if "bandit " in step.get("run", ""))
+
+    assert bandit.get("if") == "${{ !cancelled() }}"
+    assert "continue-on-error" not in bandit
+    assert "||" not in bandit["run"], "a captured exit status can hide bandit's failure"
