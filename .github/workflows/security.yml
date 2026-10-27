@@ -34,12 +34,12 @@ jobs:
       - name: Install dependencies
         run: uv sync --locked --extra dev
 
-      # Every extra the lock resolves, each audited by a pinned pip-audit with a fresh advisory
-      # cache. Ignored advisories and their reasons would live in
-      # [tool.substrax.audit-lock.ignore] in pyproject.toml; the action also fails on an ignore
-      # that no longer matches anything.
+      # Every extra the lock resolves, each audited by a pinned pip-audit against both its PyPI
+      # and OSV services with a fresh advisory cache. Ignored advisories and their reasons would
+      # live in [tool.substrax.audit-lock.ignore] in pyproject.toml; the action also fails on an
+      # ignore that no longer matches anything.
       - name: Audit the locked dependencies
-        uses: avitai/substrax/.github/actions/audit-lock@13e98b78127606be04437bd7c5de894fb765a28e
+        uses: avitai/substrax/.github/actions/audit-lock@e889be4e9fb55fe9c272e219277524630bf9d39e
 
       # Bandit reports whatever the audit found, so a red job names every scan that failed.
       - name: Bandit
