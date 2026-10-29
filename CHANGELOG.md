@@ -7,6 +7,13 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+### Added
+
+- `calibrax.metrics.stateful.MeanAccumulator` composes native Flax NNX averages for
+  device-side record-weighted batch means. Empty batches, independent metric windows,
+  reset, donated graph/tree binding, scan, vmap and differentiation are covered.
+  The shared Substrax floor is 0.1.23, including its native compile-count test helper.
+
 ### Changed
 
 - The Security workflow audits every extra of the lock with substrax's `audit-lock` action, and

@@ -6,6 +6,41 @@ accumulating feature statistics over batches (FID) or applying learned
 calibration weights (LPIPS). Tiers 1 and 2 handle these cases. For Tier 3
 metric learning losses, see [Metric Learning](metric-learning.md).
 
+## Device accumulation of batch means
+
+Use `MeanAccumulator` when the model already reports a scalar mean over each batch.
+It composes [Flax NNX averages](https://flax.readthedocs.io/en/latest/api_reference/flax.nnx/training/metrics.html#flax.nnx.metrics.Average)
+and keeps totals and counts on the device. No record-sized buffer is retained.
+
+```python
+import jax.numpy as jnp
+from calibrax.metrics.stateful import MeanAccumulator
+
+metrics = MeanAccumulator(("loss", "accuracy"))
+metrics.update({"loss": jnp.float32(1), "accuracy": jnp.float32(0.5)}, jnp.int32(2))
+metrics.update({"loss": jnp.float32(3), "accuracy": jnp.float32(1)}, jnp.int32(1))
+means = metrics.compute()  # device scalars: loss=5/3, accuracy=2/3
+metrics.reset()  # new window; compute() now reports NaN for both names
+```
+
+For per-step training windows, supply `jnp.int32(1)` on each step. For record-weighted
+evaluation, supply the number of actual records, including the short final batch.
+Each metric has its own denominator, so omitted names remain unchanged. The names
+are fixed at construction; unknown names and nonscalar means/counts are refused
+before any state changes. Counts must use an integer dtype.
+
+The caller supplies nonnegative record counts and must keep each window below the
+native int32 count capacity. Means and totals use float32. `update`, `compute` and
+`reset` compose with NNX transforms; none converts results to host scalars. Masked
+empty batches are sanitized before weighting, following
+[CLU's masked averaging](https://github.com/google/CommonLoopUtils/blob/main/clu/metrics.py),
+so NaN or infinity from an empty mean cannot contaminate later observations.
+Non-finite means with positive record counts remain visible. This metric
+observation policy does not replace a loss function's own empty-selection policy.
+
+This API does not add cross-host metric merging or change the existing feature
+extractor metric classes below.
+
 ## Tier 1: Frozen Backbone Metrics
 
 Tier 1 metrics use pretrained models to extract features, accumulate
