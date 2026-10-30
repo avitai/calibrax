@@ -23,12 +23,11 @@ from calibrax.metrics._utils import (
     _EPSILON,
     _prepare_arrays,
     _prepare_ensemble_arrays,
+    coefficient_of_determination,
     reduce_values,
     safe_divide,
     safe_norm,
     safe_root,
-    sample_weights,
-    weighted_mean,
 )
 
 
@@ -191,15 +190,7 @@ def r_squared(  # noqa: DOC502  # raised by _prepare_arrays
         ValueError: If shapes do not match.
     """
     p, t = _prepare_arrays(predictions, targets)
-    w = sample_weights(mask, weights, t.shape)
-    # Two passes over the targets, deliberately. The one-pass identity
-    # `sum(w t^2) - sum(w) * wmean^2` was measured and rejected: in float32 with targets
-    # offset by 1e4 it returns 0.9875 where the stable form returns 0.9116, and it is no
-    # faster on GPU (72.1 us against 73.7 us at 4096 points), so it trades accuracy for
-    # nothing.
-    ss_res = jnp.sum(w * (t - p) ** 2)
-    ss_tot = jnp.sum(w * (t - weighted_mean(t, w)) ** 2)
-    return 1.0 - ss_res / (ss_tot + _EPSILON)
+    return coefficient_of_determination(p, t, mask=mask, weights=weights)
 
 
 def mape(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _prepare_arrays

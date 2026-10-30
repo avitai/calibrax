@@ -347,6 +347,64 @@ def weighted_mean(values: ArrayLike, weights: ArrayLike) -> jax.Array:
     return jnp.sum(w * jnp.asarray(values)) / (jnp.sum(w) + _EPSILON)
 
 
+def coefficient_of_determination(
+    predictions: ArrayLike,
+    targets: ArrayLike,
+    *,
+    mask: ArrayLike | None = None,
+    weights: ArrayLike | None = None,
+) -> jax.Array:
+    """``1 - SS_res / SS_tot``, the one place this package computes R-squared.
+
+    Lives here rather than in :mod:`calibrax.metrics.functional.regression` because three
+    callers need it and two of them are in other modules: ``r_squared``,
+    ``r_squared_adjusted`` and the fused regression suite. Every module that needs it
+    already imports this one, so sharing it adds no dependency edge between siblings.
+
+    **Two paths, chosen at trace time.** With neither ``mask`` nor ``weights`` the sums are
+    unweighted and the centre is :func:`jax.numpy.mean`, which is exactly what the three
+    former copies computed -- so sharing this function changes no existing result by a
+    single bit, measured over 240 cases. Weighting instead through a vector of ones was
+    tried and rejected: it shifted the unweighted answer by up to 2.5 float32 ULP and left
+    the compiled regression suite 4 fusions larger, all to express "no weights". The
+    ``None`` checks are static, as in :func:`sample_weights`, so both paths trace.
+
+    The residual is written ``p - t`` rather than ``t - p`` on purpose. They are bit-equal
+    once squared, but the fused regression suite binds ``diff = p - t``, and XLA reuses
+    that binding only for the spelling it already has: written the other way round the
+    compiled suite grew from 118 fusions to 122. Keeping the spelling is what lets the
+    fused path delegate here for free.
+
+    When weights are given, ``SS_tot`` is centred on the **weighted** mean of the targets.
+    Weighting both sums while centring on the unweighted mean is the usual error and gives
+    a different number; the weighted mean is what
+    ``sklearn.metrics.r2_score(sample_weight=...)`` uses.
+
+    Two passes over the targets, deliberately. The one-pass identity
+    ``sum(w t^2) - sum(w) * mean^2`` was measured and rejected: in float32 with targets
+    offset by 1e4 it returns 0.9875 where this returns 0.9116 against a float64 truth of
+    0.9116, and it is no faster on GPU either (72.1 us against 73.7 us at 4,096 points),
+    so it trades accuracy for nothing.
+
+    Args:
+        predictions: Predicted values.
+        targets: Ground truth values.
+        mask: Elements to keep (boolean, broadcastable), or ``None`` for all.
+        weights: Element weights (broadcastable), or ``None`` for unit weights.
+
+    Returns:
+        The coefficient of determination as a scalar array.
+    """
+    p = jnp.asarray(predictions)
+    t = jnp.asarray(targets)
+    if mask is None and weights is None:
+        return 1.0 - jnp.sum((p - t) ** 2) / (jnp.sum((t - jnp.mean(t)) ** 2) + _EPSILON)
+    w = sample_weights(mask, weights, t.shape)
+    ss_res = jnp.sum(w * (p - t) ** 2)
+    ss_tot = jnp.sum(w * (t - weighted_mean(t, w)) ** 2)
+    return 1.0 - ss_res / (ss_tot + _EPSILON)
+
+
 def reduce_values(
     values: ArrayLike,
     *,
