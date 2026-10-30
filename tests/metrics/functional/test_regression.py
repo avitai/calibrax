@@ -20,6 +20,7 @@ from calibrax.metrics.functional.regression import (
     per_sample_relative_l2,
     quantile_loss,
     r_squared,
+    r_squared_adjusted,
     relative_error,
     relative_l2_error,
     rmse,
@@ -165,6 +166,30 @@ class TestRSquared:
         targets = jnp.array([1.0, 2.0, 3.0, 4.0, 5.0])
         predictions = jnp.full_like(targets, jnp.mean(targets))
         assert r_squared(predictions, targets) == pytest.approx(0.0, abs=1e-5)
+
+
+class TestRSquaredAdjusted:
+    """Tests for r_squared_adjusted."""
+
+    def test_known_value(self) -> None:
+        predictions = jnp.array([1.1, 2.1, 2.9, 4.0])
+        targets = jnp.array([1.0, 2.0, 3.0, 4.0])
+        result = r_squared_adjusted(predictions, targets, num_predictors=1)
+        assert result > 0.9
+
+    def test_penalty_for_predictors(self) -> None:
+        predictions = jnp.array([1.0, 2.0, 3.0, 4.0, 5.0])
+        targets = jnp.array([1.0, 2.0, 3.0, 4.0, 5.0])
+        r2_1 = r_squared_adjusted(predictions, targets, num_predictors=1)
+        r2_3 = r_squared_adjusted(predictions, targets, num_predictors=3)
+        # More predictors → lower adjusted R² (penalizes complexity)
+        assert r2_1 >= r2_3 - 1e-5
+
+    def test_returns_jax_scalar(self) -> None:
+        predictions = jnp.array([1.0, 2.0])
+        targets = jnp.array([1.0, 2.0])
+        result = r_squared_adjusted(predictions, targets, num_predictors=1)
+        assert isinstance(result, jax.Array)
 
 
 class TestMAPE:
