@@ -19,6 +19,8 @@ means the same thing in every one of them.
 
 from __future__ import annotations
 
+from typing import Final
+
 import jax
 import jax.numpy as jnp
 from jax.typing import ArrayLike
@@ -33,6 +35,16 @@ from calibrax.metrics._utils import (
     safe_norm,
     safe_root,
 )
+
+
+#: Default smoothing constant for :func:`charbonnier_loss`, and the loss at zero error.
+#: Named rather than inlined because the fused regression suite in
+#: ``calibrax.metrics._builtin_registrations`` recomputes this metric at its defaults, and a
+#: second literal there would be a default that could drift away from this one unnoticed.
+CHARBONNIER_EPSILON: Final = 1e-3
+
+#: Default exponent for :func:`charbonnier_loss`. One gives a smoothed L1.
+CHARBONNIER_ALPHA: Final = 1.0
 
 
 def mse(  # noqa: DOC502  # raised by _prepare_arrays
@@ -412,8 +424,8 @@ def charbonnier_loss(  # noqa: DOC502  # raised by _prepare_arrays
     predictions: ArrayLike,
     targets: ArrayLike,
     *,
-    epsilon: float = 1e-3,
-    alpha: float = 1.0,
+    epsilon: float = CHARBONNIER_EPSILON,
+    alpha: float = CHARBONNIER_ALPHA,
     mask: ArrayLike | None = None,
     weights: ArrayLike | None = None,
     reduction: str = "mean",

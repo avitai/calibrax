@@ -165,6 +165,8 @@ from calibrax.metrics.functional.ranking import (
     recall_at_k,
 )
 from calibrax.metrics.functional.regression import (
+    CHARBONNIER_ALPHA,
+    CHARBONNIER_EPSILON,
     charbonnier_loss,
     crps,
     explained_variance,
@@ -241,6 +243,7 @@ _FUSED_REGRESSION_NAMES = frozenset(
         "log_cosh_loss",
         "smape",
         "relative_l2_error",
+        "charbonnier_loss",
     }
 )
 
@@ -249,7 +252,7 @@ def _calculate_regression_fused(
     predictions: ArrayLike,
     targets: ArrayLike,
 ) -> MetricValues:
-    """Compute all 12 same-shape regression metrics with shared subexpressions.
+    """Compute all 14 same-shape regression metrics with shared subexpressions.
 
     Avoids redundant computation by reusing intermediate values (diff, abs_diff,
     sq_diff) across metrics instead of recomputing them independently. R-squared is the
@@ -294,6 +297,13 @@ def _calculate_regression_fused(
         "log_cosh_loss": jnp.mean(jnp.logaddexp(diff, -diff) - jnp.log(2.0)),
         "smape": jnp.mean(safe_divide(abs_diff, (jnp.abs(p) + jnp.abs(t)) / 2.0)),
         "relative_l2_error": relative_l2_error(p, t),
+        # Reuses sq_diff, so this adds one sqrt and one mean rather than a second pass over
+        # the inputs. Evaluated at the registered defaults, which is how calculate_all
+        # invokes every entry here; the constants are imported from the function itself so
+        # the fused copy cannot drift away from the default it stands in for.
+        "charbonnier_loss": jnp.mean(
+            jnp.sqrt(sq_diff + CHARBONNIER_EPSILON**2) ** CHARBONNIER_ALPHA
+        ),
     }
 
 
