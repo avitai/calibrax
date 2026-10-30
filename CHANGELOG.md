@@ -17,6 +17,17 @@ and uses semantic versioning while the public API stabilizes.
   implementation most often gets wrong. `spearman_rank_correlation` deliberately takes no
   `weights`: no commonly accepted weighted Spearman coefficient exists, so a caller passing
   one gets a `TypeError` rather than an arbitrary convention.
+- `kendall_tau` accepts `mask` and `weights`, completing the ratio statistics. Its
+  weights are **frequency weights**: tau-b is a statistic over pairs, so a per-element
+  weight lifts to the pair weight `w_i * w_j` with nothing left to choose, and integer
+  weights reproduce physically replicating each element that many times -- measured over
+  60 fixtures, 20 of them with ties, to within 2.2e-16 of `scipy.stats.kendalltau`. This
+  is the one place the earlier reasoning was wrong: Kendall was held back alongside
+  Spearman on the grounds that weighted Kendall was equally undefined, but Spearman's
+  problem is that ranks give a per-element weight nowhere to go, which does not apply to
+  a pairwise statistic. No within-element tie term is needed: the pairs replication
+  creates are tied in both variables, so they cancel from both tie corrections, and a
+  test pins that because adding them back also reproduces replication.
 - `r_squared_adjusted` accepts `mask` and `weights`. A mask changes `n`, because an
   excluded element is not an observation; weights do not, which is how `statsmodels`
   treats them -- `WLS.nobs` is the observation count, so a 40-point fit with weights
