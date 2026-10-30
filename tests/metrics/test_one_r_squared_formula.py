@@ -22,12 +22,9 @@ import pytest
 import calibrax.metrics._builtin_registrations as registrations
 from calibrax.metrics._builtin_registrations import _calculate_regression_fused
 from calibrax.metrics._utils import _EPSILON, coefficient_of_determination
-from calibrax.metrics.functional.regression import r_squared
-from calibrax.metrics.functional.statistical import r_squared_adjusted
+from calibrax.metrics.functional.regression import r_squared, r_squared_adjusted
+from tests.factories import WeightedSample
 
-
-#: Targets, predictions, strictly positive weights, and a mask excluding some elements.
-Sample = tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray, jnp.ndarray]
 
 #: Predictors for the adjusted variant, matching the recorded references.
 NUM_PREDICTORS = 3
@@ -66,45 +63,31 @@ def fusion_count(
     return text.count("fusion")
 
 
-@pytest.fixture
-def sample() -> Sample:
-    """The shared fixture, reproducible from its seed."""
-    rng = np.random.default_rng(11)
-    targets = rng.normal(size=80)
-    predictions = targets + rng.normal(scale=0.4, size=80)
-    weights = rng.random(80) + 0.05
-    mask = rng.random(80) > 0.3
-    return (
-        jnp.asarray(targets),
-        jnp.asarray(predictions),
-        jnp.asarray(weights),
-        jnp.asarray(mask),
-    )
-
-
 class TestTheThreeCallersAgree:
     """One formula means the three callers cannot disagree about it."""
 
-    def test_r_squared_is_the_shared_core(self, sample: Sample) -> None:
+    def test_r_squared_is_the_shared_core(self, sample: WeightedSample) -> None:
         targets, predictions, weights, mask = sample
         assert float(r_squared(predictions, targets, mask=mask, weights=weights)) == (
             float(coefficient_of_determination(predictions, targets, mask=mask, weights=weights))
         )
 
-    def test_the_fused_suite_matches_r_squared(self, sample: Sample) -> None:
+    def test_the_fused_suite_matches_r_squared(self, sample: WeightedSample) -> None:
         """The inline copy in the fused path is gone, so these must be identical."""
         targets, predictions, _, _ = sample
         fused = _calculate_regression_fused(predictions, targets)
         assert float(fused["r_squared"]) == float(r_squared(predictions, targets))
 
-    def test_adjusted_reduces_to_r_squared_when_predictors_vanish(self, sample: Sample) -> None:
+    def test_adjusted_reduces_to_r_squared_when_predictors_vanish(
+        self, sample: WeightedSample
+    ) -> None:
         """With ``p = 0`` the correction is ``(n-1)/(n-1)``, so the two coincide."""
         targets, predictions, weights, _ = sample
         adjusted = r_squared_adjusted(predictions, targets, num_predictors=0, weights=weights)
         plain = r_squared(predictions, targets, weights=weights)
         assert float(adjusted) == pytest.approx(float(plain), abs=1e-6)
 
-    def test_adjusted_is_weighted_when_r_squared_is(self, sample: Sample) -> None:
+    def test_adjusted_is_weighted_when_r_squared_is(self, sample: WeightedSample) -> None:
         """The defect this change fixes: the two used to disagree under weights."""
         targets, predictions, weights, _ = sample
         weighted = float(
@@ -119,13 +102,13 @@ class TestTheThreeCallersAgree:
 class TestTheDegreesOfFreedomConvention:
     """A mask changes ``n``; weights do not. Both halves are observable."""
 
-    def test_unweighted_matches_the_reference(self, sample: Sample) -> None:
+    def test_unweighted_matches_the_reference(self, sample: WeightedSample) -> None:
         targets, predictions, _, _ = sample
         assert float(
             r_squared_adjusted(predictions, targets, num_predictors=NUM_PREDICTORS)
         ) == pytest.approx(ADJUSTED_UNWEIGHTED, abs=1e-6)
 
-    def test_weights_do_not_change_n(self, sample: Sample) -> None:
+    def test_weights_do_not_change_n(self, sample: WeightedSample) -> None:
         """``statsmodels`` WLS reports ``nobs`` as the observation count, not the weight
         sum. Measured on statsmodels 0.15.0, a separate 40-point WLS fit whose weights
         summed to 25.21 reports ``nobs == 40.0``. This fixture has 80 points and weights
@@ -135,7 +118,7 @@ class TestTheDegreesOfFreedomConvention:
             r_squared_adjusted(predictions, targets, num_predictors=NUM_PREDICTORS, weights=weights)
         ) == pytest.approx(ADJUSTED_WEIGHTED, abs=1e-6)
 
-    def test_the_rejected_convention_is_measurably_different(self, sample: Sample) -> None:
+    def test_the_rejected_convention_is_measurably_different(self, sample: WeightedSample) -> None:
         """So "weights do not change n" is a decision and not an accident."""
         targets, predictions, weights, _ = sample
         actual = float(
@@ -146,14 +129,14 @@ class TestTheDegreesOfFreedomConvention:
             "one is implemented"
         )
 
-    def test_a_mask_does_change_n(self, sample: Sample) -> None:
+    def test_a_mask_does_change_n(self, sample: WeightedSample) -> None:
         """An excluded element is not an observation, so the penalty shrinks with it."""
         targets, predictions, _, mask = sample
         assert float(
             r_squared_adjusted(predictions, targets, num_predictors=NUM_PREDICTORS, mask=mask)
         ) == pytest.approx(ADJUSTED_MASKED, abs=1e-6)
 
-    def test_a_mask_equals_subsetting(self, sample: Sample) -> None:
+    def test_a_mask_equals_subsetting(self, sample: WeightedSample) -> None:
         targets, predictions, _, mask = sample
         keep = np.asarray(mask)
         assert float(
@@ -169,7 +152,7 @@ class TestTheDegreesOfFreedomConvention:
             abs=1e-6,
         )
 
-    def test_scaling_every_weight_leaves_the_answer_alone(self, sample: Sample) -> None:
+    def test_scaling_every_weight_leaves_the_answer_alone(self, sample: WeightedSample) -> None:
         """The property that taking ``sum(weights)`` as ``n`` would break."""
         targets, predictions, weights, _ = sample
         base = float(
@@ -186,7 +169,7 @@ class TestTheDegreesOfFreedomConvention:
 class TestTransformations:
     """Delegation must not cost traceability, and the fused path must still trace."""
 
-    def test_adjusted_jits_vmaps_and_differentiates(self, sample: Sample) -> None:
+    def test_adjusted_jits_vmaps_and_differentiates(self, sample: WeightedSample) -> None:
         targets, predictions, weights, _ = sample
 
         def metric(p: jnp.ndarray, t: jnp.ndarray, w: jnp.ndarray) -> jnp.ndarray:
@@ -199,7 +182,7 @@ class TestTransformations:
         assert batched.shape == (3,)
         assert jnp.all(jnp.isfinite(jax.grad(lambda x: metric(x, targets, weights))(predictions)))
 
-    def test_adjusted_traces_with_a_mask(self, sample: Sample) -> None:
+    def test_adjusted_traces_with_a_mask(self, sample: WeightedSample) -> None:
         """``n`` becomes a traced count under a mask, which must not break the trace."""
         targets, predictions, _, mask = sample
         traced = jax.jit(
@@ -207,7 +190,7 @@ class TestTransformations:
         )(predictions, targets, mask)
         assert jnp.isfinite(traced)
 
-    def test_the_fused_suite_still_jits(self, sample: Sample) -> None:
+    def test_the_fused_suite_still_jits(self, sample: WeightedSample) -> None:
         """Delegation was adopted because XLA removes the apparent duplicate reduction."""
         targets, predictions, _, _ = sample
         fused = jax.jit(_calculate_regression_fused)(predictions, targets)

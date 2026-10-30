@@ -36,6 +36,17 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Changed
 
+- **Breaking:** `r_squared_adjusted` moves from `calibrax.metrics.functional.statistical` to
+  `calibrax.metrics.functional.regression`, and its registered domain moves from
+  `statistical` to `general`. The public name is unchanged and
+  `calibrax.metrics.functional` still exports it, but the module path and the domain a
+  registry query returns it under both change, and no alias is left behind. It sits with
+  `r_squared` because it is the same quantity with a degrees-of-freedom penalty and they
+  share one implementation; `statistical` describes itself as holding correlation and
+  agreement measures, which adjusted R-squared is not. The documented domain table had
+  recorded the statistical domain as holding six metrics while naming five -- the unnamed
+  sixth was this one. Verified speed-neutral: `calculate_all`'s metric set, its output keys
+  and its median runtime are unchanged.
 - R-squared is computed in one place. The formula existed three times -- in `r_squared`,
   inline in the fused regression suite, and again in `r_squared_adjusted` -- and only the
   first accepted weights, so weighting `r_squared` and then reading `r_squared_adjusted` on

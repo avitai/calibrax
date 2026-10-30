@@ -160,6 +160,7 @@ from calibrax.metrics.functional.regression import (
     per_sample_relative_l2,
     quantile_loss,
     r_squared,
+    r_squared_adjusted,
     relative_error,
     relative_l2_error,
     rmse,
@@ -176,7 +177,6 @@ from calibrax.metrics.functional.statistical import (
     correlation_preservation,
     kendall_tau,
     pearson_correlation,
-    r_squared_adjusted,
     skewness,
     spearman_rank_correlation,
 )

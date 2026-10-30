@@ -25,10 +25,8 @@ from calibrax.metrics.functional.statistical import (
     pearson_correlation,
     spearman_rank_correlation,
 )
+from tests.factories import WeightedSample
 
-
-#: Targets, predictions, strictly positive weights, and a mask excluding some elements.
-Sample = tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray, jnp.ndarray]
 
 #: One float32 ULP at magnitude 1.
 ONE_ULP = 2.0**-23
@@ -47,38 +45,22 @@ SKLEARN_R2_MASKED_WEIGHTED = 0.7936365734723434
 NUMPY_PEARSON_WEIGHTED = 0.8969897052680172
 
 
-@pytest.fixture
-def sample() -> Sample:
-    """Targets, predictions, strictly positive weights and a mask that excludes some."""
-    rng = np.random.default_rng(11)
-    targets = rng.normal(size=80)
-    predictions = targets + rng.normal(scale=0.4, size=80)
-    weights = rng.random(80) + 0.05
-    mask = rng.random(80) > 0.3
-    return (
-        jnp.asarray(targets),
-        jnp.asarray(predictions),
-        jnp.asarray(weights),
-        jnp.asarray(mask),
-    )
-
-
 class TestEqualWeightsChangeNothing:
     """Unit weights must reproduce the unweighted value, or the default path moved."""
 
-    def test_r_squared(self, sample: Sample) -> None:
+    def test_r_squared(self, sample: WeightedSample) -> None:
         targets, predictions, _, _ = sample
         plain = r_squared(predictions, targets)
         unit = r_squared(predictions, targets, weights=jnp.ones_like(targets))
         assert float(plain) == pytest.approx(float(unit), abs=0.0)
 
-    def test_pearson(self, sample: Sample) -> None:
+    def test_pearson(self, sample: WeightedSample) -> None:
         targets, predictions, _, _ = sample
         plain = pearson_correlation(targets, predictions)
         unit = pearson_correlation(targets, predictions, weights=jnp.ones_like(targets))
         assert float(plain) == pytest.approx(float(unit), abs=0.0)
 
-    def test_concordance(self, sample: Sample) -> None:
+    def test_concordance(self, sample: WeightedSample) -> None:
         targets, predictions, _, _ = sample
         plain = concordance_correlation(targets, predictions)
         unit = concordance_correlation(targets, predictions, weights=jnp.ones_like(targets))
@@ -92,7 +74,7 @@ class TestMaskEqualsSubsetting:
     path cannot quietly include an excluded element or re-centre on the full sample.
     """
 
-    def test_r_squared(self, sample: Sample) -> None:
+    def test_r_squared(self, sample: WeightedSample) -> None:
         targets, predictions, _, mask = sample
         subset = jnp.asarray(np.asarray(targets)[np.asarray(mask)])
         subset_predictions = jnp.asarray(np.asarray(predictions)[np.asarray(mask)])
@@ -100,7 +82,7 @@ class TestMaskEqualsSubsetting:
             float(r_squared(subset_predictions, subset)), abs=TOLERANCE
         )
 
-    def test_pearson(self, sample: Sample) -> None:
+    def test_pearson(self, sample: WeightedSample) -> None:
         targets, predictions, _, mask = sample
         subset = jnp.asarray(np.asarray(targets)[np.asarray(mask)])
         subset_predictions = jnp.asarray(np.asarray(predictions)[np.asarray(mask)])
@@ -108,7 +90,7 @@ class TestMaskEqualsSubsetting:
             float(pearson_correlation(subset, subset_predictions)), abs=TOLERANCE
         )
 
-    def test_spearman_ranks_within_the_retained_subset(self, sample: Sample) -> None:
+    def test_spearman_ranks_within_the_retained_subset(self, sample: WeightedSample) -> None:
         """The subtle one: ranks must come from the subset, not from everything.
 
         An implementation that ranked the full sample and then masked the correlation
@@ -122,7 +104,7 @@ class TestMaskEqualsSubsetting:
             float(spearman_rank_correlation(subset, subset_predictions)), abs=TOLERANCE
         )
 
-    def test_concordance(self, sample: Sample) -> None:
+    def test_concordance(self, sample: WeightedSample) -> None:
         targets, predictions, _, mask = sample
         subset = jnp.asarray(np.asarray(targets)[np.asarray(mask)])
         subset_predictions = jnp.asarray(np.asarray(predictions)[np.asarray(mask)])
@@ -138,14 +120,16 @@ class TestAgainstIndependentReferences:
     over the fixture above; the exact inputs are reproducible from its seed.
     """
 
-    def test_r_squared_weighted_matches_sklearn(self, sample: Sample) -> None:
+    def test_r_squared_weighted_matches_sklearn(self, sample: WeightedSample) -> None:
         """``sklearn.metrics.r2_score(t, p, sample_weight=w)``, sklearn 1.8.0."""
         targets, predictions, weights, _ = sample
         assert float(r_squared(predictions, targets, weights=weights)) == pytest.approx(
             SKLEARN_R2_WEIGHTED, abs=1e-6
         )
 
-    def test_r_squared_masked_and_weighted_matches_sklearn_directly(self, sample: Sample) -> None:
+    def test_r_squared_masked_and_weighted_matches_sklearn_directly(
+        self, sample: WeightedSample
+    ) -> None:
         """Against sklearn on the subset, not against this package's own subset path."""
         targets, predictions, weights, _ = sample
         mask = np.asarray(sample[3])
@@ -155,7 +139,7 @@ class TestAgainstIndependentReferences:
             r_squared(predictions, targets, mask=mask_array, weights=weights)
         ) == pytest.approx(SKLEARN_R2_MASKED_WEIGHTED, abs=1e-6)
 
-    def test_r_squared_masked_and_weighted_matches_sklearn(self, sample: Sample) -> None:
+    def test_r_squared_masked_and_weighted_matches_sklearn(self, sample: WeightedSample) -> None:
         targets, predictions, weights, mask = sample
         subset = np.asarray(mask)
         assert float(r_squared(predictions, targets, mask=mask, weights=weights)) == pytest.approx(
@@ -169,7 +153,7 @@ class TestAgainstIndependentReferences:
             abs=TOLERANCE,
         )
 
-    def test_pearson_weighted_matches_numpy_aweights(self, sample: Sample) -> None:
+    def test_pearson_weighted_matches_numpy_aweights(self, sample: WeightedSample) -> None:
         """``numpy.cov(stack, aweights=w, ddof=0)`` normalised, numpy 2.2.6."""
         targets, predictions, weights, _ = sample
         covariance = np.cov(
@@ -188,7 +172,7 @@ class TestAgainstIndependentReferences:
             float(expected), abs=1e-6
         )
 
-    def test_the_tolerance_has_not_drifted_loose(self, sample: Sample) -> None:
+    def test_the_tolerance_has_not_drifted_loose(self, sample: WeightedSample) -> None:
         """The measurement TOLERANCE is derived from, kept as its own check.
 
         If reassociation or a dependency bump widens the masked-against-subset deviation,
@@ -215,7 +199,9 @@ class TestTheWeightedMeanIsTheOneThatMatters:
     discrepancy is small enough to pass a loose tolerance and large enough to matter.
     """
 
-    def test_centring_on_the_unweighted_mean_gives_a_different_answer(self, sample: Sample) -> None:
+    def test_centring_on_the_unweighted_mean_gives_a_different_answer(
+        self, sample: WeightedSample
+    ) -> None:
         targets, predictions, weights, _ = sample
         correct = float(r_squared(predictions, targets, weights=weights))
         naive_denominator = jnp.sum(weights * (targets - jnp.mean(targets)) ** 2)
@@ -229,7 +215,7 @@ class TestTheWeightedMeanIsTheOneThatMatters:
 class TestSpearmanRefusesWeights:
     """Taking no ``weights`` is a decision, recorded in the docstring with its sources."""
 
-    def test_passing_weights_is_a_type_error(self, sample: Sample) -> None:
+    def test_passing_weights_is_a_type_error(self, sample: WeightedSample) -> None:
         targets, predictions, weights, _ = sample
         with pytest.raises(TypeError, match="weights"):
             spearman_rank_correlation(targets, predictions, weights=weights)  # type: ignore[call-arg]
@@ -247,7 +233,9 @@ class TestTransformations:
         ],
         ids=["r_squared", "pearson", "concordance"],
     )
-    def test_jit_vmap_and_grad(self, metric: Callable[..., jnp.ndarray], sample: Sample) -> None:
+    def test_jit_vmap_and_grad(
+        self, metric: Callable[..., jnp.ndarray], sample: WeightedSample
+    ) -> None:
         targets, predictions, weights, _ = sample
         assert jnp.isfinite(jax.jit(metric)(predictions, targets, weights))
 
@@ -262,7 +250,7 @@ class TestTransformations:
         wrt_weights = jax.grad(lambda x: metric(predictions, targets, x))(weights)
         assert jnp.all(jnp.isfinite(wrt_weights))
 
-    def test_spearman_traces_with_a_mask(self, sample: Sample) -> None:
+    def test_spearman_traces_with_a_mask(self, sample: WeightedSample) -> None:
         """The +inf sentinel keeps shapes static, so the masked rank path traces."""
         targets, predictions, _, mask = sample
         traced = jax.jit(lambda t, p, m: spearman_rank_correlation(t, p, mask=m))(
@@ -274,7 +262,9 @@ class TestTransformations:
 class TestDegenerateWeights:
     """An all-zero weight vector has no sample to describe, so it must not pretend to."""
 
-    def test_an_all_false_mask_does_not_return_a_plausible_number(self, sample: Sample) -> None:
+    def test_an_all_false_mask_does_not_return_a_plausible_number(
+        self, sample: WeightedSample
+    ) -> None:
         targets, predictions, _, _ = sample
         empty = jnp.zeros_like(targets, dtype=bool)
         value = float(r_squared(predictions, targets, mask=empty))
