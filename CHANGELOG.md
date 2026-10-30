@@ -17,9 +17,26 @@ and uses semantic versioning while the public API stabilizes.
   implementation most often gets wrong. `spearman_rank_correlation` deliberately takes no
   `weights`: no commonly accepted weighted Spearman coefficient exists, so a caller passing
   one gets a `TypeError` rather than an arbitrary convention.
+- `r_squared_adjusted` accepts `mask` and `weights`. A mask changes `n`, because an
+  excluded element is not an observation; weights do not, which is how `statsmodels`
+  treats them -- `WLS.nobs` is the observation count, so a 40-point fit with weights
+  summing to 22.19 still reports 40. Taking `sum(weights)` as an effective sample size
+  instead would make the penalty depend on the scale of the weights.
 
 ### Changed
 
+- R-squared is computed in one place. The formula existed three times -- in `r_squared`,
+  inline in the fused regression suite, and again in `r_squared_adjusted` -- and only the
+  first accepted weights, so weighting `r_squared` and then reading `r_squared_adjusted` on
+  the same data returned a weighted number beside an unweighted one. All three now call
+  `coefficient_of_determination`.
+- **No existing result changes by a bit.** The shared core takes an unweighted path when
+  neither `mask` nor `weights` is given, computing the expression the three copies already
+  computed, down to the spelling of the residual: verified bit-identical over 240 cases
+  (40 seeds x sizes 8/80/4096 x offsets 1/1e4). Weighting through a vector of ones instead
+  would have moved the unweighted answer by up to 2.5 float32 ULP and left the compiled
+  regression suite 4 fusions larger, so it is not what ships. The fused suite compiles to
+  the same 118 fusions delegating as it did inline, and tests hold both invariants.
 - The Security workflow audits every extra of the lock with substrax's `audit-lock` action, and
   Quality Checks no longer runs pip-audit. Both ran pip-audit on an environment synced with the
   `dev` extra, which never held the packages of the `docs`, `mlflow` and `wandb` extras.

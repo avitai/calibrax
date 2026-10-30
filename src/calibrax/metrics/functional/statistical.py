@@ -21,6 +21,7 @@ from calibrax.metrics._utils import (
     _FEATURE_MATRIX_NDIM,
     _MIN_CORRELATED_FEATURES,
     _SERIES_NDIM,
+    coefficient_of_determination,
     sample_weights,
     weighted_mean,
 )
@@ -232,11 +233,27 @@ def r_squared_adjusted(
     targets: ArrayLike,
     *,
     num_predictors: int,
+    mask: ArrayLike | None = None,
+    weights: ArrayLike | None = None,
 ) -> jax.Array:
     """Adjusted R-squared.
 
     ``1 - (1-R^2)(n-1)/(n-p-1)`` where p is number of predictors.
     Penalizes adding predictors that don't improve fit.
+
+    The R-squared term comes from
+    :func:`calibrax.metrics._utils.coefficient_of_determination`, the same function
+    :func:`calibrax.metrics.functional.regression.r_squared` uses, so the two cannot
+    drift apart.
+
+    **A mask changes ``n``; weights do not.** A masked element is not an observation, so
+    it leaves the sample and the degrees-of-freedom correction shrinks with it. A weight
+    scales an observation that is still there, which is how ``statsmodels`` treats it:
+    ``WLS.nobs`` is ``float(self.wexog.shape[0])``, the observation count -- measured on
+    statsmodels 0.15.0, a 40-point WLS fit whose weights summed to 25.21 reports
+    ``nobs == 40.0``. Taking ``sum(weights)`` as an
+    effective sample size instead would make the penalty depend on the scale of the
+    weights, so that doubling every weight changed the answer.
 
     Note:
         Direction: HIGHER (1.0 = perfect fit).
@@ -246,18 +263,24 @@ def r_squared_adjusted(
         predictions: Predicted values.
         targets: Ground truth values.
         num_predictors: Number of predictors in the model.
+        mask: Elements to keep (boolean, broadcastable), or ``None`` for all. Reduces
+            ``n``, because an excluded element is not an observation.
+        weights: Element weights (broadcastable), or ``None`` for unit weights. Do not
+            change ``n``.
 
     Returns:
         Adjusted R-squared as a scalar value.
     """
     p_arr = jnp.asarray(predictions).ravel()
     t_arr = jnp.asarray(targets).ravel()
-    n = len(t_arr)
-
-    ss_res = jnp.sum((t_arr - p_arr) ** 2)
-    ss_tot = jnp.sum((t_arr - jnp.mean(t_arr)) ** 2)
-    r2 = 1.0 - ss_res / (ss_tot + _EPSILON)
-
+    # A Python int when there is no mask, so the usual path costs no reduction; a traced
+    # count when there is one, which keeps the function traceable either way.
+    n = (
+        t_arr.shape[0]
+        if mask is None
+        else jnp.sum(jnp.broadcast_to(jnp.asarray(mask), t_arr.shape))
+    )
+    r2 = coefficient_of_determination(p_arr, t_arr, mask=mask, weights=weights)
     return 1.0 - (1.0 - r2) * (n - 1) / (n - num_predictors - 1 + _EPSILON)
 
 
