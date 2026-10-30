@@ -34,6 +34,24 @@ and uses semantic versioning while the public API stabilizes.
   summing to 22.19 still reports 40. Taking `sum(weights)` as an effective sample size
   instead would make the penalty depend on the scale of the weights.
 
+### Fixed
+
+- `calculate_all(metrics=None)` reaches the fused single-pass path again. It selects that
+  path only when the general domain's same-shape metric names match
+  `_FUSED_REGRESSION_NAMES` exactly, and falls back to dynamic dispatch silently otherwise.
+  `charbonnier_loss` was registered under general with the same-shape signature but was
+  absent from both the fused name set and the fused function, so the candidate set held 14
+  names against the fused set's 13 and the default call had been dispatching metric by
+  metric. Fusing it restores the fast path: **1.61 ms to 0.96 ms** at 4,096 points, same
+  harness both sides, with identical output keys. It reuses the suite's existing `sq_diff`,
+  so it adds one square root and one mean rather than a second pass, and it reads its
+  defaults from `CHARBONNIER_EPSILON` and `CHARBONNIER_ALPHA` in
+  `calibrax.metrics.functional.regression` so the fused copy cannot drift from the
+  function's own defaults. Three tests keep it closed: the set equality that selects the
+  path, the fused value against the function it replaces, and fused against dynamic
+  dispatch on every metric. The fused function's docstring also claimed 12 metrics while
+  returning 13; it now says 14 and returns 14.
+
 ### Changed
 
 - **Breaking:** `r_squared_adjusted` moves from `calibrax.metrics.functional.statistical` to

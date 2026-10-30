@@ -15,18 +15,19 @@ designed, and three things said so:
   metrics while naming five. The unnamed sixth was this one, forgotten in the domain it had
   been filed under.
 
-The load-bearing test here is the last one. ``calculate_all`` picks a fused single-pass path
-only when the general domain's same-shape metric names match ``_FUSED_REGRESSION_NAMES``
+The load-bearing test here is the last pair. ``calculate_all`` picks a fused single-pass
+path only when the general domain's same-shape metric names match ``_FUSED_REGRESSION_NAMES``
 exactly, and **falls back to dynamic dispatch silently** otherwise. Moving a metric into
 ``general`` is exactly the change that could break that match, and nothing else in the suite
-would fail if it did -- the results would stay correct and merely stop being fused.
+would fail if it did -- the results would stay correct and merely stop being fused. So this
+file asserts that the moved metric stays out of that set, and names the mechanism that keeps
+it out. Whether the fast path is reachable at all belongs to the suite that owns it, and is
+asserted in ``test_fused_regression_suite.py``.
 """
 
 from __future__ import annotations
 
 import importlib
-
-import pytest
 
 from calibrax.metrics._builtin_registrations import _FUSED_REGRESSION_NAMES
 from calibrax.metrics._registry import MetricRegistry
@@ -121,22 +122,6 @@ class TestTheFusedPathSurvives:
         domain -- see the next test for the mechanism.
         """
         assert "r_squared_adjusted" not in self._general_same_shape_names()
-
-    @pytest.mark.xfail(
-        strict=True,
-        reason=(
-            "Pre-existing and unrelated to this move: charbonnier_loss is registered under "
-            "general with the PREDICTIONS_TARGETS signature but is absent from "
-            "_FUSED_REGRESSION_NAMES and from _calculate_regression_fused, so the decision "
-            "set holds 14 names against the fused set's 13 and calculate_all(metrics=None) "
-            "silently uses dynamic dispatch. Recorded strict so that fusing charbonnier_loss "
-            "turns this test from xpass into a failure, forcing the marker to be removed "
-            "rather than leaving a stale exemption behind."
-        ),
-    )
-    def test_the_fused_fast_path_is_reachable_by_default(self) -> None:
-        """``calculate_all(metrics=None)`` should reach ``_calculate_regression_fused``."""
-        assert self._general_same_shape_names() == set(_FUSED_REGRESSION_NAMES)
 
     def test_the_moved_metric_is_excluded_by_its_signature(self) -> None:
         """It stays out of the fused set because it needs ``num_predictors``.
