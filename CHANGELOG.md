@@ -36,6 +36,20 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Fixed
 
+- `huber_loss` and `quantile_loss` share one expression with the fused regression suite
+  instead of two. The suite evaluates every entry at its registered default, and these two
+  defaults were written twice -- once as the signature default and once inline. The inline
+  copies were not merely duplicated but **algebraically collapsed**: Huber's linear branch
+  read `|e| - 0.5`, which equals `delta * (|e| - 0.5 * delta)` only at `delta == 1.0`, and
+  the quantile branches shared one coefficient, which holds only at `q == 0.5` where
+  `q == 1 - q`. Replacing the literals with named constants would therefore have introduced
+  a latent bug. Both are now elementwise kernels taking the residual pieces the callers
+  already compute, so the fused path pays nothing: measured at 4,096 points, 124 fusions
+  before and after, median runtime ratio 0.993, and all 14 fused values bit-identical.
+  `HUBER_DELTA` and `QUANTILE_LEVEL` join `CHARBONNIER_EPSILON` and `CHARBONNIER_ALPHA` as
+  the single declaration of each default. An audit of all 14 fused metrics found these three
+  are the only ones carrying a numeric shape parameter.
+
 - `calculate_all(metrics=None)` reaches the fused single-pass path again. It selects that
   path only when the general domain's same-shape metric names match
   `_FUSED_REGRESSION_NAMES` exactly, and falls back to dynamic dispatch silently otherwise.
