@@ -300,6 +300,53 @@ def matrix_sqrtm(matrix: ArrayLike, *, eps: float = _EPSILON) -> jax.Array:
 _REDUCTIONS = ("none", "mean", "sum", "batch_sum")
 
 
+def sample_weights(
+    mask: ArrayLike | None,
+    weights: ArrayLike | None,
+    shape: tuple[int, ...],
+) -> jax.Array:
+    """Fold a mask and per-element weights into the single weight vector both mean.
+
+    The semantics :func:`reduce_values` documents, made available to statistics that cannot
+    reduce through it. A mask excludes an element by giving it zero weight, which is exactly
+    what "contributes nothing to a sum and is not counted in a mean" means, so one weight
+    vector expresses both and no statistic has to handle them separately.
+
+    Traceable: the ``None`` checks are on static arguments and resolve at trace time, so the
+    result works under ``jit``, ``vmap`` and ``grad``, gradients with respect to ``weights``
+    included.
+
+    Args:
+        mask: Elements to keep (boolean, broadcastable), or ``None`` for all.
+        weights: Element weights (broadcastable), or ``None`` for unit weights.
+        shape: Shape the weights must broadcast to.
+
+    Returns:
+        One weight array of shape ``shape``, zero wherever the mask excludes.
+    """
+    combined = jnp.ones(shape) if weights is None else jnp.broadcast_to(jnp.asarray(weights), shape)
+    if mask is None:
+        return combined
+    return jnp.where(jnp.broadcast_to(jnp.asarray(mask), shape), combined, 0.0)
+
+
+def weighted_mean(values: ArrayLike, weights: ArrayLike) -> jax.Array:
+    """The weighted mean ``sum(w * x) / sum(w)``.
+
+    Factored out because three statistics need it, and each deriving it separately is a
+    familiar way for a weighted metric to drift from its reference.
+
+    Args:
+        values: Values to average.
+        weights: Weights, broadcastable to ``values``.
+
+    Returns:
+        The weighted mean as a scalar array.
+    """
+    w = jnp.asarray(weights)
+    return jnp.sum(w * jnp.asarray(values)) / (jnp.sum(w) + _EPSILON)
+
+
 def reduce_values(
     values: ArrayLike,
     *,
