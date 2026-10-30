@@ -7,6 +7,17 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+### Added
+
+- `r_squared`, `pearson_correlation` and `concordance_correlation` accept `mask` and
+  `weights`, and `spearman_rank_correlation` accepts `mask`, bringing the ratio statistics
+  under the semantics `reduce_values` already documents as meaning the same thing
+  everywhere. Weighted R-squared centres `SS_tot` on the **weighted** mean of the targets,
+  which is what `sklearn.metrics.r2_score(sample_weight=...)` does and what a weighted
+  implementation most often gets wrong. `spearman_rank_correlation` deliberately takes no
+  `weights`: no commonly accepted weighted Spearman coefficient exists, so a caller passing
+  one gets a `TypeError` rather than an arbitrary convention.
+
 ### Changed
 
 - The Security workflow audits every extra of the lock with substrax's `audit-lock` action, and

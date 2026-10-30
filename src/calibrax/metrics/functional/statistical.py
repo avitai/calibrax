@@ -21,13 +21,29 @@ from calibrax.metrics._utils import (
     _FEATURE_MATRIX_NDIM,
     _MIN_CORRELATED_FEATURES,
     _SERIES_NDIM,
+    sample_weights,
+    weighted_mean,
 )
 
 
-def pearson_correlation(a: ArrayLike, b: ArrayLike) -> jax.Array:
+def pearson_correlation(
+    a: ArrayLike,
+    b: ArrayLike,
+    *,
+    mask: ArrayLike | None = None,
+    weights: ArrayLike | None = None,
+) -> jax.Array:
     """Pearson correlation coefficient.
 
     Linear correlation: ``cov(a,b) / (std(a) * std(b))``.
+
+    With ``weights`` the means, the covariance and both standard deviations are all
+    weighted, which is the standard weighted correlation. Checked against
+    ``numpy.cov(aweights=...)``.
+
+    No ``reduction`` or ``axis``, unlike the error metrics in this package: a correlation
+    is a ratio of reductions over the whole sample, so there is no per-element value for
+    ``reduction="none"`` to return.
 
     Note:
         Direction: HIGHER (1.0 = perfect positive correlation).
@@ -37,6 +53,8 @@ def pearson_correlation(a: ArrayLike, b: ArrayLike) -> jax.Array:
     Args:
         a: First variable.
         b: Second variable.
+        mask: Elements to keep (boolean, broadcastable), or ``None`` for all.
+        weights: Element weights (broadcastable), or ``None`` for unit weights.
 
     Returns:
         Pearson r as a scalar value.
@@ -49,20 +67,35 @@ def pearson_correlation(a: ArrayLike, b: ArrayLike) -> jax.Array:
     """
     a_arr = jnp.asarray(a).ravel()
     b_arr = jnp.asarray(b).ravel()
-    a_centered = a_arr - jnp.mean(a_arr)
-    b_centered = b_arr - jnp.mean(b_arr)
-    cov = jnp.sum(a_centered * b_centered)
-    std_a = jnp.sqrt(jnp.sum(a_centered**2))
-    std_b = jnp.sqrt(jnp.sum(b_centered**2))
+    w = sample_weights(mask, weights, a_arr.shape)
+    a_centered = a_arr - weighted_mean(a_arr, w)
+    b_centered = b_arr - weighted_mean(b_arr, w)
+    cov = jnp.sum(w * a_centered * b_centered)
+    std_a = jnp.sqrt(jnp.sum(w * a_centered**2))
+    std_b = jnp.sqrt(jnp.sum(w * b_centered**2))
     return cov / (std_a * std_b + _EPSILON)
 
 
-def spearman_rank_correlation(a: ArrayLike, b: ArrayLike) -> jax.Array:
+def spearman_rank_correlation(
+    a: ArrayLike,
+    b: ArrayLike,
+    *,
+    mask: ArrayLike | None = None,
+) -> jax.Array:
     """Spearman's rank correlation coefficient.
 
     Pearson correlation computed on ranks, which tied values share as their average
     (``jax.scipy.stats.rankdata``), so the coefficient does not depend on the order the pairs
     are given in.
+
+    Takes ``mask`` and **deliberately not** ``weights``. Masking is unambiguous: it ranks
+    the retained subset. Weighting a rank correlation is not. There is no commonly accepted
+    weighted Spearman coefficient; Stata does not estimate one and SAS does not document
+    its method; R's ``wCorr`` averages over permutations of tied weights while ``expss``
+    rounds weights to integers to match SPSS; and the zero expectation under random
+    rankings that unweighted Spearman enjoys does not generally survive weighting
+    (arXiv:2504.08428). Choosing one of those silently would produce a number no other tool
+    reproduces, so a caller passing ``weights`` gets a ``TypeError`` instead.
 
     Note:
         Direction: HIGHER (1.0 = perfect monotonic relationship).
@@ -71,6 +104,8 @@ def spearman_rank_correlation(a: ArrayLike, b: ArrayLike) -> jax.Array:
     Args:
         a: First variable.
         b: Second variable.
+        mask: Elements to keep (boolean, broadcastable), or ``None`` for all. Ranks are
+            computed within the retained subset.
 
     Returns:
         Spearman rho as a scalar value.
@@ -83,7 +118,16 @@ def spearman_rank_correlation(a: ArrayLike, b: ArrayLike) -> jax.Array:
     """
     a_arr = jnp.asarray(a).ravel()
     b_arr = jnp.asarray(b).ravel()
-    return pearson_correlation(rankdata(a_arr), rankdata(b_arr))
+    if mask is None:
+        return pearson_correlation(rankdata(a_arr), rankdata(b_arr))
+    keep = jnp.broadcast_to(jnp.asarray(mask), a_arr.shape)
+    # Rank within the retained subset, not within everything. Excluded elements go to
+    # +inf so they sort last and take the highest ranks; the retained ones then hold ranks
+    # 1..k among themselves, and the mask keeps the excluded out of the correlation.
+    # Static shapes throughout, so this traces.
+    ranked_a = rankdata(jnp.where(keep, a_arr, jnp.inf))
+    ranked_b = rankdata(jnp.where(keep, b_arr, jnp.inf))
+    return pearson_correlation(ranked_a, ranked_b, mask=keep)
 
 
 def kendall_tau(a: ArrayLike, b: ArrayLike) -> jax.Array:
@@ -130,7 +174,13 @@ def kendall_tau(a: ArrayLike, b: ArrayLike) -> jax.Array:
     return concordant_minus_discordant / (untied_pairs + _EPSILON)
 
 
-def concordance_correlation(a: ArrayLike, b: ArrayLike) -> jax.Array:
+def concordance_correlation(
+    a: ArrayLike,
+    b: ArrayLike,
+    *,
+    mask: ArrayLike | None = None,
+    weights: ArrayLike | None = None,
+) -> jax.Array:
     """Lin's concordance correlation coefficient.
 
     Measures agreement (not just correlation). Penalizes deviations
@@ -142,9 +192,18 @@ def concordance_correlation(a: ArrayLike, b: ArrayLike) -> jax.Array:
         Range: [-1, 1].
         CCC <= |Pearson r|. Equal only when means and variances match.
 
+    With ``weights`` all four moments are weighted -- both means, both variances and the
+    covariance -- which is Lin's coefficient computed on the weighted sample. Equal
+    weights reproduce the unweighted value exactly, which a test pins.
+
+    No ``reduction`` or ``axis``: the coefficient is a ratio of reductions over the whole
+    sample, so there is no per-element value to return.
+
     Args:
         a: First variable.
         b: Second variable.
+        mask: Elements to keep (boolean, broadcastable), or ``None`` for all.
+        weights: Element weights (broadcastable), or ``None`` for unit weights.
 
     Returns:
         Concordance correlation as a scalar value.
@@ -157,11 +216,13 @@ def concordance_correlation(a: ArrayLike, b: ArrayLike) -> jax.Array:
     """
     a_arr = jnp.asarray(a).ravel()
     b_arr = jnp.asarray(b).ravel()
-    mean_a = jnp.mean(a_arr)
-    mean_b = jnp.mean(b_arr)
-    var_a = jnp.var(a_arr)
-    var_b = jnp.var(b_arr)
-    cov = jnp.mean((a_arr - mean_a) * (b_arr - mean_b))
+    w = sample_weights(mask, weights, a_arr.shape)
+    total = jnp.sum(w) + _EPSILON
+    mean_a = weighted_mean(a_arr, w)
+    mean_b = weighted_mean(b_arr, w)
+    var_a = jnp.sum(w * (a_arr - mean_a) ** 2) / total
+    var_b = jnp.sum(w * (b_arr - mean_b) ** 2) / total
+    cov = jnp.sum(w * (a_arr - mean_a) * (b_arr - mean_b)) / total
     denom = var_a + var_b + (mean_a - mean_b) ** 2
     return 2.0 * cov / (denom + _EPSILON)
 
