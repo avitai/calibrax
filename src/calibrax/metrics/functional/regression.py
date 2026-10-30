@@ -46,6 +46,78 @@ CHARBONNIER_EPSILON: Final = 1e-3
 #: Default exponent for :func:`charbonnier_loss`. One gives a smoothed L1.
 CHARBONNIER_ALPHA: Final = 1.0
 
+#: Default error magnitude at which :func:`huber_loss` turns from quadratic to linear.
+HUBER_DELTA: Final = 1.0
+
+#: Default quantile for :func:`quantile_loss`. One half makes it half the mean absolute
+#: error, which is why the fused suite's old inline copy could use a single coefficient for
+#: both branches and still agree: at this level, and only at this level, ``q == 1 - q``.
+QUANTILE_LEVEL: Final = 0.5
+
+
+def _huber_elementwise(
+    squared_error: jax.Array, absolute_error: jax.Array, delta: float
+) -> jax.Array:
+    """Per-element Huber loss, from residual pieces the caller already has.
+
+    Quadratic below ``delta`` and linear above it, joined so the value and the first
+    derivative are continuous at the knee: ``0.5 * e^2`` against
+    ``delta * (|e| - 0.5 * delta)``.
+
+    Exists so that :func:`huber_loss` and the fused regression suite in
+    ``calibrax.metrics._builtin_registrations`` share one expression. Both already compute
+    the squared and absolute residual for other metrics, so taking them as arguments costs
+    the fused path nothing.
+
+    **The linear branch must keep its ``delta`` factor.** Written ``|e| - 0.5`` it is
+    correct at ``delta == 1.0`` and wrong everywhere else, which is what the fused suite
+    had: a collapsed form that agreed with this function only at the default. A test drives
+    this kernel at several deltas, because agreement at the default alone cannot tell a
+    shared formula from a coincidence.
+
+    Args:
+        squared_error: ``e ** 2``, elementwise.
+        absolute_error: ``abs(e)``, elementwise.
+        delta: Error magnitude at which the loss turns from quadratic to linear.
+
+    Returns:
+        The per-element loss, unreduced.
+    """
+    return jnp.where(
+        absolute_error <= delta,
+        0.5 * squared_error,
+        delta * (absolute_error - 0.5 * delta),
+    )
+
+
+def _quantile_elementwise(prediction_error: jax.Array, quantile: float) -> jax.Array:
+    """Per-element quantile (pinball) loss, in terms of ``predictions - targets``.
+
+    Penalises the two directions of error by ``quantile`` and ``1 - quantile``, so the
+    minimiser is the requested quantile of the target distribution rather than its mean.
+
+    Takes ``predictions - targets`` rather than the residual ``targets - predictions``
+    because every other metric in the fused suite is written on that difference, and the
+    suite binds it once. The two forms are the same loss: with ``r = -pe``,
+    ``q * r`` is ``-q * pe`` and ``(q - 1) * r`` is ``(1 - q) * pe``.
+
+    **The two branches must carry different coefficients.** A single ``0.5`` for both is
+    correct at ``quantile == 0.5`` and wrong elsewhere, since that is the one level where
+    ``q == 1 - q``. A test drives this kernel away from one half for that reason.
+
+    Args:
+        prediction_error: ``predictions - targets``, elementwise.
+        quantile: Quantile level in ``(0, 1)``.
+
+    Returns:
+        The per-element loss, unreduced.
+    """
+    return jnp.where(
+        prediction_error <= 0.0,
+        -quantile * prediction_error,
+        (1.0 - quantile) * prediction_error,
+    )
+
 
 def mse(  # noqa: DOC502  # raised by _prepare_arrays
     predictions: ArrayLike,
@@ -373,7 +445,7 @@ def huber_loss(  # noqa: DOC502  # raised by _prepare_arrays
     predictions: ArrayLike,
     targets: ArrayLike,
     *,
-    delta: float = 1.0,
+    delta: float = HUBER_DELTA,
     mask: ArrayLike | None = None,
     weights: ArrayLike | None = None,
     reduction: str = "mean",
@@ -408,11 +480,8 @@ def huber_loss(  # noqa: DOC502  # raised by _prepare_arrays
     """
     p, t = _prepare_arrays(predictions, targets)
     err = p - t
-    abs_err = jnp.abs(err)
-    quadratic = 0.5 * err**2
-    linear = delta * (abs_err - 0.5 * delta)
     return reduce_values(
-        jnp.where(abs_err <= delta, quadratic, linear),
+        _huber_elementwise(err**2, jnp.abs(err), delta),
         mask=mask,
         weights=weights,
         reduction=reduction,
@@ -464,7 +533,7 @@ def quantile_loss(  # noqa: DOC502  # raised by _prepare_arrays
     predictions: ArrayLike,
     targets: ArrayLike,
     *,
-    quantile: float = 0.5,
+    quantile: float = QUANTILE_LEVEL,
 ) -> jax.Array:
     """Quantile (pinball) loss for quantile regression.
 
@@ -488,8 +557,7 @@ def quantile_loss(  # noqa: DOC502  # raised by _prepare_arrays
         ValueError: If shapes do not match.
     """
     p, t = _prepare_arrays(predictions, targets)
-    diff = t - p
-    return jnp.mean(jnp.where(diff >= 0, quantile * diff, (quantile - 1.0) * diff))
+    return jnp.mean(_quantile_elementwise(p - t, quantile))
 
 
 def log_cosh_loss(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _prepare_arrays
