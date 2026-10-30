@@ -16,7 +16,6 @@ from calibrax.metrics.functional.statistical import (
     correlation_preservation,
     kendall_tau,
     pearson_correlation,
-    r_squared_adjusted,
     skewness,
     spearman_rank_correlation,
 )
@@ -154,30 +153,6 @@ class TestConcordanceCorrelation:
         assert isinstance(result, jax.Array)
 
 
-class TestRSquaredAdjusted:
-    """Tests for r_squared_adjusted."""
-
-    def test_known_value(self) -> None:
-        predictions = jnp.array([1.1, 2.1, 2.9, 4.0])
-        targets = jnp.array([1.0, 2.0, 3.0, 4.0])
-        result = r_squared_adjusted(predictions, targets, num_predictors=1)
-        assert result > 0.9
-
-    def test_penalty_for_predictors(self) -> None:
-        predictions = jnp.array([1.0, 2.0, 3.0, 4.0, 5.0])
-        targets = jnp.array([1.0, 2.0, 3.0, 4.0, 5.0])
-        r2_1 = r_squared_adjusted(predictions, targets, num_predictors=1)
-        r2_3 = r_squared_adjusted(predictions, targets, num_predictors=3)
-        # More predictors → lower adjusted R² (penalizes complexity)
-        assert r2_1 >= r2_3 - 1e-5
-
-    def test_returns_jax_scalar(self) -> None:
-        predictions = jnp.array([1.0, 2.0])
-        targets = jnp.array([1.0, 2.0])
-        result = r_squared_adjusted(predictions, targets, num_predictors=1)
-        assert isinstance(result, jax.Array)
-
-
 class TestStatisticalMetricRegistration:
     """Tests for statistical metric registration."""
 
@@ -188,7 +163,6 @@ class TestStatisticalMetricRegistration:
             "spearman_rank_correlation",
             "kendall_tau",
             "concordance_correlation",
-            "r_squared_adjusted",
             "skewness",
         ]
         for name in expected:
@@ -197,7 +171,8 @@ class TestStatisticalMetricRegistration:
     def test_statistical_domain(self) -> None:
         registry = MetricRegistry()
         stat_metrics = registry.list_by_domain("statistical")
-        assert len(stat_metrics) == 6
+        # Five, not six: r_squared_adjusted moved to the general domain with r_squared.
+        assert len(stat_metrics) == 5
 
     def test_correlations_are_higher_and_skewness_is_informational(self) -> None:
         registry = MetricRegistry()

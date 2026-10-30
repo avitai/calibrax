@@ -176,6 +176,7 @@ from calibrax.metrics.functional.regression import (
     mse,
     quantile_loss,
     r_squared,
+    r_squared_adjusted,
     relative_error,
     relative_l2_error,
     rmse,
@@ -191,7 +192,6 @@ from calibrax.metrics.functional.statistical import (
     correlation_preservation,
     kendall_tau,
     pearson_correlation,
-    r_squared_adjusted,
     skewness,
     spearman_rank_correlation,
 )
@@ -352,6 +352,19 @@ def _register_regression_metrics() -> None:
             "Coefficient of determination",
             MetricDirection.HIGHER,
             MetricProperties(is_differentiable=True),
+        ),
+        # Beside r_squared because it is the same quantity with a degrees-of-freedom
+        # penalty, and both read `coefficient_of_determination`. Its CUSTOM signature is
+        # load-bearing: `num_predictors` is a required keyword, so it cannot be called as
+        # `fn(predictions, targets)`, and that is what keeps it out of the set
+        # `calculate_all` compares against `_FUSED_REGRESSION_NAMES` to pick the fused path.
+        _BuiltinMetricSpec(
+            "r_squared_adjusted",
+            r_squared_adjusted,
+            "Adjusted R-squared",
+            MetricDirection.HIGHER,
+            MetricProperties(),
+            signature=MetricSignature.CUSTOM,
         ),
         _BuiltinMetricSpec(
             "mape",
@@ -1371,16 +1384,6 @@ def _register_statistical_metrics() -> None:
                 "Lin's concordance correlation",
                 MetricDirection.HIGHER,
                 symmetric,
-                domain="statistical",
-            ),
-            # The number of predictors is a required keyword, and R^2 is not symmetric.
-            _BuiltinMetricSpec(
-                "r_squared_adjusted",
-                r_squared_adjusted,
-                "Adjusted R-squared",
-                MetricDirection.HIGHER,
-                MetricProperties(),
-                signature=MetricSignature.CUSTOM,
                 domain="statistical",
             ),
             _BuiltinMetricSpec(
