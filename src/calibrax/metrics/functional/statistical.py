@@ -27,6 +27,7 @@ from calibrax.metrics._utils import (
     _MIN_CORRELATED_FEATURES,
     _SERIES_NDIM,
     sample_weights,
+    substitute_excluded,
     weighted_mean,
 )
 
@@ -77,6 +78,11 @@ def pearson_correlation(
     # Broadcasting against the raveled shape instead would refuse a mask shaped like a
     # multi-dimensional input, which is the shape a caller naturally has.
     w = sample_weights(mask, weights, a_raw.shape).ravel()
+    if mask is not None or weights is not None:
+        # Before any arithmetic, so an excluded NaN reaches neither the moments nor
+        # the gradient. Skipped by a trace-time branch when nothing is excluded.
+        a_arr = substitute_excluded(a_arr, w)
+        b_arr = substitute_excluded(b_arr, w)
     a_centered = a_arr - weighted_mean(a_arr, w)
     b_centered = b_arr - weighted_mean(b_arr, w)
     cov = jnp.sum(w * a_centered * b_centered)
@@ -207,6 +213,19 @@ def kendall_tau(
     b_arr = jnp.asarray(b).ravel()
     n = a_arr.shape[0]
 
+    # Fold the mask and weights first, where there are any, and neutralise the excluded
+    # elements before the differences are formed. Doing it afterwards would mean every
+    # pair an excluded element belongs to carries its NaN, and the gradient would keep it
+    # even once the value was repaired.
+    pair_scale = (
+        None
+        if mask is None and weights is None
+        else sample_weights(mask, weights, a_raw.shape).ravel()
+    )
+    if pair_scale is not None:
+        a_arr = substitute_excluded(a_arr, pair_scale)
+        b_arr = substitute_excluded(b_arr, pair_scale)
+
     # Pairwise comparisons using broadcasting
     a_diff = a_arr[:, None] - a_arr[None, :]  # (n, n)
     b_diff = b_arr[:, None] - b_arr[None, :]  # (n, n)
@@ -215,7 +234,7 @@ def kendall_tau(
     upper = jnp.triu(jnp.ones((n, n), dtype=jnp.bool_), k=1)
     agreement = jnp.sign(a_diff) * jnp.sign(b_diff)
 
-    if mask is None and weights is None:
+    if pair_scale is None:
         concordant_minus_discordant = jnp.sum(jnp.where(upper, agreement, 0.0))
         total_pairs = n * (n - 1) / 2
         tied_in_a = jnp.sum(upper & (a_diff == 0))
@@ -223,10 +242,11 @@ def kendall_tau(
     else:
         # One weight per pair, zero wherever either element is excluded, so a masked
         # element takes every pair it belongs to out of all three totals at once.
-        # At the input's own shape, then flattened, so the pair weights line up with the
+        # One weight per pair, zero wherever either element is excluded, so a masked
+        # element leaves every pair it belongs to out of all three totals at once. Folded
+        # at the input's own shape then flattened, so the pair weights line up with the
         # flattened elements however the caller shaped them.
-        w = sample_weights(mask, weights, a_raw.shape).ravel()
-        pair_weight = jnp.where(upper, w[:, None] * w[None, :], 0.0)
+        pair_weight = jnp.where(upper, pair_scale[:, None] * pair_scale[None, :], 0.0)
         concordant_minus_discordant = jnp.sum(pair_weight * agreement)
         total_pairs = jnp.sum(pair_weight)
         tied_in_a = jnp.sum(jnp.where(a_diff == 0, pair_weight, 0.0))
@@ -280,6 +300,11 @@ def concordance_correlation(
     a_arr = a_raw.ravel()
     b_arr = jnp.asarray(b).ravel()
     w = sample_weights(mask, weights, a_raw.shape).ravel()
+    if mask is not None or weights is not None:
+        # Before any arithmetic, so an excluded NaN reaches neither the moments nor
+        # the gradient. Skipped by a trace-time branch when nothing is excluded.
+        a_arr = substitute_excluded(a_arr, w)
+        b_arr = substitute_excluded(b_arr, w)
     total = jnp.sum(w) + _EPSILON
     mean_a = weighted_mean(a_arr, w)
     mean_b = weighted_mean(b_arr, w)
