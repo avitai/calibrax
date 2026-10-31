@@ -236,6 +236,9 @@ and uses semantic versioning while the public API stabilizes.
   would have moved the unweighted answer by up to 2.5 float32 ULP and left the compiled
   regression suite 4 fusions larger, so it is not what ships. The fused suite compiles to
   the same 118 fusions delegating as it did inline, and tests hold both invariants.
+- The macOS jobs that pushes to `main` add to CI and the package build run on `macos-15`.
+  GitHub retires the `macos-14` image on 2026-11-02 (actions/runner-images#13518), and its
+  scheduled brownouts already cancel jobs that ask for it.
 - The Security workflow audits every extra of the lock with substrax's `audit-lock` action, and
   Quality Checks no longer runs pip-audit. Both ran pip-audit on an environment synced with the
   `dev` extra, which never held the packages of the `docs`, `mlflow` and `wandb` extras.
