@@ -8,6 +8,10 @@ import numpy as np
 import pytest
 
 from calibrax.metrics._utils import safe_norm, safe_root
+from calibrax.metrics.functional.distance import mahalanobis_distance, minkowski_distance
+from calibrax.metrics.functional.divergence import hellinger_distance
+from calibrax.metrics.functional.geometric import rmsd
+from calibrax.metrics.functional.regression import rmse
 
 
 @pytest.mark.parametrize("order", [1.0, 2.0, 3.0])
@@ -56,19 +60,64 @@ def test_a_nan_propagates_rather_than_becoming_zero() -> None:
     np.testing.assert_allclose(np.asarray(mixed)[[0, 1, 3]], [0.0, 2.0, 3.0], rtol=1e-6)
 
 
-def test_a_negative_is_still_taken_to_zero() -> None:
-    """Deliberately unchanged, and not an oversight.
+def test_a_negative_is_a_domain_error_and_yields_nan() -> None:
+    """A negative radicand is out of contract, and now reads as one.
 
-    ``mmd`` and ``hellinger_distance`` clamp with ``jnp.maximum(..., 0.0)`` before calling,
-    because cancellation puts their sums slightly below zero, and ``mahalanobis_distance``
-    forms ``diff @ prec @ diff`` from a caller-supplied matrix that need not be positive
-    semi-definite. Whether an out-of-contract negative should raise or propagate is a
-    separate question from whether a ``NaN`` should survive.
+    This assertion is the reverse of what it was, because the contract changed and not
+    because an implementation was accommodated. The evidence for the change: measured,
+    ``numpy.sqrt(-4.0)`` is ``nan`` with "invalid value encountered in sqrt",
+    ``jax.numpy.sqrt(-4.0)`` is ``nan``, ``scipy.spatial.distance.mahalanobis`` with an
+    indefinite inverse-covariance is ``nan`` (scipy 1.17.0), and
+    ``sklearn.metrics.pairwise_distances(metric="mahalanobis")`` with that matrix is ``nan``
+    (1.8.0). None of the three raises and none clamps. Clamping was calibrax's own
+    invention, shared with nothing.
+
+    Raising is not available to a traceable primitive: a Python branch on the value is
+    ``TracerBoolConversionError`` under ``jax.jit`` and ``jax.vmap``, and ``checkify`` would
+    change the return to ``(err, value)`` across all 24 call sites.
     """
-    np.testing.assert_allclose(
-        np.asarray(safe_root(jnp.array([-4.0, -1e-7, 0.0]))), [0.0, 0.0, 0.0]
-    )
-    assert float(jax.grad(safe_root)(jnp.asarray(-4.0))) == 0.0
+    assert bool(jnp.all(jnp.isnan(safe_root(jnp.array([-4.0, -1e-7, -1e-30])))))
+    assert bool(jnp.isnan(jax.grad(safe_root)(jnp.asarray(-4.0))))
+    assert bool(jnp.isnan(safe_root(jnp.asarray(-27.0), order=3.0)))
+
+
+def test_zero_is_the_only_guarded_point() -> None:
+    """The guard is the singularity and nothing else -- including negative zero.
+
+    The root's derivative is infinite at zero, which is the one case needing a branch. IEEE
+    makes ``-0.0 == 0.0`` true, so negative zero is the same guarded point rather than a
+    negative.
+    """
+    np.testing.assert_array_equal(np.asarray(safe_root(jnp.array([0.0, -0.0]))), [0.0, 0.0])
+    assert float(jax.grad(safe_root)(jnp.asarray(-0.0))) == 0.0
+    mixed = safe_root(jnp.array([0.0, 4.0, -4.0, 9.0]))
+    np.testing.assert_array_equal(np.asarray(jnp.isnan(mixed)), [False, False, True, False])
+    np.testing.assert_allclose(np.asarray(mixed)[[0, 1, 3]], [0.0, 2.0, 3.0], rtol=1e-6)
+
+
+def test_only_mahalanobis_can_reach_the_domain_error() -> None:
+    """The blast radius, as a standing check rather than a one-off measurement.
+
+    Of the nine direct ``safe_root`` call sites, only ``mahalanobis_distance`` forms a
+    radicand that can go negative, and only when the caller's precision matrix is not
+    positive semi-definite. A PSD matrix never does: identical points give exactly zero and
+    near-identical points give a small *positive* value.
+    """
+    a = jnp.array([1.0, 0.0, 0.0])
+    b = jnp.array([0.0, 1.0, 0.0])
+    psd = jnp.eye(3) * 2.0
+    indefinite = jnp.diag(jnp.array([1.0, -3.0, 1.0]))
+
+    assert float(mahalanobis_distance(a, b, precision_matrix=psd)) == pytest.approx(2.0)
+    assert float(mahalanobis_distance(a, a, precision_matrix=psd)) == 0.0
+    assert bool(jnp.isnan(mahalanobis_distance(a, b, precision_matrix=indefinite)))
+
+    # Every other direct caller passes a sum of squares, an absolute value raised to a
+    # power, or a value it has already clamped -- so each stays finite on ordinary input.
+    assert jnp.isfinite(rmse(jnp.array([1.0, 2.0]), jnp.array([1.5, 2.5])))
+    assert jnp.isfinite(rmsd(jnp.zeros((3, 3)), jnp.ones((3, 3))))
+    assert jnp.isfinite(hellinger_distance(jnp.array([0.5, 0.5]), jnp.array([0.4, 0.6])))
+    assert jnp.isfinite(minkowski_distance(a, b, p=3.0))
 
 
 def test_the_zero_gradient_survives_every_transformation() -> None:

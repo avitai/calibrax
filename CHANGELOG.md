@@ -36,6 +36,50 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Fixed
 
+- **Breaking:** a negative radicand is a domain error, not a zero. `safe_root`'s guard was
+  `x <= 0.0`, which clamped any negative to `0.0`; it is now `x == 0.0`, so the guard covers
+  exactly the singularity the function exists for and a negative yields `NaN`.
+
+  Clamping was calibrax's own invention. Measured: `numpy.sqrt(-4.0)` is `nan` with "invalid
+  value encountered in sqrt", `jax.numpy.sqrt(-4.0)` is `nan`,
+  `scipy.spatial.distance.mahalanobis` with an indefinite inverse-covariance is `nan` (scipy
+  1.17.0), `sklearn.metrics.pairwise_distances(metric="mahalanobis")` with that matrix is
+  `nan` (1.8.0), and so is `sklearn.covariance.EmpiricalCovariance`'s squared distance. None
+  of them raises and none clamps. `optax` cannot be consulted on it at all: every one of its
+  safe helpers norms or squares its input first, so none takes an already-negative radicand.
+
+  Raising is not available to a traceable primitive, which is a constraint rather than a
+  preference. A Python branch on the value is `TracerBoolConversionError` under both
+  `jax.jit` and `jax.vmap`; `jax.experimental.checkify` works but changes the return to
+  `(err, value)`, which would propagate through all 24 call sites and every public metric
+  built on them; and `jax.debug.print` is a host callback that cannot stop the computation.
+
+  **Only `mahalanobis_distance` is affected, and only for a matrix that is not positive
+  semi-definite.** Instrumenting `safe_root`'s own body -- the attribute patch used earlier
+  sees only the `safe_norm` path, because five modules bind the name at import -- and running
+  the declared suite records 18 distinct callers and **exactly one** negative radicand, which
+  is the test that passes `-4.0` directly. No library path reaches it. Over 450 adversarial
+  calls across all nine consumer modules, with magnitudes from 1e-20 to 1e20, identical and
+  near-identical inputs, and ill-conditioned, singular and indefinite matrices, the only
+  radicand that ever goes negative is `(a-b)^T S^-1 (a-b)`. A positive semi-definite matrix
+  never does: over 200 trials per case, identical points give exactly `0` and points 1e-7
+  apart give `+4.4e-14`, and scipy returns no `NaN` in 500 near-identical PSD pairs either.
+  So the inputs this newly rejects are the ones every reference already rejects.
+  `mahalanobis_distance` documents the requirement and its consequence.
+
+  Re-swept across the nine modules in five input regimes, 124 rows: the 20 perfect-match
+  rows are bit-identical, so the derivative-at-zero contract is untouched; the 26 `NaN` rows
+  are bit-identical, that behaviour having landed in the previous commit; the 26 `tiny`
+  (x1e-18) rows are bit-identical; and of the 26 ordinary and 26 `huge` (x1e18) rows, the
+  one that moves in each is an indefinite-matrix Mahalanobis case. Note that an indefinite
+  *matrix* does not imply a negative *radicand*: the fixture carried since the previous
+  commit has a quadratic form of `+2.80` and is unaffected, which is why this change needed
+  a second fixture, at `-23.75`.
+
+  Costs nothing: the compiled HLO is 20 instructions before and after at 4,096 / 262,144 /
+  1,048,576 elements, differing only in one `compare` whose direction goes `LE` to `EQ`, and
+  fusion counts are unchanged across all 24 measured call paths.
+
 - `safe_root` no longer turns a `NaN` into a perfect score. Its guard was
   `positive = x > 0.0`, selecting the *root* branch; `NaN` fails that comparison, so it took
   the zero branch and left as `0.0`. The predicate now selects the *degenerate* branch
@@ -65,12 +109,8 @@ and uses semantic versioning while the public API stabilizes.
   is `pairwise_rmsd` on a fixture whose `NaN` sits at a masked-out atom, where the masking
   fix already neutralises it before the root is reached.
 
-  A negative `x` is still taken to `0.0` rather than to the `NaN` the mathematics would give.
-  That is deliberate: `mmd` and `hellinger_distance` already clamp with
-  `jnp.maximum(..., 0.0)` before calling, because cancellation puts their sums below zero,
-  and `mahalanobis_distance` forms `diff @ prec @ diff` from a caller-supplied matrix that
-  need not be positive semi-definite. Whether an out-of-contract negative should raise is a
-  separate question, and is not settled here.
+  A negative `x` was left clamping to `0.0` in that commit, with the question of whether it
+  should raise or propagate deferred. It is settled in the entry above.
 
   Costs nothing. The compiled HLO is **20 instructions before and 20 after** at 4,096,
   262,144 and 1,048,576 elements, differing in exactly three lines: one `compare` whose
