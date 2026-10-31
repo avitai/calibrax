@@ -15,7 +15,14 @@ import jax
 import jax.numpy as jnp
 from jax.typing import ArrayLike
 
-from calibrax.metrics._utils import _EPSILON, _prepare_class_arrays, reduce_values, safe_divide
+from calibrax.metrics._utils import (
+    _EPSILON,
+    _prepare_class_arrays,
+    reduce_values,
+    safe_divide,
+    sample_weights,
+    substitute_excluded,
+)
 
 
 # Predictions are class indices (1D) or per-class scores (2D).
@@ -334,6 +341,8 @@ def softmax_cross_entropy(
         logits: Unnormalised scores with shape ``(..., num_classes)``.
         labels: Integer class labels with shape ``(...)``.
         mask: Elements to keep (boolean, broadcastable to ``labels``), or ``None``.
+            An excluded element contributes nothing even if its logit row holds a
+            ``NaN`` or an infinity.
         weights: Element weights (broadcastable to ``labels``), or ``None``.
         reduction: ``"none"``, ``"mean"``, ``"sum"`` or ``"batch_sum"``.
         axis: Axis or axes for ``"mean"`` and ``"sum"``.
@@ -352,6 +361,15 @@ def softmax_cross_entropy(
             f"logits {scores.shape}, labels {targets.shape}"
         )
         raise ValueError(msg)
+    if mask is not None or weights is not None:
+        # `log_softmax` is taken along the class axis, so one NaN logit poisons its whole
+        # row and then the picked value, which `reduce_values` can no longer neutralise:
+        # 0 * nan is nan. The class axis carries no mask of its own, so fold at the label
+        # shape and restore the trailing axis -- an excluded element zeroes its own row
+        # and no other, leaving the kept rows bit-identical.
+        scores = substitute_excluded(
+            scores, sample_weights(mask, weights, targets.shape)[..., None]
+        )
     log_probs = jax.nn.log_softmax(scores, axis=-1)
     picked = jnp.take_along_axis(log_probs, targets[..., None], axis=-1)[..., 0]
     return reduce_values(-picked, mask=mask, weights=weights, reduction=reduction, axis=axis)

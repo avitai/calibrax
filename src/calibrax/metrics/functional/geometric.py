@@ -14,7 +14,7 @@ import jax
 import jax.numpy as jnp
 from jax.typing import ArrayLike
 
-from calibrax.metrics._utils import _EPSILON, safe_root
+from calibrax.metrics._utils import _EPSILON, safe_root, substitute_excluded
 from calibrax.metrics.functional.divergence import wasserstein_1d
 
 
@@ -151,6 +151,9 @@ def rmsd(
         coords_b: Coordinates with shape ``(n_atoms, dims)``.
         mask_a: Boolean presence mask with shape ``(n_atoms,)``; ``None`` keeps all.
         mask_b: Boolean presence mask with shape ``(n_atoms,)``; ``None`` keeps all.
+            An atom absent from either mask contributes nothing even if its
+            coordinates are ``NaN`` or infinite, which is what an absent atom's
+            coordinates often are.
 
     Returns:
         Scalar deviation as a JAX array.
@@ -164,6 +167,13 @@ def rmsd(
         jnp.ones(b.shape[0], dtype=bool) if mask_b is None else jnp.asarray(mask_b, dtype=bool)
     )
     weights = (present_a & present_b).astype(jnp.float32)[:, None]
+    if mask_a is not None or mask_b is not None:
+        # The centroid sums over every atom, so `0 * nan -> nan` at an absent atom
+        # poisons both centroids and every squared term after them. `safe_root` then
+        # takes NaN to 0.0 -- a reported RMSD of zero, which reads as two identical
+        # conformations. Neutralise the coordinates before the first sum reads them.
+        a = substitute_excluded(a, weights)
+        b = substitute_excluded(b, weights)
     count = jnp.sum(weights)
     safe_count = jnp.where(count > 0.0, count, 1.0)
     centred_a = a - jnp.sum(a * weights, axis=0) / safe_count

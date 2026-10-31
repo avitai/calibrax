@@ -30,10 +30,13 @@ from calibrax.metrics._utils import (
     _prepare_arrays,
     _prepare_ensemble_arrays,
     coefficient_of_determination,
+    exclude_inputs,
     reduce_values,
     safe_divide,
     safe_norm,
     safe_root,
+    sample_weights,
+    substitute_excluded,
 )
 
 
@@ -153,6 +156,7 @@ def mse(  # noqa: DOC502  # raised by _prepare_arrays
         ValueError: If shapes do not match.
     """
     p, t = _prepare_arrays(predictions, targets)
+    p, t = exclude_inputs(mask, weights, p, t)
     return reduce_values((p - t) ** 2, mask=mask, weights=weights, reduction=reduction, axis=axis)
 
 
@@ -190,6 +194,7 @@ def mae(  # noqa: DOC502  # raised by _prepare_arrays
         ValueError: If shapes do not match.
     """
     p, t = _prepare_arrays(predictions, targets)
+    p, t = exclude_inputs(mask, weights, p, t)
     return reduce_values(jnp.abs(p - t), mask=mask, weights=weights, reduction=reduction, axis=axis)
 
 
@@ -488,6 +493,7 @@ def huber_loss(  # noqa: DOC502  # raised by _prepare_arrays
         ValueError: If shapes do not match.
     """
     p, t = _prepare_arrays(predictions, targets)
+    p, t = exclude_inputs(mask, weights, p, t)
     err = p - t
     return reduce_values(
         _huber_elementwise(err**2, jnp.abs(err), delta),
@@ -534,6 +540,7 @@ def charbonnier_loss(  # noqa: DOC502  # raised by _prepare_arrays
         ValueError: If shapes do not match.
     """
     p, t = _prepare_arrays(predictions, targets)
+    p, t = exclude_inputs(mask, weights, p, t)
     smoothed = jnp.sqrt((p - t) ** 2 + epsilon**2) ** alpha
     return reduce_values(smoothed, mask=mask, weights=weights, reduction=reduction, axis=axis)
 
@@ -714,10 +721,34 @@ def relative_l2_error(  # noqa: DOC502  # raised by reduce_values
         Scalar mean relative L2 error as a JAX array, or the reduced values.
 
     Raises:
-        ValueError: If shapes do not match.
+        ValueError: If shapes do not match, or if ``mask`` or ``weights`` is dimensioned
+            against the field rather than the sample axis.
     """
+    p = jnp.asarray(predictions)
+    t = jnp.asarray(targets)
+    if mask is not None or weights is not None:
+        # The only function here whose mask is dimensioned against the *output*: one value
+        # per sample, while the NaN sits inside that sample's field. So fold at the sample
+        # axis and restore the field axes, rather than folding at the input's own shape --
+        # which rejects the documented ``(n_samples,)`` mask outright for a 2-D field.
+        for label, given in (("mask", mask), ("weights", weights)):
+            if given is None:
+                continue
+            shape = jnp.shape(given)
+            if shape not in {(), p.shape[:1]}:
+                msg = (
+                    f"{label} must be per sample: shape {p.shape[:1]} or scalar, got {shape}. "
+                    f"This metric reduces to one value per sample, so its {label} is "
+                    f"dimensioned against the sample axis, not against the field "
+                    f"{p.shape}."
+                )
+                raise ValueError(msg)
+        per_sample = sample_weights(mask, weights, p.shape[:1])
+        field = per_sample.reshape(per_sample.shape + (1,) * (p.ndim - 1))
+        p = substitute_excluded(p, field)
+        t = substitute_excluded(t, field)
     return reduce_values(
-        per_sample_relative_l2(predictions, targets),
+        per_sample_relative_l2(p, t),
         mask=mask,
         weights=weights,
         reduction=reduction,

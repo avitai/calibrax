@@ -19,6 +19,8 @@ import jax
 import jax.numpy as jnp
 from jax.typing import ArrayLike
 
+from calibrax.metrics._utils import substitute_excluded
+
 
 def _tokenize(text: str | list[str]) -> list[str]:
     """Tokenize input by whitespace if string, or return as-is if already tokenized.
@@ -229,7 +231,9 @@ def perplexity(log_probabilities: ArrayLike, *, mask: ArrayLike | None = None) -
     Args:
         log_probabilities: Array of log-probabilities from a language model.
         mask: Optional weights with the same shape, non-zero where a position
-            counts. Booleans and 0/1 floats are both accepted.
+            counts. Booleans and 0/1 floats are both accepted. A position the
+            mask drops contributes nothing even if its log-probability is
+            ``NaN`` or infinite.
 
     Returns:
         Perplexity value >= 1.0 as a JAX scalar.
@@ -250,6 +254,7 @@ def perplexity(log_probabilities: ArrayLike, *, mask: ArrayLike | None = None) -
     if weights.shape != log_probs.shape:
         msg = f"mask shape {weights.shape} must match log_probabilities shape {log_probs.shape}"
         raise ValueError(msg)
+    log_probs = substitute_excluded(log_probs, weights)
     count = jnp.sum(weights)
     scored = jnp.sum(log_probs * weights)
     return jnp.where(count > 0, jnp.exp(-scored / jnp.maximum(count, 1.0)), jnp.inf)
