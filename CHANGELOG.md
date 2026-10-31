@@ -36,6 +36,20 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Fixed
 
+- `mask` and `weights` broadcast against the input's own shape in every statistic that
+  takes them. All six document the parameters as "broadcastable", but only `r_squared`
+  behaved that way: `r_squared_adjusted`, `pearson_correlation`,
+  `concordance_correlation`, `spearman_rank_correlation` and `kendall_tau` raveled their
+  inputs and then broadcast against the **raveled** shape, so a mask shaped like a
+  two-dimensional input raised `Cannot broadcast to shape with fewer dimensions` -- the
+  shape a caller naturally has. They now fold the mask and weights at the input's shape and
+  flatten alongside the data, which is what `reduce_values` does
+  (`jnp.broadcast_to(weights, values.shape)`) and what `r_squared` already did. For `(8, 5)`
+  data that accepts a `(8, 5)` mask, a length-5 row vector broadcast across rows, and a
+  scalar, and still refuses a length-8 vector, which numpy cannot align either. Verified
+  free on the one-dimensional path: identical fusion counts across all seven measured
+  configurations (47, 55, 189, 50, 26, 18, 40) and identical values.
+
 - An empty selection no longer reports a perfect fit. With an all-false `mask` or an
   all-zero `weights` vector both weighted sums are zero, so `r_squared` returned exactly
   `1.0` -- and `r_squared_adjusted` followed it. Under `vmap` over per-bin masks, which is

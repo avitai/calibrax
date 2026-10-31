@@ -326,15 +326,14 @@ def r_squared_adjusted(
     Returns:
         Adjusted R-squared as a scalar value.
     """
-    p_arr = jnp.asarray(predictions).ravel()
-    t_arr = jnp.asarray(targets).ravel()
+    p_arr = jnp.asarray(predictions)
+    t_arr = jnp.asarray(targets)
+    # Not raveled: the shared core handles any shape, and keeping the input's shape is what
+    # lets `mask` and `weights` broadcast against it the way `reduce_values` documents.
+    # `size` rather than `shape[0]`, since the sample is every element.
     # A Python int when there is no mask, so the usual path costs no reduction; a traced
     # count when there is one, which keeps the function traceable either way.
-    n = (
-        t_arr.shape[0]
-        if mask is None
-        else jnp.sum(jnp.broadcast_to(jnp.asarray(mask), t_arr.shape))
-    )
+    n = t_arr.size if mask is None else jnp.sum(jnp.broadcast_to(jnp.asarray(mask), t_arr.shape))
     r2 = coefficient_of_determination(p_arr, t_arr, mask=mask, weights=weights)
     # Residual degrees of freedom. At or below zero the correction stops being a penalty
     # and inverts: a mask leaving `n <= num_predictors + 1` returned values above the
