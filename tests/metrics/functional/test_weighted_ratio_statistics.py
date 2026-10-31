@@ -19,9 +19,10 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 
-from calibrax.metrics.functional.regression import r_squared
+from calibrax.metrics.functional.regression import r_squared, r_squared_adjusted
 from calibrax.metrics.functional.statistical import (
     concordance_correlation,
+    kendall_tau,
     pearson_correlation,
     spearman_rank_correlation,
 )
@@ -260,14 +261,91 @@ class TestTransformations:
 
 
 class TestDegenerateWeights:
-    """An all-zero weight vector has no sample to describe, so it must not pretend to."""
+    """An empty selection has no sample to describe, so every statistic returns ``0.0``.
 
-    def test_an_all_false_mask_does_not_return_a_plausible_number(
-        self, sample: WeightedSample
+    That is the value :func:`calibrax.metrics._utils.reduce_values` documents for the case --
+    "one documented, finite result, so a caller that treats an empty selection as an error
+    can check the mask at the host boundary instead of finding a NaN later" -- and the value
+    :func:`calibrax.metrics._utils.weighted_mean` already returns when its scale sums to
+    zero. Pinning it here for all five keeps one convention rather than one per statistic.
+
+    **An earlier version of this class asserted the wrong thing.** It read
+    ``assert value == pytest.approx(1.0) or not np.isfinite(value)``, under this same
+    docstring, which accepted ``1.0`` -- the most plausible-looking number available, and
+    what ``r_squared`` actually returned -- while *failing* for ``0.0``. It did not merely
+    miss the defect, it forbade the fix. Assert the value, never a disjunction that the
+    shipped behaviour happens to satisfy.
+    """
+
+    #: The documented result for a selection with no members.
+    EMPTY_RESULT = 0.0
+
+    @pytest.mark.parametrize(
+        ("name", "metric"),
+        [
+            ("r_squared", r_squared),
+            ("pearson_correlation", pearson_correlation),
+            ("spearman_rank_correlation", spearman_rank_correlation),
+            ("concordance_correlation", concordance_correlation),
+            ("kendall_tau", kendall_tau),
+        ],
+    )
+    def test_an_all_false_mask_returns_the_documented_empty_result(
+        self, sample: WeightedSample, name: str, metric: Callable[..., jnp.ndarray]
     ) -> None:
         targets, predictions, _, _ = sample
         empty = jnp.zeros_like(targets, dtype=bool)
-        value = float(r_squared(predictions, targets, mask=empty))
-        assert value == pytest.approx(1.0) or not np.isfinite(value), (
-            f"an empty selection returned {value}, which reads as a measurement"
+        assert float(metric(predictions, targets, mask=empty)) == self.EMPTY_RESULT, (
+            f"{name} reported a measurement for a selection with no members"
         )
+
+    def test_an_all_zero_weight_vector_is_the_same_case(self, sample: WeightedSample) -> None:
+        """Weights reach the same state by a different route, so they get the same answer."""
+        targets, predictions, _, _ = sample
+        assert (
+            float(r_squared(predictions, targets, weights=jnp.zeros_like(targets)))
+            == self.EMPTY_RESULT
+        )
+
+    def test_adjusted_r_squared_agrees(self, sample: WeightedSample) -> None:
+        """The adjusted form reads its R-squared from the same core, so it follows."""
+        targets, predictions, _, _ = sample
+        empty = jnp.zeros_like(targets, dtype=bool)
+        assert (
+            float(r_squared_adjusted(predictions, targets, num_predictors=2, mask=empty))
+            == self.EMPTY_RESULT
+        )
+
+    def test_an_empty_bin_does_not_read_as_a_perfect_fit_under_vmap(
+        self, sample: WeightedSample
+    ) -> None:
+        """Why this matters, in the shape the feature was built for.
+
+        A per-bin applicability curve maps one mask per bin. A bin with no members used to
+        return 1.0, so an empty bin appeared mid-curve as the best-fitting bin in the plot.
+        """
+        targets, predictions, _, _ = sample
+        size = targets.shape[0]
+        counts = (0, 5, size)
+        masks = jnp.stack([jnp.arange(size) < kept for kept in counts])
+        curve = jax.jit(jax.vmap(lambda m: r_squared(predictions, targets, mask=m)))(masks)
+        assert float(curve[0]) == self.EMPTY_RESULT
+        assert float(curve[0]) < float(curve[-1]), (
+            "the empty bin outranks the full one, which is what the 1.0 reading did"
+        )
+
+    def test_a_constant_target_is_not_treated_as_empty(self, sample: WeightedSample) -> None:
+        """The guard keys on the weight sum, not on the variance, and this is why.
+
+        Constant targets have no variance to explain, but they *are* a sample. Keying the
+        guard on ``ss_tot`` instead would return ``0.0`` here and so make a full mask
+        disagree with passing no mask at all -- fixing one inconsistency by adding another.
+        """
+        _, predictions, _, _ = sample
+        constant = jnp.full_like(predictions, 3.0)
+        with_mask = float(
+            r_squared(predictions, constant, mask=jnp.ones_like(constant, dtype=bool))
+        )
+        without_mask = float(r_squared(predictions, constant))
+        assert with_mask == without_mask
+        assert with_mask != self.EMPTY_RESULT
