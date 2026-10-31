@@ -36,6 +36,54 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Fixed
 
+- An excluded element can no longer poison a metric, in value or in gradient. `mask` and
+  `weights` promise that an excluded element "contribute[s] nothing to a sum and [is] not
+  counted in a mean", and an element that turns the whole result into `NaN` contributes
+  everything. Measured against the previous commit with a `NaN` at one excluded position,
+  **sixteen of the seventeen metrics taking `mask`, `weights`, `mask_a` or `mask_b` failed**,
+  in four distinct ways: most returned `NaN`; `mae` and `kendall_tau` were wrong in value
+  with a finite gradient; `relative_l2_error` returned the *correct* value with a `NaN`
+  gradient; and `rmse`, `rmsd` and `pairwise_rmsd` returned `0.0` -- a perfect score -- since
+  `safe_root` takes `NaN` to zero. Only `spearman_rank_correlation` was already right.
+
+  The cause is that `0 * NaN` is `NaN` under IEEE 754, so a zero weight does not neutralise
+  a bad value in a product. The fix substitutes zero on the **inputs**, before any
+  arithmetic reads them, rather than guarding the reduction: a `jnp.where` after the
+  multiply repairs the number and leaves the gradient `NaN`, because `where` still
+  differentiates the branch it did not take -- the worse state of the two, since a forward
+  test then passes. This is the idiom `safe_root` already documents for the root at zero,
+  citing the JAX FAQ and `optax.safe_norm`, and the design Google Research's
+  `weatherbenchX` arrived at independently for the same problem, for the reason in its own
+  comment: "avoids NaN * 0 -> NaN in cases where there are NaNs in masked positions".
+  Threading `where=` into the reductions instead, as `optax` does, is rejected on
+  correctness: measured, it returns the right value with a gradient of all `NaN`.
+
+  The guarantee is about the **cotangent**, not merely finiteness, which is how PyTorch
+  frames `ignore_index` -- an ignored target "does not contribute to the input gradient".
+  All seventeen metrics now match the physical subset, have a finite gradient, and give the
+  excluded slot exactly `0.0`. A caller passing neither parameter is unaffected: the
+  substitution sits behind a trace-time branch, and 16 of 17 compiled fusion counts are
+  identical to the previous commit, the exception being `pairwise_rmsd`, which has no
+  unmasked path (56 to 62). Across 1,560 finite-input cases, every value is bit-identical;
+  the only change is the sign of an already-zero cotangent at excluded atoms in `rmsd`
+  (`-0.0` to `+0.0`, in 79 of 120 cases). Cost on the masked path is below this machine's
+  measurement floor: timing the two trees in separate processes was discarded on its own
+  control, which read 1.25x for a function whose HLO does not change, and a within-process
+  alternating A/B puts the floor near six per cent, against which the substitution costs
+  1.02x at 4,096 elements and between nothing and about fifteen per cent at 1,048,576.
+
+  Two behaviour changes follow. `relative_l2_error` is the one function whose mask is
+  dimensioned against its output -- one value per sample, over a `(n_samples, *field)`
+  input -- so it now folds at the sample axis and **rejects a mask that does not fit that
+  axis**. Previously a `(n_samples, 1)` mask was accepted and answered from an accidental
+  outer product: measured on a clean `(4, 3)` fixture it returned 0.719671, the mean of a
+  sixteen-element broadcast, where the masked mean is 0.874025. And an **unmasked** `NaN`
+  still propagates everywhere except `rmse`, `relative_l2_error`, `rmsd` and
+  `pairwise_rmsd`, which reach `safe_root`, whose guard `x > 0.0` is `False` for `NaN` and
+  so sends it down the zero branch. That is a separate defect in a primitive nine modules
+  share; it is recorded as four `strict` xfails naming the predicate, so repairing it forces
+  the markers out.
+
 - `calculate_all(metrics=None)` keeps the fused single-pass path when a custom metric is
   registered. It selected that path only when the general-domain same-shape metric names
   matched `_FUSED_REGRESSION_NAMES` **exactly**, which is stronger than the pass needs: the
