@@ -13,7 +13,8 @@ a ``NaN`` at one excluded position, **sixteen of those seventeen failed at least
 three criteria below**, in three distinct ways: most returned ``NaN``; ``mae`` and
 ``kendall_tau`` were wrong in value with a finite gradient; ``relative_l2_error`` returned the
 *correct* value with a ``NaN`` gradient, and ``rmse``, ``rmsd`` and ``pairwise_rmsd`` returned
-``0.0`` -- a perfect score -- because ``safe_root`` takes ``NaN`` to zero. Only
+``0.0`` -- a perfect score -- because ``safe_root`` took ``NaN`` to zero at that commit,
+which a later one fixed. Only
 :func:`spearman_rank_correlation` was correct, and it is left untouched here as the control.
 
 **Substitution happens on the inputs, before any arithmetic.** A ``jnp.where`` placed
@@ -94,21 +95,6 @@ PAIRED: list[tuple[str, Callable[..., jnp.ndarray], dict[str, object]]] = [
     ("r_squared_adjusted", r_squared_adjusted, {"num_predictors": 2}),
 ]
 
-#: ``safe_root``'s guard is ``x > 0.0``, which is ``False`` for ``NaN``, so a ``NaN``
-#: reaching it takes the zero branch and leaves as ``0.0``. Measured on the four functions
-#: that reach it: ``rmse`` and ``rmsd`` report ``0.0`` -- a perfect score -- and
-#: ``relative_l2_error`` reports a plausible ``0.681925``. That is a defect in a primitive
-#: nine modules share: ``_utils``, clustering, distance, divergence, forecasting, geometric,
-#: graph, manifold and regression, 41 referring lines between them. ``test_safe_root.py``
-#: does *not* stand in the way -- it pins the root's values, its derivative at zero and
-#: jit/vmap, and all six of its tests still pass with the predicate widened to
-#: ``jnp.logical_or(x > 0.0, jnp.isnan(x))``, which does make all four functions here
-#: propagate. What argues for a separate change is the blast radius: every distance,
-#: divergence and manifold metric built on that primitive needs its own before-and-after
-#: equality sweep, which is not this change's subject.
-#: These marks are ``strict``: whoever fixes the predicate is forced to remove them.
-_SWALLOWED = "safe_root's `x > 0.0` guard sends an unmasked NaN down the zero branch"
-
 #: ``r_squared_adjusted`` is excluded from the zero-weight equivalence, and that is the
 #: one place the two parameters are documented to diverge: "**A mask changes ``n``; weights
 #: do not.**" A masked element leaves the sample and shrinks the degrees-of-freedom
@@ -118,22 +104,6 @@ _SWALLOWED = "safe_root's `x > 0.0` guard sends an unmasked NaN down the zero br
 #: :class:`TestTheAdjustedPenaltyKeepsItsOwnConvention` asserts the divergence rather than
 #: leaving a silent hole here.
 ZERO_WEIGHT_EQUIVALENT = [p for p in PAIRED if p[0] != "r_squared_adjusted"]
-
-#: The same table, with the four known exemptions marked.
-PROPAGATION = [
-    pytest.param(
-        name,
-        metric,
-        extra,
-        id=name,
-        marks=(
-            [pytest.mark.xfail(strict=True, reason=_SWALLOWED)]
-            if name in {"rmse", "relative_l2_error"}
-            else []
-        ),
-    )
-    for name, metric, extra in PAIRED
-]
 
 
 def _series() -> tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray, jnp.ndarray]:
@@ -197,7 +167,7 @@ class TestPairedStatistics:
             f"{name} treats a zero weight differently from an excluded element"
         )
 
-    @pytest.mark.parametrize(("name", "metric", "extra"), PROPAGATION)
+    @pytest.mark.parametrize(("name", "metric", "extra"), PAIRED, ids=[p[0] for p in PAIRED])
     def test_an_unmasked_nan_still_propagates(
         self, name: str, metric: Callable[..., jnp.ndarray], extra: dict[str, object]
     ) -> None:
@@ -421,9 +391,10 @@ class TestRmsd:
     """An absent atom's coordinates are the canonical ``NaN``: there is no atom there.
 
     Both centroids sum over every atom, so ``0 * nan`` poisons them and every squared term
-    after them. ``safe_root`` then takes the ``NaN`` to ``0.0``, which is why this one
-    reported a perfect match rather than a ``NaN`` -- the quietest of the failures and the
-    reason the value assertion below needs a non-zero reference.
+    after them. At ``9b0a951`` ``safe_root`` then took the ``NaN`` to ``0.0``, which is why
+    this one reported a perfect match rather than a ``NaN`` -- the quietest of the failures,
+    and the reason the value assertion below still needs a non-zero reference even now that
+    the primitive propagates.
     """
 
     def test_the_reference_is_discriminating(self) -> None:
@@ -458,10 +429,21 @@ class TestRmsd:
         assert jnp.all(jnp.isfinite(grad))
         assert jnp.all(grad[0, EXCLUDED] == 0.0)
 
-    @pytest.mark.xfail(strict=True, reason=_SWALLOWED)
     def test_an_unmasked_nan_still_propagates(self) -> None:
         keep_all = jnp.ones(3, dtype=bool)
         assert not np.isfinite(float(rmsd(_COORDS_A, _COORDS_B, mask_a=keep_all, mask_b=keep_all)))
+
+    def test_pairwise_rmsd_propagates_an_unmasked_nan_too(self) -> None:
+        """It reaches ``safe_root`` through ``vmap``, so it needs its own assertion.
+
+        Until the predicate was fixed this returned a matrix of zeros -- every pair of
+        conformations reported identical. No xfail covered it: the three markers that
+        covered ``rmse``, ``relative_l2_error`` and ``rmsd`` named four affected functions
+        between them but only ever asserted three.
+        """
+        keep_all = jnp.ones((2, 3), dtype=bool)
+        matrix = pairwise_rmsd(jnp.stack([_COORDS_A, _COORDS_B]), keep_all)
+        assert bool(jnp.any(jnp.isnan(matrix))), "a kept NaN atom must reach the result"
 
     def test_it_survives_jit_and_vmap(self) -> None:
         def call(x: jnp.ndarray, m: jnp.ndarray) -> jnp.ndarray:
