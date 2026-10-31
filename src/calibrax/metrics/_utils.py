@@ -380,6 +380,14 @@ def coefficient_of_determination(
     a different number; the weighted mean is what
     ``sklearn.metrics.r2_score(sample_weight=...)`` uses.
 
+    A selection with no members returns ``0.0``, the result :func:`reduce_values` documents
+    for that case and the one :func:`weighted_mean` already returns when its scale sums to
+    zero. The guard keys on the **weight sum**, not on ``SS_tot``: constant targets have no
+    variance to explain but are still a sample, and keying on ``SS_tot`` would return
+    ``0.0`` for them, making a full mask disagree with passing no mask at all. Only the
+    weighted branch needs this -- the unweighted branch has no mask and so cannot be
+    empty, which is why the fused suite's call is untouched.
+
     Two passes over the targets, deliberately. The one-pass identity
     ``sum(w t^2) - sum(w) * mean^2`` was measured and rejected: in float32 with targets
     offset by 1e4 it returns 0.9875 where this returns 0.9116 against a float64 truth of
@@ -402,7 +410,10 @@ def coefficient_of_determination(
     w = sample_weights(mask, weights, t.shape)
     ss_res = jnp.sum(w * (p - t) ** 2)
     ss_tot = jnp.sum(w * (t - weighted_mean(t, w)) ** 2)
-    return 1.0 - ss_res / (ss_tot + _EPSILON)
+    # An empty selection has no sample to describe. Without this it reported exactly 1.0 --
+    # both sums are zero, so the ratio is 0/_EPSILON -- a perfect fit from no observations,
+    # which under `vmap` put an empty bin at the top of a per-bin curve.
+    return jnp.where(jnp.sum(w) > 0.0, 1.0 - ss_res / (ss_tot + _EPSILON), 0.0)
 
 
 def reduce_values(

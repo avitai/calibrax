@@ -270,7 +270,7 @@ def _calculate_regression_fused(
         targets: Ground truth values.
 
     Returns:
-        Dictionary mapping the 12 same-shape regression metric names to computed values.
+        Dictionary mapping the 14 same-shape regression metric names to computed values.
     """
     p, t = _prepare_arrays(predictions, targets)
     diff = p - t

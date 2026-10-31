@@ -63,6 +63,11 @@ def fusion_count(
     return text.count("fusion")
 
 
+def mask_of(sample: WeightedSample, kept: int) -> jnp.ndarray:
+    """A mask over the fixture that keeps its first ``kept`` elements."""
+    return jnp.arange(sample[0].shape[0]) < kept
+
+
 class TestTheThreeCallersAgree:
     """One formula means the three callers cannot disagree about it."""
 
@@ -164,6 +169,72 @@ class TestTheDegreesOfFreedomConvention:
             )
         )
         assert base == pytest.approx(doubled, abs=1e-6)
+
+
+class TestTheDocumentedRangeHolds:
+    """``r_squared_adjusted`` documents ``Range: (-inf, 1]``, and must honour it.
+
+    The degrees-of-freedom correction is ``(n - 1) / (n - p - 1)``. When a mask leaves
+    ``n <= p + 1`` that denominator is zero or negative, and the correction stops being a
+    penalty: it inverts. Measured before the guard, with 40 points and a mask keeping
+    ``kept`` of them, the statistic returned ``+19.66`` at ``p=2, kept=2`` and about
+    ``-5.9e8`` at ``p=2, kept=3`` where the denominator is exactly zero -- six range
+    violations across the swept combinations.
+
+    The adjusted statistic is undefined without residual degrees of freedom, so it returns
+    the same ``0.0`` the package documents for a sample it cannot describe, rather than a
+    number above its own stated maximum.
+    """
+
+    #: Predictor counts and kept-element counts that bracket the undefined region.
+    PREDICTOR_COUNTS = (1, 2, 3, 5)
+    KEPT_COUNTS = (0, 1, 2, 3, 4, 6, 40)
+
+    @pytest.mark.parametrize("num_predictors", PREDICTOR_COUNTS)
+    @pytest.mark.parametrize("kept", KEPT_COUNTS)
+    def test_never_exceeds_one(
+        self, sample: WeightedSample, num_predictors: int, kept: int
+    ) -> None:
+        targets, predictions, _, _ = sample
+        mask = jnp.arange(targets.shape[0]) < kept
+        value = float(
+            r_squared_adjusted(predictions, targets, num_predictors=num_predictors, mask=mask)
+        )
+        assert value <= 1.0, f"{value} is above the documented maximum of 1.0"
+
+    @pytest.mark.parametrize("num_predictors", PREDICTOR_COUNTS)
+    @pytest.mark.parametrize("kept", KEPT_COUNTS)
+    def test_is_finite(self, sample: WeightedSample, num_predictors: int, kept: int) -> None:
+        """A zero denominator previously divided by ``_EPSILON``, reaching ~1e9."""
+        value = float(
+            r_squared_adjusted(
+                sample[1], sample[0], num_predictors=num_predictors, mask=mask_of(sample, kept)
+            )
+        )
+        assert abs(value) < 1e6, f"{value} is not a plausible magnitude for this statistic"
+
+    def test_the_undefined_region_is_exactly_where_dof_runs_out(
+        self, sample: WeightedSample
+    ) -> None:
+        """The boundary is ``n == p + 2``, the first count with a residual degree left."""
+        targets, predictions, _, _ = sample
+        predictors = 2
+        undefined = [
+            kept
+            for kept in range(8)
+            if float(
+                r_squared_adjusted(
+                    predictions,
+                    targets,
+                    num_predictors=predictors,
+                    mask=mask_of(sample, kept),
+                )
+            )
+            == 0.0
+        ]
+        assert undefined == [0, 1, 2, 3], (
+            f"the undefined region is {undefined}, expected every kept count up to p + 1"
+        )
 
 
 class TestTransformations:

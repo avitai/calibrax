@@ -310,7 +310,9 @@ def r_squared_adjusted(
 
     Note:
         Direction: HIGHER (1.0 = perfect fit).
-        Range: (-inf, 1].
+        Range: (-inf, 1]. Returns ``0.0`` where there is no residual degree of
+        freedom, meaning ``n <= num_predictors + 1``, because the correction is
+        undefined there rather than merely large.
 
     Args:
         predictions: Predicted values.
@@ -334,7 +336,15 @@ def r_squared_adjusted(
         else jnp.sum(jnp.broadcast_to(jnp.asarray(mask), t_arr.shape))
     )
     r2 = coefficient_of_determination(p_arr, t_arr, mask=mask, weights=weights)
-    return 1.0 - (1.0 - r2) * (n - 1) / (n - num_predictors - 1 + _EPSILON)
+    # Residual degrees of freedom. At or below zero the correction stops being a penalty
+    # and inverts: a mask leaving `n <= num_predictors + 1` returned values above the
+    # documented maximum of 1 (measured: +19.66 at n=2, p=2) and, where the denominator is
+    # exactly zero, divided by `_EPSILON` to reach about -5.9e8. The statistic is not
+    # defined without a residual degree of freedom, so it reports the same 0.0 the package
+    # uses for a sample it cannot describe. `jnp.where` rather than a Python branch, so a
+    # traced count from a mask keeps working under jit and vmap.
+    residual_dof = n - num_predictors - 1
+    return jnp.where(residual_dof > 0, 1.0 - (1.0 - r2) * (n - 1) / (residual_dof + _EPSILON), 0.0)
 
 
 def mape(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _prepare_arrays
