@@ -30,12 +30,29 @@ and uses semantic versioning while the public API stabilizes.
   test pins that because adding them back also reproduces replication.
 - `r_squared_adjusted` accepts `mask` and `weights`. A mask changes `n`, because an
   excluded element is not an observation; weights do not, which is how `statsmodels`
-  treats them -- `WLS.nobs` is the observation count, so a 40-point fit with weights
-  summing to 22.19 still reports 40. Taking `sum(weights)` as an effective sample size
+  treats them -- `WLS.nobs` is the observation count, so a 40-point fit on statsmodels
+  0.15.0 whose weights summed to 25.21 still reports 40. Taking `sum(weights)` as an effective sample size
   instead would make the penalty depend on the scale of the weights.
 
 ### Fixed
 
+- An empty selection no longer reports a perfect fit. With an all-false `mask` or an
+  all-zero `weights` vector both weighted sums are zero, so `r_squared` returned exactly
+  `1.0` -- and `r_squared_adjusted` followed it. Under `vmap` over per-bin masks, which is
+  what these parameters were added for, an empty bin appeared mid-curve as the best-fitting
+  bin. Both now return `0.0`, the result `reduce_values` documents for the case and the one
+  `weighted_mean` already returns when its scale sums to zero; the other four masked
+  statistics returned `0.0` already. The guard keys on the **weight sum**, not on `SS_tot`:
+  constant targets have no variance to explain but are still a sample, and keying on
+  `SS_tot` would have made a full mask disagree with passing no mask at all. Only the
+  weighted branch is guarded, so the unweighted path and the fused suite are untouched --
+  124 fusions and the same value either way.
+- `r_squared_adjusted` honours its documented `Range: (-inf, 1]`. The degrees-of-freedom
+  correction `(n - 1) / (n - p - 1)` inverts once a mask leaves `n <= p + 1`, which
+  returned values **above 1** (measured: +19.66 at `n=2, p=2`) and about `-5.9e8` where the
+  denominator is exactly zero. It now returns `0.0` without a residual degree of freedom,
+  and the docstring says so. A parametrised test sweeps predictor and kept counts across
+  the boundary.
 - `huber_loss` and `quantile_loss` share one expression with the fused regression suite
   instead of two. The suite evaluates every entry at its registered default, and these two
   defaults were written twice -- once as the signature default and once inline. The inline
