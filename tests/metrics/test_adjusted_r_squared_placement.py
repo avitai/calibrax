@@ -15,14 +15,18 @@ designed, and three things said so:
   metrics while naming five. The unnamed sixth was this one, forgotten in the domain it had
   been filed under.
 
-The load-bearing test here is the last pair. ``calculate_all`` picks a fused single-pass
-path only when the general domain's same-shape metric names match ``_FUSED_REGRESSION_NAMES``
-exactly, and **falls back to dynamic dispatch silently** otherwise. Moving a metric into
-``general`` is exactly the change that could break that match, and nothing else in the suite
-would fail if it did -- the results would stay correct and merely stop being fused. So this
-file asserts that the moved metric stays out of that set, and names the mechanism that keeps
-it out. Whether the fast path is reachable at all belongs to the suite that owns it, and is
-asserted in ``test_fused_regression_suite.py``.
+The load-bearing test here is the last pair. ``calculate_all`` builds its default set from
+the general domain and the ``PREDICTIONS_TARGETS`` signature, then dispatches each member as
+``fn(predictions, targets)``. Adjusted R-squared cannot be called that way -- ``num_predictors``
+is a required keyword -- so it must not enter that set, and what keeps it out is its ``CUSTOM``
+signature rather than anything about its domain. Moving it into ``general`` is exactly the
+change that could put it there, so both the exclusion and its mechanism are asserted.
+
+(An earlier version of this file justified the same pair differently, by the fused fast path
+being lost on an inexact set match. That was true when the path was selected by set equality;
+it is now selected when the request *covers* the fused set, so an extra member costs one
+dispatch rather than the whole pass. The exclusion still matters, for the stronger reason
+above. Reachability of the fast path belongs to ``test_fused_regression_suite.py``.)
 """
 
 from __future__ import annotations

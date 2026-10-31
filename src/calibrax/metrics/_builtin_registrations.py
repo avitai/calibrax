@@ -369,9 +369,9 @@ def _register_regression_metrics() -> None:
         ),
         # Beside r_squared because it is the same quantity with a degrees-of-freedom
         # penalty, and both read `coefficient_of_determination`. Its CUSTOM signature is
-        # load-bearing: `num_predictors` is a required keyword, so it cannot be called as
-        # `fn(predictions, targets)`, and that is what keeps it out of the set
-        # `calculate_all` compares against `_FUSED_REGRESSION_NAMES` to pick the fused path.
+        # load-bearing: `num_predictors` is a required keyword, so this cannot be called as
+        # `fn(predictions, targets)`, and the CUSTOM declaration is what keeps it out of
+        # `calculate_all`'s default set, which dispatches exactly that way.
         _BuiltinMetricSpec(
             "r_squared_adjusted",
             r_squared_adjusted,
@@ -1888,7 +1888,11 @@ def calculate_all(
 ) -> MetricValues:
     """Calculate multiple evaluation metrics at once.
 
-    Delegates to MetricRegistry for function lookup.
+    Delegates to MetricRegistry for function lookup, except for the metrics the fused
+    single-pass regression suite covers. Those are taken from one traversal whenever the
+    request includes all of them, and anything else requested is dispatched individually
+    beside it, so adding a metric to the general domain costs one dispatch rather than the
+    whole fused pass.
 
     Args:
         predictions: Predicted values.
@@ -1904,25 +1908,38 @@ def calculate_all(
     """
     registry = MetricRegistry()
     if metrics is None:
-        entries = registry.list_by_tier(MetricTier.PURE_FUNCTION)
-        names_set = {
-            e.name
-            for e in entries
-            if e.domain == "general" and e.signature == MetricSignature.PREDICTIONS_TARGETS
-        }
-        # Use fused single-pass path when the default set matches exactly
-        if names_set == _FUSED_REGRESSION_NAMES:
-            return _calculate_regression_fused(predictions, targets)
-        # Fall through to dynamic dispatch if registry has changed
-        names = sorted(names_set)
+        names = sorted(
+            entry.name
+            for entry in registry.list_by_tier(MetricTier.PURE_FUNCTION)
+            if entry.domain == "general" and entry.signature == MetricSignature.PREDICTIONS_TARGETS
+        )
     else:
         names = list(metrics)
-        # Use fused path when explicitly requesting exactly the regression set
-        if set(names) == _FUSED_REGRESSION_NAMES:
-            return _calculate_regression_fused(predictions, targets)
+
+    # The fused traversal computes `_FUSED_REGRESSION_NAMES` from shared subexpressions in
+    # one pass, so it pays exactly when nothing it computes is wasted: when every metric it
+    # produces was asked for. Whether anything else was also asked for has no bearing on
+    # that, which is why this is a subset test rather than the equality it used to be.
+    # Equality is strictly stronger than the pass needs, and the surplus strength was the
+    # defect: one extra metric in the request discarded all fourteen. Since
+    # `register_metric` defaults to `domain="general"` and the default request is exactly
+    # the general same-shape metrics, registering any custom metric abandoned the pass for
+    # the default call -- with no error and no wrong answer, just every metric dispatched
+    # one at a time. Measured at 4,096 points that cost about 1.6x (1.65 ms against 1.02,
+    # and 1.76 against 1.08 on another run); the claim is that the pass is taken at all,
+    # since the timing moves between runs while the selection does not.
+    # A request narrower than the pass still dispatches one by one, which is cheaper there.
+    fused: MetricValues = (
+        _calculate_regression_fused(predictions, targets)
+        if set(names) >= _FUSED_REGRESSION_NAMES
+        else {}
+    )
 
     results: MetricValues = {}
     for name in names:
+        if name in fused:
+            results[name] = fused[name]
+            continue
         if not registry.has(name):
             available = sorted(registry.list_names())
             msg = f"Unknown metric: {name!r}. Available: {available}"
