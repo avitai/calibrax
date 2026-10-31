@@ -70,9 +70,13 @@ def pearson_correlation(
         ...                     jnp.array([1.0, 2.0, 3.0]))
         1.0
     """
-    a_arr = jnp.asarray(a).ravel()
+    a_raw = jnp.asarray(a)
+    a_arr = a_raw.ravel()
     b_arr = jnp.asarray(b).ravel()
-    w = sample_weights(mask, weights, a_arr.shape)
+    # Fold the mask and weights at the input's own shape, then flatten alongside the data.
+    # Broadcasting against the raveled shape instead would refuse a mask shaped like a
+    # multi-dimensional input, which is the shape a caller naturally has.
+    w = sample_weights(mask, weights, a_raw.shape).ravel()
     a_centered = a_arr - weighted_mean(a_arr, w)
     b_centered = b_arr - weighted_mean(b_arr, w)
     cov = jnp.sum(w * a_centered * b_centered)
@@ -121,11 +125,13 @@ def spearman_rank_correlation(
         ...                          jnp.array([1.0, 2.0, 3.0]))
         1.0
     """
-    a_arr = jnp.asarray(a).ravel()
+    a_raw = jnp.asarray(a)
+    a_arr = a_raw.ravel()
     b_arr = jnp.asarray(b).ravel()
     if mask is None:
         return pearson_correlation(rankdata(a_arr), rankdata(b_arr))
-    keep = jnp.broadcast_to(jnp.asarray(mask), a_arr.shape)
+    # Broadcast at the input's shape, then flatten, so a mask shaped like the data works.
+    keep = jnp.broadcast_to(jnp.asarray(mask), a_raw.shape).ravel()
     # Rank within the retained subset, not within everything. Excluded elements go to
     # +inf so they sort last and take the highest ranks; the retained ones then hold ranks
     # 1..k among themselves, and the mask keeps the excluded out of the correlation.
@@ -196,7 +202,8 @@ def kendall_tau(
         ...             jnp.array([1.0, 2.0, 3.0]))
         1.0
     """
-    a_arr = jnp.asarray(a).ravel()
+    a_raw = jnp.asarray(a)
+    a_arr = a_raw.ravel()
     b_arr = jnp.asarray(b).ravel()
     n = a_arr.shape[0]
 
@@ -216,7 +223,9 @@ def kendall_tau(
     else:
         # One weight per pair, zero wherever either element is excluded, so a masked
         # element takes every pair it belongs to out of all three totals at once.
-        w = sample_weights(mask, weights, a_arr.shape)
+        # At the input's own shape, then flattened, so the pair weights line up with the
+        # flattened elements however the caller shaped them.
+        w = sample_weights(mask, weights, a_raw.shape).ravel()
         pair_weight = jnp.where(upper, w[:, None] * w[None, :], 0.0)
         concordant_minus_discordant = jnp.sum(pair_weight * agreement)
         total_pairs = jnp.sum(pair_weight)
@@ -267,9 +276,10 @@ def concordance_correlation(
         ...                         jnp.array([1.0, 2.0, 3.0]))
         1.0
     """
-    a_arr = jnp.asarray(a).ravel()
+    a_raw = jnp.asarray(a)
+    a_arr = a_raw.ravel()
     b_arr = jnp.asarray(b).ravel()
-    w = sample_weights(mask, weights, a_arr.shape)
+    w = sample_weights(mask, weights, a_raw.shape).ravel()
     total = jnp.sum(w) + _EPSILON
     mean_a = weighted_mean(a_arr, w)
     mean_b = weighted_mean(b_arr, w)
