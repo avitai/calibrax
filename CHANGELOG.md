@@ -36,6 +36,50 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Fixed
 
+- `safe_root` no longer turns a `NaN` into a perfect score. Its guard was
+  `positive = x > 0.0`, selecting the *root* branch; `NaN` fails that comparison, so it took
+  the zero branch and left as `0.0`. The predicate now selects the *degenerate* branch
+  (`degenerate = x <= 0.0`), which `NaN` also fails -- landing it on the root side, where
+  `NaN ** 0.5` is `NaN`.
+
+  This restores the convention the docstring already cited rather than inventing one.
+  Measured on optax 0.2.8, `safe_norm([nan, 1.0], 0.0)` returns `nan` while
+  `safe_norm([0.0, 0.0], 0.0)` returns `0.0` with a zero gradient, because its predicate is
+  `norm <= min_norm` and `NaN` fails `<=`. `calibrax.safe_norm` now matches on all three
+  properties.
+
+  Four metrics were affected, and the failure was silent in the worst way: `rmse`, `rmsd`
+  and `pairwise_rmsd` reported `0.0` -- identical conformations, a perfect fit -- and
+  `relative_l2_error` a plausible `0.681925`. The three `strict` xfails that recorded this
+  are removed, and `pairwise_rmsd`, which the markers named but never asserted, gains its own
+  test.
+
+  The blast radius was swept rather than argued. The consumer set came from an AST map of
+  every call site -- 24 of them, in `clustering`, `distance`, `divergence`, `forecasting`,
+  `geometric`, `graph`, `manifold` and `regression`, plus `safe_norm` in `_utils` -- because
+  patching `_utils.safe_root` and running the suite records only 11, the five modules that
+  bind the name at import being invisible to it. Across 25 functions driven in three input
+  regimes: **all 25 ordinary-input rows are bit-identical in value and gradient**, and **all
+  20 perfect-match rows are bit-identical**, so the derivative-at-zero contract the function
+  exists for is untouched. 24 of 25 `NaN` rows change, which is the point; the twenty-fifth
+  is `pairwise_rmsd` on a fixture whose `NaN` sits at a masked-out atom, where the masking
+  fix already neutralises it before the root is reached.
+
+  A negative `x` is still taken to `0.0` rather than to the `NaN` the mathematics would give.
+  That is deliberate: `mmd` and `hellinger_distance` already clamp with
+  `jnp.maximum(..., 0.0)` before calling, because cancellation puts their sums below zero,
+  and `mahalanobis_distance` forms `diff @ prec @ diff` from a caller-supplied matrix that
+  need not be positive semi-definite. Whether an out-of-contract negative should raise is a
+  separate question, and is not settled here.
+
+  Costs nothing. The compiled HLO is **20 instructions before and 20 after** at 4,096,
+  262,144 and 1,048,576 elements, differing in exactly three lines: one `compare` whose
+  direction goes `GT` to `LE`, and two `select`s with their operands exchanged. Fusion counts
+  are unchanged across all 24 measured call paths, and a within-process alternating A/B puts
+  every wall-clock ratio inside the noise floor. The obvious alternative,
+  `jnp.logical_or(x > 0.0, jnp.isnan(x))`, compiles to 22 instructions, so flipping the
+  predicate is the cheaper fix as well as the smaller one.
+
 - An excluded element can no longer poison a metric, in value or in gradient. `mask` and
   `weights` promise that an excluded element "contribute[s] nothing to a sum and [is] not
   counted in a mean", and an element that turns the whole result into `NaN` contributes
@@ -72,17 +116,16 @@ and uses semantic versioning while the public API stabilizes.
   alternating A/B puts the floor near six per cent, against which the substitution costs
   1.02x at 4,096 elements and between nothing and about fifteen per cent at 1,048,576.
 
-  Two behaviour changes follow. `relative_l2_error` is the one function whose mask is
+  One behaviour change follows. `relative_l2_error` is the one function whose mask is
   dimensioned against its output -- one value per sample, over a `(n_samples, *field)`
   input -- so it now folds at the sample axis and **rejects a mask that does not fit that
   axis**. Previously a `(n_samples, 1)` mask was accepted and answered from an accidental
   outer product: measured on a clean `(4, 3)` fixture it returned 0.719671, the mean of a
-  sixteen-element broadcast, where the masked mean is 0.874025. And an **unmasked** `NaN`
-  still propagates everywhere except `rmse`, `relative_l2_error`, `rmsd` and
-  `pairwise_rmsd`, which reach `safe_root`, whose guard `x > 0.0` is `False` for `NaN` and
-  so sends it down the zero branch. That is a separate defect in a primitive nine modules
-  share; it is recorded as four `strict` xfails naming the predicate, so repairing it forces
-  the markers out.
+  sixteen-element broadcast, where the masked mean is 0.874025.
+
+  An **unmasked** `NaN` was left propagating everywhere except `rmse`, `relative_l2_error`,
+  `rmsd` and `pairwise_rmsd`, which reach `safe_root`. That was filed as three `strict`
+  xfails and is fixed in the entry below, which removed them.
 
 - `calculate_all(metrics=None)` keeps the fused single-pass path when a custom metric is
   registered. It selected that path only when the general-domain same-shape metric names

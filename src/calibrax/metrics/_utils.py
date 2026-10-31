@@ -109,17 +109,33 @@ def safe_root(x: ArrayLike, *, order: float = 2.0) -> jax.Array:
     selected by an outer one; the outer ``where`` alone keeps the NaN. The derivative at 0 is
     0, the convention of ``optax.safe_norm``.
 
+    **The predicate selects the degenerate branch, so a ``NaN`` reaches the root.** Written
+    the other way round -- selecting the root branch on ``x > 0.0`` -- a ``NaN`` fails that
+    comparison too and leaves as ``0.0``, silently converting missing data into a perfect
+    score. The convention this function cites does not do that: measured on optax 0.2.8,
+    ``safe_norm([nan, 1.0], 0.0)`` returns ``nan`` while ``safe_norm([0.0, 0.0], 0.0)``
+    returns ``0.0`` with a zero gradient, because its predicate is ``norm <= min_norm`` and
+    ``NaN`` fails ``<=``, landing on the unguarded side. This is that predicate.
+
+    A negative ``x`` is still taken to ``0.0`` rather than to the ``NaN`` the mathematics
+    would give. That is deliberately unchanged here: ``mmd`` and ``hellinger_distance``
+    already clamp with ``jnp.maximum(..., 0.0)`` before calling, because cancellation puts
+    their sums slightly below zero, and ``mahalanobis_distance`` forms ``diff @ prec @ diff``
+    from a caller-supplied matrix that need not be positive semi-definite. Whether an
+    out-of-contract negative should raise or propagate is a separate question from whether a
+    ``NaN`` should survive, and only the second one is settled here.
+
     Args:
         x: Non-negative values.
         order: The root's order; 2 is the square root.
 
     Returns:
-        ``x ** (1 / order)`` element-wise.
+        ``x ** (1 / order)`` element-wise; ``NaN`` where ``x`` is ``NaN``.
     """
     x = jnp.asarray(x)
-    positive = x > 0.0
-    safe = jnp.where(positive, x, jnp.ones_like(x))
-    return jnp.where(positive, safe ** (1.0 / order), jnp.zeros_like(x))
+    degenerate = x <= 0.0
+    safe = jnp.where(degenerate, jnp.ones_like(x), x)
+    return jnp.where(degenerate, jnp.zeros_like(x), safe ** (1.0 / order))
 
 
 def safe_norm(x: ArrayLike, *, axis: int | tuple[int, ...] | None = None) -> jax.Array:
