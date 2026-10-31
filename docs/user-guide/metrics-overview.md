@@ -154,6 +154,45 @@ def weighted_mse(predictions, targets, *, weights=None):
     return float(jnp.mean(diff**2))
 ```
 
+### Choosing a domain
+
+`domain` defaults to `"general"`, which is the domain `calculate_all(metrics=None)`
+draws its default set from. So a metric registered without a domain **joins the
+default result**:
+
+```python
+results = calculate_all(predictions, targets)
+assert "weighted_mse" in results
+```
+
+That is usually what you want for a project-specific error measure. Give the metric
+a domain of its own when you would rather call for it by name:
+
+```python
+@register_metric("weighted_mse_custom", domain="custom")
+def weighted_mse_custom(predictions, targets):
+    import jax.numpy as jnp
+    return float(jnp.mean((jnp.asarray(predictions) - jnp.asarray(targets)) ** 2))
+```
+
+Either way the metric is reachable through `calculate_all(..., metrics=[...])` and
+`MetricRegistry().get(...)`. Neither choice costs you the fused single-pass path that
+`calculate_all` uses for the built-in regression metrics: it is taken whenever the
+request covers that set, and anything extra is computed alongside it.
+
+### Removing a metric
+
+The registry is a process-wide singleton, so a registration lasts for the life of
+the interpreter. Remove one by name when it was only needed temporarily — in a test,
+a notebook, or an example like the two above:
+
+```python
+registry = MetricRegistry()
+registry.remove("weighted_mse")
+registry.remove("weighted_mse_custom")
+assert not registry.has("weighted_mse")
+```
+
 ## Domain Reference
 
 The registry organizes Tier 0 metrics into 20 domains. Each domain groups
@@ -161,7 +200,7 @@ metrics with a shared evaluation context.
 
 | Domain | Count | Examples |
 |--------|-------|---------|
-| `general` | 15 | MSE, MAE, RMSE, R-squared, Huber, Charbonnier, SMAPE, relative L2 |
+| `general` | 16 | MSE, MAE, RMSE, R-squared, adjusted R-squared, Huber, Charbonnier, SMAPE, relative L2 |
 | `classification` | 13 | Accuracy, F1, ROC-AUC, Matthews correlation, softmax cross-entropy |
 | `calibration` | 5 | Brier score, ECE, MCE, adaptive ECE |
 | `segmentation` | 3 | IoU, Dice coefficient, pixel accuracy |
@@ -169,7 +208,7 @@ metrics with a shared evaluation context.
 | `divergence` | 15 | KL, JS, Wasserstein, KS, MMD, unbiased MMD², Sinkhorn, Bregman |
 | `information` | 5 | Entropy, cross-entropy, mutual information |
 | `ranking` | 8 | NDCG, MAP, MRR, precision@k, recall@k |
-| `statistical` | 6 | Pearson, Spearman, Kendall, concordance, skewness |
+| `statistical` | 5 | Pearson, Spearman, Kendall, concordance, skewness |
 | `clustering` | 7 | Adjusted Rand, silhouette, Davies-Bouldin |
 | `fairness` | 4 | Demographic parity, equalized odds, disparate impact |
 | `image` | 4 | PSNR, SSIM, MS-SSIM, Vendi score |

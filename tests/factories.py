@@ -9,6 +9,10 @@ from dataclasses import dataclass, replace
 from datetime import datetime
 from typing import Protocol
 
+import jax
+import jax.numpy as jnp
+import numpy as np
+
 from calibrax.core.models import Metric, MetricDef, MetricDirection, Point, Run
 from calibrax.profiling._sampling import SamplingThread
 from calibrax.profiling.energy import EnergySummary
@@ -336,4 +340,39 @@ def make_fake_nvml() -> types.SimpleNamespace:
         nvmlDeviceGetClockInfo=lambda _h, kind: {0: 1500, 2: 10_000}[kind],
         nvmlDeviceGetPowerUsage=lambda _h: 240_000,
         nvmlDeviceGetPowerManagementLimit=lambda _h: 450_000,
+    )
+
+
+#: Length of the sample :func:`make_weighted_sample` builds. Eighty keeps the float32
+#: statistics well away from small-sample noise while staying cheap for the O(n^2) ones.
+WEIGHTED_SAMPLE_SIZE = 80
+
+#: Targets, predictions, strictly positive weights, and a mask that excludes some elements.
+WeightedSample = tuple[jax.Array, jax.Array, jax.Array, jax.Array]
+
+
+def make_weighted_sample(seed: int = 11) -> WeightedSample:
+    """Build the fixture the masked and weighted statistic tests share.
+
+    Two correlated series plus a weight vector and a mask, all from one seed. Weights are
+    strictly positive -- ``rng.random() + 0.05`` rather than ``rng.random()`` -- because a
+    zero weight is what a mask means, and a fixture that produced one by accident would
+    stop distinguishing the two.
+
+    Args:
+        seed: Seed for the generator, so a caller can vary the draw and stay reproducible.
+
+    Returns:
+        Targets, predictions, weights and a keep-mask, as JAX arrays.
+    """
+    rng = np.random.default_rng(seed)
+    targets = rng.normal(size=WEIGHTED_SAMPLE_SIZE)
+    predictions = targets + rng.normal(scale=0.4, size=WEIGHTED_SAMPLE_SIZE)
+    weights = rng.random(WEIGHTED_SAMPLE_SIZE) + 0.05
+    mask = rng.random(WEIGHTED_SAMPLE_SIZE) > 0.3
+    return (
+        jnp.asarray(targets),
+        jnp.asarray(predictions),
+        jnp.asarray(weights),
+        jnp.asarray(mask),
     )

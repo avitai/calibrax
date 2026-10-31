@@ -7,8 +7,235 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+### Added
+
+- `r_squared`, `pearson_correlation` and `concordance_correlation` accept `mask` and
+  `weights`, and `spearman_rank_correlation` accepts `mask`, bringing the ratio statistics
+  under the semantics `reduce_values` already documents as meaning the same thing
+  everywhere. Weighted R-squared centres `SS_tot` on the **weighted** mean of the targets,
+  which is what `sklearn.metrics.r2_score(sample_weight=...)` does and what a weighted
+  implementation most often gets wrong. `spearman_rank_correlation` deliberately takes no
+  `weights`: no commonly accepted weighted Spearman coefficient exists, so a caller passing
+  one gets a `TypeError` rather than an arbitrary convention.
+- `kendall_tau` accepts `mask` and `weights`, completing the ratio statistics. Its
+  weights are **frequency weights**: tau-b is a statistic over pairs, so a per-element
+  weight lifts to the pair weight `w_i * w_j` with nothing left to choose, and integer
+  weights reproduce physically replicating each element that many times -- measured over
+  60 fixtures, 20 of them with ties, to within 2.2e-16 of `scipy.stats.kendalltau`. This
+  is the one place the earlier reasoning was wrong: Kendall was held back alongside
+  Spearman on the grounds that weighted Kendall was equally undefined, but Spearman's
+  problem is that ranks give a per-element weight nowhere to go, which does not apply to
+  a pairwise statistic. No within-element tie term is needed: the pairs replication
+  creates are tied in both variables, so they cancel from both tie corrections, and a
+  test pins that because adding them back also reproduces replication.
+- `r_squared_adjusted` accepts `mask` and `weights`. A mask changes `n`, because an
+  excluded element is not an observation; weights do not, which is how `statsmodels`
+  treats them -- `WLS.nobs` is the observation count, so a 40-point fit on statsmodels
+  0.15.0 whose weights summed to 25.21 still reports 40. Taking `sum(weights)` as an effective sample size
+  instead would make the penalty depend on the scale of the weights.
+
+### Fixed
+
+- `safe_root` no longer turns a `NaN` into a perfect score. Its guard was
+  `positive = x > 0.0`, selecting the *root* branch; `NaN` fails that comparison, so it took
+  the zero branch and left as `0.0`. The predicate now selects the *degenerate* branch
+  (`degenerate = x <= 0.0`), which `NaN` also fails -- landing it on the root side, where
+  `NaN ** 0.5` is `NaN`.
+
+  This restores the convention the docstring already cited rather than inventing one.
+  Measured on optax 0.2.8, `safe_norm([nan, 1.0], 0.0)` returns `nan` while
+  `safe_norm([0.0, 0.0], 0.0)` returns `0.0` with a zero gradient, because its predicate is
+  `norm <= min_norm` and `NaN` fails `<=`. `calibrax.safe_norm` now matches on all three
+  properties.
+
+  Four metrics were affected, and the failure was silent in the worst way: `rmse`, `rmsd`
+  and `pairwise_rmsd` reported `0.0` -- identical conformations, a perfect fit -- and
+  `relative_l2_error` a plausible `0.681925`. The three `strict` xfails that recorded this
+  are removed, and `pairwise_rmsd`, which the markers named but never asserted, gains its own
+  test.
+
+  The blast radius was swept rather than argued. The consumer set came from an AST map of
+  every call site -- 24 of them, in `clustering`, `distance`, `divergence`, `forecasting`,
+  `geometric`, `graph`, `manifold` and `regression`, plus `safe_norm` in `_utils` -- because
+  patching `_utils.safe_root` and running the suite records only 11, the five modules that
+  bind the name at import being invisible to it. Across 25 functions driven in three input
+  regimes: **all 25 ordinary-input rows are bit-identical in value and gradient**, and **all
+  20 perfect-match rows are bit-identical**, so the derivative-at-zero contract the function
+  exists for is untouched. 24 of 25 `NaN` rows change, which is the point; the twenty-fifth
+  is `pairwise_rmsd` on a fixture whose `NaN` sits at a masked-out atom, where the masking
+  fix already neutralises it before the root is reached.
+
+  A negative `x` is still taken to `0.0` rather than to the `NaN` the mathematics would give.
+  That is deliberate: `mmd` and `hellinger_distance` already clamp with
+  `jnp.maximum(..., 0.0)` before calling, because cancellation puts their sums below zero,
+  and `mahalanobis_distance` forms `diff @ prec @ diff` from a caller-supplied matrix that
+  need not be positive semi-definite. Whether an out-of-contract negative should raise is a
+  separate question, and is not settled here.
+
+  Costs nothing. The compiled HLO is **20 instructions before and 20 after** at 4,096,
+  262,144 and 1,048,576 elements, differing in exactly three lines: one `compare` whose
+  direction goes `GT` to `LE`, and two `select`s with their operands exchanged. Fusion counts
+  are unchanged across all 24 measured call paths, and a within-process alternating A/B puts
+  every wall-clock ratio inside the noise floor. The obvious alternative,
+  `jnp.logical_or(x > 0.0, jnp.isnan(x))`, compiles to 22 instructions, so flipping the
+  predicate is the cheaper fix as well as the smaller one.
+
+- An excluded element can no longer poison a metric, in value or in gradient. `mask` and
+  `weights` promise that an excluded element "contribute[s] nothing to a sum and [is] not
+  counted in a mean", and an element that turns the whole result into `NaN` contributes
+  everything. Measured against the previous commit with a `NaN` at one excluded position,
+  **sixteen of the seventeen metrics taking `mask`, `weights`, `mask_a` or `mask_b` failed**,
+  in four distinct ways: most returned `NaN`; `mae` and `kendall_tau` were wrong in value
+  with a finite gradient; `relative_l2_error` returned the *correct* value with a `NaN`
+  gradient; and `rmse`, `rmsd` and `pairwise_rmsd` returned `0.0` -- a perfect score -- since
+  `safe_root` takes `NaN` to zero. Only `spearman_rank_correlation` was already right.
+
+  The cause is that `0 * NaN` is `NaN` under IEEE 754, so a zero weight does not neutralise
+  a bad value in a product. The fix substitutes zero on the **inputs**, before any
+  arithmetic reads them, rather than guarding the reduction: a `jnp.where` after the
+  multiply repairs the number and leaves the gradient `NaN`, because `where` still
+  differentiates the branch it did not take -- the worse state of the two, since a forward
+  test then passes. This is the idiom `safe_root` already documents for the root at zero,
+  citing the JAX FAQ and `optax.safe_norm`, and the design Google Research's
+  `weatherbenchX` arrived at independently for the same problem, for the reason in its own
+  comment: "avoids NaN * 0 -> NaN in cases where there are NaNs in masked positions".
+  Threading `where=` into the reductions instead, as `optax` does, is rejected on
+  correctness: measured, it returns the right value with a gradient of all `NaN`.
+
+  The guarantee is about the **cotangent**, not merely finiteness, which is how PyTorch
+  frames `ignore_index` -- an ignored target "does not contribute to the input gradient".
+  All seventeen metrics now match the physical subset, have a finite gradient, and give the
+  excluded slot exactly `0.0`. A caller passing neither parameter is unaffected: the
+  substitution sits behind a trace-time branch, and 16 of 17 compiled fusion counts are
+  identical to the previous commit, the exception being `pairwise_rmsd`, which has no
+  unmasked path (56 to 62). Across 1,560 finite-input cases, every value is bit-identical;
+  the only change is the sign of an already-zero cotangent at excluded atoms in `rmsd`
+  (`-0.0` to `+0.0`, in 79 of 120 cases). Cost on the masked path is below this machine's
+  measurement floor: timing the two trees in separate processes was discarded on its own
+  control, which read 1.25x for a function whose HLO does not change, and a within-process
+  alternating A/B puts the floor near six per cent, against which the substitution costs
+  1.02x at 4,096 elements and between nothing and about fifteen per cent at 1,048,576.
+
+  One behaviour change follows. `relative_l2_error` is the one function whose mask is
+  dimensioned against its output -- one value per sample, over a `(n_samples, *field)`
+  input -- so it now folds at the sample axis and **rejects a mask that does not fit that
+  axis**. Previously a `(n_samples, 1)` mask was accepted and answered from an accidental
+  outer product: measured on a clean `(4, 3)` fixture it returned 0.719671, the mean of a
+  sixteen-element broadcast, where the masked mean is 0.874025.
+
+  An **unmasked** `NaN` was left propagating everywhere except `rmse`, `relative_l2_error`,
+  `rmsd` and `pairwise_rmsd`, which reach `safe_root`. That was filed as three `strict`
+  xfails and is fixed in the entry below, which removed them.
+
+- `calculate_all(metrics=None)` keeps the fused single-pass path when a custom metric is
+  registered. It selected that path only when the general-domain same-shape metric names
+  matched `_FUSED_REGRESSION_NAMES` **exactly**, which is stronger than the pass needs: the
+  traversal pays whenever every metric it produces was asked for, and whether anything else
+  was also asked for has no bearing on that. Because `register_metric` defaults to
+  `domain="general"` and the default request is exactly those metrics, registering any
+  custom metric -- the workflow the documentation shows -- abandoned the pass and dispatched
+  all fifteen one at a time, with no error and no wrong answer. The condition is now a
+  subset test and the extras are computed alongside the fused result, which also collapses
+  two duplicated early-return branches into one loop. Measured at 4,096 points with only
+  the gate differing: with a custom metric registered, the fused pass goes from not taken
+  at 1.65 ms to taken at 1.02 ms; with none registered, unchanged. A narrower request still
+  dispatches individually, which is cheaper there, and a test asserts that too.
+- The documentation no longer leaks a metric into the process-wide registry. The
+  `register_metric` example in `docs/user-guide/metrics-overview.md` is executed by
+  `tests/test_doc_examples.py`, so running the suite left a `weighted_mse` metric registered
+  in the `general` domain -- which, with `pytest-randomly` reordering every run, made any
+  test asserting what the registry holds pass or fail on the seed. The example now removes
+  its registrations in a following block, so it stays executed and verified rather than
+  skipped, and the page gains a short "Removing a metric" section documenting how. Verified
+  by executing every block of that page in a fresh interpreter with no test fixture in
+  play: the general same-shape set is 14 before and after, and nothing is left behind.
+
+- `mask` and `weights` broadcast against the input's own shape in every statistic that
+  takes them. All six document the parameters as "broadcastable", but only `r_squared`
+  behaved that way: `r_squared_adjusted`, `pearson_correlation`,
+  `concordance_correlation`, `spearman_rank_correlation` and `kendall_tau` raveled their
+  inputs and then broadcast against the **raveled** shape, so a mask shaped like a
+  two-dimensional input raised `Cannot broadcast to shape with fewer dimensions` -- the
+  shape a caller naturally has. They now fold the mask and weights at the input's shape and
+  flatten alongside the data, which is what `reduce_values` does
+  (`jnp.broadcast_to(weights, values.shape)`) and what `r_squared` already did. For `(8, 5)`
+  data that accepts a `(8, 5)` mask, a length-5 row vector broadcast across rows, and a
+  scalar, and still refuses a length-8 vector, which numpy cannot align either. Verified
+  free on the one-dimensional path: identical fusion counts across all seven measured
+  configurations (47, 55, 189, 50, 26, 18, 40) and identical values.
+
+- An empty selection no longer reports a perfect fit. With an all-false `mask` or an
+  all-zero `weights` vector both weighted sums are zero, so `r_squared` returned exactly
+  `1.0` -- and `r_squared_adjusted` followed it. Under `vmap` over per-bin masks, which is
+  what these parameters were added for, an empty bin appeared mid-curve as the best-fitting
+  bin. Both now return `0.0`, the result `reduce_values` documents for the case and the one
+  `weighted_mean` already returns when its scale sums to zero; the other four masked
+  statistics returned `0.0` already. The guard keys on the **weight sum**, not on `SS_tot`:
+  constant targets have no variance to explain but are still a sample, and keying on
+  `SS_tot` would have made a full mask disagree with passing no mask at all. Only the
+  weighted branch is guarded, so the unweighted path and the fused suite are untouched --
+  124 fusions and the same value either way.
+- `r_squared_adjusted` honours its documented `Range: (-inf, 1]`. The degrees-of-freedom
+  correction `(n - 1) / (n - p - 1)` inverts once a mask leaves `n <= p + 1`, which
+  returned values **above 1** (measured: +19.66 at `n=2, p=2`) and about `-5.9e8` where the
+  denominator is exactly zero. It now returns `0.0` without a residual degree of freedom,
+  and the docstring says so. A parametrised test sweeps predictor and kept counts across
+  the boundary.
+- `huber_loss` and `quantile_loss` share one expression with the fused regression suite
+  instead of two. The suite evaluates every entry at its registered default, and these two
+  defaults were written twice -- once as the signature default and once inline. The inline
+  copies were not merely duplicated but **algebraically collapsed**: Huber's linear branch
+  read `|e| - 0.5`, which equals `delta * (|e| - 0.5 * delta)` only at `delta == 1.0`, and
+  the quantile branches shared one coefficient, which holds only at `q == 0.5` where
+  `q == 1 - q`. Replacing the literals with named constants would therefore have introduced
+  a latent bug. Both are now elementwise kernels taking the residual pieces the callers
+  already compute, so the fused path pays nothing: measured at 4,096 points, 124 fusions
+  before and after, median runtime ratio 0.993, and all 14 fused values bit-identical.
+  `HUBER_DELTA` and `QUANTILE_LEVEL` join `CHARBONNIER_EPSILON` and `CHARBONNIER_ALPHA` as
+  the single declaration of each default. An audit of all 14 fused metrics found these three
+  are the only ones carrying a numeric shape parameter.
+
+- `calculate_all(metrics=None)` reaches the fused single-pass path again. It selects that
+  path only when the general domain's same-shape metric names match
+  `_FUSED_REGRESSION_NAMES` exactly, and falls back to dynamic dispatch silently otherwise.
+  `charbonnier_loss` was registered under general with the same-shape signature but was
+  absent from both the fused name set and the fused function, so the candidate set held 14
+  names against the fused set's 13 and the default call had been dispatching metric by
+  metric. Fusing it restores the fast path: **1.61 ms to 0.96 ms** at 4,096 points, same
+  harness both sides, with identical output keys. It reuses the suite's existing `sq_diff`,
+  so it adds one square root and one mean rather than a second pass, and it reads its
+  defaults from `CHARBONNIER_EPSILON` and `CHARBONNIER_ALPHA` in
+  `calibrax.metrics.functional.regression` so the fused copy cannot drift from the
+  function's own defaults. Three tests keep it closed: the set equality that selects the
+  path, the fused value against the function it replaces, and fused against dynamic
+  dispatch on every metric. The fused function's docstring also claimed 12 metrics while
+  returning 13; it now says 14 and returns 14.
+
 ### Changed
 
+- **Breaking:** `r_squared_adjusted` moves from `calibrax.metrics.functional.statistical` to
+  `calibrax.metrics.functional.regression`, and its registered domain moves from
+  `statistical` to `general`. The public name is unchanged and
+  `calibrax.metrics.functional` still exports it, but the module path and the domain a
+  registry query returns it under both change, and no alias is left behind. It sits with
+  `r_squared` because it is the same quantity with a degrees-of-freedom penalty and they
+  share one implementation; `statistical` describes itself as holding correlation and
+  agreement measures, which adjusted R-squared is not. The documented domain table had
+  recorded the statistical domain as holding six metrics while naming five -- the unnamed
+  sixth was this one. Verified speed-neutral: `calculate_all`'s metric set, its output keys
+  and its median runtime are unchanged.
+- R-squared is computed in one place. The formula existed three times -- in `r_squared`,
+  inline in the fused regression suite, and again in `r_squared_adjusted` -- and only the
+  first accepted weights, so weighting `r_squared` and then reading `r_squared_adjusted` on
+  the same data returned a weighted number beside an unweighted one. All three now call
+  `coefficient_of_determination`.
+- **No existing result changes by a bit.** The shared core takes an unweighted path when
+  neither `mask` nor `weights` is given, computing the expression the three copies already
+  computed, down to the spelling of the residual: verified bit-identical over 240 cases
+  (40 seeds x sizes 8/80/4096 x offsets 1/1e4). Weighting through a vector of ones instead
+  would have moved the unweighted answer by up to 2.5 float32 ULP and left the compiled
+  regression suite 4 fusions larger, so it is not what ships. The fused suite compiles to
+  the same 118 fusions delegating as it did inline, and tests hold both invariants.
 - The macOS jobs that pushes to `main` add to CI and the package build run on `macos-15`.
   GitHub retires the `macos-14` image on 2026-11-02 (actions/runner-images#13518), and its
   scheduled brownouts already cancel jobs that ask for it.

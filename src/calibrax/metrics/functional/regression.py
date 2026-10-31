@@ -3,9 +3,13 @@
 Pure functions for computing standard regression metrics between predictions
 and targets. All functions accept JAX arrays and return scalar values.
 
-Includes 14 metrics: MSE, MAE, RMSE, R-squared, MAPE, relative error,
-explained variance, max error, Huber loss, Charbonnier loss, quantile loss,
-log-cosh loss, SMAPE, and CRPS.
+Includes 15 metrics: MSE, MAE, RMSE, R-squared, adjusted R-squared, MAPE,
+relative error, explained variance, max error, Huber loss, Charbonnier loss,
+quantile loss, log-cosh loss, SMAPE, and CRPS.
+
+R-squared and its adjusted form sit together because they are one quantity: both read
+:func:`calibrax.metrics._utils.coefficient_of_determination`, and the adjusted form only
+applies a degrees-of-freedom penalty on top.
 
 The losses (MSE, MAE, Huber, Charbonnier, relative L2) take keyword-only
 ``mask``, ``weights``, ``reduction`` and ``axis``, reduced by
@@ -15,6 +19,8 @@ means the same thing in every one of them.
 
 from __future__ import annotations
 
+from typing import Final
+
 import jax
 import jax.numpy as jnp
 from jax.typing import ArrayLike
@@ -23,11 +29,97 @@ from calibrax.metrics._utils import (
     _EPSILON,
     _prepare_arrays,
     _prepare_ensemble_arrays,
+    coefficient_of_determination,
+    exclude_inputs,
     reduce_values,
     safe_divide,
     safe_norm,
     safe_root,
+    sample_weights,
+    substitute_excluded,
 )
+
+
+#: Default smoothing constant for :func:`charbonnier_loss`, and the loss at zero error.
+#: Named rather than inlined because the fused regression suite in
+#: ``calibrax.metrics._builtin_registrations`` recomputes this metric at its defaults, and a
+#: second literal there would be a default that could drift away from this one unnoticed.
+CHARBONNIER_EPSILON: Final = 1e-3
+
+#: Default exponent for :func:`charbonnier_loss`. One gives a smoothed L1.
+CHARBONNIER_ALPHA: Final = 1.0
+
+#: Default error magnitude at which :func:`huber_loss` turns from quadratic to linear.
+HUBER_DELTA: Final = 1.0
+
+#: Default quantile for :func:`quantile_loss`. One half makes it half the mean absolute
+#: error, which is why the fused suite's old inline copy could use a single coefficient for
+#: both branches and still agree: at this level, and only at this level, ``q == 1 - q``.
+QUANTILE_LEVEL: Final = 0.5
+
+
+def _huber_elementwise(
+    squared_error: jax.Array, absolute_error: jax.Array, delta: float
+) -> jax.Array:
+    """Per-element Huber loss, from residual pieces the caller already has.
+
+    Quadratic below ``delta`` and linear above it, joined so the value and the first
+    derivative are continuous at the knee: ``0.5 * e^2`` against
+    ``delta * (|e| - 0.5 * delta)``.
+
+    Exists so that :func:`huber_loss` and the fused regression suite in
+    ``calibrax.metrics._builtin_registrations`` share one expression. Both already compute
+    the squared and absolute residual for other metrics, so taking them as arguments costs
+    the fused path nothing.
+
+    **The linear branch must keep its ``delta`` factor.** Written ``|e| - 0.5`` it is
+    correct at ``delta == 1.0`` and wrong everywhere else, which is what the fused suite
+    had: a collapsed form that agreed with this function only at the default. A test drives
+    this kernel at several deltas, because agreement at the default alone cannot tell a
+    shared formula from a coincidence.
+
+    Args:
+        squared_error: ``e ** 2``, elementwise.
+        absolute_error: ``abs(e)``, elementwise.
+        delta: Error magnitude at which the loss turns from quadratic to linear.
+
+    Returns:
+        The per-element loss, unreduced.
+    """
+    return jnp.where(
+        absolute_error <= delta,
+        0.5 * squared_error,
+        delta * (absolute_error - 0.5 * delta),
+    )
+
+
+def _quantile_elementwise(prediction_error: jax.Array, quantile: float) -> jax.Array:
+    """Per-element quantile (pinball) loss, in terms of ``predictions - targets``.
+
+    Penalises the two directions of error by ``quantile`` and ``1 - quantile``, so the
+    minimiser is the requested quantile of the target distribution rather than its mean.
+
+    Takes ``predictions - targets`` rather than the residual ``targets - predictions``
+    because every other metric in the fused suite is written on that difference, and the
+    suite binds it once. The two forms are the same loss: with ``r = -pe``,
+    ``q * r`` is ``-q * pe`` and ``(q - 1) * r`` is ``(1 - q) * pe``.
+
+    **The two branches must carry different coefficients.** A single ``0.5`` for both is
+    correct at ``quantile == 0.5`` and wrong elsewhere, since that is the one level where
+    ``q == 1 - q``. A test drives this kernel away from one half for that reason.
+
+    Args:
+        prediction_error: ``predictions - targets``, elementwise.
+        quantile: Quantile level in ``(0, 1)``.
+
+    Returns:
+        The per-element loss, unreduced.
+    """
+    return jnp.where(
+        prediction_error <= 0.0,
+        -quantile * prediction_error,
+        (1.0 - quantile) * prediction_error,
+    )
 
 
 def mse(  # noqa: DOC502  # raised by _prepare_arrays
@@ -64,6 +156,7 @@ def mse(  # noqa: DOC502  # raised by _prepare_arrays
         ValueError: If shapes do not match.
     """
     p, t = _prepare_arrays(predictions, targets)
+    p, t = exclude_inputs(mask, weights, p, t)
     return reduce_values((p - t) ** 2, mask=mask, weights=weights, reduction=reduction, axis=axis)
 
 
@@ -101,6 +194,7 @@ def mae(  # noqa: DOC502  # raised by _prepare_arrays
         ValueError: If shapes do not match.
     """
     p, t = _prepare_arrays(predictions, targets)
+    p, t = exclude_inputs(mask, weights, p, t)
     return reduce_values(jnp.abs(p - t), mask=mask, weights=weights, reduction=reduction, axis=axis)
 
 
@@ -148,11 +242,28 @@ def rmse(
     return reduce_values(roots, reduction=reduction)
 
 
-def r_squared(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _prepare_arrays
+def r_squared(  # noqa: DOC502  # raised by _prepare_arrays
+    predictions: ArrayLike,
+    targets: ArrayLike,
+    *,
+    mask: ArrayLike | None = None,
+    weights: ArrayLike | None = None,
+) -> jax.Array:
     """Coefficient of determination (R-squared).
 
     Computes ``1 - SS_res / SS_tot`` where SS_res is the residual sum of
     squares and SS_tot is the total sum of squares.
+
+    With ``weights``, both sums are weighted **and the mean inside SS_tot is the weighted
+    mean of the targets**. That second part is the one a weighted implementation usually
+    gets wrong: weighting the sums while centring on the unweighted mean gives a different
+    number, and the result disagrees with every reference implementation. Checked against
+    ``sklearn.metrics.r2_score(sample_weight=...)``.
+
+    No ``reduction`` or ``axis``, unlike the error metrics in this module: R-squared is a
+    ratio of two reductions over the whole sample, so there is no per-element value for
+    ``reduction="none"`` to return and no axis to reduce along that leaves the statistic
+    meaning what it means.
 
     Note:
         Direction: HIGHER (1.0 = perfect fit, 0.0 = mean predictor).
@@ -162,6 +273,8 @@ def r_squared(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:  # noqa:
     Args:
         predictions: Predicted values.
         targets: Ground truth values.
+        mask: Elements to keep (boolean, broadcastable), or ``None`` for all.
+        weights: Element weights (broadcastable), or ``None`` for unit weights.
 
     Returns:
         R-squared value as a scalar value. Values near 1.0 indicate good fit.
@@ -170,9 +283,72 @@ def r_squared(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:  # noqa:
         ValueError: If shapes do not match.
     """
     p, t = _prepare_arrays(predictions, targets)
-    ss_res = jnp.sum((t - p) ** 2)
-    ss_tot = jnp.sum((t - jnp.mean(t)) ** 2)
-    return 1.0 - ss_res / (ss_tot + _EPSILON)
+    return coefficient_of_determination(p, t, mask=mask, weights=weights)
+
+
+def r_squared_adjusted(
+    predictions: ArrayLike,
+    targets: ArrayLike,
+    *,
+    num_predictors: int,
+    mask: ArrayLike | None = None,
+    weights: ArrayLike | None = None,
+) -> jax.Array:
+    """Adjusted R-squared.
+
+    ``1 - (1-R^2)(n-1)/(n-p-1)`` where p is number of predictors.
+    Penalizes adding predictors that don't improve fit.
+
+    The R-squared term comes from
+    :func:`calibrax.metrics._utils.coefficient_of_determination`, the same function
+    :func:`calibrax.metrics.functional.regression.r_squared` uses, so the two cannot
+    drift apart.
+
+    **A mask changes ``n``; weights do not.** A masked element is not an observation, so
+    it leaves the sample and the degrees-of-freedom correction shrinks with it. A weight
+    scales an observation that is still there, which is how ``statsmodels`` treats it:
+    ``WLS.nobs`` is ``float(self.wexog.shape[0])``, the observation count -- measured on
+    statsmodels 0.15.0, a 40-point WLS fit whose weights summed to 25.21 reports
+    ``nobs == 40.0``. Taking ``sum(weights)`` as an
+    effective sample size instead would make the penalty depend on the scale of the
+    weights, so that doubling every weight changed the answer.
+
+    Note:
+        Direction: HIGHER (1.0 = perfect fit).
+        Range: (-inf, 1]. Returns ``0.0`` where there is no residual degree of
+        freedom, meaning ``n <= num_predictors + 1``, because the correction is
+        undefined there rather than merely large.
+
+    Args:
+        predictions: Predicted values.
+        targets: Ground truth values.
+        num_predictors: Number of predictors in the model.
+        mask: Elements to keep (boolean, broadcastable), or ``None`` for all. Reduces
+            ``n``, because an excluded element is not an observation.
+        weights: Element weights (broadcastable), or ``None`` for unit weights. Do not
+            change ``n``.
+
+    Returns:
+        Adjusted R-squared as a scalar value.
+    """
+    p_arr = jnp.asarray(predictions)
+    t_arr = jnp.asarray(targets)
+    # Not raveled: the shared core handles any shape, and keeping the input's shape is what
+    # lets `mask` and `weights` broadcast against it the way `reduce_values` documents.
+    # `size` rather than `shape[0]`, since the sample is every element.
+    # A Python int when there is no mask, so the usual path costs no reduction; a traced
+    # count when there is one, which keeps the function traceable either way.
+    n = t_arr.size if mask is None else jnp.sum(jnp.broadcast_to(jnp.asarray(mask), t_arr.shape))
+    r2 = coefficient_of_determination(p_arr, t_arr, mask=mask, weights=weights)
+    # Residual degrees of freedom. At or below zero the correction stops being a penalty
+    # and inverts: a mask leaving `n <= num_predictors + 1` returned values above the
+    # documented maximum of 1 (measured: +19.66 at n=2, p=2) and, where the denominator is
+    # exactly zero, divided by `_EPSILON` to reach about -5.9e8. The statistic is not
+    # defined without a residual degree of freedom, so it reports the same 0.0 the package
+    # uses for a sample it cannot describe. `jnp.where` rather than a Python branch, so a
+    # traced count from a mask keeps working under jit and vmap.
+    residual_dof = n - num_predictors - 1
+    return jnp.where(residual_dof > 0, 1.0 - (1.0 - r2) * (n - 1) / (residual_dof + _EPSILON), 0.0)
 
 
 def mape(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _prepare_arrays
@@ -283,7 +459,7 @@ def huber_loss(  # noqa: DOC502  # raised by _prepare_arrays
     predictions: ArrayLike,
     targets: ArrayLike,
     *,
-    delta: float = 1.0,
+    delta: float = HUBER_DELTA,
     mask: ArrayLike | None = None,
     weights: ArrayLike | None = None,
     reduction: str = "mean",
@@ -317,12 +493,10 @@ def huber_loss(  # noqa: DOC502  # raised by _prepare_arrays
         ValueError: If shapes do not match.
     """
     p, t = _prepare_arrays(predictions, targets)
+    p, t = exclude_inputs(mask, weights, p, t)
     err = p - t
-    abs_err = jnp.abs(err)
-    quadratic = 0.5 * err**2
-    linear = delta * (abs_err - 0.5 * delta)
     return reduce_values(
-        jnp.where(abs_err <= delta, quadratic, linear),
+        _huber_elementwise(err**2, jnp.abs(err), delta),
         mask=mask,
         weights=weights,
         reduction=reduction,
@@ -334,8 +508,8 @@ def charbonnier_loss(  # noqa: DOC502  # raised by _prepare_arrays
     predictions: ArrayLike,
     targets: ArrayLike,
     *,
-    epsilon: float = 1e-3,
-    alpha: float = 1.0,
+    epsilon: float = CHARBONNIER_EPSILON,
+    alpha: float = CHARBONNIER_ALPHA,
     mask: ArrayLike | None = None,
     weights: ArrayLike | None = None,
     reduction: str = "mean",
@@ -366,6 +540,7 @@ def charbonnier_loss(  # noqa: DOC502  # raised by _prepare_arrays
         ValueError: If shapes do not match.
     """
     p, t = _prepare_arrays(predictions, targets)
+    p, t = exclude_inputs(mask, weights, p, t)
     smoothed = jnp.sqrt((p - t) ** 2 + epsilon**2) ** alpha
     return reduce_values(smoothed, mask=mask, weights=weights, reduction=reduction, axis=axis)
 
@@ -374,7 +549,7 @@ def quantile_loss(  # noqa: DOC502  # raised by _prepare_arrays
     predictions: ArrayLike,
     targets: ArrayLike,
     *,
-    quantile: float = 0.5,
+    quantile: float = QUANTILE_LEVEL,
 ) -> jax.Array:
     """Quantile (pinball) loss for quantile regression.
 
@@ -398,8 +573,7 @@ def quantile_loss(  # noqa: DOC502  # raised by _prepare_arrays
         ValueError: If shapes do not match.
     """
     p, t = _prepare_arrays(predictions, targets)
-    diff = t - p
-    return jnp.mean(jnp.where(diff >= 0, quantile * diff, (quantile - 1.0) * diff))
+    return jnp.mean(_quantile_elementwise(p - t, quantile))
 
 
 def log_cosh_loss(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _prepare_arrays
@@ -547,10 +721,34 @@ def relative_l2_error(  # noqa: DOC502  # raised by reduce_values
         Scalar mean relative L2 error as a JAX array, or the reduced values.
 
     Raises:
-        ValueError: If shapes do not match.
+        ValueError: If shapes do not match, or if ``mask`` or ``weights`` is dimensioned
+            against the field rather than the sample axis.
     """
+    p = jnp.asarray(predictions)
+    t = jnp.asarray(targets)
+    if mask is not None or weights is not None:
+        # The only function here whose mask is dimensioned against the *output*: one value
+        # per sample, while the NaN sits inside that sample's field. So fold at the sample
+        # axis and restore the field axes, rather than folding at the input's own shape --
+        # which rejects the documented ``(n_samples,)`` mask outright for a 2-D field.
+        for label, given in (("mask", mask), ("weights", weights)):
+            if given is None:
+                continue
+            shape = jnp.shape(given)
+            if shape not in {(), p.shape[:1]}:
+                msg = (
+                    f"{label} must be per sample: shape {p.shape[:1]} or scalar, got {shape}. "
+                    f"This metric reduces to one value per sample, so its {label} is "
+                    f"dimensioned against the sample axis, not against the field "
+                    f"{p.shape}."
+                )
+                raise ValueError(msg)
+        per_sample = sample_weights(mask, weights, p.shape[:1])
+        field = per_sample.reshape(per_sample.shape + (1,) * (p.ndim - 1))
+        p = substitute_excluded(p, field)
+        t = substitute_excluded(t, field)
     return reduce_values(
-        per_sample_relative_l2(predictions, targets),
+        per_sample_relative_l2(p, t),
         mask=mask,
         weights=weights,
         reduction=reduction,

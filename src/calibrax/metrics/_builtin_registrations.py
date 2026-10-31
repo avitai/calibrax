@@ -25,7 +25,12 @@ from calibrax.metrics._types import (
     MetricTier,
     MetricValues,
 )
-from calibrax.metrics._utils import _EPSILON, _prepare_arrays, safe_divide
+from calibrax.metrics._utils import (
+    _EPSILON,
+    _prepare_arrays,
+    coefficient_of_determination,
+    safe_divide,
+)
 from calibrax.metrics.functional.audio import (
     mel_cepstral_distortion,
     signal_to_noise_ratio,
@@ -160,17 +165,24 @@ from calibrax.metrics.functional.ranking import (
     recall_at_k,
 )
 from calibrax.metrics.functional.regression import (
+    _huber_elementwise,
+    _quantile_elementwise,
+    CHARBONNIER_ALPHA,
+    CHARBONNIER_EPSILON,
     charbonnier_loss,
     crps,
     explained_variance,
+    HUBER_DELTA,
     huber_loss,
     log_cosh_loss,
     mae,
     mape,
     max_error,
     mse,
+    QUANTILE_LEVEL,
     quantile_loss,
     r_squared,
+    r_squared_adjusted,
     relative_error,
     relative_l2_error,
     rmse,
@@ -186,7 +198,6 @@ from calibrax.metrics.functional.statistical import (
     correlation_preservation,
     kendall_tau,
     pearson_correlation,
-    r_squared_adjusted,
     skewness,
     spearman_rank_correlation,
 )
@@ -236,6 +247,7 @@ _FUSED_REGRESSION_NAMES = frozenset(
         "log_cosh_loss",
         "smape",
         "relative_l2_error",
+        "charbonnier_loss",
     }
 )
 
@@ -244,23 +256,26 @@ def _calculate_regression_fused(
     predictions: ArrayLike,
     targets: ArrayLike,
 ) -> MetricValues:
-    """Compute all 12 same-shape regression metrics with shared subexpressions.
+    """Compute all 14 same-shape regression metrics with shared subexpressions.
 
     Avoids redundant computation by reusing intermediate values (diff, abs_diff,
-    sq_diff, mean_t) across metrics instead of recomputing them independently.
+    sq_diff) across metrics instead of recomputing them independently. R-squared is the
+    exception: it delegates to the shared core so the formula lives in one place. That
+    costs nothing because the core's unweighted path spells its residual the same way
+    this function binds ``diff``, which is what lets XLA reuse the binding instead of
+    emitting a second one.
 
     Args:
         predictions: Predicted values.
         targets: Ground truth values.
 
     Returns:
-        Dictionary mapping the 12 same-shape regression metric names to computed values.
+        Dictionary mapping the 14 same-shape regression metric names to computed values.
     """
     p, t = _prepare_arrays(predictions, targets)
     diff = p - t
     abs_diff = jnp.abs(diff)
     sq_diff = diff**2
-    mean_t = jnp.mean(t)
 
     # Core statistics (computed once)
     mse_val = jnp.mean(sq_diff)
@@ -271,16 +286,28 @@ def _calculate_regression_fused(
         "mse": mse_val,
         "mae": mae_val,
         "rmse": jnp.sqrt(mse_val),
-        "r_squared": 1.0 - jnp.sum(sq_diff) / (jnp.sum((t - mean_t) ** 2) + _EPSILON),
+        # Delegates rather than inlining a third copy of the formula. The core's
+        # unweighted path is the same expression down to the spelling of the
+        # residual, so the compiled suite is unchanged: 118 fusions against 118 at
+        # both 4,096 and 262,144 points, and the value is bit-identical. Interleaved
+        # medians agree to within run-to-run noise, so the fusion count is the claim.
+        "r_squared": coefficient_of_determination(p, t),
         "mape": jnp.mean(abs_diff / (jnp.abs(t) + _EPSILON)),
         "relative_error": jnp.sqrt(jnp.sum(sq_diff)) / (jnp.sqrt(jnp.sum(t**2)) + _EPSILON),
         "explained_variance": 1.0 - jnp.var(diff) / (jnp.var(t) + _EPSILON),
         "max_error": jnp.max(abs_diff),
-        "huber_loss": jnp.mean(jnp.where(abs_diff <= 1.0, 0.5 * sq_diff, abs_diff - 0.5)),
-        "quantile_loss": jnp.mean(jnp.where(diff <= 0, 0.5 * (-diff), 0.5 * diff)),
+        "huber_loss": jnp.mean(_huber_elementwise(sq_diff, abs_diff, HUBER_DELTA)),
+        "quantile_loss": jnp.mean(_quantile_elementwise(diff, QUANTILE_LEVEL)),
         "log_cosh_loss": jnp.mean(jnp.logaddexp(diff, -diff) - jnp.log(2.0)),
         "smape": jnp.mean(safe_divide(abs_diff, (jnp.abs(p) + jnp.abs(t)) / 2.0)),
         "relative_l2_error": relative_l2_error(p, t),
+        # Reuses sq_diff, so this adds one sqrt and one mean rather than a second pass over
+        # the inputs. Evaluated at the registered defaults, which is how calculate_all
+        # invokes every entry here; the constants are imported from the function itself so
+        # the fused copy cannot drift away from the default it stands in for.
+        "charbonnier_loss": jnp.mean(
+            jnp.sqrt(sq_diff + CHARBONNIER_EPSILON**2) ** CHARBONNIER_ALPHA
+        ),
     }
 
 
@@ -339,6 +366,19 @@ def _register_regression_metrics() -> None:
             "Coefficient of determination",
             MetricDirection.HIGHER,
             MetricProperties(is_differentiable=True),
+        ),
+        # Beside r_squared because it is the same quantity with a degrees-of-freedom
+        # penalty, and both read `coefficient_of_determination`. Its CUSTOM signature is
+        # load-bearing: `num_predictors` is a required keyword, so this cannot be called as
+        # `fn(predictions, targets)`, and the CUSTOM declaration is what keeps it out of
+        # `calculate_all`'s default set, which dispatches exactly that way.
+        _BuiltinMetricSpec(
+            "r_squared_adjusted",
+            r_squared_adjusted,
+            "Adjusted R-squared",
+            MetricDirection.HIGHER,
+            MetricProperties(),
+            signature=MetricSignature.CUSTOM,
         ),
         _BuiltinMetricSpec(
             "mape",
@@ -1360,16 +1400,6 @@ def _register_statistical_metrics() -> None:
                 symmetric,
                 domain="statistical",
             ),
-            # The number of predictors is a required keyword, and R^2 is not symmetric.
-            _BuiltinMetricSpec(
-                "r_squared_adjusted",
-                r_squared_adjusted,
-                "Adjusted R-squared",
-                MetricDirection.HIGHER,
-                MetricProperties(),
-                signature=MetricSignature.CUSTOM,
-                domain="statistical",
-            ),
             _BuiltinMetricSpec(
                 "skewness",
                 skewness,
@@ -1858,7 +1888,11 @@ def calculate_all(
 ) -> MetricValues:
     """Calculate multiple evaluation metrics at once.
 
-    Delegates to MetricRegistry for function lookup.
+    Delegates to MetricRegistry for function lookup, except for the metrics the fused
+    single-pass regression suite covers. Those are taken from one traversal whenever the
+    request includes all of them, and anything else requested is dispatched individually
+    beside it, so adding a metric to the general domain costs one dispatch rather than the
+    whole fused pass.
 
     Args:
         predictions: Predicted values.
@@ -1874,25 +1908,38 @@ def calculate_all(
     """
     registry = MetricRegistry()
     if metrics is None:
-        entries = registry.list_by_tier(MetricTier.PURE_FUNCTION)
-        names_set = {
-            e.name
-            for e in entries
-            if e.domain == "general" and e.signature == MetricSignature.PREDICTIONS_TARGETS
-        }
-        # Use fused single-pass path when the default set matches exactly
-        if names_set == _FUSED_REGRESSION_NAMES:
-            return _calculate_regression_fused(predictions, targets)
-        # Fall through to dynamic dispatch if registry has changed
-        names = sorted(names_set)
+        names = sorted(
+            entry.name
+            for entry in registry.list_by_tier(MetricTier.PURE_FUNCTION)
+            if entry.domain == "general" and entry.signature == MetricSignature.PREDICTIONS_TARGETS
+        )
     else:
         names = list(metrics)
-        # Use fused path when explicitly requesting exactly the regression set
-        if set(names) == _FUSED_REGRESSION_NAMES:
-            return _calculate_regression_fused(predictions, targets)
+
+    # The fused traversal computes `_FUSED_REGRESSION_NAMES` from shared subexpressions in
+    # one pass, so it pays exactly when nothing it computes is wasted: when every metric it
+    # produces was asked for. Whether anything else was also asked for has no bearing on
+    # that, which is why this is a subset test rather than the equality it used to be.
+    # Equality is strictly stronger than the pass needs, and the surplus strength was the
+    # defect: one extra metric in the request discarded all fourteen. Since
+    # `register_metric` defaults to `domain="general"` and the default request is exactly
+    # the general same-shape metrics, registering any custom metric abandoned the pass for
+    # the default call -- with no error and no wrong answer, just every metric dispatched
+    # one at a time. Measured at 4,096 points that cost about 1.6x (1.65 ms against 1.02,
+    # and 1.76 against 1.08 on another run); the claim is that the pass is taken at all,
+    # since the timing moves between runs while the selection does not.
+    # A request narrower than the pass still dispatches one by one, which is cheaper there.
+    fused: MetricValues = (
+        _calculate_regression_fused(predictions, targets)
+        if set(names) >= _FUSED_REGRESSION_NAMES
+        else {}
+    )
 
     results: MetricValues = {}
     for name in names:
+        if name in fused:
+            results[name] = fused[name]
+            continue
         if not registry.has(name):
             available = sorted(registry.list_names())
             msg = f"Unknown metric: {name!r}. Available: {available}"
