@@ -61,11 +61,52 @@ class TestEqualWeightsChangeNothing:
         unit = pearson_correlation(targets, predictions, weights=jnp.ones_like(targets))
         assert float(plain) == pytest.approx(float(unit), abs=0.0)
 
+    #: Concordance cannot hold the bit-exact form the other two do, and the bound is
+    #: measured rather than chosen: over 2,160 cases (120 seeds x sizes 8/16/64/256/1024/4096
+    #: x scales 1e-3/1/1e3) the two paths differ in 182 of them by at most **2.384e-07**,
+    #: four float32 ULP at the value's scale. This tolerance is 4.2x that worst case.
+    CONCORDANCE_PATH_DIFFERENCE = 1e-6
+
     def test_concordance(self, sample: WeightedSample) -> None:
+        """Concordance's two paths agree to a measured bound, not bit-exactly.
+
+        ``r_squared`` and ``pearson_correlation`` above keep ``abs=0.0``, and that is not an
+        oversight: over the same 2,160-case grid both are bit-identical in every case. Only
+        concordance is not, because its unweighted path is ``jnp.var``/``jnp.mean`` -- the
+        expression it had before weights existed, kept so that no released number moved --
+        while its weighted path is a sum against a weight vector divided by that vector's
+        total. Those are different float32 expressions and no ``_EPSILON`` adjustment
+        reconciles them: removing the epsilon from the weighted total was measured and left
+        the same 15 of 180 cases differing by the same 2 ULP.
+
+        A discrepancy of this size exists whichever path is chosen. Before the unweighted
+        fast path was added, concordance agreed with unit weights exactly and differed from
+        the pre-weights implementation in 19 of 120 cases by up to 2 ULP instead -- the same
+        float32 reassociation, shown against a different comparison. It is recorded here
+        rather than hidden because the alternative also cost 192% more interpreter work on
+        the path every existing caller takes.
+        """
         targets, predictions, _, _ = sample
         plain = concordance_correlation(targets, predictions)
         unit = concordance_correlation(targets, predictions, weights=jnp.ones_like(targets))
-        assert float(plain) == pytest.approx(float(unit), abs=0.0)
+        assert float(plain) == pytest.approx(float(unit), abs=self.CONCORDANCE_PATH_DIFFERENCE)
+
+    def test_the_unweighted_path_is_the_pre_weights_expression(
+        self, sample: WeightedSample
+    ) -> None:
+        """What the tolerance above buys: no released number moved.
+
+        Pins the unweighted path against an explicit replica of the expression concordance
+        had before it accepted weights, bit for bit. Without this the fast path could drift
+        and only the loosened assertion above would be left to catch it.
+        """
+        targets, predictions, _, _ = sample
+        mean_a = jnp.mean(targets)
+        mean_b = jnp.mean(predictions)
+        cov = jnp.mean((targets - mean_a) * (predictions - mean_b))
+        denom = jnp.var(targets) + jnp.var(predictions) + (mean_a - mean_b) ** 2
+        reference = 2.0 * cov / (denom + 1e-8)
+        assert float(concordance_correlation(targets, predictions)) == float(reference)
 
 
 class TestMaskEqualsSubsetting:

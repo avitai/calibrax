@@ -74,15 +74,28 @@ def pearson_correlation(
     a_raw = jnp.asarray(a)
     a_arr = a_raw.ravel()
     b_arr = jnp.asarray(b).ravel()
+    if mask is None and weights is None:
+        # The unweighted path expresses "no weights" by not having any, rather than by
+        # multiplying through a vector of ones. Both the cost and the answer turn on that:
+        # routing it through `sample_weights` and `weighted_mean` moved the result by up to
+        # 1 float32 ULP against the pre-weights implementation, and took one eager call from
+        # 462 Python-level calls to 1014 -- on the branch every existing caller takes. The
+        # suite's one benchmark covers `mse`, so nothing caught it.
+        a_centered = a_arr - jnp.mean(a_arr)
+        b_centered = b_arr - jnp.mean(b_arr)
+        cov = jnp.sum(a_centered * b_centered)
+        return cov / (
+            jnp.sqrt(jnp.sum(a_centered**2)) * jnp.sqrt(jnp.sum(b_centered**2)) + _EPSILON
+        )
+
     # Fold the mask and weights at the input's own shape, then flatten alongside the data.
     # Broadcasting against the raveled shape instead would refuse a mask shaped like a
     # multi-dimensional input, which is the shape a caller naturally has.
     w = sample_weights(mask, weights, a_raw.shape).ravel()
-    if mask is not None or weights is not None:
-        # Before any arithmetic, so an excluded NaN reaches neither the moments nor
-        # the gradient. Skipped by a trace-time branch when nothing is excluded.
-        a_arr = substitute_excluded(a_arr, w)
-        b_arr = substitute_excluded(b_arr, w)
+    # Before any arithmetic, so an excluded NaN reaches neither the moments nor the
+    # gradient. The unweighted path returned above, so this always has work to do.
+    a_arr = substitute_excluded(a_arr, w)
+    b_arr = substitute_excluded(b_arr, w)
     a_centered = a_arr - weighted_mean(a_arr, w)
     b_centered = b_arr - weighted_mean(b_arr, w)
     cov = jnp.sum(w * a_centered * b_centered)
@@ -275,8 +288,13 @@ def concordance_correlation(
         CCC <= |Pearson r|. Equal only when means and variances match.
 
     With ``weights`` all four moments are weighted -- both means, both variances and the
-    covariance -- which is Lin's coefficient computed on the weighted sample. Equal
-    weights reproduce the unweighted value exactly, which a test pins.
+    covariance -- which is Lin's coefficient computed on the weighted sample. Equal weights
+    reproduce the unweighted value to within four float32 ULP, measured at 2.384e-07 over
+    2,160 cases, rather than exactly: the unweighted path is the ``jnp.var``/``jnp.mean``
+    expression this function had before it accepted weights, kept so no released number
+    moved, and that is not bitwise the same expression as a weighted sum over its total.
+    ``r_squared`` and ``pearson_correlation`` are bit-exact on the same grid; this one
+    cannot be, and a test records the bound.
 
     No ``reduction`` or ``axis``: the coefficient is a ratio of reductions over the whole
     sample, so there is no per-element value to return.
@@ -299,12 +317,22 @@ def concordance_correlation(
     a_raw = jnp.asarray(a)
     a_arr = a_raw.ravel()
     b_arr = jnp.asarray(b).ravel()
+    if mask is None and weights is None:
+        # As in `pearson_correlation`: the ones vector is neither free nor bit-neutral.
+        # Measured against the pre-weights implementation, routing this path through it
+        # moved the result by up to 2 float32 ULP and took an eager call from 424
+        # Python-level calls to 1239.
+        mean_a = jnp.mean(a_arr)
+        mean_b = jnp.mean(b_arr)
+        cov = jnp.mean((a_arr - mean_a) * (b_arr - mean_b))
+        denom = jnp.var(a_arr) + jnp.var(b_arr) + (mean_a - mean_b) ** 2
+        return 2.0 * cov / (denom + _EPSILON)
+
     w = sample_weights(mask, weights, a_raw.shape).ravel()
-    if mask is not None or weights is not None:
-        # Before any arithmetic, so an excluded NaN reaches neither the moments nor
-        # the gradient. Skipped by a trace-time branch when nothing is excluded.
-        a_arr = substitute_excluded(a_arr, w)
-        b_arr = substitute_excluded(b_arr, w)
+    # Before any arithmetic, so an excluded NaN reaches neither the moments nor the
+    # gradient. The unweighted path returned above, so this always has work to do.
+    a_arr = substitute_excluded(a_arr, w)
+    b_arr = substitute_excluded(b_arr, w)
     total = jnp.sum(w) + _EPSILON
     mean_a = weighted_mean(a_arr, w)
     mean_b = weighted_mean(b_arr, w)

@@ -389,8 +389,8 @@ def weighted_mean(values: ArrayLike, weights: ArrayLike) -> jax.Array:
 
 
 def coefficient_of_determination(
-    predictions: ArrayLike,
-    targets: ArrayLike,
+    predictions: jax.Array,
+    targets: jax.Array,
     *,
     mask: ArrayLike | None = None,
     weights: ArrayLike | None = None,
@@ -436,16 +436,19 @@ def coefficient_of_determination(
     so it trades accuracy for nothing.
 
     Args:
-        predictions: Predicted values.
-        targets: Ground truth values.
+        predictions: Predicted values, already converted. Every caller has them from
+            :func:`_prepare_arrays`, and converting again is not free on the eager path:
+            re-wrapping here cost ``r_squared`` 127 extra Python-level calls per call,
+            22% more interpreter work for an identical compiled graph.
+        targets: Ground truth values, already converted.
         mask: Elements to keep (boolean, broadcastable), or ``None`` for all.
         weights: Element weights (broadcastable), or ``None`` for unit weights.
 
     Returns:
         The coefficient of determination as a scalar array.
     """
-    p = jnp.asarray(predictions)
-    t = jnp.asarray(targets)
+    p = predictions
+    t = targets
     if mask is None and weights is None:
         return 1.0 - jnp.sum((p - t) ** 2) / (jnp.sum((t - jnp.mean(t)) ** 2) + _EPSILON)
     w = sample_weights(mask, weights, t.shape)
@@ -528,7 +531,7 @@ def substitute_excluded(values: ArrayLike, weights: ArrayLike) -> jax.Array:
 
 
 def exclude_inputs(
-    mask: ArrayLike | None, weights: ArrayLike | None, *arrays: ArrayLike
+    mask: ArrayLike | None, weights: ArrayLike | None, *arrays: jax.Array
 ) -> tuple[jax.Array, ...]:
     """Each array with the elements ``mask`` and ``weights`` exclude replaced by zero.
 
@@ -553,18 +556,28 @@ def exclude_inputs(
     reduction repairs the number and leaves the gradient poisoned, which is worse than the
     plain ``NaN`` it replaces because a forward test then passes.
 
+    ``arrays`` must already be :class:`jax.Array`, which every caller has from
+    :func:`_prepare_arrays` one line earlier. Converting again here is not free on the eager
+    path, where there is no compilation to absorb it: when this function re-wrapped its
+    inputs with ``jnp.asarray``, an eager ``mse`` over 100,000 elements went from 455
+    Python-level calls to 585, a 28.6% increase in interpreter work for a compiled graph that
+    is identical either way -- 7 fusions before and after. Wall clock could not resolve it
+    (6 microseconds on 92, inside a 7% noise floor) but CodSpeed's instruction-count
+    simulation did, reporting a 11.8% regression on exactly that benchmark.
+
     Args:
         mask: Elements to keep, or ``None``.
         weights: Element weights, or ``None``.
-        *arrays: The inputs to neutralise. The first fixes the shape the others broadcast
-            against, which is the shape the mask and weights are folded at.
+        *arrays: The inputs to neutralise, already converted. The first fixes the shape the
+            others broadcast against, which is the shape the mask and weights are folded at.
 
     Returns:
-        The arrays, in order, unchanged when neither ``mask`` nor ``weights`` is given.
+        The arrays, in order, returned untouched when neither ``mask`` nor ``weights`` is
+        given.
     """
     if mask is None and weights is None:
-        return tuple(jnp.asarray(a) for a in arrays)
-    folded = sample_weights(mask, weights, jnp.asarray(arrays[0]).shape)
+        return arrays
+    folded = sample_weights(mask, weights, arrays[0].shape)
     return tuple(substitute_excluded(a, folded) for a in arrays)
 
 
