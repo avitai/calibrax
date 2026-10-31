@@ -724,9 +724,11 @@ def relative_l2_error(  # noqa: DOC502  # raised by reduce_values
         ValueError: If shapes do not match, or if ``mask`` or ``weights`` is dimensioned
             against the field rather than the sample axis.
     """
-    p = jnp.asarray(predictions)
-    t = jnp.asarray(targets)
+    p = predictions
+    t = targets
     if mask is not None or weights is not None:
+        p = jnp.asarray(p)
+        t = jnp.asarray(t)
         # The only function here whose mask is dimensioned against the *output*: one value
         # per sample, while the NaN sits inside that sample's field. So fold at the sample
         # axis and restore the field axes, rather than folding at the input's own shape --

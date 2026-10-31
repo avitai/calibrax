@@ -36,6 +36,52 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Fixed
 
+- The default, unweighted path costs what it cost before the mask and weights arrived.
+  Adding them put work on that path that compilation cannot absorb, because the eager path
+  has no compilation: a helper re-converted arrays its caller had already converted, and the
+  three correlation statistics built a vector of ones and multiplied through it to express
+  "no weights".
+
+  CodSpeed caught one of seven, reporting an 11.8% regression on
+  `test_mse_large_vector_performance` -- the suite's only benchmark, which calls `mse`
+  eagerly. Wall clock could not resolve it, at 6 microseconds on 92 inside a 7% noise floor,
+  so the instrument used here is Python-level call counts per eager call: deterministic, and
+  the quantity an instruction-count simulation is sensitive to. Against `main`:
+
+  | unweighted call | before | after |
+  | --- | --- | --- |
+  | `concordance_correlation` | +192.2% | **+0%** |
+  | `pearson_correlation` | +119.5% | **+0%** |
+  | `spearman_rank_correlation` | +93.4% | **+0%** |
+  | `r_squared_adjusted` | +28.9% | +3.8% |
+  | `mse` (the benchmarked one) | +28.6% | +0.2% |
+  | `r_squared` | +22.4% | +0.2% |
+  | `relative_l2_error` | +7.4% | **+0%** |
+
+  `spearman_rank_correlation` was meant to be the untouched control for the masking work; it
+  regressed through `pearson_correlation` internally. Every unweighted compiled graph now
+  matches `main` fusion for fusion -- pearson 35, concordance 37, spearman 161, `mse` 6,
+  `r_squared` 18 -- and the masked paths are unchanged, carrying the substitution cost a
+  caller opts into.
+
+  The same change restores a guarantee that had quietly lapsed. Routing the unweighted path
+  through a ones vector was not bit-neutral: `concordance_correlation` differed from the
+  pre-weights implementation in 19 of 120 cases and `pearson_correlation` in 2 of 120, by up
+  to 2 float32 ULP. **All 680 unweighted answers are now bit-identical to `main`.** This is
+  the standard `coefficient_of_determination` was held to and these two were not.
+
+  One consequence is recorded rather than hidden. `concordance_correlation`'s two paths can
+  no longer agree bit-exactly, because its unweighted path is the `jnp.var`/`jnp.mean`
+  expression it had before weights and its weighted path is a sum over a weight total, which
+  are different float32 expressions -- removing `_EPSILON` from that total was measured and
+  is not the cause. Over 2,160 cases they differ in 182 by at most 2.384e-07, four ULP at the
+  value's scale, and the equal-weights test carries that measured bound with 4.2x headroom.
+  `r_squared` and `pearson_correlation` keep the bit-exact assertion, being identical in all
+  2,160. A discrepancy of this size existed either way: before, concordance agreed with unit
+  weights and differed from the released value instead. A new test pins the unweighted path
+  bit-for-bit against the pre-weights expression, so the loosened assertion is not the only
+  thing standing guard.
+
 - **Breaking:** a negative radicand is a domain error, not a zero. `safe_root`'s guard was
   `x <= 0.0`, which clamped any negative to `0.0`; it is now `x == 0.0`, so the guard covers
   exactly the singularity the function exists for and a negative yields `NaN`.
