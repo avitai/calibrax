@@ -27,13 +27,16 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 
+import calibrax.metrics._builtin_registrations as registrations
+from calibrax.core.models import MetricDirection
+from calibrax.metrics import register_metric
 from calibrax.metrics._builtin_registrations import (
     _calculate_regression_fused,
     _FUSED_REGRESSION_NAMES,
     calculate_all,
 )
 from calibrax.metrics._registry import MetricRegistry
-from calibrax.metrics._types import MetricSignature, MetricTier
+from calibrax.metrics._types import MetricSignature, MetricTier, MetricValues
 from calibrax.metrics.functional.regression import charbonnier_loss
 
 
@@ -83,16 +86,13 @@ class TestTheFastPathIsReachable:
         """
         predictions, targets = series
         calls: list[int] = []
-        module = __import__(
-            "calibrax.metrics._builtin_registrations", fromlist=["_calculate_regression_fused"]
-        )
-        original = module._calculate_regression_fused
+        original = registrations._calculate_regression_fused
 
-        def spy(p: jnp.ndarray, t: jnp.ndarray) -> dict[str, jnp.ndarray]:
+        def spy(p: jnp.ndarray, t: jnp.ndarray) -> MetricValues:
             calls.append(1)
             return original(p, t)
 
-        monkeypatch.setattr(module, "_calculate_regression_fused", spy)
+        monkeypatch.setattr(registrations, "_calculate_regression_fused", spy)
         calculate_all(predictions, targets)
         assert calls, "calculate_all(metrics=None) did not use the fused single-pass path"
 
@@ -122,3 +122,97 @@ class TestTheFusedValuesAreTheFunctionsTheyReplace:
             assert float(fused[name]) == pytest.approx(
                 float(entry.fn(predictions, targets)), abs=TOLERANCE
             ), f"fused {name} disagrees with its registered function"
+
+
+class TestAnExtraMetricDoesNotCostTheFusedPass:
+    """The fused pass pays whenever nothing it computes is wasted, not only on an exact match.
+
+    The selection condition used to be set **equality**, which is strictly stronger than
+    the pass needs. The fused traversal is worthwhile as soon as every metric it produces
+    was asked for; whether anything *else* was also asked for has no bearing on that. The
+    stronger condition discarded all fourteen fused metrics the moment a fifteenth joined
+    the request.
+
+    That was not hypothetical. ``register_metric`` defaults to ``domain="general"``, and
+    the default request is exactly the general same-shape metrics, so **registering any
+    custom metric took the default call off the fused path** -- measured at 4,096 points,
+    1.78 ms against 3.27 ms, with no error and no change in the results. The documented
+    example in ``docs/user-guide/metrics-overview.md`` does precisely this.
+    """
+
+    @staticmethod
+    def _register_custom() -> None:
+        """Register a general-domain metric the way the documentation shows.
+
+        The autouse fixture in ``tests/conftest.py`` restores the registry afterwards, so
+        this does not leak into other tests.
+        """
+
+        @register_metric(
+            "custom_general_metric",
+            domain="general",
+            direction=MetricDirection.LOWER,
+            description="A user metric in the general domain",
+        )
+        def custom_general_metric(predictions: jnp.ndarray, targets: jnp.ndarray) -> jnp.ndarray:
+            return jnp.mean(jnp.abs(jnp.asarray(predictions) - jnp.asarray(targets)))
+
+    def test_the_fused_pass_is_still_used(
+        self, series: tuple[jnp.ndarray, jnp.ndarray], monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        predictions, targets = series
+        self._register_custom()
+
+        calls: list[int] = []
+        original = registrations._calculate_regression_fused
+
+        def spy(p: jnp.ndarray, t: jnp.ndarray) -> MetricValues:
+            calls.append(1)
+            return original(p, t)
+
+        monkeypatch.setattr(registrations, "_calculate_regression_fused", spy)
+        result = calculate_all(predictions, targets)
+        assert calls, "a custom general metric took the default call off the fused pass"
+        assert "custom_general_metric" in result
+        assert set(_FUSED_REGRESSION_NAMES) <= set(result)
+
+    def test_the_extra_metric_is_still_computed_correctly(
+        self, series: tuple[jnp.ndarray, jnp.ndarray]
+    ) -> None:
+        """Fusing the rest must not change what the dispatched metric returns."""
+        predictions, targets = series
+        self._register_custom()
+        result = calculate_all(predictions, targets)
+        expected = float(jnp.mean(jnp.abs(predictions - targets)))
+        assert float(result["custom_general_metric"]) == pytest.approx(expected, abs=TOLERANCE)
+        assert float(result["mae"]) == pytest.approx(expected, abs=TOLERANCE)
+
+    def test_a_strict_subset_request_still_avoids_the_fused_pass(
+        self, series: tuple[jnp.ndarray, jnp.ndarray], monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Asking for three metrics must not compute fourteen.
+
+        The other half of "nothing it computes is wasted": when the request does not cover
+        the fused set, individual dispatch is the cheaper path and must still be taken.
+        """
+        predictions, targets = series
+        calls: list[int] = []
+        original = registrations._calculate_regression_fused
+        monkeypatch.setattr(
+            registrations,
+            "_calculate_regression_fused",
+            lambda p, t: (calls.append(1), original(p, t))[1],
+        )
+        result = calculate_all(predictions, targets, metrics=["mse", "mae", "rmse"])
+        assert not calls, "a three-metric request computed the whole fused suite"
+        assert set(result) == {"mse", "mae", "rmse"}
+
+    def test_an_unknown_name_still_raises_alongside_the_fused_pass(
+        self, series: tuple[jnp.ndarray, jnp.ndarray]
+    ) -> None:
+        """Validation must not be skipped for the metrics the fused pass does not cover."""
+        predictions, targets = series
+        with pytest.raises(ValueError, match="Unknown metric"):
+            calculate_all(
+                predictions, targets, metrics=[*sorted(_FUSED_REGRESSION_NAMES), "no_such_metric"]
+            )
