@@ -36,6 +36,29 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Fixed
 
+- `calculate_all(metrics=None)` keeps the fused single-pass path when a custom metric is
+  registered. It selected that path only when the general-domain same-shape metric names
+  matched `_FUSED_REGRESSION_NAMES` **exactly**, which is stronger than the pass needs: the
+  traversal pays whenever every metric it produces was asked for, and whether anything else
+  was also asked for has no bearing on that. Because `register_metric` defaults to
+  `domain="general"` and the default request is exactly those metrics, registering any
+  custom metric -- the workflow the documentation shows -- abandoned the pass and dispatched
+  all fifteen one at a time, with no error and no wrong answer. The condition is now a
+  subset test and the extras are computed alongside the fused result, which also collapses
+  two duplicated early-return branches into one loop. Measured at 4,096 points with only
+  the gate differing: with a custom metric registered, the fused pass goes from not taken
+  at 1.65 ms to taken at 1.02 ms; with none registered, unchanged. A narrower request still
+  dispatches individually, which is cheaper there, and a test asserts that too.
+- The documentation no longer leaks a metric into the process-wide registry. The
+  `register_metric` example in `docs/user-guide/metrics-overview.md` is executed by
+  `tests/test_doc_examples.py`, so running the suite left a `weighted_mse` metric registered
+  in the `general` domain -- which, with `pytest-randomly` reordering every run, made any
+  test asserting what the registry holds pass or fail on the seed. The example now removes
+  its registrations in a following block, so it stays executed and verified rather than
+  skipped, and the page gains a short "Removing a metric" section documenting how. Verified
+  by executing every block of that page in a fresh interpreter with no test fixture in
+  play: the general same-shape set is 14 before and after, and nothing is left behind.
+
 - `mask` and `weights` broadcast against the input's own shape in every statistic that
   takes them. All six document the parameters as "broadcastable", but only `r_squared`
   behaved that way: `r_squared_adjusted`, `pearson_correlation`,
