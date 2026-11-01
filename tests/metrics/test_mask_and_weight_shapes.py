@@ -1,11 +1,9 @@
 """``mask`` and ``weights`` broadcast against the input's own shape, for every statistic.
 
-Written before the fix, so the cases it describes fail against the shipped behaviour.
-
 Six statistics take a ``mask``; five of them also take ``weights``. All six document the
-parameter as "broadcastable", but only :func:`~calibrax.metrics.functional.regression.r_squared`
-behaved that way: the other five ravel their inputs and then broadcast the mask against the
-**raveled** shape, so a same-shape 2-D mask over 2-D data raised
+parameter as "broadcastable", and these tests hold every one of them to it. Ravelling the
+inputs first and broadcasting the mask against the **raveled** shape breaks that contract: a
+same-shape 2-D mask over 2-D data then raises
 ``ValueError: Cannot broadcast to shape with fewer dimensions``.
 
 The convention is settled by the package, not by preference.

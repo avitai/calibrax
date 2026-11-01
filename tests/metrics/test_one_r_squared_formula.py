@@ -1,12 +1,13 @@
 """One R-squared formula, reached from all three of its callers.
 
-Before this change the formula existed three times: in ``r_squared``, inline in the fused
-regression suite, and again in ``r_squared_adjusted``. Only the first accepted weights, so
-weighting ``r_squared`` and then reading ``r_squared_adjusted`` on the same data returned a
-weighted number next to an unweighted one.
+The formula has one home, :func:`calibrax.metrics._utils.coefficient_of_determination`,
+and three callers reach it: ``r_squared``, the fused regression suite, and
+``r_squared_adjusted``. Three copies would let them drift, and the drift has a shape -- if
+only one accepted weights, weighting ``r_squared`` and then reading ``r_squared_adjusted`` on
+the same data would return a weighted number next to an unweighted one.
 
 The tests here pin the agreement between the three callers, the degrees-of-freedom
-convention, and that the fused path still produces what it produced before.
+convention, and the fused path's values.
 """
 
 from __future__ import annotations
@@ -93,7 +94,7 @@ class TestTheThreeCallersAgree:
         assert float(adjusted) == pytest.approx(float(plain), abs=1e-6)
 
     def test_adjusted_is_weighted_when_r_squared_is(self, sample: WeightedSample) -> None:
-        """The defect this change fixes: the two used to disagree under weights."""
+        """Weighting one must weight the other, which is what sharing a core buys."""
         targets, predictions, weights, _ = sample
         weighted = float(
             r_squared_adjusted(predictions, targets, num_predictors=NUM_PREDICTORS, weights=weights)
@@ -205,7 +206,7 @@ class TestTheDocumentedRangeHolds:
     @pytest.mark.parametrize("num_predictors", PREDICTOR_COUNTS)
     @pytest.mark.parametrize("kept", KEPT_COUNTS)
     def test_is_finite(self, sample: WeightedSample, num_predictors: int, kept: int) -> None:
-        """A zero denominator previously divided by ``_EPSILON``, reaching ~1e9."""
+        """Unguarded, a zero denominator divides by ``_EPSILON`` and reaches ~1e9."""
         value = float(
             r_squared_adjusted(
                 sample[1], sample[0], num_predictors=num_predictors, mask=mask_of(sample, kept)
@@ -315,10 +316,10 @@ class TestTheUnweightedPathIsUnchanged:
         regression suite grew from 118 fusions to 122.
 
         The comparison must happen inside a function that *has* such a binding: measured on
-        the core alone the spelling makes no difference at all, and an earlier version of
-        this test compared it standalone and passed with the spelling reversed. Both sides
-        are compiled in this process, so a jax upgrade that shifts fusion counts globally
-        does not fail this.
+        the core alone the spelling makes no difference at all, so the same comparison run
+        standalone passes with the spelling reversed and proves nothing. Both sides are
+        compiled in this process, so a jax upgrade that shifts fusion counts globally does
+        not fail this.
         """
         rng = np.random.default_rng(3)
         targets = jnp.asarray(rng.normal(size=4096), dtype=jnp.float32)

@@ -169,9 +169,11 @@ def rmsd(
     weights = (present_a & present_b).astype(jnp.float32)[:, None]
     if mask_a is not None or mask_b is not None:
         # The centroid sums over every atom, so `0 * nan -> nan` at an absent atom
-        # poisons both centroids and every squared term after them. `safe_root` then
-        # takes NaN to 0.0 -- a reported RMSD of zero, which reads as two identical
-        # conformations. Neutralise the coordinates before the first sum reads them.
+        # poisons both centroids and every squared term after them, and the reported RMSD
+        # is `NaN` for a pair whose present atoms superpose perfectly well. A `jnp.where`
+        # after the sums would repair the value and leave the gradient `NaN`, since `where`
+        # differentiates the branch it did not take. Neutralise the coordinates before the
+        # first sum reads them.
         present = (present_a & present_b)[:, None]
         a = substitute_excluded(a, weights, present)
         b = substitute_excluded(b, weights, present)

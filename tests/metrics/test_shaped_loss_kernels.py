@@ -1,15 +1,13 @@
 """The fused suite and the loss functions must share one expression, not two.
 
-Written before the extraction, so these fail against the duplicated forms.
-
 Three metrics in the fused regression suite carry a numeric shape parameter:
 ``charbonnier_loss`` (``epsilon``, ``alpha``), ``huber_loss`` (``delta``) and
 ``quantile_loss`` (``quantile``). The other eleven have none. The fused suite evaluates
-every entry at its registered default, so each of those defaults was written twice -- once
-as the signature default and once as a literal in the fused body.
+every entry at its registered default, so each of those defaults would otherwise be written
+twice -- once as the signature default and once as a literal in the fused body.
 
-**The duplicates were not merely duplicated, they were algebraically collapsed**, which is
-why replacing the literals with named constants would have been wrong:
+**Such literals are not merely duplicates, they are algebraically collapsed**, which is why
+replacing them with named constants would be wrong:
 
 - Huber's linear branch is ``delta * (|e| - 0.5 * delta)``. The fused body had
   ``abs_diff - 0.5``, which equals it only at ``delta == 1.0``.
@@ -99,11 +97,11 @@ class TestTheDefaultsAreDeclaredOnce:
 class TestTheKernelsGeneralise:
     """Off-default comparison against **independent** implementations.
 
-    The first draft of this class compared the kernel against the function that calls it.
-    That proves nothing once they share an expression: collapsing Huber's linear branch to
-    ``|e| - 0.5`` and giving both quantile branches the same coefficient left every
-    assertion passing, because each broken kernel was being compared with itself. Positive
-    controls caught it; the comparison did not.
+    Comparing a kernel against the function that calls it proves nothing once the two share
+    an expression: collapsing Huber's linear branch to ``|e| - 0.5`` and giving both quantile
+    branches the same coefficient leaves every such assertion passing, because each broken
+    kernel is then compared with itself. Positive controls catch that; the comparison does
+    not.
 
     So the references here are outside calibrax. ``scipy.special.huber`` implements the
     Huber function directly, and ``sklearn.metrics.mean_pinball_loss`` the pinball loss.
@@ -131,8 +129,8 @@ class TestTheKernelsGeneralise:
         """A linear branch written ``|e| - 0.5`` passes only at ``delta == 1.0``.
 
         Every delta here puts a real share of ``|e|`` above the knee on this fixture, from
-        86% at 0.25 down to 3% at 3.0, so each case exercises the linear branch. An earlier
-        version used 7.0, where **no** error exceeds the threshold: both forms then take the
+        86% at 0.25 down to 3% at 3.0, so each case exercises the linear branch. A delta of
+        7.0 would not: **no** error exceeds the threshold there, so both forms take the
         quadratic branch and the case cannot detect a wrong linear branch at all. Huber
         degenerating to half the mean squared error at large delta is a real property, but
         it is not this test's job.

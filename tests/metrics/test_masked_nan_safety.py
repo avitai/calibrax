@@ -8,14 +8,10 @@ exists to extend.
 The denominator was enumerated from the signatures rather than from memory: of everything in
 ``calibrax.metrics.functional`` and ``_utils`` that accepts ``mask``, ``weights``, ``mask_a``
 or ``mask_b``, seventeen are metrics -- the rest are the shared primitives, plus ``bleu``,
-whose ``weights`` are n-gram orders and not sample weights. Measured against ``9b0a951`` with
-a ``NaN`` at one excluded position, **sixteen of those seventeen failed at least one of the
-three criteria below**, in three distinct ways: most returned ``NaN``; ``mae`` and
-``kendall_tau`` were wrong in value with a finite gradient; ``relative_l2_error`` returned the
-*correct* value with a ``NaN`` gradient, and ``rmse``, ``rmsd`` and ``pairwise_rmsd`` returned
-``0.0`` -- a perfect score -- because ``safe_root`` took ``NaN`` to zero at that commit,
-which a later one fixed. Only
-:func:`spearman_rank_correlation` was correct, and it is left untouched here as the control.
+whose ``weights`` are n-gram orders and not sample weights. Every one of the seventeen is
+asserted against all three criteria below, so the file's own coverage is the denominator
+rather than a sample of it. :func:`spearman_rank_correlation` needs no substitution of its
+own -- its mask reaches a rank, not an arithmetic sum -- and serves as the control.
 
 **Substitution happens on the inputs, before any arithmetic.** A ``jnp.where`` placed
 after the multiply repairs the value and leaves the gradient ``NaN``, because ``where``
@@ -187,13 +183,13 @@ class TestPairedStatistics:
 class TestTheReducersDeliberatelyDoNotGuard:
     """The primitives propagate a NaN, and that is the design rather than an omission.
 
-    An earlier version of this file asserted the opposite -- that ``reduce_values`` and
-    ``weighted_mean`` absorb an excluded NaN. They were guarded, and the tests passed, and
-    the design was still wrong: a guard inside a reduction repairs the number while the
-    gradient stays poisoned, because by then the NaN has already reached the derivative and
-    ``0 * dvalues/dp`` is ``NaN`` when ``dvalues/dp`` is. Measured, guarding only the
-    primitive left ``mse`` returning the correct value with a ``NaN`` gradient -- a worse
-    state than the plain ``NaN`` it replaced, since a forward test then passes.
+    Asserting the opposite -- that ``reduce_values`` and ``weighted_mean`` absorb an
+    excluded NaN -- can be made to pass by guarding those primitives, and the design is still
+    wrong: a guard inside a reduction repairs the number while the gradient stays poisoned,
+    because by then the NaN has reached the derivative and ``0 * dvalues/dp`` is ``NaN`` when
+    ``dvalues/dp`` is. Measured, guarding only the primitive leaves ``mse`` returning the
+    correct value with a ``NaN`` gradient -- a worse state than a plain ``NaN``, since a
+    forward test then passes.
 
     It was also redundant: with the boundary guard in place the primitive's guard changed no
     result and only added work. Re-measured at 4,096 weighted elements, putting it back costs
@@ -348,7 +344,7 @@ class TestSoftmaxCrossEntropy:
     """The mask is at the label shape and the ``NaN`` is one axis deeper.
 
     ``log_softmax`` runs along the class axis, so a single bad logit poisons its whole row
-    and then the picked value, which ``reduce_values`` can no longer neutralise. The
+    and then the picked value, which ``reduce_values`` cannot neutralise. The
     substitution therefore folds at the label shape and restores the trailing axis.
     """
 
@@ -410,10 +406,11 @@ class TestRmsd:
     """An absent atom's coordinates are the canonical ``NaN``: there is no atom there.
 
     Both centroids sum over every atom, so ``0 * nan`` poisons them and every squared term
-    after them. At ``9b0a951`` ``safe_root`` then took the ``NaN`` to ``0.0``, which is why
-    this one reported a perfect match rather than a ``NaN`` -- the quietest of the failures,
-    and the reason the value assertion below still needs a non-zero reference even now that
-    the primitive propagates.
+    after them, and the reported RMSD is ``NaN`` for a pair whose present atoms superpose.
+
+    The reference below must be non-zero, which is a property of the fixture rather than of
+    the arithmetic: a pair whose kept subset superposes exactly has a subset RMSD of ``0.0``,
+    and against that reference a collapsed result is indistinguishable from a correct one.
     """
 
     def test_the_reference_is_discriminating(self) -> None:
@@ -477,8 +474,8 @@ class TestRmsd:
 class TestTheAdjustedPenaltyKeepsItsOwnConvention:
     """The one documented divergence between a mask and a zero weight.
 
-    A first draft of this file asserted the blanket equivalence over every paired function
-    and ``r_squared_adjusted`` failed it. The implementation was right: the docstring says
+    The blanket equivalence does not hold over every paired function:
+    ``r_squared_adjusted`` is the exception, and by design. Its docstring says
     "**A mask changes ``n``; weights do not**", citing ``statsmodels``' ``WLS.nobs ==
     float(self.wexog.shape[0])``. Measured on the fixture below, the two agree on the
     underlying ratio and differ only in the degrees-of-freedom factor, exactly as that
@@ -540,10 +537,10 @@ class TestRelativeL2ErrorMasksBySample:
 
     ``relative_l2_error`` reduces to one value per sample -- ``||p_i - t_i|| / ||t_i||`` --
     so its documented mask is ``(n_samples,)`` while its input is ``(n_samples, *field)``.
-    A first draft substituted at the input's own shape, as every other function here does,
-    and the documented mask stopped being accepted at all: ``ValueError: Incompatible types
-    for broadcasting: input type=float32[4] and requested type=float32[4,3]``. The full
-    suite caught it; the targeted tests above did not, because they are all one-dimensional.
+    Substituting at the input's own shape, as every other function here does, refuses the
+    documented mask outright: ``ValueError: Incompatible types for broadcasting: input
+    type=float32[4] and requested type=float32[4,3]``. Only the full suite catches that --
+    the targeted tests above cannot, being all one-dimensional.
     """
 
     FIELD = (4, 3)
@@ -569,13 +566,13 @@ class TestRelativeL2ErrorMasksBySample:
         assert jnp.all(grad[2] == 0.0), "the whole excluded sample must contribute nothing"
 
     def test_a_field_shaped_mask_is_refused_rather_than_broadcast(self) -> None:
-        """``9b0a951`` accepted ``(n_samples, 1)`` here and answered from an outer product.
+        """A field-shaped mask has no honest reading, so it is refused rather than broadcast.
 
-        Measured on that commit with a clean ``(4, 3)`` fixture: a ``(4, 1)`` mask against
-        the ``(4,)`` per-sample values broadcast to ``(4, 4)`` inside ``reduce_values``, and
-        the function returned 0.719671 where the masked mean is 0.874025 -- the mean of a
-        sixteen-element outer product. Folding at the sample axis makes the shape mismatch
-        an error instead, which is the only honest answer to a mask that does not fit.
+        This metric reduces to one value per sample, so a ``(4, 1)`` mask meets ``(4,)``
+        per-sample values and broadcasting pairs every mask row with every value: the result
+        is the mean of a sixteen-element outer product. Measured on this fixture that is
+        0.719671 where the masked mean is 0.874025. Folding at the sample axis makes the
+        shape mismatch an error instead.
         """
         _, dirty, targets, keep = self._fixture()
         with pytest.raises(ValueError, match="must be per sample"):

@@ -1919,9 +1919,9 @@ def calculate_all(
     # The fused traversal computes `_FUSED_REGRESSION_NAMES` from shared subexpressions in
     # one pass, so it pays exactly when nothing it computes is wasted: when every metric it
     # produces was asked for. Whether anything else was also asked for has no bearing on
-    # that, which is why this is a subset test rather than the equality it used to be.
-    # Equality is strictly stronger than the pass needs, and the surplus strength was the
-    # defect: one extra metric in the request discarded all fourteen. Since
+    # that, which is why this is a subset test rather than an equality one. Equality is
+    # strictly stronger than the pass needs, and the surplus strength costs: under it one
+    # extra metric in the request discards all fourteen. Since
     # `register_metric` defaults to `domain="general"` and the default request is exactly
     # the general same-shape metrics, registering any custom metric abandoned the pass for
     # the default call -- with no error and no wrong answer, just every metric dispatched

@@ -8,9 +8,9 @@ Includes 7 functions: pearson_correlation, spearman_rank_correlation,
 kendall_tau, concordance_correlation, correlation_preservation, autocorrelation,
 skewness.
 
-``r_squared_adjusted`` lived here and does not any more: it is a goodness-of-fit measure
-with a degrees-of-freedom penalty, not a correlation or an agreement measure, and it shares
-its implementation with ``r_squared``. Both now live in
+``r_squared_adjusted`` is not here. It is a goodness-of-fit measure with a
+degrees-of-freedom penalty rather than a correlation or an agreement measure, and it shares
+its implementation with ``r_squared``, so both live in
 :mod:`calibrax.metrics.functional.regression`.
 """
 
@@ -220,8 +220,8 @@ def kendall_tau(
     The unweighted branch is kept for **compiled size, not for compatibility**: the two
     branches agree on value at every size measured, but routing the default through a
     pair-weight matrix of ones costs 38 fusions against 18, roughly double, on the most
-    expensive function in this module. Two earlier justifications for the branch were
-    wrong and are recorded so they are not re-derived: it is not that float32 loses
+    expensive function in this module. Two plausible justifications for the branch are
+    wrong, and are recorded so they are not re-derived: it is not that float32 loses
     exactness summing a matrix of ones (measured exact at n=8192, past the 2**24 integer
     ceiling), and it is not that the values would otherwise drift.
 
@@ -327,9 +327,9 @@ def concordance_correlation(
     With ``weights`` all four moments are weighted -- both means, both variances and the
     covariance -- which is Lin's coefficient computed on the weighted sample. Equal weights
     reproduce the unweighted value to within four float32 ULP, measured at 2.384e-07 over
-    2,160 cases, rather than exactly: the unweighted path is the ``jnp.var``/``jnp.mean``
-    expression this function had before it accepted weights, kept so no released number
-    moved, and that is not bitwise the same expression as a weighted sum over its total.
+    2,160 cases, rather than exactly: the unweighted path is a ``jnp.var``/``jnp.mean``
+    expression, which keeps the default's published value stable and is not bitwise the same
+    expression as a weighted sum over its own total.
     ``r_squared`` and ``pearson_correlation`` are bit-exact on the same grid; this one
     cannot be, and a test records the bound.
 
