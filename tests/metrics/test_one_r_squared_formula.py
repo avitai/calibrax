@@ -105,6 +105,56 @@ class TestTheThreeCallersAgree:
         )
 
 
+class TestTheTwoPublicCallersShareOneShapeContract:
+    """One quantity, one contract. A shape one of them refuses cannot be answered by the other.
+
+    Sharing the formula is not enough on its own: the shared core takes arrays its callers
+    have already prepared, so each caller owns the validation. ``r_squared`` prepares with
+    :func:`calibrax.metrics._utils._prepare_arrays`, which is documented as "the standard
+    preamble for regression, calibration, and similar metrics" and refuses a mismatch.
+
+    ``(n, 1)`` against ``(n,)`` is not the same sample, and nothing downstream can tell: the
+    two broadcast to ``(n, n)``, so every prediction is paired with every target and the
+    answer comes from a square expansion of a vector comparison. Measured on six points, the
+    expansion reads ``-19.03`` where the flat pair reads a number near zero.
+    """
+
+    #: Six points is enough: the defect is the broadcast, not the size.
+    TARGETS = jnp.arange(6.0)
+
+    def _pair(self) -> tuple[jnp.ndarray, jnp.ndarray]:
+        return self.TARGETS + 0.1, self.TARGETS
+
+    def test_r_squared_refuses_a_trailing_axis(self) -> None:
+        """The sibling's behaviour, as the reference for the one below."""
+        predictions, targets = self._pair()
+        with pytest.raises(ValueError, match=r"Shape mismatch"):
+            r_squared(predictions[:, None], targets)
+
+    def test_adjusted_refuses_the_same_shape(self) -> None:
+        """Answering it instead reports a goodness of fit for a sample that was never given."""
+        predictions, targets = self._pair()
+        with pytest.raises(ValueError, match=r"Shape mismatch"):
+            r_squared_adjusted(predictions[:, None], targets, num_predictors=NUM_PREDICTORS)
+
+    def test_the_refusal_is_symmetric_in_the_arguments(self) -> None:
+        """A trailing axis on either side is the same mismatch."""
+        predictions, targets = self._pair()
+        with pytest.raises(ValueError, match=r"Shape mismatch"):
+            r_squared_adjusted(predictions, targets[:, None], num_predictors=NUM_PREDICTORS)
+
+    def test_matching_shapes_are_untouched(self) -> None:
+        """Only the mismatch is refused: an agreed 2-D shape still answers, and agrees."""
+        predictions, targets = self._pair()
+        flat = float(r_squared_adjusted(predictions, targets, num_predictors=NUM_PREDICTORS))
+        lifted = float(
+            r_squared_adjusted(
+                predictions[:, None], targets[:, None], num_predictors=NUM_PREDICTORS
+            )
+        )
+        assert lifted == pytest.approx(flat, abs=0.0)
+
+
 class TestTheDegreesOfFreedomConvention:
     """A mask changes ``n``; weights do not. Both halves are observable."""
 
