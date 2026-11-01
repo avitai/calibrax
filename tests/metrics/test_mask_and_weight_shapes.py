@@ -246,6 +246,27 @@ class TestTransformations:
             jnp.stack([predictions] * 3), jnp.stack([targets] * 3), jnp.stack([weights] * 3)
         )
         assert batched.shape == (3,)
-        assert jnp.all(jnp.isfinite(jax.grad(lambda w: call(predictions, targets, w))(weights))), (
+        grad_w = jax.grad(lambda w: call(predictions, targets, w))(weights)
+        assert jnp.all(jnp.isfinite(grad_w)), (
             f"{name} has a non-finite gradient with respect to its weights"
+        )
+        # A zero weight is an observation carrying weight zero, so ``d/dw`` there is that
+        # element's own contribution -- which means it must depend on the element's value.
+        # A rule that substitutes the value away leaves a derivative that does not: for a
+        # mean-reduced statistic it reads ``(0 - m) / sum(w)``, which is finite and non-zero,
+        # so neither a finiteness check nor a ``!= 0.0`` check can tell the two apart. Moving
+        # the value is what separates them.
+        zeroed = weights.at[0, 0].set(0.0)
+
+        def at_zero(values: jnp.ndarray) -> jnp.ndarray:
+            return jax.grad(lambda w: call(values, targets, w))(zeroed)
+
+        here = at_zero(predictions)
+        assert jnp.all(jnp.isfinite(here)), f"{name} is non-finite at a zero weight"
+        # The unique minimum, so the rank statistic moves as well: measured on this fixture,
+        # ``kendall_tau`` shifts 0.0666 when the element is lowered and nothing at all when it
+        # is raised, because raising it past the maximum flips no pair.
+        moved = at_zero(predictions.at[0, 0].set(predictions.min() - 1.0))
+        assert float(here[0, 0]) != float(moved[0, 0]), (
+            f"{name} ignores a zero-weighted element's value in its weight derivative"
         )
