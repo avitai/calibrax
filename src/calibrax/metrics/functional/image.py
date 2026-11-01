@@ -14,7 +14,7 @@ import jax.numpy as jnp
 from jax import image as jax_image, lax
 from jax.typing import ArrayLike
 
-from calibrax.metrics._utils import _EPSILON
+from calibrax.metrics._utils import _EPSILON, _validate_shapes
 
 
 # Images are (H, W) for one channel or (H, W, C).
@@ -133,7 +133,7 @@ def _ssim_single_channel(
     )
 
 
-def psnr(predictions: ArrayLike, targets: ArrayLike, *, max_val: float = 1.0) -> jax.Array:
+def psnr(predictions: ArrayLike, targets: ArrayLike, *, max_val: float = 1.0) -> jax.Array:  # noqa: DOC502  # raised by _validate_shapes
     """Peak Signal-to-Noise Ratio.
 
     PSNR = 10 * log10(max_val^2 / MSE). Measured in dB. Higher is better.
@@ -152,7 +152,12 @@ def psnr(predictions: ArrayLike, targets: ArrayLike, *, max_val: float = 1.0) ->
         >>> img = jnp.ones((8, 8)) * 0.5
         >>> psnr(img, img)  # Very high value (identical images)
         ...
+
+    Raises:
+        ValueError: If ``predictions`` and ``targets`` do not have the same shape.
     """
+    # The docstring documents one shape for both images.
+    _validate_shapes(predictions, targets)
     predictions = jnp.asarray(predictions, dtype=jnp.float32)
     targets = jnp.asarray(targets, dtype=jnp.float32)
     mse_val = jnp.mean((predictions - targets) ** 2)

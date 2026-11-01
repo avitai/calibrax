@@ -36,6 +36,17 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Changed
 
+- `_prepare_arrays` and `_validate_shapes` read shapes without building arrays, which makes
+  the shape check cheaper than it was before it checked anything. `_validate_shapes`
+  converted both inputs with `jnp.asarray` only to read `.shape`, and `_prepare_arrays` then
+  converted both again: measured, one conversion costs 33 Python-level calls against 4 for
+  `jnp.shape`, and the double conversion put 65 calls on every caller -- the same class of
+  eager-dispatch waste a previous change removed from `exclude_inputs`. `_validate_shapes`
+  now reads shapes directly and `_prepare_arrays` converts once and compares the result.
+  The affected metrics pay 3 to 7 Python-level calls for the new check, between 0.5% and
+  4.4%, and the twenty-four metrics that already validated get faster. No compiled graph
+  changes: the check is trace-time, because shapes are static under `jit` and `vmap`.
+
 - **Breaking:** `r_squared_adjusted` moves from `calibrax.metrics.functional.statistical` to
   `calibrax.metrics.functional.regression`, and its registered domain moves from
   `statistical` to `general`. The public name is unchanged and
@@ -68,6 +79,33 @@ and uses semantic versioning while the public API stabilizes.
   pip-audit leaves the `dev` extra: the action runs its own pinned copy.
 
 ### Fixed
+
+- **Breaking:** eighteen metrics refuse `predictions` and `targets` of different shapes
+  instead of answering from a broadcast. `(n, 1)` against `(n,)` is not one sample described
+  twice: the two broadcast to `(n, n)`, pairing every element of one with every element of
+  the other, so the result is a square expansion of a vector comparison and nothing
+  downstream can tell. Measured across the registry with each metric's own in-domain
+  fixture, twenty metrics accepted that pair and returned a different number; the eighteen
+  whose documented contract gives both inputs one shape now raise `ValueError`, as the
+  twenty-four that already validated do.
+
+  Three contracts, so three remedies. Nine metrics document the same shape for both inputs
+  and validated nothing -- the four clustering measures, `spectral_convergence`, `psnr`,
+  `ultrahyperbolic_distance`, and the two fairness ratios. Nine distances reach one shared
+  helper, `_batch_or_single`, which dispatched on `a.ndim` and never compared `a` with `b`;
+  the check goes there, and `mahalanobis_distance` now routes through that helper instead of
+  carrying its own copy of the same dispatch. Four clustering metrics likewise share
+  `_contingency`, so one check covers them.
+
+  Four metrics are deliberately untouched: `ranked_probability_score`, `log_loss`,
+  `balanced_accuracy` and `cohen_kappa` document a probability array against class indices,
+  so differing shapes are their contract and refusing one would break the multiclass call
+  each of them documents. A test pins that, so a later sweep for this defect does not
+  "fix" them.
+
+  `lorentz_distance` and `randers_distance` change error rather than value: a mismatch gave
+  `IndexError` and `TypeError` from inside the arithmetic, and now gives the same
+  `ValueError: Shape mismatch` as every sibling.
 
 - **Breaking:** `r_squared_adjusted` refuses `predictions` and `targets` of different shapes
   instead of answering from a broadcast. `(n, 1)` against `(n,)` expands to `(n, n)`, pairing

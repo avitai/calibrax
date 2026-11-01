@@ -13,10 +13,10 @@ import jax
 import jax.numpy as jnp
 from jax.typing import ArrayLike
 
-from calibrax.metrics._utils import _EPSILON
+from calibrax.metrics._utils import _EPSILON, _validate_shapes
 
 
-def spectral_convergence(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:
+def spectral_convergence(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _validate_shapes
     """Spectral convergence between predicted and target signals.
 
     Computes ||STFT(targets) - STFT(predictions)||_F / ||STFT(targets)||_F.
@@ -33,7 +33,12 @@ def spectral_convergence(predictions: ArrayLike, targets: ArrayLike) -> jax.Arra
         >>> sig = jnp.sin(jnp.linspace(0, 10, 256))
         >>> spectral_convergence(sig, sig)
         0.0
+
+    Raises:
+        ValueError: If ``predictions`` and ``targets`` do not have the same shape.
     """
+    # Two signals over the same frames, so the shapes must agree.
+    _validate_shapes(predictions, targets)
     predictions = jnp.asarray(predictions, dtype=jnp.float32)
     targets = jnp.asarray(targets, dtype=jnp.float32)
 

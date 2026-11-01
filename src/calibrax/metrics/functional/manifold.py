@@ -31,7 +31,7 @@ import jax
 import jax.numpy as jnp
 from jax.typing import ArrayLike
 
-from calibrax.metrics._utils import _EPSILON, safe_norm
+from calibrax.metrics._utils import _EPSILON, _validate_shapes, safe_norm
 
 
 # Knyazev and Argentati's switch between the sine and the cosine of a principal angle: pi/4.
@@ -205,7 +205,7 @@ def stiefel_distance(u: ArrayLike, v: ArrayLike) -> jax.Array:
     return safe_norm(u - v)
 
 
-def ultrahyperbolic_distance(
+def ultrahyperbolic_distance(  # noqa: DOC502  # raised by _validate_shapes
     a: ArrayLike,
     b: ArrayLike,
     *,
@@ -242,7 +242,12 @@ def ultrahyperbolic_distance(
         >>> a = jnp.array([jnp.sqrt(2.0), 1.0, 0.0])
         >>> ultrahyperbolic_distance(a, a, signature=(1, 2))
         0.0
+
+    Raises:
+        ValueError: If ``a`` and ``b`` do not have the same shape.
     """
+    # Two points on one pseudo-hyperboloid; the slicing below assumes a single point.
+    _validate_shapes(a, b)
     a = jnp.asarray(a, dtype=jnp.float32)
     b = jnp.asarray(b, dtype=jnp.float32)
 

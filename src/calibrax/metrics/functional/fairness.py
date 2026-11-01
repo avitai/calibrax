@@ -23,7 +23,7 @@ import jax.numpy as jnp
 from jax.typing import ArrayLike
 
 from calibrax.metrics._types import MetricFn
-from calibrax.metrics._utils import label_masks, safe_divide
+from calibrax.metrics._utils import _validate_shapes, label_masks, safe_divide
 
 
 # Scores and labels above this are the positive class; a group needs two members to test.
@@ -54,7 +54,7 @@ def _spread(rates: jax.Array, present: jax.Array) -> jax.Array:
     )
 
 
-def demographic_parity_ratio(
+def demographic_parity_ratio(  # noqa: DOC502  # raised by _validate_shapes
     predictions: ArrayLike,
     protected_attribute: ArrayLike,
     *,
@@ -79,7 +79,14 @@ def demographic_parity_ratio(
         >>> groups = jnp.array([0, 0, 0, 1, 1, 1])
         >>> demographic_parity_ratio(preds, groups)  # 2/3 / (2/3) = 1.0
         ...
+
+    Raises:
+        ValueError: If ``predictions`` and ``protected_attribute`` do not have the
+            same shape.
     """
+    # One prediction and one group per sample. `disparate_impact_ratio` delegates here,
+    # so this covers both ratios.
+    _validate_shapes(predictions, protected_attribute)
     masks, sizes = label_masks(protected_attribute, num_groups)
     present = sizes > 0
     selected = (jnp.asarray(predictions, dtype=jnp.float32) > _POSITIVE_THRESHOLD).astype(
@@ -158,7 +165,7 @@ def equal_opportunity_difference(
     return _spread(_group_rates(masks, predictions, targets, positive=True), sizes > 0)
 
 
-def disparate_impact_ratio(
+def disparate_impact_ratio(  # noqa: DOC502  # raised by _validate_shapes
     predictions: ArrayLike,
     protected_attribute: ArrayLike,
     *,
@@ -183,6 +190,10 @@ def disparate_impact_ratio(
         >>> groups = jnp.array([0, 0, 0, 1, 1, 1])
         >>> disparate_impact_ratio(preds, groups)
         ...
+
+    Raises:
+        ValueError: If ``predictions`` and ``protected_attribute`` do not have the
+            same shape.
     """
     return demographic_parity_ratio(predictions, protected_attribute, num_groups=num_groups)
 

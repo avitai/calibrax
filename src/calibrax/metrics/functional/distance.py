@@ -19,10 +19,10 @@ import jax
 import jax.numpy as jnp
 from jax.typing import ArrayLike
 
-from calibrax.metrics._utils import _EPSILON, safe_divide, safe_norm, safe_root
+from calibrax.metrics._utils import _EPSILON, _prepare_arrays, safe_divide, safe_norm, safe_root
 
 
-def _batch_or_single(
+def _batch_or_single(  # noqa: DOC502  # raised by _prepare_arrays
     a: ArrayLike,
     b: ArrayLike,
     fn: Callable[..., jax.Array],
@@ -33,17 +33,24 @@ def _batch_or_single(
     For 1D: compute single distance.
     For 2D: compute per-row distance, return mean.
 
+    The dispatch reads ``a.ndim``, so the two inputs must already agree: ``(n, 1)`` against
+    ``(n,)`` would take the batched branch and pair each row of one with a scalar of the
+    other, returning the mean of a comparison between a vector and a number. A distance is
+    between two points of the same space, so the pair is refused here rather than answered.
+
     Args:
         a: First array (1D or 2D).
-        b: Second array (1D or 2D).
+        b: Second array (1D or 2D), the same shape as ``a``.
         fn: Distance function accepting two 1D arrays.
         **kwargs: Additional keyword arguments for fn.
 
     Returns:
         Distance as a scalar value.
+
+    Raises:
+        ValueError: If ``a`` and ``b`` do not have the same shape.
     """
-    a = jnp.asarray(a)
-    b = jnp.asarray(b)
+    a, b = _prepare_arrays(a, b)
     if a.ndim == 1:
         return fn(a, b, **kwargs)
     # 2D: vmap over axis 0, then mean
@@ -51,7 +58,7 @@ def _batch_or_single(
     return jnp.mean(batched_fn(a, b))
 
 
-def cosine_distance(a: ArrayLike, b: ArrayLike) -> jax.Array:
+def cosine_distance(a: ArrayLike, b: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _prepare_arrays
     """Cosine distance: ``1 - cosine_similarity(a, b)``.
 
     Measures angular separation between vectors. Lives on the
@@ -75,6 +82,9 @@ def cosine_distance(a: ArrayLike, b: ArrayLike) -> jax.Array:
         >>> import jax.numpy as jnp
         >>> cosine_distance(jnp.array([1.0, 0.0]), jnp.array([1.0, 0.0]))
         0.0
+
+    Raises:
+        ValueError: If ``a`` and ``b`` do not have the same shape.
     """
 
     def _single(x: jax.Array, y: jax.Array) -> jax.Array:
@@ -84,7 +94,7 @@ def cosine_distance(a: ArrayLike, b: ArrayLike) -> jax.Array:
     return _batch_or_single(a, b, _single)
 
 
-def euclidean_distance(a: ArrayLike, b: ArrayLike) -> jax.Array:
+def euclidean_distance(a: ArrayLike, b: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _prepare_arrays
     """Euclidean (L2) distance.
 
     Standard distance in flat (zero curvature) Euclidean space.
@@ -106,6 +116,9 @@ def euclidean_distance(a: ArrayLike, b: ArrayLike) -> jax.Array:
         >>> import jax.numpy as jnp
         >>> euclidean_distance(jnp.array([1.0, 0.0]), jnp.array([0.0, 1.0]))
         1.4142...
+
+    Raises:
+        ValueError: If ``a`` and ``b`` do not have the same shape.
     """
 
     def _single(x: jax.Array, y: jax.Array) -> jax.Array:
@@ -114,7 +127,7 @@ def euclidean_distance(a: ArrayLike, b: ArrayLike) -> jax.Array:
     return _batch_or_single(a, b, _single)
 
 
-def manhattan_distance(a: ArrayLike, b: ArrayLike) -> jax.Array:
+def manhattan_distance(a: ArrayLike, b: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _prepare_arrays
     """Manhattan (L1) distance.
 
     Sum of absolute differences. Also called taxicab or city-block distance.
@@ -135,6 +148,9 @@ def manhattan_distance(a: ArrayLike, b: ArrayLike) -> jax.Array:
         >>> import jax.numpy as jnp
         >>> manhattan_distance(jnp.array([1.0, 0.0]), jnp.array([0.0, 1.0]))
         2.0
+
+    Raises:
+        ValueError: If ``a`` and ``b`` do not have the same shape.
     """
 
     def _single(x: jax.Array, y: jax.Array) -> jax.Array:
@@ -143,7 +159,7 @@ def manhattan_distance(a: ArrayLike, b: ArrayLike) -> jax.Array:
     return _batch_or_single(a, b, _single)
 
 
-def chebyshev_distance(a: ArrayLike, b: ArrayLike) -> jax.Array:
+def chebyshev_distance(a: ArrayLike, b: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _prepare_arrays
     """Chebyshev (L-infinity) distance.
 
     Maximum absolute difference across dimensions.
@@ -164,6 +180,9 @@ def chebyshev_distance(a: ArrayLike, b: ArrayLike) -> jax.Array:
         >>> import jax.numpy as jnp
         >>> chebyshev_distance(jnp.array([1.0, 0.0]), jnp.array([0.0, 3.0]))
         3.0
+
+    Raises:
+        ValueError: If ``a`` and ``b`` do not have the same shape.
     """
 
     def _single(x: jax.Array, y: jax.Array) -> jax.Array:
@@ -172,7 +191,7 @@ def chebyshev_distance(a: ArrayLike, b: ArrayLike) -> jax.Array:
     return _batch_or_single(a, b, _single)
 
 
-def mahalanobis_distance(
+def mahalanobis_distance(  # noqa: DOC502  # raised by _prepare_arrays
     a: ArrayLike,
     b: ArrayLike,
     *,
@@ -211,6 +230,9 @@ def mahalanobis_distance(
         >>> b = jnp.array([0.0, 1.0])
         >>> mahalanobis_distance(a, b)  # identity → Euclidean
         1.4142...
+
+    Raises:
+        ValueError: If ``a`` and ``b`` do not have the same shape.
     """
 
     def _single(x: jax.Array, y: jax.Array, *, prec: jax.Array | None = None) -> jax.Array:
@@ -219,13 +241,10 @@ def mahalanobis_distance(
             return safe_norm(diff)
         return safe_root(jnp.dot(diff, jnp.dot(prec, diff)))
 
-    a_arr = jnp.asarray(a)
-    b_arr = jnp.asarray(b)
+    # The shared helper, rather than a second copy of its dispatch: it takes the keyword
+    # through, and with it comes the shape check every other distance here gets.
     prec_arr = None if precision_matrix is None else jnp.asarray(precision_matrix)
-    if a_arr.ndim == 1:
-        return _single(a_arr, b_arr, prec=prec_arr)
-    batched = jax.vmap(lambda x, y: _single(x, y, prec=prec_arr))
-    return jnp.mean(batched(a_arr, b_arr))
+    return _batch_or_single(a, b, _single, prec=prec_arr)
 
 
 def hamming_distance(a: ArrayLike, b: ArrayLike) -> jax.Array:
@@ -255,7 +274,7 @@ def hamming_distance(a: ArrayLike, b: ArrayLike) -> jax.Array:
     return jnp.mean(a_arr != b_arr)
 
 
-def minkowski_distance(a: ArrayLike, b: ArrayLike, *, p: float = 2.0) -> jax.Array:
+def minkowski_distance(a: ArrayLike, b: ArrayLike, *, p: float = 2.0) -> jax.Array:  # noqa: DOC502  # raised by _prepare_arrays
     """Minkowski (Lp) distance.
 
     Generalized distance: ``(sum|a_i - b_i|^p)^(1/p)``.
@@ -278,6 +297,9 @@ def minkowski_distance(a: ArrayLike, b: ArrayLike, *, p: float = 2.0) -> jax.Arr
         >>> import jax.numpy as jnp
         >>> minkowski_distance(jnp.array([1.0, 0.0]), jnp.array([0.0, 1.0]), p=1.0)
         2.0
+
+    Raises:
+        ValueError: If ``a`` and ``b`` do not have the same shape.
     """
 
     def _single(x: jax.Array, y: jax.Array, *, p: float = 2.0) -> jax.Array:
@@ -317,7 +339,7 @@ def jaccard_distance(a: ArrayLike, b: ArrayLike) -> jax.Array:
     return 1.0 - safe_divide(intersection, union)
 
 
-def poincare_distance(
+def poincare_distance(  # noqa: DOC502  # raised by _prepare_arrays
     a: ArrayLike,
     b: ArrayLike,
     *,
@@ -350,6 +372,9 @@ def poincare_distance(
         >>> import jax.numpy as jnp
         >>> poincare_distance(jnp.array([0.0, 0.0]), jnp.array([0.5, 0.0]))
         1.0986...
+
+    Raises:
+        ValueError: If ``a`` and ``b`` do not have the same shape.
     """
 
     def _single(x: jax.Array, y: jax.Array, *, curvature: float = 1.0) -> jax.Array:
@@ -367,7 +392,7 @@ def poincare_distance(
     return _batch_or_single(a, b, _single, curvature=curvature)
 
 
-def lorentz_distance(a: ArrayLike, b: ArrayLike) -> jax.Array:
+def lorentz_distance(a: ArrayLike, b: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _prepare_arrays
     """Geodesic distance on the Lorentz (hyperboloid) model of hyperbolic space.
 
     Points live on the upper hyperboloid ``<x,x>_L = -1, x_0 > 0`` in R^(n+1).
@@ -395,6 +420,9 @@ def lorentz_distance(a: ArrayLike, b: ArrayLike) -> jax.Array:
         >>> a = jnp.array([1.0, 0.0, 0.0])  # origin on hyperboloid
         >>> lorentz_distance(a, a)
         0.0
+
+    Raises:
+        ValueError: If ``a`` and ``b`` do not have the same shape.
     """
 
     def _single(x: jax.Array, y: jax.Array) -> jax.Array:

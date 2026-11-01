@@ -27,14 +27,18 @@ def _validate_shapes(predictions: ArrayLike, targets: ArrayLike) -> None:
     Raises:
         ValueError: If shapes do not match.
     """
-    p = jnp.asarray(predictions)
-    t = jnp.asarray(targets)
-    if p.shape != t.shape:
-        msg = f"Shape mismatch: predictions {p.shape} vs targets {t.shape}"
+    # `jnp.shape` rather than `jnp.asarray(...).shape`: this needs the shape, not the array,
+    # and converting one costs 33 Python-level calls against 4. Every caller of
+    # :func:`_prepare_arrays` paid that twice over, once here and once on the conversion
+    # that follows, which is interpreter work the compiled graph never sees.
+    predictions_shape = jnp.shape(predictions)
+    targets_shape = jnp.shape(targets)
+    if predictions_shape != targets_shape:
+        msg = f"Shape mismatch: predictions {predictions_shape} vs targets {targets_shape}"
         raise ValueError(msg)
 
 
-def _prepare_arrays(predictions: ArrayLike, targets: ArrayLike) -> tuple[jax.Array, jax.Array]:  # noqa: DOC502  # raised by _validate_shapes
+def _prepare_arrays(predictions: ArrayLike, targets: ArrayLike) -> tuple[jax.Array, jax.Array]:
     """Validate shapes and convert predictions/targets to JAX arrays.
 
     Combines shape validation with array conversion — the standard
@@ -50,8 +54,17 @@ def _prepare_arrays(predictions: ArrayLike, targets: ArrayLike) -> tuple[jax.Arr
     Raises:
         ValueError: If shapes do not match.
     """
-    _validate_shapes(predictions, targets)
-    return jnp.asarray(predictions), jnp.asarray(targets)
+    # Converted once, then compared: calling :func:`_validate_shapes` here would read both
+    # shapes again, and this already holds the arrays those shapes belong to.
+    predictions_array = jnp.asarray(predictions)
+    targets_array = jnp.asarray(targets)
+    if predictions_array.shape != targets_array.shape:
+        msg = (
+            f"Shape mismatch: predictions {predictions_array.shape} "
+            f"vs targets {targets_array.shape}"
+        )
+        raise ValueError(msg)
+    return predictions_array, targets_array
 
 
 def _prepare_class_arrays(  # noqa: DOC502  # raised by _validate_shapes
