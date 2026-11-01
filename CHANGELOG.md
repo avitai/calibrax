@@ -36,6 +36,37 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Fixed
 
+- `r_squared_adjusted` returns `0.0` when `weights` sum to zero, the result the package
+  documents for a selection with no members. It returned `1 - (n - 1) / (n - p - 1)`: a
+  number set by the sample size and the predictor count rather than by the data, and below
+  the documented range's own empty result. At `n = 12, p = 2` that is `-0.2222222089767456`.
+
+  The shared core was already right -- it guards on the weight sum and returns `0.0` -- and
+  the adjustment then multiplied that `0.0` by `(n - 1) / (n - p - 1)`. `n` cannot see the
+  case: a mask shrinks `n`, so an all-false mask drives the residual degrees of freedom below
+  zero and lands on `0.0` already, but weights deliberately do not shrink `n`, because a zero
+  weight leaves the observation in the sample. So the adjusted form now applies the same test
+  the core does, on the folded scale.
+
+  Four of six degenerate combinations were affected, not just all-zero weights: a mask
+  keeping 6 of 12 elements whose weights are zero gave `-0.6667`, and keeping 10 gave
+  `-0.2857`. The two that already returned `0.0` did so because the mask had shrunk `n`
+  enough to remove the residual degree of freedom, which is a different guard reached by
+  accident rather than the right answer arrived at.
+
+  Nothing else moves. Values are identical across 1,500 draws in each of 12 cells -- the
+  shared core, `r_squared` and the adjusted form, on unweighted, weighted, masked and
+  masked-and-weighted paths -- and the fused regression suite is unchanged, each negative
+  with a control behind it: perturbing the weighted result by one part in a million moves
+  exactly the two adjusted cells. The guard costs **one** compiled instruction on the
+  weighted paths and no fusions, because the core already computes the identical
+  `sum(w) > 0` predicate and XLA shares it; keyed on `jnp.max` instead it costs 16 and adds
+  a fusion. The mask-only path is unchanged at 166 instructions, against 167 when the guard
+  is applied unconditionally, so that measurement discriminates. On the fully unweighted
+  path it cannot: `sample_weights(None, None, shape)` is `jnp.ones`, so the predicate is a
+  compile-time constant and folds away whether the guard is there or not -- that path is held
+  by an early return instead, so it does not reach the guard at all.
+
 - `pearson_correlation` and `kendall_tau` report finite weight gradients at a degenerate
   selection. Their weighted denominators are square roots of weighted sums -- two standard
   deviations for Pearson, `untied_pairs` for tau-b -- and an empty selection or a constant
