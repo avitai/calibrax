@@ -317,7 +317,9 @@ def r_squared_adjusted(
         Direction: HIGHER (1.0 = perfect fit).
         Range: (-inf, 1]. Returns ``0.0`` where there is no residual degree of
         freedom, meaning ``n <= num_predictors + 1``, because the correction is
-        undefined there rather than merely large.
+        undefined there rather than merely large, and ``0.0`` for a selection with
+        no members -- reached by an all-false ``mask`` or by ``weights`` that sum
+        to zero.
 
     Args:
         predictions: Predicted values.
@@ -348,7 +350,21 @@ def r_squared_adjusted(
     # uses for a sample it cannot describe. `jnp.where` rather than a Python branch, so a
     # traced count from a mask keeps working under jit and vmap.
     residual_dof = n - num_predictors - 1
-    return jnp.where(residual_dof > 0, 1.0 - (1.0 - r2) * (n - 1) / (residual_dof + _EPSILON), 0.0)
+    adjusted = jnp.where(
+        residual_dof > 0, 1.0 - (1.0 - r2) * (n - 1) / (residual_dof + _EPSILON), 0.0
+    )
+    if weights is None:
+        # Without weights the folded scale counts the kept elements, so an empty selection
+        # has already driven `n` to zero and `residual_dof` below it.
+        return adjusted
+    # With weights it has not. `n` counts observations and a zero weight leaves the
+    # observation in the sample, which is the convention above -- so a weight vector summing
+    # to zero selects nothing while `n` still reports the full count, and the penalty turns
+    # the core's `0.0` into `1 - (n - 1) / (n - p - 1)`: a number set by the sample size and
+    # the predictor count rather than by the data. Emptiness therefore needs the test the
+    # shared core applies, on the folded scale rather than on anything `n` can see.
+    scale = sample_weights(mask, weights, t_arr.shape)
+    return jnp.where(jnp.sum(scale) > 0.0, adjusted, 0.0)
 
 
 def mape(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _prepare_arrays

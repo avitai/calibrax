@@ -374,6 +374,76 @@ class TestDegenerateWeights:
             == self.EMPTY_RESULT
         )
 
+    @pytest.mark.parametrize("kept", [6, 10, None], ids=["keeps_6", "keeps_10", "no_mask"])
+    def test_zero_summing_weights_are_the_same_empty_selection(
+        self, sample: WeightedSample, kept: int | None
+    ) -> None:
+        """Weights that sum to zero select nothing, so the adjusted form reports nothing.
+
+        ``r_squared`` already returns ``0.0`` here, from the shared core's guard on the
+        weight sum. The adjustment then multiplied that ``0.0`` by ``(n - 1) / (n - p - 1)``
+        and reported ``1 - (n - 1) / (n - p - 1)`` -- a number that depends on the sample
+        size and the predictor count rather than on the data, and is below the documented
+        range's own empty result. At ``n = 12, p = 2`` that is ``-0.2222``.
+
+        ``n`` cannot see this case. A mask shrinks ``n``, so an all-false mask already drives
+        ``residual_dof`` below zero and lands on the documented ``0.0``; weights deliberately
+        do not shrink ``n``, because a zero weight leaves the observation in the sample. The
+        parametrisation keeps ``residual_dof`` positive on purpose -- a mask keeping 3 of
+        these would make it zero and reach ``0.0`` for the wrong reason.
+        """
+        targets, predictions, _, _ = sample
+        size = targets.shape[0]
+        kwargs: dict[str, jnp.ndarray] = {}
+        if kept is None:
+            zeroed = jnp.zeros_like(targets)
+        else:
+            inside = jnp.arange(size) < kept
+            kwargs["mask"] = inside
+            zeroed = jnp.where(inside, 0.0, 1.0).astype(targets.dtype)
+        value = float(
+            r_squared_adjusted(predictions, targets, num_predictors=2, weights=zeroed, **kwargs)
+        )
+        assert value == self.EMPTY_RESULT, (
+            "weights summing to zero gave a measurement for a selection with no members"
+        )
+
+    def test_the_two_routes_to_an_empty_selection_agree(self, sample: WeightedSample) -> None:
+        """A mask and a weight vector reach the same state, so they report the same value."""
+        targets, predictions, _, _ = sample
+        by_mask = float(
+            r_squared_adjusted(
+                predictions,
+                targets,
+                num_predictors=2,
+                mask=jnp.zeros_like(targets, dtype=bool),
+            )
+        )
+        by_weights = float(
+            r_squared_adjusted(
+                predictions, targets, num_predictors=2, weights=jnp.zeros_like(targets)
+            )
+        )
+        assert by_mask == by_weights == self.EMPTY_RESULT
+
+    def test_the_empty_weight_guard_traces(self, sample: WeightedSample) -> None:
+        """The guard is a ``jnp.where`` on a reduction, so it survives jit and vmap.
+
+        A Python branch on the weight sum would be ``TracerBoolConversionError`` here, and
+        the per-bin shape is exactly where that would surface: one weight vector per bin,
+        one of them empty, mapped rather than looped.
+        """
+        targets, predictions, weights, _ = sample
+        size = targets.shape[0]
+        bins = jnp.stack([jnp.zeros(size, dtype=targets.dtype), weights])
+        curve = jax.jit(
+            jax.vmap(
+                lambda w: r_squared_adjusted(predictions, targets, num_predictors=2, weights=w)
+            )
+        )(bins)
+        assert float(curve[0]) == self.EMPTY_RESULT
+        assert float(curve[1]) != self.EMPTY_RESULT, "the populated bin lost its measurement"
+
     def test_an_empty_bin_does_not_read_as_a_perfect_fit_under_vmap(
         self, sample: WeightedSample
     ) -> None:
