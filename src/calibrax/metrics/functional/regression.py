@@ -286,7 +286,7 @@ def r_squared(  # noqa: DOC502  # raised by _prepare_arrays
     return coefficient_of_determination(p, t, mask=mask, weights=weights)
 
 
-def r_squared_adjusted(
+def r_squared_adjusted(  # noqa: DOC502  # raised by _prepare_arrays
     predictions: ArrayLike,
     targets: ArrayLike,
     *,
@@ -332,9 +332,14 @@ def r_squared_adjusted(
 
     Returns:
         Adjusted R-squared as a scalar value.
+
+    Raises:
+        ValueError: If ``predictions`` and ``targets`` do not have the same shape.
     """
-    p_arr = jnp.asarray(predictions)
-    t_arr = jnp.asarray(targets)
+    # The same preamble `r_squared` uses, so the two forms of one quantity refuse the same
+    # shapes. `(n, 1)` against `(n,)` broadcasts to `(n, n)`, pairing every prediction with
+    # every target, and nothing downstream can tell that from a vector comparison.
+    p_arr, t_arr = _prepare_arrays(predictions, targets)
     # Not raveled: the shared core handles any shape, and keeping the input's shape is what
     # lets `mask` and `weights` broadcast against it the way `reduce_values` documents.
     # `size` rather than `shape[0]`, since the sample is every element.

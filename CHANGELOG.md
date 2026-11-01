@@ -69,6 +69,32 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Fixed
 
+- **Breaking:** `r_squared_adjusted` refuses `predictions` and `targets` of different shapes
+  instead of answering from a broadcast. `(n, 1)` against `(n,)` expands to `(n, n)`, pairing
+  every prediction with every target, and the result is a goodness of fit for a sample that
+  was never given: measured on six points, `-19.03` where the flat pair reads a number near
+  zero, and on the registry's own fixture `-56.48` against `-0.48`.
+
+  `r_squared` already refused it. The two are forms of one quantity and share one core, but
+  the core takes arrays its callers have prepared, so each caller owns the validation:
+  `r_squared` prepares with `_prepare_arrays` -- documented as "the standard preamble for
+  regression, calibration, and similar metrics" -- and the adjusted form converted with a
+  bare `jnp.asarray`. It now uses the same preamble, which is the whole change.
+
+  Matching shapes are untouched, and the check costs nothing at runtime because it is a
+  trace-time Python comparison: values are identical over 1,200 draws in each of five cells
+  (unweighted, weighted, masked, masked-and-weighted, and an agreed 2-D shape), the compiled
+  instruction and fusion counts are unchanged, and all 140 registered metrics are identical
+  eager and jitted. Each of those negatives has a control behind it: perturbing the result by
+  one part in a million moves all five cells and both cost rows.
+
+  This is one instance of a wider class. Measured across the registry with each metric's own
+  in-domain fixture, 24 metrics refuse a trailing axis, 33 accept it and return the same
+  number, and 21 accept it and return a different one. Only `r_squared_adjusted` is fixed
+  here, because the rest sit outside this change set and each needs its own decision about
+  which shapes its contract admits; the measurement is recorded so the question is not
+  re-derived.
+
 - Masked `spearman_rank_correlation` ranks the kept subset, so a kept infinity no longer
   takes a rank averaged over excluded positions. The excluded go to `+inf` so they sort
   last, which leaves a kept element's rank equal to its rank within the subset -- except for
