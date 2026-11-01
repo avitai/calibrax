@@ -36,6 +36,40 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Fixed
 
+- Masked `spearman_rank_correlation` ranks the kept subset, so a kept infinity no longer
+  takes a rank averaged over excluded positions. The excluded go to `+inf` so they sort
+  last, which leaves a kept element's rank equal to its rank within the subset -- except for
+  a kept `+inf`, which ties with them, and `rankdata` gives tied values their average rank.
+  Measured on `a = [1, 2, inf, 4, 5, 6]`, `b = [2, 1, 4, 3, 6, 5]` with the last two
+  excluded: `0.8315`, where the subsample's coefficient and `scipy.stats.spearmanr`'s are
+  both `0.8000`.
+
+  No float sorts above `+inf`, so no choice of sentinel avoids the tie. The correction is
+  exact instead: a kept `+inf` is tied with every one of the excluded elements, so averaging
+  over that tie adds `excluded / 2`, and subtracting it restores the rank the lexicographic
+  order -- exclusion first, value second -- would have produced. A kept `NaN` is not `+inf`,
+  takes no correction, and still reads `NaN`; with nothing excluded the correction is zero
+  and the expression is the unmasked one. Checked against scipy on the physically subsetted
+  arrays over 2,856 random masked cases with infinities planted in either array, kept and
+  excluded, and excluded `NaN`s: no mismatch, worst disagreement `1.26e-07`.
+
+  The cost is one comparison, not a second sort. Ranking the rank -- `rankdata` being
+  order-preserving, tie-equal and bounded, so it serves as the lexicographic key's secondary
+  component -- also gives the right answer on every case tried, and was rejected on
+  measurement: it took the masked path from 798 compiled instructions to 1,404 at 256
+  elements and doubled the sorts from 64 to 128. The correction costs 46 instructions
+  (798 to 844) at 256 elements and 53 (834 to 887) at 4,096, three and four more fusions,
+  and no additional sort. Wall clock cannot resolve a change that size here: repeated runs
+  span 1,344 to 2,043 microseconds at 4,096 elements on both sides.
+
+  The unmasked path is untouched -- byte-identical values and 681 and 751 compiled
+  instructions at the two sizes, against 712 and 770 when that branch is perturbed, so the
+  measurement can see such a change. Masked values on data without infinities are
+  bit-identical too; only cases with a kept infinity move. Outside this repository, opifex
+  (`src/opifex/uncertainty/scientific/domain_metrics.py:345`) and cellifex
+  (`src/cellifex/metrics/correlation_metrics.py:45`) both call it without a mask, so both
+  take the unchanged path.
+
 - `r_squared_adjusted` returns `0.0` when `weights` sum to zero, the result the package
   documents for a selection with no members. It returned `1 - (n - 1) / (n - p - 1)`: a
   number set by the sample size and the predictor count rather than by the data, and below

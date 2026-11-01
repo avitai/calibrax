@@ -234,3 +234,96 @@ class TestSkewness:
 
     def test_constant_data_is_zero(self) -> None:
         assert skewness(jnp.full((6,), 3.0)) == pytest.approx(0.0, abs=1e-6)
+
+
+#: ``(a, b, keep)`` triples whose kept subset is what the coefficient must describe. The
+#: reference is ``scipy.stats.spearmanr`` on the physically subsetted arrays, so the
+#: assertion is against an outside implementation rather than against a rearrangement of
+#: this one.
+_MASKED_SPEARMAN_CASES = [
+    ("kept_positive_infinity", [1.0, 2.0, np.inf, 4.0, 5.0, 6.0], [2.0, 1.0, 4.0, 3.0, 6.0, 5.0]),
+    ("kept_negative_infinity", [1.0, 2.0, -np.inf, 4.0, 5.0, 6.0], [2.0, 1.0, 4.0, 3.0, 6.0, 5.0]),
+    (
+        "two_kept_infinities_tie",
+        [1.0, np.inf, np.inf, 4.0, 5.0, 6.0],
+        [2.0, 1.0, 4.0, 3.0, 6.0, 5.0],
+    ),
+    ("both_infinities_kept", [-np.inf, 2.0, np.inf, 4.0, 5.0, 6.0], [2.0, 1.0, 4.0, 3.0, 6.0, 5.0]),
+    ("excluded_infinity", [1.0, 2.0, 3.0, 4.0, np.inf, 6.0], [2.0, 1.0, 4.0, 3.0, 6.0, 5.0]),
+    ("excluded_nan", [1.0, 2.0, 3.0, 4.0, np.nan, 6.0], [2.0, 1.0, 4.0, 3.0, 6.0, 5.0]),
+    ("ties_among_kept", [1.0, 2.0, 2.0, 4.0, 5.0, 6.0], [2.0, 1.0, 4.0, 3.0, 6.0, 5.0]),
+    ("finite_only", [1.0, 2.0, 3.0, 4.0, 5.0, 6.0], [2.0, 1.0, 4.0, 3.0, 6.0, 5.0]),
+]
+
+#: The last two elements are excluded in every case above.
+_MASKED_SPEARMAN_KEEP = [True, True, True, True, False, False]
+
+
+class TestMaskedSpearmanRanksTheKeptSubset:
+    """A mask selects a subsample, so the coefficient is the one that subsample has.
+
+    Sending the excluded elements to ``+inf`` so they sort last makes them tie with a kept
+    ``+inf``, and ``rankdata`` gives tied values their average rank, so such an element
+    carries a rank averaged across positions that are not in the sample unless the tie is
+    corrected for. On the first case below the uncorrected value is ``0.8315`` where the
+    subsample's coefficient, and scipy's, is ``0.8000``.
+
+    The correction is exact. A kept element below ``+inf`` has the excluded neither under it
+    nor tied with it, so its rank is already the subset's; a kept ``+inf`` is tied with every
+    excluded element, and averaging over that tie adds ``excluded / 2``. The reference for
+    every case here is ``scipy.stats.spearmanr`` on the physically subsetted arrays, so these
+    assert against an outside implementation rather than against a rearrangement of this one.
+    """
+
+    @pytest.mark.parametrize(
+        ("name", "a", "b"), _MASKED_SPEARMAN_CASES, ids=[c[0] for c in _MASKED_SPEARMAN_CASES]
+    )
+    def test_it_equals_scipy_on_the_physical_subset(
+        self, name: str, a: list[float], b: list[float]
+    ) -> None:
+        keep = np.asarray(_MASKED_SPEARMAN_KEEP)
+        reference = stats.spearmanr(np.asarray(a)[keep], np.asarray(b)[keep]).statistic
+        measured = spearman_rank_correlation(jnp.asarray(a), jnp.asarray(b), mask=jnp.asarray(keep))
+        assert float(measured) == pytest.approx(float(reference), abs=1e-6), name
+
+    def test_a_kept_nan_still_reads_nan(self) -> None:
+        """A ``NaN`` inside the sample is missing data, not a value to rank around."""
+        a = jnp.asarray([1.0, 2.0, jnp.nan, 4.0, 5.0, 6.0])
+        b = jnp.asarray([2.0, 1.0, 4.0, 3.0, 6.0, 5.0])
+        keep = jnp.asarray(_MASKED_SPEARMAN_KEEP)
+        assert bool(jnp.isnan(spearman_rank_correlation(a, b, mask=keep)))
+
+    def test_a_mask_shaped_like_a_two_dimensional_input(self) -> None:
+        """The mask folds at the input's own shape, so a 2-D mask over 2-D data works."""
+        rng = np.random.default_rng(0)
+        a2 = rng.normal(size=(4, 3))
+        b2 = a2 + rng.normal(scale=0.5, size=(4, 3))
+        keep2 = rng.random((4, 3)) > 0.3
+        reference = stats.spearmanr(a2.ravel()[keep2.ravel()], b2.ravel()[keep2.ravel()]).statistic
+        measured = spearman_rank_correlation(
+            jnp.asarray(a2), jnp.asarray(b2), mask=jnp.asarray(keep2)
+        )
+        assert float(measured) == pytest.approx(float(reference), abs=1e-5)
+
+    def test_it_traces_under_jit_and_vmap_over_masks(self) -> None:
+        """One mask per bin, mapped rather than looped, which is how a curve is built."""
+        rng = np.random.default_rng(1)
+        a = jnp.asarray(rng.normal(size=8))
+        b = jnp.asarray(a + rng.normal(scale=0.5, size=8))
+        masks = jnp.stack([jnp.arange(8) < kept for kept in (4, 6, 8)])
+        curve = jax.jit(jax.vmap(lambda m: spearman_rank_correlation(a, b, mask=m)))(masks)
+        assert curve.shape == (3,)
+        assert bool(jnp.all(jnp.isfinite(curve)))
+        for row, kept in zip(range(3), (4, 6, 8), strict=True):
+            keep = np.arange(8) < kept
+            reference = stats.spearmanr(np.asarray(a)[keep], np.asarray(b)[keep]).statistic
+            assert float(curve[row]) == pytest.approx(float(reference), abs=1e-5)
+
+    def test_an_all_true_mask_agrees_with_passing_no_mask(self) -> None:
+        """The masked path must land where the unmasked path already is."""
+        a = jnp.asarray([1.0, 2.0, jnp.inf, 4.0, 5.0, 6.0])
+        b = jnp.asarray([2.0, 1.0, 4.0, 3.0, 6.0, 5.0])
+        full = jnp.ones(6, dtype=bool)
+        assert float(spearman_rank_correlation(a, b, mask=full)) == pytest.approx(
+            float(spearman_rank_correlation(a, b)), abs=1e-6
+        )

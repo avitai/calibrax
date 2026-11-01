@@ -161,13 +161,28 @@ def spearman_rank_correlation(
         return pearson_correlation(rankdata(a_arr), rankdata(b_arr))
     # Broadcast at the input's shape, then flatten, so a mask shaped like the data works.
     keep = jnp.broadcast_to(jnp.asarray(mask), a_raw.shape).ravel()
-    # Rank within the retained subset, not within everything. Excluded elements go to
-    # +inf so they sort last and take the highest ranks; the retained ones then hold ranks
-    # 1..k among themselves, and the mask keeps the excluded out of the correlation.
-    # Static shapes throughout, so this traces.
-    ranked_a = rankdata(jnp.where(keep, a_arr, jnp.inf))
-    ranked_b = rankdata(jnp.where(keep, b_arr, jnp.inf))
-    return pearson_correlation(ranked_a, ranked_b, mask=keep)
+    # Rank within the retained subset, not within everything. The excluded go to `+inf` so
+    # they sort last, which leaves a kept element's rank equal to its rank within the subset
+    # -- except for a kept `+inf`, which ties with them. `rankdata` gives tied values their
+    # average rank, so an uncorrected rank for such an element is averaged over positions
+    # outside the sample: measured, 0.8315 against the subsample's 0.8000, and scipy's.
+    #
+    # The correction is exact rather than fitted. For a kept element below `+inf` the
+    # excluded are neither under it nor tied with it, so its rank is already the subset's.
+    # A kept `+inf` is tied with every one of the `excluded` of them, and averaging over that
+    # tie adds `excluded / 2` -- so subtracting it restores the lexicographic order the
+    # subset rank would have given. No float sorts above `+inf`, so no choice of sentinel
+    # avoids the tie; correcting it costs one comparison instead of a second sort.
+    #
+    # A kept `NaN` is not `+inf`, so it takes no correction and still reads `NaN`. With
+    # nothing excluded the correction is zero and this is the unmasked expression.
+    excluded = a_arr.size - jnp.sum(keep)
+
+    def subset_rank(values: jax.Array) -> jax.Array:
+        ranked = rankdata(jnp.where(keep, values, jnp.inf))
+        return ranked - jnp.where(keep & (values == jnp.inf), excluded / 2.0, 0.0)
+
+    return pearson_correlation(subset_rank(a_arr), subset_rank(b_arr), mask=keep)
 
 
 def kendall_tau(
