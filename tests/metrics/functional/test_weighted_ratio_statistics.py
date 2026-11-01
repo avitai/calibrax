@@ -291,6 +291,22 @@ class TestTransformations:
         assert jnp.all(jnp.isfinite(wrt_predictions))
         wrt_weights = jax.grad(lambda x: metric(predictions, targets, x))(weights)
         assert jnp.all(jnp.isfinite(wrt_weights))
+        assert bool(jnp.any(wrt_weights != 0.0)), "the weight derivative is zero everywhere"
+        # A zero weight keeps the element's own contribution as its derivative, so that
+        # derivative has to move when the element's value moves. Substituting the value away
+        # leaves ``(0 - m) / sum(w)``: finite and non-zero, so only the dependence separates
+        # the two rules.
+        zeroed = weights.at[0].set(0.0)
+
+        def at_zero(values: jnp.ndarray) -> jnp.ndarray:
+            return jax.grad(lambda x: metric(values, targets, x))(zeroed)
+
+        here = at_zero(predictions)
+        assert jnp.all(jnp.isfinite(here))
+        moved = at_zero(predictions.at[0].set(predictions.min() - 1.0))
+        assert float(here[0]) != float(moved[0]), (
+            "a zero weight ignores its element's value in the weight derivative"
+        )
 
     def test_spearman_traces_with_a_mask(self, sample: WeightedSample) -> None:
         """The +inf sentinel keeps shapes static, so the masked rank path traces."""

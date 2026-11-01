@@ -453,8 +453,8 @@ def coefficient_of_determination(
         return 1.0 - jnp.sum((p - t) ** 2) / (jnp.sum((t - jnp.mean(t)) ** 2) + _EPSILON)
     w = sample_weights(mask, weights, t.shape)
     # Before any arithmetic, so an excluded NaN reaches neither the sums nor the gradient.
-    p = substitute_excluded(p, w)
-    t = substitute_excluded(t, w)
+    p = substitute_excluded(p, w, mask)
+    t = substitute_excluded(t, w, mask)
     ss_res = jnp.sum(w * (p - t) ** 2)
     ss_tot = jnp.sum(w * (t - weighted_mean(t, w)) ** 2)
     # An empty selection has no sample to describe. Without this it reported exactly 1.0 --
@@ -463,7 +463,7 @@ def coefficient_of_determination(
     return jnp.where(jnp.sum(w) > 0.0, 1.0 - ss_res / (ss_tot + _EPSILON), 0.0)
 
 
-def substitute_excluded(values: ArrayLike, weights: ArrayLike) -> jax.Array:
+def substitute_excluded(values: ArrayLike, weights: jax.Array, mask: ArrayLike | None) -> jax.Array:
     """``values`` with every element the weights exclude replaced by zero.
 
     Applied to the **inputs**, before any arithmetic reads them. That placement is the
@@ -479,10 +479,26 @@ def substitute_excluded(values: ArrayLike, weights: ArrayLike) -> jax.Array:
     with an outer one. Here only the inner half is needed, because the excluded element's
     contribution is zero by construction rather than something to select afterwards.
 
-    A zero weight and an excluded element are treated identically, which is forced rather
-    than chosen: :func:`sample_weights` folds a mask into a zero weight, so nothing
-    downstream can tell them apart. ``tf.math.multiply_no_nan`` makes the same call,
-    returning zero when the weight is zero "even if x is NaN or infinite".
+    **A zero weight and an excluded element are not the same thing**, which is why this takes
+    the mask as well as the folded weights. A mask says the element is not an observation, so
+    it goes whatever it holds. A zero weight says the observation is present carrying weight
+    zero, so its value stays and ``d/dw_i`` remains its contribution -- the element's
+    influence, the quantity case-deletion diagnostics and sample-reweighting methods
+    differentiate. Substituting it computes that derivative for a point moved to the origin
+    and returns ``0``.
+
+    The two cannot be recovered from the folded vector, so they are not folded first. The case
+    that forces it is a value that is finite but whose square overflows float32: masking such
+    an element has to discard it, and a rule keyed on the folded weight alone leaves it in --
+    measured, ``0 * inf`` then makes the *masked* result ``NaN``, so masking stops working.
+
+    A ``NaN`` at a zero weight is still substituted, since ``0 * NaN`` is ``NaN`` and the
+    derivative of a ``NaN`` observation is not worth preserving. ``tf.math.multiply_no_nan``
+    goes further, returning zero "even if x is NaN or infinite", which would discard the
+    weight derivative of every zero-weighted element.
+
+    One cost, and it buys the gradient: a **zero weight** on a finite value whose square
+    overflows reads ``NaN``. To discard an element, mask it.
 
     This is the design Google Research's ``weatherbenchX`` arrived at for the same problem,
     in a domain where missing observations are the norm rather than the exception. Its
@@ -523,11 +539,20 @@ def substitute_excluded(values: ArrayLike, weights: ArrayLike) -> jax.Array:
     Args:
         values: The array to neutralise.
         weights: The folded weight vector, zero wherever an element is excluded.
+        mask: Elements to keep, or ``None``. Needed separately from ``weights``: a masked
+            element goes whatever it holds, where a zero-weighted one keeps a finite value.
 
     Returns:
-        ``values`` with excluded elements set to zero.
+        ``values`` with the excluded elements set to zero.
     """
-    return jnp.where(jnp.asarray(weights) == 0.0, 0.0, jnp.asarray(values))
+    v = jnp.asarray(values)
+    # A zero weight alone is no reason to substitute: the element is an observation
+    # carrying weight zero, and `d/dw_i` there is its contribution. Only a value that
+    # would survive the multiply as a NaN has to go.
+    drop = (weights == 0.0) & ~jnp.isfinite(v)
+    if mask is not None:
+        drop = drop | ~jnp.broadcast_to(jnp.asarray(mask, dtype=bool), v.shape)
+    return jnp.where(drop, 0.0, v)
 
 
 def exclude_inputs(
@@ -578,7 +603,7 @@ def exclude_inputs(
     if mask is None and weights is None:
         return arrays
     folded = sample_weights(mask, weights, arrays[0].shape)
-    return tuple(substitute_excluded(a, folded) for a in arrays)
+    return tuple(substitute_excluded(a, folded, mask) for a in arrays)
 
 
 def reduce_values(

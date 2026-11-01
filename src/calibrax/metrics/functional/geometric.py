@@ -172,8 +172,9 @@ def rmsd(
         # poisons both centroids and every squared term after them. `safe_root` then
         # takes NaN to 0.0 -- a reported RMSD of zero, which reads as two identical
         # conformations. Neutralise the coordinates before the first sum reads them.
-        a = substitute_excluded(a, weights)
-        b = substitute_excluded(b, weights)
+        present = (present_a & present_b)[:, None]
+        a = substitute_excluded(a, weights, present)
+        b = substitute_excluded(b, weights, present)
     count = jnp.sum(weights)
     safe_count = jnp.where(count > 0.0, count, 1.0)
     centred_a = a - jnp.sum(a * weights, axis=0) / safe_count

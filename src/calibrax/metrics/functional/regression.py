@@ -747,8 +747,15 @@ def relative_l2_error(  # noqa: DOC502  # raised by reduce_values
                 raise ValueError(msg)
         per_sample = sample_weights(mask, weights, p.shape[:1])
         field = per_sample.reshape(per_sample.shape + (1,) * (p.ndim - 1))
-        p = substitute_excluded(p, field)
-        t = substitute_excluded(t, field)
+        field_mask = (
+            None
+            if mask is None
+            else jnp.broadcast_to(jnp.asarray(mask, dtype=bool), p.shape[:1]).reshape(
+                per_sample.shape + (1,) * (p.ndim - 1)
+            )
+        )
+        p = substitute_excluded(p, field, field_mask)
+        t = substitute_excluded(t, field, field_mask)
     return reduce_values(
         per_sample_relative_l2(p, t),
         mask=mask,

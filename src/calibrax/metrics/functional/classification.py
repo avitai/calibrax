@@ -367,8 +367,13 @@ def softmax_cross_entropy(
         # 0 * nan is nan. The class axis carries no mask of its own, so fold at the label
         # shape and restore the trailing axis -- an excluded element zeroes its own row
         # and no other, leaving the kept rows bit-identical.
+        row_mask = (
+            None
+            if mask is None
+            else jnp.broadcast_to(jnp.asarray(mask, dtype=bool), targets.shape)[..., None]
+        )
         scores = substitute_excluded(
-            scores, sample_weights(mask, weights, targets.shape)[..., None]
+            scores, sample_weights(mask, weights, targets.shape)[..., None], row_mask
         )
     log_probs = jax.nn.log_softmax(scores, axis=-1)
     picked = jnp.take_along_axis(log_probs, targets[..., None], axis=-1)[..., 0]

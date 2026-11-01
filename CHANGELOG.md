@@ -36,6 +36,53 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Fixed
 
+- A zero weight no longer destroys the element's derivative with respect to its own weight.
+  `sample_weights` documents that gradients with respect to `weights` are supported, and
+  substituting zero wherever the folded weight was zero took that derivative for a point
+  moved to the origin: it read `0` instead of the element's contribution. Measured on a
+  weighted `mse` sum at `w = 0`, the gradient was `[0, 0, 0]` where the correct value is
+  `(p - t)^2`, and under a mean reduction one zero-weighted slot read `-0.030625` against an
+  analytic `-0.008125`.
+
+  `d/dw_i` of a weighted statistic is the element's influence, and evaluating it at `w_i = 0`
+  is case deletion -- Jaeckel's infinitesimal jackknife, and what leave-one-out diagnostics
+  compute. Sample-reweighting methods differentiate there too: Ren et al. (2018) initialise
+  example weights at zero and take a meta-gradient step on them, so a zero weight is the
+  configuration they evaluate at.
+
+  **An element is replaced by zero when the mask excludes it, or when its weight is zero and
+  its value is not finite.** A finite element carrying zero weight keeps its value, so its
+  derivative is its contribution. The mask and the weights are therefore passed separately
+  rather than folded first: a mask has to discard an element whose value is finite but whose
+  square overflows float32, and a rule keyed on the folded weight alone leaves such an
+  element in, after which `0 * inf` makes the masked result `NaN` and masking stops working.
+  One cost follows, and it buys the gradient: a zero weight on such a value reads `NaN`. To
+  discard an element, mask it.
+
+  The design was taken from the evaluation library this substitution was modelled on, which
+  sets masked values to zero for both the statistic and its weight. That is sound where
+  nothing differentiates, and `tf.math.multiply_no_nan` goes further still, returning zero
+  "even if x is NaN or infinite". Neither is sound for a differentiable metric.
+
+  Nine sites carry the rule, each keeping its own fold shape: `coefficient_of_determination`
+  and `exclude_inputs` in `_utils`, `pearson_correlation`, `kendall_tau` and
+  `concordance_correlation`, `relative_l2_error` over the sample axis,
+  `softmax_cross_entropy` with the class axis restored, `rmsd` through its presence mask, and
+  `perplexity`, whose single parameter is both mask and weights so a zero there stays the
+  only way to drop a position.
+
+  Costs between 3 and 11 HLO instructions on the weighted paths, the worst case being a call
+  that passes both a mask and weights, and `+0` on every unweighted path. Fusion counts are
+  unchanged in all 21 measured cases, so the extra instructions fuse into existing regions.
+  Alternatives were measured and rejected: one shared finiteness predicate across the arrays
+  costs 17 rather than 11, because the cross-array dependency blocks a fusion that per-array
+  predicates get; and gathering the masked-or-zero-weight lanes to test only those costs 72
+  instructions and runs 38 to 264 times slower, since XLA evaluates every lane and the data
+  movement dwarfs the test it avoids.
+
+  Unaffected: all 680 unweighted answers stay bit-identical and every unweighted compiled
+  graph keeps its fusion count.
+
 - The default, unweighted path costs what it cost before the mask and weights arrived.
   Adding them put work on that path that compilation cannot absorb, because the eager path
   has no compilation: a helper re-converted arrays its caller had already converted, and the

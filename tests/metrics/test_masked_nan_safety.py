@@ -271,6 +271,25 @@ class TestTransformations:
         assert jnp.all(jnp.isfinite(grad_w)), (
             f"{name} has a non-finite gradient with respect to its weights"
         )
+        # The kept elements must carry a derivative. Reading zero at every element was the
+        # defect, and it was finite, so finiteness alone could not see it.
+        #
+        # `kendall_tau` is exempt, and measured rather than assumed: this fixture sets
+        # `targets = clean - 0.3`, which is strictly increasing in `clean`, so every pair is
+        # concordant and tau is exactly 1.0 for any positive weights. A saturated rank
+        # statistic is locally constant in its weights, so a zero derivative is the right
+        # answer here. On a shuffled target it reads 0.5238 with a non-zero weight gradient.
+        if name != "kendall_tau":
+            kept = jnp.asarray([i for i in range(SIZE) if i != EXCLUDED])
+            assert bool(jnp.any(grad_w[kept] != 0.0)), (
+                f"{name} returns a zero weight derivative at every kept element"
+            )
+        # The excluded slot here is a *zero weight* on a NaN, not a masked element: the rule
+        # substitutes the value, so the derivative is the substituted element's contribution
+        # -- finite, and measured, not zero. `(0 - t)^2` for `mse` on this fixture. The
+        # exactly-zero claim belongs to a masked element and is pinned in
+        # `tests/metrics/test_zero_weight_gradients.py`.
+        assert jnp.isfinite(grad_w[EXCLUDED])
 
 
 #: Log-probabilities, a keep-mask, and the physical subset. ``perplexity`` names its single

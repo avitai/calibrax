@@ -254,7 +254,9 @@ def perplexity(log_probabilities: ArrayLike, *, mask: ArrayLike | None = None) -
     if weights.shape != log_probs.shape:
         msg = f"mask shape {weights.shape} must match log_probabilities shape {log_probs.shape}"
         raise ValueError(msg)
-    log_probs = substitute_excluded(log_probs, weights)
+    # This parameter is the weights as well as the mask, so a zero entry cannot be read as
+    # an observation of weight zero: it is the only way a caller can drop a position.
+    log_probs = substitute_excluded(log_probs, weights, weights != 0.0)
     count = jnp.sum(weights)
     scored = jnp.sum(log_probs * weights)
     return jnp.where(count > 0, jnp.exp(-scored / jnp.maximum(count, 1.0)), jnp.inf)
