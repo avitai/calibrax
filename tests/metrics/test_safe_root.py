@@ -45,9 +45,9 @@ def test_a_nan_propagates_rather_than_becoming_zero() -> None:
     """The predicate selects the degenerate branch, so a ``NaN`` reaches the root.
 
     Written the other way round -- selecting the root branch on ``x > 0.0`` -- a ``NaN``
-    fails that comparison too and leaves as ``0.0``. Measured at ``9b0a951``, that turned
-    missing data into a perfect score in four metrics: ``rmse``, ``rmsd`` and
-    ``pairwise_rmsd`` returned ``0.0``, and ``relative_l2_error`` a plausible ``0.681925``.
+    fails that comparison too and leaves as ``0.0``: measured, such a predicate returns
+    ``0.0`` for a ``NaN`` radicand. On a distance that is a perfect score, so missing data
+    would read as an exact match.
 
     This is the convention the docstring cites rather than a new one: measured on optax
     0.2.8, ``safe_norm([nan, 1.0], 0.0)`` is ``nan`` while ``safe_norm([0.0, 0.0], 0.0)``
@@ -236,7 +236,7 @@ def test_a_traced_order_is_not_branched_on() -> None:
     ``minkowski_distance`` and ``sliced_wasserstein`` both forward a caller's ``p`` here, so
     ``jit`` over that argument makes ``order`` a tracer. The order-2 shortcut is therefore
     chosen from the static Python value only; a traced order takes the general power path,
-    which is what it took before the shortcut existed.
+    which computes the same number by a slower route.
     """
     traced = jax.jit(lambda x, order: safe_root(x, order=order))
     np.testing.assert_allclose(np.asarray(traced(jnp.asarray(4.0), jnp.asarray(2.0))), 2.0)

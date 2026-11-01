@@ -120,7 +120,7 @@ def safe_root(x: ArrayLike, *, order: float = 2.0) -> jax.Array:
     ``NaN`` fails ``<=``, landing on the unguarded side. This is that predicate.
 
     **A negative ``x`` is out of contract and yields ``NaN``**, which is what the references
-    do and what this function used to hide. Measured: ``numpy.sqrt(-4.0)`` is ``nan`` with
+    do; clamping it to zero instead would hide a domain error. Measured: ``numpy.sqrt(-4.0)`` is ``nan`` with
     "invalid value encountered in sqrt", ``jax.numpy.sqrt(-4.0)`` is ``nan``,
     ``scipy.spatial.distance.mahalanobis`` with an indefinite inverse-covariance is ``nan``
     (scipy 1.17.0), and ``sklearn.metrics.pairwise_distances(metric="mahalanobis")`` with the
@@ -541,7 +541,8 @@ def substitute_excluded(values: ArrayLike, weights: jax.Array, mask: ArrayLike |
         # the mask, but avoids NaN * 0 -> NaN in cases where there are NaNs in
         # masked positions.
 
-    It also records the defect this function removes as a known wart of the unmasked path:
+    It also records the hazard this function exists to avoid, as a known wart of its own
+    unmasked path:
     "even if the input NaNs are outside the binning mask ... the aggregated statistics will
     still be NaN. Use the masking option to avoid this." By contrast ``metrax``, a
     general-purpose JAX metrics library, multiplies (``absolute_error * sample_weights``)
@@ -610,15 +611,15 @@ def exclude_inputs(
     Substitution belongs here, on the raw inputs, rather than in :func:`reduce_values`: by
     the time a loss has formed its element-wise values the ``NaN`` has already reached the
     derivative, and ``0 * dvalues/dp`` is ``NaN`` when ``dvalues/dp`` is. Guarding the
-    reduction repairs the number and leaves the gradient poisoned, which is worse than the
-    plain ``NaN`` it replaces because a forward test then passes.
+    reduction repairs the number and leaves the gradient poisoned, which is worse than a
+    plain ``NaN`` because a forward test then passes.
 
     ``arrays`` must already be :class:`jax.Array`, which every caller has from
     :func:`_prepare_arrays` one line earlier. Converting again here is not free on the eager
-    path, where there is no compilation to absorb it: when this function re-wrapped its
-    inputs with ``jnp.asarray``, an eager ``mse`` over 100,000 elements went from 455
-    Python-level calls to 585, a 28.6% increase in interpreter work for a compiled graph that
-    is identical either way -- 7 fusions before and after. Wall clock could not resolve it
+    path, where there is no compilation to absorb it: measured, re-wrapping them with
+    ``jnp.asarray`` takes an eager ``mse`` over 100,000 elements to 585 Python-level calls
+    against 455, a 28.6% increase in interpreter work for a compiled graph that is identical
+    either way -- 7 fusions with the conversion and 7 without. Wall clock could not resolve it
     (6 microseconds on 92, inside a 7% noise floor) but CodSpeed's instruction-count
     simulation did, reporting a 11.8% regression on exactly that benchmark.
 

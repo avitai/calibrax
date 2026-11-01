@@ -73,9 +73,9 @@ class TestEqualWeightsChangeNothing:
 
         ``r_squared`` and ``pearson_correlation`` above keep ``abs=0.0``, and that is not an
         oversight: over the same 2,160-case grid both are bit-identical in every case. Only
-        concordance is not, because its unweighted path is ``jnp.var``/``jnp.mean`` -- the
-        expression it had before weights existed, kept so that no released number moved --
-        while its weighted path is a sum against a weight vector divided by that vector's
+        concordance is not, because its unweighted path is ``jnp.var``/``jnp.mean``, which
+        keeps the default's published value stable, while its weighted path is a sum against
+        a weight vector divided by that vector's
         total. Those are different float32 expressions and no ``_EPSILON`` adjustment
         reconciles them: removing the epsilon from the weighted total was measured and left
         the same 15 of 180 cases differing by the same 2 ULP.
@@ -97,9 +97,9 @@ class TestEqualWeightsChangeNothing:
     ) -> None:
         """What the tolerance above buys: no released number moved.
 
-        Pins the unweighted path against an explicit replica of the expression concordance
-        had before it accepted weights, bit for bit. Without this the fast path could drift
-        and only the loosened assertion above would be left to catch it.
+        Pins the unweighted path against an explicit replica of its ``jnp.var``/``jnp.mean``
+        expression, bit for bit. Without this the fast path could drift and only the loosened
+        assertion above would be left to catch it.
         """
         targets, predictions, _, _ = sample
         mean_a = jnp.mean(targets)
@@ -327,12 +327,11 @@ class TestDegenerateWeights:
     :func:`calibrax.metrics._utils.weighted_mean` already returns when its scale sums to
     zero. Pinning it here for all five keeps one convention rather than one per statistic.
 
-    **An earlier version of this class asserted the wrong thing.** It read
-    ``assert value == pytest.approx(1.0) or not np.isfinite(value)``, under this same
-    docstring, which accepted ``1.0`` -- the most plausible-looking number available, and
-    what ``r_squared`` actually returned -- while *failing* for ``0.0``. It did not merely
-    miss the defect, it forbade the fix. Assert the value, never a disjunction that the
-    shipped behaviour happens to satisfy.
+    **Assert the value, never a disjunction the shipped behaviour happens to satisfy.** A
+    check reading ``assert value == pytest.approx(1.0) or not np.isfinite(value)`` would sit
+    under this same docstring and accept ``1.0`` -- the most plausible-looking number
+    available -- while *failing* for ``0.0``. Such a check does not merely miss a defect of
+    this kind, it forbids the fix.
     """
 
     #: The documented result for a selection with no members.

@@ -171,7 +171,7 @@ class TestStatisticalMetricRegistration:
     def test_statistical_domain(self) -> None:
         registry = MetricRegistry()
         stat_metrics = registry.list_by_domain("statistical")
-        # Five, not six: r_squared_adjusted moved to the general domain with r_squared.
+        # Five, not six: r_squared_adjusted is a general-domain metric, beside r_squared.
         assert len(stat_metrics) == 5
 
     def test_correlations_are_higher_and_skewness_is_informational(self) -> None:

@@ -1,11 +1,9 @@
 """``r_squared_adjusted`` belongs beside ``r_squared``, not in the correlation module.
 
-Written before the move, so these tests fail against the old placement and pass after it.
-
-The two are forms of one quantity and now share one implementation
-(:func:`calibrax.metrics._utils.coefficient_of_determination`), yet they lived in different
-modules and were registered under different domains. The split was accidental rather than
-designed, and three things said so:
+The two are forms of one quantity and share one implementation
+(:func:`calibrax.metrics._utils.coefficient_of_determination`), so splitting them across
+modules and registering them under different domains would be accidental rather than
+designed. Three things say so:
 
 - ``statistical.py`` describes itself as covering "linear correlation, rank correlation, and
   agreement measures". Adjusted R-squared is a goodness-of-fit measure with a
@@ -22,11 +20,10 @@ is a required keyword -- so it must not enter that set, and what keeps it out is
 signature rather than anything about its domain. Moving it into ``general`` is exactly the
 change that could put it there, so both the exclusion and its mechanism are asserted.
 
-(An earlier version of this file justified the same pair differently, by the fused fast path
-being lost on an inexact set match. That was true when the path was selected by set equality;
-it is now selected when the request *covers* the fused set, so an extra member costs one
-dispatch rather than the whole pass. The exclusion still matters, for the stronger reason
-above. Reachability of the fast path belongs to ``test_fused_regression_suite.py``.)
+(The fast path is not the reason. It is selected when the request *covers* the fused set,
+so an extra member costs one dispatch rather than the whole pass; the exclusion matters for
+the stronger reason above. Reachability of the fast path belongs to
+``test_fused_regression_suite.py``.)
 """
 
 from __future__ import annotations
@@ -68,13 +65,13 @@ class TestItLivesInTheRegressionModule:
 class TestItIsRegisteredUnderGeneral:
     """One quantity, one domain.
 
-    **Membership, never a count.** The first draft of this class asserted
-    ``len(list_by_domain("general")) == 16``, and it was flaky by construction: the
-    registry is a process-wide singleton, ``tests/test_doc_examples.py`` executes
-    ``docs/user-guide/metrics-overview.md``, and that document's example registers a
-    ``weighted_mse`` metric into the general domain. With ``pytest-randomly`` deciding the
-    order, the assertion saw 16 or 17 depending on the seed -- it failed in one full run and
-    passed in the next with no code change between them.
+    **Membership, never a count.** Asserting ``len(list_by_domain("general")) == 16`` is
+    flaky by construction: the registry is a process-wide singleton,
+    ``tests/test_doc_examples.py`` executes ``docs/user-guide/metrics-overview.md``, and that
+    document's example registers a ``weighted_mse`` metric into the general domain. With
+    ``pytest-randomly`` deciding the order, such an assertion sees 16 or 17 depending on the
+    seed -- measured, it fails in one full run and passes in the next with no code change
+    between them.
 
     ``scripts/derive_status.py`` already measures these counts correctly, in a subprocess,
     and says why in its own docstring. Counts belong there; this file asserts membership,

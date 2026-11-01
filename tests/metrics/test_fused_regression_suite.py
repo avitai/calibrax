@@ -1,19 +1,16 @@
 """The fused regression suite must cover what ``calculate_all`` asks of it.
 
-Written before the fix, so these fail against the gap they describe.
-
 ``calculate_all(metrics=None)`` builds its candidate set from the general domain and the
 ``PREDICTIONS_TARGETS`` signature, then takes the fused single-pass path **only on an exact
 match** against ``_FUSED_REGRESSION_NAMES``, falling back to dynamic dispatch otherwise. The
 fallback is silent and returns correct answers, so a metric arriving in the general domain
 without being added to the fused suite disables the fast path with nothing failing.
 
-That is what had happened. ``charbonnier_loss`` was registered under general with the
-same-shape signature and was absent from both the fused name set and the fused function, so
-the candidate set held 14 names against the fused set's 13 and the default call had been
-using dynamic dispatch. Observed directly by spying on the fused function rather than by
-re-deriving the decision: ``calculate_all(metrics=None)`` did not call it, while
-``calculate_all(metrics=<the 13>)`` did.
+One metric is enough to do it. A metric registered under general with the same-shape
+signature but absent from both the fused name set and the fused function leaves the candidate
+set one name larger than the fused set, and the default call falls back to dynamic dispatch
+with nothing failing. The tests observe the selection by spying on the fused function rather
+than re-deriving the decision from the condition.
 
 The tests here close the gap and keep it closed: one pins the set equality that selects the
 fast path, one pins that the fused value equals the function it stands in for, and one pins
@@ -127,13 +124,12 @@ class TestTheFusedValuesAreTheFunctionsTheyReplace:
 class TestAnExtraMetricDoesNotCostTheFusedPass:
     """The fused pass pays whenever nothing it computes is wasted, not only on an exact match.
 
-    The selection condition used to be set **equality**, which is strictly stronger than
-    the pass needs. The fused traversal is worthwhile as soon as every metric it produces
-    was asked for; whether anything *else* was also asked for has no bearing on that. The
-    stronger condition discarded all fourteen fused metrics the moment a fifteenth joined
-    the request.
+    Set **equality** is strictly stronger than the pass needs. The fused traversal is
+    worthwhile as soon as every metric it produces was asked for; whether anything *else* was
+    also asked for has no bearing on that, and the stronger condition discards all fourteen
+    fused metrics the moment a fifteenth joins the request.
 
-    That was not hypothetical. ``register_metric`` defaults to ``domain="general"``, and
+    That is not hypothetical. ``register_metric`` defaults to ``domain="general"``, and
     the default request is exactly the general same-shape metrics, so **registering any
     custom metric took the default call off the fused path** -- measured at 4,096 points,
     1.78 ms against 3.27 ms, with no error and no change in the results. The documented

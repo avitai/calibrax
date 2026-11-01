@@ -371,7 +371,7 @@ class TestStatisticsMatchAFiniteDifferenceOfTheirOwnFormula:
     def test_the_zero_weight_slots_are_not_all_zero(
         self, name: str, metric: Callable[..., jnp.ndarray], extra: dict[str, object]
     ) -> None:
-        """The defect this file exists for showed as exactly zero at those slots."""
+        """A rule that substitutes the value reads exactly zero at those slots."""
         rng = np.random.default_rng(3)
         n = 24
         t64 = rng.normal(size=n)

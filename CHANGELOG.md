@@ -34,6 +34,39 @@ and uses semantic versioning while the public API stabilizes.
   0.15.0 whose weights summed to 25.21 still reports 40. Taking `sum(weights)` as an effective sample size
   instead would make the penalty depend on the scale of the weights.
 
+### Changed
+
+- **Breaking:** `r_squared_adjusted` moves from `calibrax.metrics.functional.statistical` to
+  `calibrax.metrics.functional.regression`, and its registered domain moves from
+  `statistical` to `general`. The public name is unchanged and
+  `calibrax.metrics.functional` still exports it, but the module path and the domain a
+  registry query returns it under both change, and no alias is left behind. It sits with
+  `r_squared` because it is the same quantity with a degrees-of-freedom penalty and they
+  share one implementation; `statistical` describes itself as holding correlation and
+  agreement measures, which adjusted R-squared is not. The documented domain table had
+  recorded the statistical domain as holding six metrics while naming five -- the unnamed
+  sixth was this one. Verified speed-neutral: `calculate_all`'s metric set, its output keys
+  and its median runtime are unchanged.
+- R-squared is computed in one place. The formula existed three times -- in `r_squared`,
+  inline in the fused regression suite, and again in `r_squared_adjusted` -- and only the
+  first accepted weights, so weighting `r_squared` and then reading `r_squared_adjusted` on
+  the same data returned a weighted number beside an unweighted one. All three now call
+  `coefficient_of_determination`.
+- **No existing result changes by a bit.** The shared core takes an unweighted path when
+  neither `mask` nor `weights` is given, computing the expression the three copies already
+  computed, down to the spelling of the residual: verified bit-identical over 240 cases
+  (40 seeds x sizes 8/80/4096 x offsets 1/1e4). Weighting through a vector of ones instead
+  would have moved the unweighted answer by up to 2.5 float32 ULP and left the compiled
+  regression suite 4 fusions larger, so it is not what ships. The fused suite compiles to
+  the same 118 fusions delegating as it did inline, and tests hold both invariants.
+- The macOS jobs that pushes to `main` add to CI and the package build run on `macos-15`.
+  GitHub retires the `macos-14` image on 2026-11-02 (actions/runner-images#13518), and its
+  scheduled brownouts already cancel jobs that ask for it.
+- The Security workflow audits every extra of the lock with substrax's `audit-lock` action, and
+  Quality Checks no longer runs pip-audit. Both ran pip-audit on an environment synced with the
+  `dev` extra, which never held the packages of the `docs`, `mlflow` and `wandb` extras.
+  pip-audit leaves the `dev` extra: the action runs its own pinned copy.
+
 ### Fixed
 
 - Masked `spearman_rank_correlation` ranks the kept subset, so a kept infinity no longer
@@ -480,39 +513,6 @@ and uses semantic versioning while the public API stabilizes.
   path, the fused value against the function it replaces, and fused against dynamic
   dispatch on every metric. The fused function's docstring also claimed 12 metrics while
   returning 13; it now says 14 and returns 14.
-
-### Changed
-
-- **Breaking:** `r_squared_adjusted` moves from `calibrax.metrics.functional.statistical` to
-  `calibrax.metrics.functional.regression`, and its registered domain moves from
-  `statistical` to `general`. The public name is unchanged and
-  `calibrax.metrics.functional` still exports it, but the module path and the domain a
-  registry query returns it under both change, and no alias is left behind. It sits with
-  `r_squared` because it is the same quantity with a degrees-of-freedom penalty and they
-  share one implementation; `statistical` describes itself as holding correlation and
-  agreement measures, which adjusted R-squared is not. The documented domain table had
-  recorded the statistical domain as holding six metrics while naming five -- the unnamed
-  sixth was this one. Verified speed-neutral: `calculate_all`'s metric set, its output keys
-  and its median runtime are unchanged.
-- R-squared is computed in one place. The formula existed three times -- in `r_squared`,
-  inline in the fused regression suite, and again in `r_squared_adjusted` -- and only the
-  first accepted weights, so weighting `r_squared` and then reading `r_squared_adjusted` on
-  the same data returned a weighted number beside an unweighted one. All three now call
-  `coefficient_of_determination`.
-- **No existing result changes by a bit.** The shared core takes an unweighted path when
-  neither `mask` nor `weights` is given, computing the expression the three copies already
-  computed, down to the spelling of the residual: verified bit-identical over 240 cases
-  (40 seeds x sizes 8/80/4096 x offsets 1/1e4). Weighting through a vector of ones instead
-  would have moved the unweighted answer by up to 2.5 float32 ULP and left the compiled
-  regression suite 4 fusions larger, so it is not what ships. The fused suite compiles to
-  the same 118 fusions delegating as it did inline, and tests hold both invariants.
-- The macOS jobs that pushes to `main` add to CI and the package build run on `macos-15`.
-  GitHub retires the `macos-14` image on 2026-11-02 (actions/runner-images#13518), and its
-  scheduled brownouts already cancel jobs that ask for it.
-- The Security workflow audits every extra of the lock with substrax's `audit-lock` action, and
-  Quality Checks no longer runs pip-audit. Both ran pip-audit on an environment synced with the
-  `dev` extra, which never held the packages of the `docs`, `mlflow` and `wandb` extras.
-  pip-audit leaves the `dev` extra: the action runs its own pinned copy.
 
 ### Removed
 

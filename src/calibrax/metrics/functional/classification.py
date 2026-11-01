@@ -363,7 +363,7 @@ def softmax_cross_entropy(
         raise ValueError(msg)
     if mask is not None or weights is not None:
         # `log_softmax` is taken along the class axis, so one NaN logit poisons its whole
-        # row and then the picked value, which `reduce_values` can no longer neutralise:
+        # row and then the picked value, which `reduce_values` cannot neutralise:
         # 0 * nan is nan. The class axis carries no mask of its own, so fold at the label
         # shape and restore the trailing axis -- an excluded element zeroes its own row
         # and no other, leaving the kept rows bit-identical.
