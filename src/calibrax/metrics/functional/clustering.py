@@ -24,7 +24,7 @@ import jax.numpy as jnp
 from jax.scipy.special import betaln
 from jax.typing import ArrayLike
 
-from calibrax.metrics._utils import _EPSILON, dense_labels, label_masks, safe_norm
+from calibrax.metrics._utils import _EPSILON, _validate_shapes, dense_labels, label_masks, safe_norm
 
 
 # ---------------------------------------------------------------------------
@@ -34,13 +34,30 @@ from calibrax.metrics._utils import _EPSILON, dense_labels, label_masks, safe_no
 _AVERAGES = ("arithmetic", "geometric", "min", "max")
 
 
-def _contingency(
+def _contingency(  # noqa: DOC502  # raised by _validate_shapes
     labels_true: ArrayLike,
     labels_pred: ArrayLike,
     num_classes: int | None,
     num_clusters: int | None,
 ) -> jax.Array:
-    """Counts of samples per (true label, predicted label), shape ``(classes, clusters)``."""
+    """Counts of samples per (true label, predicted label), shape ``(classes, clusters)``.
+
+    The two label arrays describe the same points, so they must have the same shape. Every
+    metric here reaches this function first, which is why the check lives in it.
+
+    Args:
+        labels_true: Ground truth integer labels.
+        labels_pred: Predicted integer labels, the same shape as ``labels_true``.
+        num_classes: Number of true labels, or ``None`` to read it from the data.
+        num_clusters: Number of predicted labels, or ``None`` to read it from the data.
+
+    Returns:
+        The contingency table, shape ``(classes, clusters)``.
+
+    Raises:
+        ValueError: If the two label arrays do not have the same shape.
+    """
+    _validate_shapes(labels_true, labels_pred)
     true_ids, classes = dense_labels(labels_true, num_classes)
     pred_ids, clusters = dense_labels(labels_pred, num_clusters)
     return jnp.zeros((classes, clusters), jnp.float32).at[true_ids, pred_ids].add(1.0)
@@ -134,7 +151,7 @@ def _pairwise_distances(features: jax.Array) -> jax.Array:
 # ---------------------------------------------------------------------------
 
 
-def adjusted_rand_index(
+def adjusted_rand_index(  # noqa: DOC502  # raised by _validate_shapes
     labels_true: ArrayLike,
     labels_pred: ArrayLike,
     *,
@@ -160,6 +177,9 @@ def adjusted_rand_index(
         >>> import jax.numpy as jnp
         >>> adjusted_rand_index(jnp.array([0, 0, 1, 1]), jnp.array([0, 0, 1, 1]))
         1.0
+
+    Raises:
+        ValueError: If the two label arrays do not have the same shape.
     """
     contingency = _contingency(labels_true, labels_pred, num_classes, num_clusters)
     n = jnp.sum(contingency)
@@ -175,7 +195,7 @@ def adjusted_rand_index(
     return jnp.where(trivial, 1.0, (sum_comb_c - expected) / jnp.where(trivial, 1.0, denominator))
 
 
-def normalized_mutual_information_clustering(
+def normalized_mutual_information_clustering(  # noqa: DOC502  # raised by _validate_shapes
     labels_true: ArrayLike,
     labels_pred: ArrayLike,
     *,
@@ -204,6 +224,9 @@ def normalized_mutual_information_clustering(
         ...     jnp.array([0, 0, 1, 1]), jnp.array([0, 0, 1, 1])
         ... )
         1.0
+
+    Raises:
+        ValueError: If the two label arrays do not have the same shape.
     """
     _check_average(average)
     contingency = _contingency(labels_true, labels_pred, num_classes, num_clusters)
@@ -214,7 +237,7 @@ def normalized_mutual_information_clustering(
     return jnp.where(both_trivial, 1.0, _mutual_information(contingency) / normalizer)
 
 
-def adjusted_mutual_information(
+def adjusted_mutual_information(  # noqa: DOC502  # raised by _validate_shapes
     labels_true: ArrayLike,
     labels_pred: ArrayLike,
     *,
@@ -244,6 +267,9 @@ def adjusted_mutual_information(
         ...     jnp.array([0, 0, 1, 1]), jnp.array([0, 0, 1, 1])
         ... )
         1.0
+
+    Raises:
+        ValueError: If the two label arrays do not have the same shape.
     """
     _check_average(average)
     contingency = _contingency(labels_true, labels_pred, num_classes, num_clusters)
@@ -259,7 +285,7 @@ def adjusted_mutual_information(
     return jnp.where(both_trivial, 1.0, ami)
 
 
-def v_measure(
+def v_measure(  # noqa: DOC502  # raised by _validate_shapes
     labels_true: ArrayLike,
     labels_pred: ArrayLike,
     *,
@@ -287,6 +313,9 @@ def v_measure(
         >>> import jax.numpy as jnp
         >>> v_measure(jnp.array([0, 0, 1, 1]), jnp.array([0, 0, 1, 1]))
         1.0
+
+    Raises:
+        ValueError: If the two label arrays do not have the same shape.
     """
     contingency = _contingency(labels_true, labels_pred, num_classes, num_clusters)
     mi = _mutual_information(contingency)
