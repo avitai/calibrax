@@ -80,6 +80,21 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Fixed
 
+- **Breaking:** `mel_cepstral_distortion` refuses a mismatched pair in the words every other
+  metric uses. It already refused one -- it was the single metric of the forty-three that
+  refuse whose message named neither argument nor contract -- but the `ValueError` came from
+  inside its mel filterbank: `Incompatible shapes for broadcasting: shapes=[(12, 0), (12,)]`,
+  reporting the shapes the filterbank had arrived at rather than the `(12, 1)` and `(12,)`
+  the caller passed. Its docstring gives both inputs shape `(n,)`, so it takes the same
+  `_validate_shapes` preamble as its sibling `spectral_convergence` and now says
+  `Shape mismatch: predictions (12, 1) vs targets (12,)`. Every refusing metric now gives
+  one message, so a caller need not learn which metric refused them in which words.
+
+  Values are unchanged across all 140 registered metrics, eager and jitted, with a control
+  behind that: scaling this metric's own result by one part in a million moves exactly it and
+  nothing else. The check costs 7 Python-level calls, 1.4%, and the compiled instruction
+  count is unchanged at 51, the check being trace-time.
+
 - **Breaking:** eighteen metrics refuse `predictions` and `targets` of different shapes
   instead of answering from a broadcast. `(n, 1)` against `(n,)` is not one sample described
   twice: the two broadcast to `(n, n)`, pairing every element of one with every element of
