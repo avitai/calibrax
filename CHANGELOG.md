@@ -36,6 +36,42 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Fixed
 
+- At order 2, `safe_root` takes `jnp.sqrt` rather than `x ** 0.5`, so its eager value is the
+  one its own compiled path produces. Jitted `pow(x, 0.5)` and jitted `sqrt(x)` agree on all
+  1,000,000 float32 inputs tried, while eager `pow` lands one ULP away on 691 of them: the
+  eager path therefore disagreed with the jitted path on the same call, which is what breaks
+  an exact comparison between a jitted metric and an eager reference. The agreement is below
+  HLO rather than in it -- the compiled module still names `power` before and `sqrt` after --
+  so the graph is not byte-identical; what is unchanged is every fusion count and every
+  jitted value.
+
+  `-inf` moves with the root. IEEE defines `pow(-inf, 0.5)` as `+inf`, so a negative radicand
+  of infinite magnitude read as *infinitely far apart* rather than as the domain error that
+  every smaller negative already gave; it is now `NaN`, which is what `jnp.sqrt` and
+  `numpy.sqrt` return. Measured, one call site can form such a radicand:
+  `mahalanobis_distance` with a precision matrix that is not positive semi-definite and
+  differences large enough to overflow. Every other site forms `+inf` or `NaN` there, where
+  the power and the root already agreed.
+
+  Eager is faster, `sqrt` being a hardware instruction where `pow` is a transcendental: on
+  262,144 elements the eager call was faster in all five paired rounds, by a factor between
+  1.7 and 2.5 depending on machine load. At eight elements the difference is inside the
+  measurement's own noise floor, as is the jitted path at both sizes.
+
+  Blast radius. `safe_root` has 11 direct calls on 10 lines, one of them `safe_norm`, and 17
+  registered metrics reach it -- established by perturbing it and re-running the registry
+  sweep, which moved exactly those 17. Across 60,000 draws over those metrics, 45 eager
+  values moved (0.075%, matching the 691-in-1,000,000 rate) by at most 2 ULP, with no value
+  becoming or ceasing to be `NaN`. Two ULP rather than one where a metric composes several
+  roots: `hellinger_distance` takes three and `relative_error` two, so a one-ULP move in an
+  inner root carries into the outer one. Jitted values are unchanged across all 140
+  registered metrics and 16,000 further draws. Orders other than 2 keep the power path
+  untouched, and an `order` that arrives traced -- `minkowski_distance` and
+  `sliced_wasserstein` forward a caller's `p` -- also takes it, since the shortcut is chosen
+  from the static Python value alone. Outside this repository, seismifex imports `safe_norm`
+  (`src/seismifex/metrics/seismic.py:38`, used at 134 and 141), so its eager values can shift
+  by the same at most 2 ULP while its jitted values cannot.
+
 - A zero weight no longer destroys the element's derivative with respect to its own weight.
   `sample_weights` documents that gradients with respect to `weights` are supported, and
   substituting zero wherever the folded weight was zero took that derivative for a point

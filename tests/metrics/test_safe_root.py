@@ -138,3 +138,109 @@ def test_safe_norm_matches_the_convention_it_cites() -> None:
     np.testing.assert_allclose(np.asarray(jax.grad(safe_norm)(jnp.zeros(3))), [0.0, 0.0, 0.0])
     assert float(safe_norm(jnp.array([3.0, 4.0]))) == pytest.approx(5.0)
     assert bool(jnp.isnan(safe_norm(jnp.array([jnp.nan, 1.0]))))
+
+
+#: A spread of magnitudes rather than U(0, 1): whether eager ``pow`` and ``sqrt`` land on the
+#: same float32 is decided by the mantissa, so one narrow band under-samples the disagreement.
+def _magnitude_grid() -> jnp.ndarray:
+    """20,000 positive float32 values across twelve orders of magnitude."""
+    rng = np.random.default_rng(0)
+    spread = np.concatenate([rng.random(8_000), rng.random(6_000) * 1e6, rng.random(6_000) * 1e-6])
+    return jnp.asarray(spread, dtype=jnp.float32)
+
+
+def _bits(values: jnp.ndarray) -> np.ndarray:
+    """The float32 bit patterns, so a one-ULP difference cannot hide in a tolerance."""
+    return np.asarray(values, dtype=np.float32).view(np.uint32)
+
+
+def test_order_two_is_bit_identical_to_jnp_sqrt() -> None:
+    """At order 2 the root is ``jnp.sqrt``, to the bit.
+
+    ``x ** 0.5`` is not. Measured over this grid it lands one ULP away on 12 of 20,000
+    values, and over a million it is 691 -- every one of them exactly one ULP, counted as
+    the distance between the bit patterns rather than against a float64 spacing.
+    """
+    grid = _magnitude_grid()
+    np.testing.assert_array_equal(_bits(safe_root(grid)), _bits(jnp.sqrt(grid)))
+
+
+def test_order_two_agrees_with_its_own_jitted_value() -> None:
+    """The defect a caller meets: the same call returning two different floats.
+
+    Jitted ``pow(x, 0.5)`` and jitted ``sqrt(x)`` are the same float32 on every one of
+    1,000,000 inputs tried, so the compiled path always produced the square root while the
+    eager path produced a power. Eager and jitted therefore disagreed on 12 of these 20,000
+    values, which is what breaks an ``abs=0.0`` comparison between a jitted metric and an
+    eager reference. The agreement happens below HLO: a ``sqrt`` module and a
+    ``pow(x, 0.5)`` module are two different graphs that compute the same float32.
+    """
+    grid = _magnitude_grid()
+    np.testing.assert_array_equal(_bits(safe_root(grid)), _bits(jax.jit(safe_root)(grid)))
+
+
+def test_a_negative_infinity_is_a_domain_error_like_any_other_negative() -> None:
+    """``-inf`` is negative, so the contract makes it ``NaN``.
+
+    ``pow`` disagrees: IEEE 754 defines ``pow(-inf, 0.5)`` as ``+inf``, so a negative
+    radicand of infinite magnitude read as *infinitely far apart* rather than as the domain
+    error every smaller negative already produced. ``jnp.sqrt(-inf)`` is ``NaN``, as is
+    ``numpy.sqrt(-inf)``.
+
+    Reachable from one place, measured: ``mahalanobis_distance`` with a precision matrix
+    that is not positive semi-definite and differences large enough to overflow forms a
+    radicand of ``-inf``. Every other call site forms ``+inf`` or ``NaN`` there instead, and
+    ``sqrt`` and ``pow`` agree on both.
+    """
+    assert bool(jnp.isnan(safe_root(jnp.asarray(-jnp.inf))))
+    assert float(safe_root(jnp.asarray(jnp.inf))) == float(jnp.inf)
+
+    big = jnp.asarray(1e38, dtype=jnp.float32)
+    a = jnp.array([big, 0.0, 0.0])
+    b = jnp.array([-big, 0.0, 0.0])
+    indefinite = jnp.diag(jnp.array([-1.0, 1.0, 1.0]))
+    assert float(jnp.dot(a - b, jnp.dot(indefinite, a - b))) == float(-jnp.inf)
+    assert bool(jnp.isnan(mahalanobis_distance(a, b, precision_matrix=indefinite)))
+
+
+def test_negative_zero_is_the_one_input_where_the_guard_overrides_the_root() -> None:
+    """``jnp.sqrt(-0.0)`` keeps the sign; the guarded root does not, by construction.
+
+    IEEE makes ``-0.0 == 0.0`` true, so negative zero is the guarded singularity and leaves
+    as ``+0.0``. This is the only input at which the order-2 root is not ``jnp.sqrt`` bit for
+    bit, and it is the guard doing its job rather than an accident of the root used.
+    """
+    assert _bits(jnp.sqrt(jnp.asarray(-0.0)))[()] == 0x8000_0000
+    assert _bits(safe_root(jnp.asarray(-0.0)))[()] == 0x0000_0000
+    assert float(jax.grad(safe_root)(jnp.asarray(-0.0))) == 0.0
+
+
+def test_an_integer_order_of_two_takes_the_square_root_path() -> None:
+    """``order=2`` and ``order=2.0`` are the same order, so they must agree to the bit."""
+    grid = _magnitude_grid()
+    np.testing.assert_array_equal(
+        _bits(safe_root(grid, order=2)), _bits(safe_root(grid, order=2.0))
+    )
+
+
+@pytest.mark.parametrize("order", [1.0, 3.0, 2.5])
+def test_orders_other_than_two_keep_the_general_path(order: float) -> None:
+    """Only order 2 changes: every other order is still the power it always was, to the bit."""
+    grid = _magnitude_grid()
+    np.testing.assert_array_equal(_bits(safe_root(grid, order=order)), _bits(grid ** (1.0 / order)))
+
+
+def test_a_traced_order_is_not_branched_on() -> None:
+    """``order`` may arrive as a tracer, and a Python branch on one is an error.
+
+    ``minkowski_distance`` and ``sliced_wasserstein`` both forward a caller's ``p`` here, so
+    ``jit`` over that argument makes ``order`` a tracer. The order-2 shortcut is therefore
+    chosen from the static Python value only; a traced order takes the general power path,
+    which is what it took before the shortcut existed.
+    """
+    traced = jax.jit(lambda x, order: safe_root(x, order=order))
+    np.testing.assert_allclose(np.asarray(traced(jnp.asarray(4.0), jnp.asarray(2.0))), 2.0)
+    np.testing.assert_allclose(
+        np.asarray(traced(jnp.asarray(27.0), jnp.asarray(3.0))), 3.0, rtol=1e-6
+    )
+    assert float(jax.jit(jax.grad(lambda x: traced(x, jnp.asarray(2.0))))(jnp.asarray(0.0))) == 0.0
