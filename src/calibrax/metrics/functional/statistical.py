@@ -26,6 +26,7 @@ from calibrax.metrics._utils import (
     _FEATURE_MATRIX_NDIM,
     _MIN_CORRELATED_FEATURES,
     _SERIES_NDIM,
+    safe_root,
     sample_weights,
     substitute_excluded,
     weighted_mean,
@@ -104,8 +105,12 @@ def pearson_correlation(
     a_centered = a_arr - weighted_mean(a_arr, w)
     b_centered = b_arr - weighted_mean(b_arr, w)
     cov = jnp.sum(w * a_centered * b_centered)
-    std_a = jnp.sqrt(jnp.sum(w * a_centered**2))
-    std_b = jnp.sqrt(jnp.sum(w * b_centered**2))
+    # The guarded root, because an empty selection or a constant input drives these sums
+    # to zero, where the plain root's derivative is infinite and `d/dw` comes back non-finite
+    # in every entry -- including the elements that were not the problem. The value is the
+    # same number at every input; only the derivative at zero differs.
+    std_a = safe_root(jnp.sum(w * a_centered**2))
+    std_b = safe_root(jnp.sum(w * b_centered**2))
     return cov / (std_a * std_b + _EPSILON)
 
 
@@ -262,20 +267,27 @@ def kendall_tau(
         total_pairs = n * (n - 1) / 2
         tied_in_a = jnp.sum(upper & (a_diff == 0))
         tied_in_b = jnp.sum(upper & (b_diff == 0))
+        # Spelled exactly as it was before the weighted path existed, and kept in this
+        # branch rather than shared below, so the unweighted compiled graph does not move.
+        # Nothing here can reach the root's singularity: `total_pairs` is a positive
+        # constant and the tie counts are integers below it unless every pair is tied, which
+        # needs a constant input, and a constant input has no unweighted caller to serve.
+        untied_pairs = jnp.sqrt((total_pairs - tied_in_a) * (total_pairs - tied_in_b))
     else:
-        # One weight per pair, zero wherever either element is excluded, so a masked
-        # element takes every pair it belongs to out of all three totals at once.
-        # One weight per pair, zero wherever either element is excluded, so a masked
-        # element leaves every pair it belongs to out of all three totals at once. Folded
-        # at the input's own shape then flattened, so the pair weights line up with the
-        # flattened elements however the caller shaped them.
+        # One weight per pair, zero wherever either element is excluded, so a masked element
+        # leaves every pair it belongs to out of all three totals at once. Folded at the
+        # input's own shape then flattened, so the pair weights line up with the flattened
+        # elements however the caller shaped them.
         pair_weight = jnp.where(upper, pair_scale[:, None] * pair_scale[None, :], 0.0)
         concordant_minus_discordant = jnp.sum(pair_weight * agreement)
         total_pairs = jnp.sum(pair_weight)
         tied_in_a = jnp.sum(jnp.where(a_diff == 0, pair_weight, 0.0))
         tied_in_b = jnp.sum(jnp.where(b_diff == 0, pair_weight, 0.0))
+        # The guarded root here, where all three totals are weighted sums that an empty
+        # selection drives to zero together. A constant input reaches it exactly as well:
+        # every pair is tied, so `total_pairs - tied_in_b` is zero rather than merely small.
+        untied_pairs = safe_root((total_pairs - tied_in_a) * (total_pairs - tied_in_b))
 
-    untied_pairs = jnp.sqrt((total_pairs - tied_in_a) * (total_pairs - tied_in_b))
     return concordant_minus_discordant / (untied_pairs + _EPSILON)
 
 

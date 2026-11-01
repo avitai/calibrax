@@ -36,6 +36,42 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Fixed
 
+- `pearson_correlation` and `kendall_tau` report finite weight gradients at a degenerate
+  selection. Their weighted denominators are square roots of weighted sums -- two standard
+  deviations for Pearson, `untied_pairs` for tau-b -- and an empty selection or a constant
+  input drives those sums to zero, where the plain root's derivative is infinite. Measured,
+  `d/dw` came back non-finite in all 12 of 12 entries for both, at all-zero weights and with
+  a constant input, including the entries for elements that were not the problem. Under
+  `jit(vmap(grad))` over one soft weight vector per bin, a single empty bin made that whole
+  row `NaN` beside the populated ones -- the per-bin applicability curve this feature exists
+  for. Both now use the guarded root, whose derivative at zero is `0`, the convention
+  `optax.safe_norm` follows and the one the value side of these statistics already used.
+
+  No value changes, and that is a property of the two roots rather than a sample: the guarded
+  root returns the same float as `jnp.sqrt` at every input except `-0.0`, which neither
+  radicand can produce -- Pearson's is a sum of non-negative terms, and tau-b's is a product
+  of differences `total - tied` where IEEE makes `x - x` equal `+0.0` and `tied <= total`.
+  Were it reachable, the `+ _EPSILON` in both denominators erases the sign. Corroborated
+  rather than established: 24 cells of 2,000 draws each over weighted, masked, both and
+  unweighted paths, eager and jitted, are identical, as are all nine degenerate cells, and
+  the weight gradient away from the singularity is bit-identical over 500 draws per
+  statistic with zeros among the weights.
+
+  The unweighted path is deliberately untouched. Tau-b's root was shared by both branches, so
+  it now sits inside each: the unweighted branch keeps the expression it had, spelled
+  identically, and only the weighted branch takes the guard. Nothing on the unweighted path
+  can reach the singularity anyway -- `total_pairs` is a positive constant there and the tie
+  counts are integers below it. Measured on the compiled module, the unweighted instruction
+  count is unchanged for all three statistics (Pearson 104, tau-b 99, CCC 114), against 117
+  for Pearson when the guard is applied to that branch, so the measurement can see such a
+  change. All 21 compiled-metric fusion counts are unchanged. The weighted paths pay the
+  guard: 13 instructions for Pearson and 4 for tau-b, the same with a mask, and 53 and 24
+  respectively in the gradient.
+
+  `concordance_correlation` needed nothing: its denominator is `var_a + var_b +
+  (mean_a - mean_b)**2`, a sum of squares with no root, and it already reported 12 of 12
+  finite weight gradients in the same measurement.
+
 - At order 2, `safe_root` takes `jnp.sqrt` rather than `x ** 0.5`, so its eager value is the
   one its own compiled path produces. Jitted `pow(x, 0.5)` and jitted `sqrt(x)` agree on all
   1,000,000 float32 inputs tried, while eager `pow` lands one ULP away on 691 of them: the

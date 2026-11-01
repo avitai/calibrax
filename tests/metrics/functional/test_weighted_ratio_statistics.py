@@ -19,6 +19,7 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 
+from calibrax.metrics._utils import _EPSILON
 from calibrax.metrics.functional.regression import r_squared, r_squared_adjusted
 from calibrax.metrics.functional.statistical import (
     concordance_correlation,
@@ -406,3 +407,204 @@ class TestDegenerateWeights:
         without_mask = float(r_squared(predictions, constant))
         assert with_mask == without_mask
         assert with_mask != self.EMPTY_RESULT
+
+
+#: Tolerance for the weight gradient against a float64 central difference, in float32 ULP at
+#: the gradient's own scale. The comparison is a float32 gradient against a float64
+#: difference, so the discrepancy is float32 evaluation error rather than truncation: at
+#: ``h = 1e-5`` the reference's own truncation is near 1e-10. Measured over 20 seeds x sizes
+#: 8/12/24 with a quarter of the weights zeroed, the worst was 4.37 ULP for
+#: ``pearson_correlation`` and 0.87 for ``kendall_tau``; the bound allows 16. An absolute
+#: constant cannot express it: the same readings span 8.438e-10 to 5.208e-07, so one number
+#: is fixed by the worst statistic and runs loose by nearly three orders of magnitude for the
+#: other. This is the convention ``tests/metrics/test_zero_weight_gradients.py`` records.
+_GRADIENT_ULPS = 16
+
+#: The central difference's step. Both reference formulas are rational in the weights away
+#: from an all-zero vector, so a +/-h step stays in their domain.
+_STEP = 1e-5
+
+
+def _gradient_atol(reference: np.ndarray) -> float:
+    """Float32 ULP at the scale of the gradient being compared."""
+    return (
+        _GRADIENT_ULPS * float(np.finfo(np.float32).eps) * max(1.0, float(np.abs(reference).max()))
+    )
+
+
+def _reference_pearson(a: np.ndarray, b: np.ndarray, w: np.ndarray) -> float:
+    """Weighted Pearson r in float64, written from the definition rather than from the code."""
+    a, b, w = (np.asarray(v, dtype=np.float64) for v in (a, b, w))
+    total = w.sum()
+    a_centered = a - (w * a).sum() / total
+    b_centered = b - (w * b).sum() / total
+    covariance = (w * a_centered * b_centered).sum()
+    std_a = np.sqrt((w * a_centered**2).sum())
+    std_b = np.sqrt((w * b_centered**2).sum())
+    return float(covariance / (std_a * std_b + _EPSILON))
+
+
+def _reference_kendall(a: np.ndarray, b: np.ndarray, w: np.ndarray) -> float:
+    """Weighted tau-b in float64: one weight per pair, from the definition."""
+    a, b, w = (np.asarray(v, dtype=np.float64) for v in (a, b, w))
+    upper = np.triu(np.ones((a.size, a.size), dtype=bool), k=1)
+    pair_weight = np.where(upper, np.outer(w, w), 0.0)
+    a_diff = a[:, None] - a[None, :]
+    b_diff = b[:, None] - b[None, :]
+    concordant = (pair_weight * np.sign(a_diff) * np.sign(b_diff)).sum()
+    total = pair_weight.sum()
+    untied_a = total - np.where(a_diff == 0, pair_weight, 0.0).sum()
+    untied_b = total - np.where(b_diff == 0, pair_weight, 0.0).sum()
+    return float(concordant / (np.sqrt(untied_a * untied_b) + _EPSILON))
+
+
+def _central_difference(
+    reference: Callable[[np.ndarray, np.ndarray, np.ndarray], float],
+    a: np.ndarray,
+    b: np.ndarray,
+    w: np.ndarray,
+) -> np.ndarray:
+    """``d/dw`` of ``reference`` by a float64 central difference, one coordinate at a time."""
+    gradient = np.zeros(w.size, dtype=np.float64)
+    for i in range(w.size):
+        up, down = np.array(w, dtype=np.float64), np.array(w, dtype=np.float64)
+        up[i] += _STEP
+        down[i] -= _STEP
+        gradient[i] = (reference(a, b, up) - reference(a, b, down)) / (2.0 * _STEP)
+    return gradient
+
+
+#: The two statistics whose weighted path takes a root of a sum that an empty selection
+#: drives to zero. ``concordance_correlation`` is excluded deliberately: it divides by a sum
+#: of squares and never takes a root, so it already reported finite weight gradients here.
+_ROOTED = [
+    ("pearson_correlation", pearson_correlation, _reference_pearson),
+    ("kendall_tau", kendall_tau, _reference_kendall),
+]
+
+
+class TestWeightGradientsWhereTheRootIsSingular:
+    """``d/dw`` of a statistic whose denominator is a root, at the point the root is singular.
+
+    The weighted standard deviations and ``untied_pairs`` are square roots of weighted sums.
+    An empty selection drives those sums to zero, where the plain root's derivative is
+    infinite, so the whole weight gradient came back non-finite -- including the entries for
+    elements that were not the problem. The guarded root is zero there instead, which is the
+    same convention ``optax.safe_norm`` uses and the one the value side already follows.
+
+    The value is unaffected: the guarded root returns the same number as the plain root at
+    every input, differing only in its derivative at zero.
+    """
+
+    @pytest.mark.parametrize(("name", "metric", "reference"), _ROOTED, ids=[r[0] for r in _ROOTED])
+    def test_the_weight_gradient_matches_a_float64_central_difference(
+        self,
+        sample: WeightedSample,
+        name: str,
+        metric: Callable[..., jnp.ndarray],
+        reference: Callable[[np.ndarray, np.ndarray, np.ndarray], float],
+    ) -> None:
+        """Where the statistic is smooth the gradient must not move, zeros in the weights included.
+
+        This is the half of the change that must *not* show: swapping the root alters the
+        expression, so the gradient away from the singularity is re-checked against a
+        reference written from the definition rather than from the implementation.
+        """
+        targets, predictions, weights, _ = sample
+        with_zeros = np.asarray(weights, dtype=np.float64)
+        with_zeros[: max(1, with_zeros.size // 4)] = 0.0
+
+        gradient = np.asarray(
+            jax.grad(lambda w: metric(predictions, targets, weights=w))(
+                jnp.asarray(with_zeros, dtype=jnp.float32)
+            ),
+            dtype=np.float64,
+        )
+        expected = _central_difference(
+            reference,
+            np.asarray(predictions, dtype=np.float64),
+            np.asarray(targets, dtype=np.float64),
+            with_zeros,
+        )
+        assert np.all(np.isfinite(gradient)), f"{name} has a non-finite weight gradient"
+        np.testing.assert_allclose(
+            gradient, expected, atol=_gradient_atol(expected), rtol=0.0, err_msg=name
+        )
+
+    @pytest.mark.parametrize(("name", "metric", "reference"), _ROOTED, ids=[r[0] for r in _ROOTED])
+    def test_the_weight_gradient_is_finite_at_an_all_zero_weight_vector(
+        self,
+        sample: WeightedSample,
+        name: str,
+        metric: Callable[..., jnp.ndarray],
+        reference: Callable[[np.ndarray, np.ndarray, np.ndarray], float],
+    ) -> None:
+        """An empty selection has no sample to describe, and no reason to be non-finite."""
+        del reference
+        targets, predictions, _, _ = sample
+        gradient = jax.grad(lambda w: metric(predictions, targets, weights=w))(
+            jnp.zeros_like(targets)
+        )
+        assert bool(jnp.all(jnp.isfinite(gradient))), (
+            f"{name} reports a non-finite weight gradient at an empty selection"
+        )
+
+    @pytest.mark.parametrize(("name", "metric", "reference"), _ROOTED, ids=[r[0] for r in _ROOTED])
+    def test_the_weight_gradient_is_finite_when_an_input_is_constant(
+        self,
+        sample: WeightedSample,
+        name: str,
+        metric: Callable[..., jnp.ndarray],
+        reference: Callable[[np.ndarray, np.ndarray, np.ndarray], float],
+    ) -> None:
+        """A constant input has zero spread, so its root is singular with ordinary weights.
+
+        Distinct from the empty selection: the weights here are strictly positive and the
+        sample is real. It is the data that removes the variance, so no guard keyed on the
+        weight sum would catch it.
+
+        The constant is a power of two so that the singularity is reached exactly rather
+        than nearly. ``weighted_mean`` of a constant ``c`` is ``c * sum(w) / sum(w)``, which
+        is exact in binary floating point when ``c`` is a power of two; at ``c = 3.0`` this
+        fixture's weights give ``3.0000009537``, leaving ``sum(w * b_centered**2)`` at
+        ``3.957e-11`` instead of zero -- off the singular point, where the plain root's
+        derivative is large but finite, so the test would pass either way and measure
+        nothing.
+        """
+        del reference
+        targets, predictions, weights, _ = sample
+        constant = jnp.full_like(targets, 2.0)
+        gradient = jax.grad(lambda w: metric(predictions, constant, weights=w))(weights)
+        assert bool(jnp.all(jnp.isfinite(gradient))), (
+            f"{name} reports a non-finite weight gradient for a constant input"
+        )
+
+    @pytest.mark.parametrize(("name", "metric", "reference"), _ROOTED, ids=[r[0] for r in _ROOTED])
+    def test_every_row_is_finite_under_jit_vmap_grad_with_one_empty_bin(
+        self,
+        sample: WeightedSample,
+        name: str,
+        metric: Callable[..., jnp.ndarray],
+        reference: Callable[[np.ndarray, np.ndarray, np.ndarray], float],
+    ) -> None:
+        """The shape this matters in: one gradient per bin of an applicability curve.
+
+        The weights are soft rather than boolean because the derivative is taken with respect
+        to them. An unguarded root gives an empty bin a row of ``NaN``, and ``vmap`` keeps
+        that row in the same array as the populated ones, so one empty bin spoils the batch.
+        """
+        del reference
+        targets, predictions, weights, _ = sample
+        size = targets.shape[0]
+        bins = jnp.stack(
+            [
+                jnp.zeros(size, dtype=targets.dtype),  # the empty bin
+                weights * (jnp.arange(size) < size // 2).astype(targets.dtype),  # partly filled
+                weights,  # full
+            ]
+        )
+        per_bin = jax.grad(lambda x: metric(predictions, targets, weights=x))
+        rows = jax.jit(jax.vmap(per_bin))(bins)
+        assert bool(jnp.all(jnp.isfinite(rows))), (
+            f"{name} has a non-finite row for the empty bin, which vmap keeps beside the rest"
+        )
