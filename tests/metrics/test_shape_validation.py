@@ -8,10 +8,13 @@ twenty metrics accept that pair and return a number different from the flat call
 
 Three groups, because the contracts differ and the remedy follows the contract:
 
-* **Same shape by documentation, no validation at all.** Nine metrics whose docstrings give
-  both inputs the same shape -- two label assignments over the same points, two signals, two
-  images, two points on a manifold, a prediction beside the group it belongs to -- and which
-  convert with a bare ``jnp.asarray``. They take the preamble their siblings use.
+* **Same shape by documentation.** Ten metrics whose docstrings give both inputs the same
+  shape -- two label assignments over the same points, two signals, two images, two points on
+  a manifold, a prediction beside the group it belongs to -- and which either validate
+  nothing or refuse in words that name neither argument. They take the preamble their
+  siblings use. ``mel_cepstral_distortion`` is the second kind: it refused a mismatch with
+  ``Incompatible shapes for broadcasting: shapes=[(80, 0), (80,)]``, raised from inside its
+  mel filterbank, which reports the internal shapes rather than the ones the caller passed.
 * **The shared distance helper.** ``_batch_or_single`` dispatches on ``a.ndim`` and never
   compares ``a`` with ``b``, so every distance routed through it inherits the gap.
 * **Different shapes are the contract.** Four metrics document a probability array against
@@ -19,8 +22,9 @@ Three groups, because the contracts differ and the remedy follows the contract:
   They are pinned here so that a later sweep does not "fix" them.
 
 The reference for every refusal is the sibling that already refuses: ``mse`` and the other
-twenty-four metrics that prepare their inputs with
-:func:`calibrax.metrics._utils._prepare_arrays` raise ``ValueError: Shape mismatch``.
+metrics that prepare their inputs with
+:func:`calibrax.metrics._utils._prepare_arrays` raise ``ValueError: Shape mismatch``. One
+message, because a caller should not have to learn which metric refused them in which words.
 """
 
 from __future__ import annotations
@@ -94,7 +98,8 @@ _PROBABILITIES = jnp.asarray(_RNG.dirichlet(np.ones(_CLASSES), size=_SIZE), dtyp
 _INDICES = jnp.asarray(_RNG.integers(0, _CLASSES, size=_SIZE))
 
 
-#: Nine metrics whose docstrings give both inputs the same shape and which validate nothing.
+#: Ten metrics whose docstrings give both inputs the same shape and which do not refuse a
+#: mismatch in the shared words.
 _SAME_SHAPE_BY_DOCUMENTATION: tuple[ShapeCase, ...] = (
     ShapeCase(
         name="adjusted_mutual_information",
@@ -120,6 +125,12 @@ _SAME_SHAPE_BY_DOCUMENTATION: tuple[ShapeCase, ...] = (
     ShapeCase(
         name="spectral_convergence",
         metric=functional.spectral_convergence,
+        first=_SIGNAL,
+        second=_SIGNAL_OTHER,
+    ),
+    ShapeCase(
+        name="mel_cepstral_distortion",
+        metric=functional.mel_cepstral_distortion,
         first=_SIGNAL,
         second=_SIGNAL_OTHER,
     ),

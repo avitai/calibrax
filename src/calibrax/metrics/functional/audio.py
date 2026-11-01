@@ -51,7 +51,7 @@ def spectral_convergence(predictions: ArrayLike, targets: ArrayLike) -> jax.Arra
     return diff_norm / (tgt_norm + _EPSILON)
 
 
-def mel_cepstral_distortion(
+def mel_cepstral_distortion(  # noqa: DOC502  # raised by _validate_shapes
     predictions: ArrayLike, targets: ArrayLike, *, num_mels: int = 80
 ) -> jax.Array:
     """Mel Cepstral Distortion between two signals.
@@ -72,7 +72,13 @@ def mel_cepstral_distortion(
         >>> sig = jnp.sin(jnp.linspace(0, 10, 256))
         >>> mel_cepstral_distortion(sig, sig)
         0.0
+
+    Raises:
+        ValueError: If ``predictions`` and ``targets`` do not have the same shape.
     """
+    # Two signals over the same frames. Without this the mismatch surfaces from inside
+    # the mel filterbank, which reports its own shapes rather than the ones passed in.
+    _validate_shapes(predictions, targets)
     predictions = jnp.asarray(predictions, dtype=jnp.float32)
     targets = jnp.asarray(targets, dtype=jnp.float32)
 
