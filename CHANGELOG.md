@@ -54,10 +54,11 @@ and uses semantic versioning while the public API stabilizes.
   of its simulation, allocation is what generates them, and every benchmarked path makes the
   same number of Python-level calls at 100,000, 10,000 and 2,000 elements.
 - The Spearman benchmarks rank shuffled scores with 100 distinct values over 10,000 elements,
-  against scipy's float64 answer, eagerly, with a mask, and compiled. A sorted, tie-free input
-  ranks by position and gives the sort nothing to do; with ties, ordinal ranks and ranks taken
-  over the whole array both move the answer by more than ten times the tolerance, which a test
-  asserts. The tolerance, `1e-6`, is above the worst float32 difference from scipy measured over
+  against scipy's float64 answer, eagerly, with a mask, with integer weights, as a `jit(vmap)`
+  over 16 bootstrap count vectors, and compiled. A sorted, tie-free input
+  ranks by position and gives the sort nothing to do; with ties, ordinal ranks, ranks taken
+  over the whole array and ignoring the weights each move the answer by more than ten times the
+  tolerance, which a test asserts. The tolerance, `1e-6`, is above the worst float32 difference from scipy measured over
   120 fixtures of this shape, 1.73e-07.
 
 - calibrax requires substrax 0.1.25, the release whose `substrax.testing.counted_calls`

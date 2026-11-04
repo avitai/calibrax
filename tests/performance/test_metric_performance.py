@@ -100,11 +100,38 @@ def _spearman_fixture() -> tuple[np.ndarray, np.ndarray, np.ndarray]:
 
 _SPEARMAN_X, _SPEARMAN_Y, _SPEARMAN_KEEP = _spearman_fixture()
 
+#: Bootstrap resamples in the weighted bootstrap benchmark: each is one count vector over the
+#: kept elements, so the call is a within-subset bootstrap at a fixed shape.
+_RESAMPLES = 16
+
+
+def _bootstrap_counts() -> np.ndarray:
+    """One multinomial count vector per resample, drawn over the kept elements only."""
+    rng = np.random.default_rng(1)
+    members = np.flatnonzero(_SPEARMAN_KEEP)
+    counts = np.zeros((_RESAMPLES, _SIZE), dtype=np.int64)
+    for row in counts:
+        np.add.at(row, rng.choice(members, size=members.size), 1)
+    return counts
+
+
+def _replicated_rho(counts: np.ndarray) -> float:
+    """Scipy's coefficient of the sample with element ``i`` repeated ``counts[i]`` times."""
+    return float(
+        stats.spearmanr(np.repeat(_SPEARMAN_X, counts), np.repeat(_SPEARMAN_Y, counts)).statistic
+    )
+
+
+_SPEARMAN_COUNTS = np.random.default_rng(2).integers(0, 5, _SIZE)
+_BOOTSTRAP_COUNTS = _bootstrap_counts()
+
 #: scipy's average-rank answers in float64, the reference every Spearman benchmark asserts.
 _SPEARMAN_RHO = float(stats.spearmanr(_SPEARMAN_X, _SPEARMAN_Y).statistic)
 _SPEARMAN_RHO_KEPT = float(
     stats.spearmanr(_SPEARMAN_X[_SPEARMAN_KEEP], _SPEARMAN_Y[_SPEARMAN_KEEP]).statistic
 )
+_SPEARMAN_RHO_WEIGHTED = _replicated_rho(_SPEARMAN_COUNTS)
+_BOOTSTRAP_RHOS = np.array([_replicated_rho(row) for row in _BOOTSTRAP_COUNTS])
 
 #: float32 against scipy's float64. Measured over 120 fixtures of this shape (40 seeds by 20,
 #: 100 and 1,000 distinct values), eager, masked and jitted alike, the worst difference was
@@ -114,14 +141,16 @@ _SPEARMAN_TOLERANCE = 1e-6
 
 def test_the_spearman_fixture_tells_ranking_defects_apart() -> None:
     """The answers the benchmarks assert move by far more than the tolerance if ranks are
-    taken by position (ties broken by order) or over the whole array instead of the kept
-    subset, so a benchmark asserting them also detects either defect."""
+    taken by position (ties broken by order), over the whole array instead of the kept subset,
+    or without the weights, so a benchmark asserting them also detects each defect."""
     ordinal = stats.pearsonr(
         stats.rankdata(_SPEARMAN_X, method="ordinal"),
         stats.rankdata(_SPEARMAN_Y, method="ordinal"),
     ).statistic
     assert abs(ordinal - _SPEARMAN_RHO) > 10 * _SPEARMAN_TOLERANCE
     assert abs(_SPEARMAN_RHO_KEPT - _SPEARMAN_RHO) > 10 * _SPEARMAN_TOLERANCE
+    assert abs(_SPEARMAN_RHO_WEIGHTED - _SPEARMAN_RHO) > 10 * _SPEARMAN_TOLERANCE
+    assert np.all(np.abs(_BOOTSTRAP_RHOS - _SPEARMAN_RHO_KEPT) > 10 * _SPEARMAN_TOLERANCE)
 
 
 @pytest.mark.performance
@@ -140,14 +169,42 @@ def test_spearman_unweighted_performance(benchmark: BenchmarkFixture) -> None:
 
 @pytest.mark.performance
 def test_spearman_masked_performance(benchmark: BenchmarkFixture) -> None:
-    """The masked path, which ranks the kept subset and correlates through Pearson's
-    weighted branch, the cost a caller opts into."""
+    """The masked path, a 0/1 weight through the frequency-weighted ranks, the cost a caller
+    opts into."""
     x, y = jnp.asarray(_SPEARMAN_X), jnp.asarray(_SPEARMAN_Y)
     keep = jnp.asarray(_SPEARMAN_KEEP)
 
     result = benchmark(spearman_rank_correlation, x, y, mask=keep)
 
     assert result == pytest.approx(_SPEARMAN_RHO_KEPT, abs=_SPEARMAN_TOLERANCE)
+
+
+@pytest.mark.performance
+def test_spearman_weighted_performance(benchmark: BenchmarkFixture) -> None:
+    """The weighted path, eagerly: integer counts from 0 to 4, zeros included, against scipy
+    on the sample with each element repeated that many times."""
+    x, y = jnp.asarray(_SPEARMAN_X), jnp.asarray(_SPEARMAN_Y)
+    weights = jnp.asarray(_SPEARMAN_COUNTS, dtype=jnp.float32)
+
+    result = benchmark(spearman_rank_correlation, x, y, weights=weights)
+
+    assert result == pytest.approx(_SPEARMAN_RHO_WEIGHTED, abs=_SPEARMAN_TOLERANCE)
+
+
+@pytest.mark.performance
+def test_spearman_weighted_bootstrap_performance(benchmark: BenchmarkFixture) -> None:
+    """A within-subset bootstrap at a fixed shape: one count vector per resample, all of them
+    under one ``jit(vmap)``, each row against scipy on its replicated resample."""
+    x, y = jnp.asarray(_SPEARMAN_X), jnp.asarray(_SPEARMAN_Y)
+    counts = jnp.asarray(_BOOTSTRAP_COUNTS, dtype=jnp.float32)
+    resampled = jax.jit(jax.vmap(lambda w: spearman_rank_correlation(x, y, weights=w)))
+    jax.block_until_ready(resampled(counts))
+
+    result = benchmark(lambda: jax.block_until_ready(resampled(counts)))
+
+    np.testing.assert_allclose(
+        np.asarray(result), _BOOTSTRAP_RHOS, atol=_SPEARMAN_TOLERANCE, rtol=0.0
+    )
 
 
 @pytest.mark.performance
