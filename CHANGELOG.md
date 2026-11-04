@@ -7,6 +7,8 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+## [0.1.15] - 2026-11-04
+
 ### Added
 
 - `r_squared`, `pearson_correlation` and `concordance_correlation` accept `mask` and
