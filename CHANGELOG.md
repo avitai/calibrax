@@ -479,17 +479,17 @@ and uses semantic versioning while the public API stabilizes.
   alternating A/B puts the floor near six per cent, against which the substitution costs
   1.02x at 4,096 elements and between nothing and about fifteen per cent at 1,048,576.
 
-  One behaviour change follows. `relative_l2_error` is the one function whose mask is
-  dimensioned against its output -- one value per sample, over a `(n_samples, *field)`
-  input -- so it now folds at the sample axis and **rejects a mask that does not fit that
-  axis**. Previously a `(n_samples, 1)` mask was accepted and answered from an accidental
-  outer product: measured on a clean `(4, 3)` fixture it returned 0.719671, the mean of a
-  sixteen-element broadcast, where the masked mean is 0.874025.
-
   An **unmasked** `NaN` was left propagating everywhere except `rmse`, `relative_l2_error`,
   `rmsd` and `pairwise_rmsd`, which reach `safe_root`. That was filed as three `strict`
   xfails and is fixed in the entry below, which removed them.
 
+- **Breaking:** `relative_l2_error` refuses a `mask` or `weights` that is neither a scalar
+  nor shaped `(n_samples,)`, naming the expected shape. It is the one function whose mask
+  is dimensioned against its output -- one value per sample, over a `(n_samples, *field)`
+  input -- so it folds at the sample axis. A mask shaped like the field, such as
+  `(n_samples, 1)`, was accepted and answered from an accidental outer product: on a
+  `(4, 3)` fixture it returned 0.719671, the mean of a sixteen-element broadcast, where the
+  masked mean is 0.874025.
 - `calculate_all(metrics=None)` keeps the fused single-pass path when a custom metric is
   registered. It selected that path only when the general-domain same-shape metric names
   matched `_FUSED_REGRESSION_NAMES` **exactly**, which is stronger than the pass needs: the
