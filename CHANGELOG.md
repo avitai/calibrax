@@ -36,6 +36,15 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Changed
 
+- `tests/performance` benchmarks the unweighted paths of `pearson_correlation`,
+  `concordance_correlation`, `spearman_rank_correlation` and `r_squared`, and the masked
+  paths of `mse` and `relative_l2_error`, beside the `mse` benchmark it held. CodSpeed counts
+  instructions, so each benchmark moves when an eager call's Python-level work moves, even
+  where the compiled program is identical. Each calls its metric eagerly and asserts a value
+  exact by construction. The fixtures are 10,000 elements: CodSpeed leaves system calls out
+  of its simulation, allocation is what generates them, and every benchmarked path makes the
+  same number of Python-level calls at 100,000, 10,000 and 2,000 elements.
+
 - calibrax requires substrax 0.1.25, the release whose `substrax.testing.counted_calls`
   measures the Python-level cost of an eager call. The examples job's accelerator moves into
   its `resources` table (`resources = {accelerator = {kind = "L4"}}`), the form substrax
