@@ -160,7 +160,7 @@ def spearman_rank_correlation(
     if mask is None:
         return pearson_correlation(rankdata(a_arr), rankdata(b_arr))
     # Broadcast at the input's shape, then flatten, so a mask shaped like the data works.
-    keep = jnp.broadcast_to(jnp.asarray(mask), a_raw.shape).ravel()
+    keep = jnp.broadcast_to(jnp.asarray(mask, dtype=bool), a_raw.shape).ravel()
     # Rank within the retained subset, not within everything. The excluded go to `+inf` so
     # they sort last, which leaves a kept element's rank equal to its rank within the subset
     # -- except for a kept `+inf`, which ties with them. `rankdata` gives tied values their
