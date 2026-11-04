@@ -49,6 +49,7 @@ from calibrax.metrics.functional.statistical import (
     kendall_tau,
     pearson_correlation,
 )
+from tests.metrics import float64_references as references
 
 
 #: Losses that reduce element-wise, so ``reduction="none"`` is the per-element loss.
@@ -223,96 +224,18 @@ class TestTransforms:
         assert float(batched[1][1]) == 0.0, "the masked slot stays zero under vmap"
 
 
-#: **The tolerance is in float32 ULP at the gradient's own scale, not an absolute constant.**
-#:
-#: What is being compared is a float32 reverse-mode gradient against a float64 central
-#: difference, so the discrepancy is float32 evaluation error and nothing else: at ``h =
-#: 1e-5`` in float64 the reference's own truncation is around 1e-10 and its roundoff around
-#: 1e-11, four orders below what is measured. ``eps`` for float32 is 1.19e-07, so that is the
-#: unit the error is in.
-#:
-#: Measured over 20 seeds x sizes 8/32/128 (8/32 for ``kendall_tau``, quadratic in the
-#: sample), the worst error in those units was ``r_squared`` 7.29, ``r_squared_adjusted``
-#: 6.99, ``pearson_correlation`` 6.00, ``concordance_correlation`` 5.91 and ``kendall_tau``
-#: 1.23. All five sit under 8; this allows 16, which is 2.2x the worst case.
-#:
-#: Why not an absolute constant: those same readings span 1.467e-07 to 1.142e-06, so a single
-#: number is fixed by the worst statistic and runs about 34x loose for ``kendall_tau``. In ULP
-#: the five collapse into a band of 1.2 to 7.3, and the bound follows the fixture rather than
-#: being chosen for it. Why not a *relative* tolerance: the relative error reaches 3.3e+01
-#: wherever a reference derivative passes near zero, so it would be set by whichever element
-#: landed closest to it.
-WEIGHT_GRADIENT_ULPS = 16
-
-
-def _weight_gradient_atol(reference: np.ndarray) -> float:
-    """Float32 ULP at the scale of the gradient being compared."""
-    scale = max(1.0, float(np.abs(reference).max()))
-    return WEIGHT_GRADIENT_ULPS * float(np.finfo(np.float32).eps) * scale
-
-
-#: The step for the central difference. The reference formulas are rational in the weights,
-#: so a +/-h step at ``w_i = 0`` stays in their domain.
-_H = 1e-5
-
-_EPS = 1e-8
-
-
-def _weighted_mean64(x: np.ndarray, w: np.ndarray) -> float:
-    return float((w * x).sum() / (w.sum() + _EPS))
-
-
-def _ref_r_squared(p: np.ndarray, t: np.ndarray, w: np.ndarray) -> float:
-    if w.sum() <= 0:
-        return 0.0
-    ss_res = float((w * (p - t) ** 2).sum())
-    ss_tot = float((w * (t - _weighted_mean64(t, w)) ** 2).sum())
-    return 1.0 - ss_res / (ss_tot + _EPS)
-
-
-def _ref_r_squared_adjusted(p: np.ndarray, t: np.ndarray, w: np.ndarray, k: int = 2) -> float:
-    n = float(t.size)
-    dof = n - k - 1.0
-    if dof <= 0:
-        return 0.0
-    return 1.0 - (1.0 - _ref_r_squared(p, t, w)) * (n - 1.0) / (dof + _EPS)
-
-
-def _ref_pearson(a: np.ndarray, b: np.ndarray, w: np.ndarray) -> float:
-    ac = a - _weighted_mean64(a, w)
-    bc = b - _weighted_mean64(b, w)
-    denom = np.sqrt((w * ac**2).sum()) * np.sqrt((w * bc**2).sum()) + _EPS
-    return float((w * ac * bc).sum() / denom)
-
-
-def _ref_concordance(a: np.ndarray, b: np.ndarray, w: np.ndarray) -> float:
-    total = w.sum() + _EPS
-    mean_a, mean_b = _weighted_mean64(a, w), _weighted_mean64(b, w)
-    var_a = (w * (a - mean_a) ** 2).sum() / total
-    var_b = (w * (b - mean_b) ** 2).sum() / total
-    cov = (w * (a - mean_a) * (b - mean_b)).sum() / total
-    return float(2.0 * cov / (var_a + var_b + (mean_a - mean_b) ** 2 + _EPS))
-
-
-def _ref_kendall(a: np.ndarray, b: np.ndarray, w: np.ndarray) -> float:
-    n = a.size
-    a_diff, b_diff = a[:, None] - a[None, :], b[:, None] - b[None, :]
-    upper = np.triu(np.ones((n, n), dtype=bool), k=1)
-    pair = np.where(upper, w[:, None] * w[None, :], 0.0)
-    concordant = (pair * np.sign(a_diff) * np.sign(b_diff)).sum()
-    total = pair.sum()
-    tied_a = np.where(a_diff == 0, pair, 0.0).sum()
-    tied_b = np.where(b_diff == 0, pair, 0.0).sum()
-    return float(concordant / (np.sqrt((total - tied_a) * (total - tied_b)) + _EPS))
-
-
 #: Each statistic with its float64 reference and the keyword its jax form needs.
 STATISTICS = [
-    ("r_squared", r_squared, _ref_r_squared, {}),
-    ("r_squared_adjusted", r_squared_adjusted, _ref_r_squared_adjusted, {"num_predictors": 2}),
-    ("pearson_correlation", pearson_correlation, _ref_pearson, {}),
-    ("concordance_correlation", concordance_correlation, _ref_concordance, {}),
-    ("kendall_tau", kendall_tau, _ref_kendall, {}),
+    ("r_squared", r_squared, references.r_squared, {}),
+    (
+        "r_squared_adjusted",
+        r_squared_adjusted,
+        references.r_squared_adjusted,
+        {"num_predictors": 2},
+    ),
+    ("pearson_correlation", pearson_correlation, references.pearson, {}),
+    ("concordance_correlation", concordance_correlation, references.concordance, {}),
+    ("kendall_tau", kendall_tau, references.kendall, {}),
 ]
 
 #: The same table for assertions that need no reference formula.
@@ -348,18 +271,13 @@ class TestStatisticsMatchAFiniteDifferenceOfTheirOwnFormula:
         got = np.asarray(
             jax.grad(lambda w: metric(p, t, weights=w, **extra))(weights), dtype=np.float64
         )
-        finite_difference = np.empty(n, dtype=np.float64)
-        for i in range(n):
-            up, down = w64.copy(), w64.copy()
-            up[i] += _H
-            down[i] -= _H
-            finite_difference[i] = (reference(p64, t64, up) - reference(p64, t64, down)) / (2 * _H)
+        finite_difference = references.central_difference(reference, p64, t64, w64)
 
         np.testing.assert_allclose(
             got,
             finite_difference,
             rtol=0,
-            atol=_weight_gradient_atol(finite_difference),
+            atol=references.weight_gradient_atol(finite_difference),
             err_msg=name,
         )
 
