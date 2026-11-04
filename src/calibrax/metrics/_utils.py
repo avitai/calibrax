@@ -17,36 +17,35 @@ _EPSILON_CLIP = 1e-7
 _SQUARE_ROOT_ORDER = 2.0
 
 
-def _validate_shapes(predictions: ArrayLike, targets: ArrayLike) -> None:
-    """Validate that predictions and targets have matching shapes.
+def _shape_mismatch_message(predictions: jax.Array, targets: jax.Array) -> str:
+    """The message refusing two inputs whose shapes differ, in the one wording every metric uses.
+
+    Built only when a check fails: each site compares ``.shape`` of the arrays it has already
+    converted, so a passing check costs two attribute reads and no Python frame, and the
+    wording still lives in one place.
 
     Args:
-        predictions: Predicted values array.
-        targets: Ground truth values array.
+        predictions: The first input, converted.
+        targets: The second input, converted.
 
-    Raises:
-        ValueError: If shapes do not match.
+    Returns:
+        The message for the ``ValueError``.
     """
-    # `jnp.shape` rather than `jnp.asarray(...).shape`: this needs the shape, not the array,
-    # and converting one costs 33 Python-level calls against 4. Every caller of
-    # :func:`_prepare_arrays` paid that twice over, once here and once on the conversion
-    # that follows, which is interpreter work the compiled graph never sees.
-    predictions_shape = jnp.shape(predictions)
-    targets_shape = jnp.shape(targets)
-    if predictions_shape != targets_shape:
-        msg = f"Shape mismatch: predictions {predictions_shape} vs targets {targets_shape}"
-        raise ValueError(msg)
+    return f"Shape mismatch: predictions {predictions.shape} vs targets {targets.shape}"
 
 
-def _prepare_arrays(predictions: ArrayLike, targets: ArrayLike) -> tuple[jax.Array, jax.Array]:
-    """Validate shapes and convert predictions/targets to JAX arrays.
+def _prepare_arrays(
+    predictions: ArrayLike, targets: ArrayLike, *, dtype: jnp.dtype | None = None
+) -> tuple[jax.Array, jax.Array]:
+    """Convert predictions and targets to JAX arrays, then refuse different shapes.
 
-    Combines shape validation with array conversion — the standard
-    preamble for regression, calibration, and similar metrics.
+    The standard preamble for regression, calibration, and similar metrics: each input is
+    converted once and the check compares the converted arrays.
 
     Args:
         predictions: Predicted values.
         targets: Ground truth values.
+        dtype: The dtype to convert to, or ``None`` to keep the inputs' own.
 
     Returns:
         Tuple of (predictions_array, targets_array) as JAX arrays.
@@ -54,20 +53,14 @@ def _prepare_arrays(predictions: ArrayLike, targets: ArrayLike) -> tuple[jax.Arr
     Raises:
         ValueError: If shapes do not match.
     """
-    # Converted once, then compared: calling :func:`_validate_shapes` here would read both
-    # shapes again, and this already holds the arrays those shapes belong to.
-    predictions_array = jnp.asarray(predictions)
-    targets_array = jnp.asarray(targets)
+    predictions_array = jnp.asarray(predictions, dtype=dtype)
+    targets_array = jnp.asarray(targets, dtype=dtype)
     if predictions_array.shape != targets_array.shape:
-        msg = (
-            f"Shape mismatch: predictions {predictions_array.shape} "
-            f"vs targets {targets_array.shape}"
-        )
-        raise ValueError(msg)
+        raise ValueError(_shape_mismatch_message(predictions_array, targets_array))
     return predictions_array, targets_array
 
 
-def _prepare_class_arrays(  # noqa: DOC502  # raised by _validate_shapes
+def _prepare_class_arrays(
     predictions: ArrayLike, targets: ArrayLike
 ) -> tuple[jax.Array, jax.Array]:
     """Validate shapes and convert to int32 class index arrays.
@@ -85,11 +78,11 @@ def _prepare_class_arrays(  # noqa: DOC502  # raised by _validate_shapes
     Raises:
         ValueError: If shapes do not match.
     """
-    _validate_shapes(predictions, targets)
-    return (
-        jnp.asarray(predictions).astype(jnp.int32),
-        jnp.asarray(targets).astype(jnp.int32),
-    )
+    predictions_array = jnp.asarray(predictions)
+    targets_array = jnp.asarray(targets)
+    if predictions_array.shape != targets_array.shape:
+        raise ValueError(_shape_mismatch_message(predictions_array, targets_array))
+    return predictions_array.astype(jnp.int32), targets_array.astype(jnp.int32)
 
 
 def safe_divide(
@@ -258,7 +251,22 @@ def label_masks(labels: ArrayLike, num_labels: int | None) -> tuple[jax.Array, j
     Returns:
         The membership masks and the members per id; an unused id has size 0.
     """
-    ids, count = dense_labels(labels, num_labels)
+    return label_membership(*dense_labels(labels, num_labels))
+
+
+def label_membership(ids: jax.Array, count: int) -> tuple[jax.Array, jax.Array]:
+    """One-hot membership of ids already from :func:`dense_labels`, and each id's size.
+
+    For a caller that also needs the ids, to check their shape against another input, so the
+    labels are converted once.
+
+    Args:
+        ids: Label ids ``0..count-1``, shape ``(n,)``.
+        count: The number of ids.
+
+    Returns:
+        The membership masks ``(count, n)`` as floats and the members per id ``(count,)``.
+    """
     masks = (ids[None, :] == jnp.arange(count)[:, None]).astype(jnp.float32)
     return masks, jnp.sum(masks, axis=1)
 
@@ -522,8 +530,10 @@ def coefficient_of_determination(
         return 1.0 - jnp.sum((p - t) ** 2) / (jnp.sum((t - jnp.mean(t)) ** 2) + _EPSILON)
     w = sample_weights(mask, weights, t.shape)
     # Before any arithmetic, so an excluded NaN reaches neither the sums nor the gradient.
-    p = substitute_excluded(p, w, mask)
-    t = substitute_excluded(t, w, mask)
+    keep = None if mask is None else jnp.broadcast_to(jnp.asarray(mask, dtype=bool), t.shape)
+    given = None if weights is None else w
+    p = substitute_excluded(p, keep, given)
+    t = substitute_excluded(t, keep, given)
     ss_res = jnp.sum(w * (p - t) ** 2)
     ss_tot = jnp.sum(w * (t - weighted_mean(t, w)) ** 2)
     # An empty selection has no sample to describe. Unguarded both sums are zero and the
@@ -531,8 +541,15 @@ def coefficient_of_determination(
     return nan_when_empty(1.0 - ss_res / (ss_tot + _EPSILON), w)
 
 
-def substitute_excluded(values: ArrayLike, weights: jax.Array, mask: ArrayLike | None) -> jax.Array:
-    """``values`` with every element the weights exclude replaced by zero.
+def substitute_excluded(
+    values: jax.Array, mask: jax.Array | None, weights: jax.Array | None = None
+) -> jax.Array:
+    """``values`` with every element the mask and weights exclude replaced by zero.
+
+    **A mask alone needs nothing but the mask.** With no weights the excluded elements are
+    exactly the ones the mask drops, so this is one ``jnp.where`` on the mask; the
+    ``isfinite`` test below exists only for a zero weight, and costs eager dispatch for
+    nothing when there is none.
 
     Applied to the **inputs**, before any arithmetic reads them. That placement is the
     whole point: a zero weight does not neutralise a bad value in a product, because
@@ -605,23 +622,30 @@ def substitute_excluded(values: ArrayLike, weights: jax.Array, mask: ArrayLike |
     also never the faster of the two -- 1.14x and 1.47x against the unguarded form at the same
     two sizes -- but that is not why it is not used here.
 
+    Every argument arrives converted, as every caller already holds it: converting an array
+    again is eager dispatch for nothing, and two inputs substituted twice each was most of
+    what a masked ``relative_l2_error`` cost beyond its unmasked form.
+
     Args:
-        values: The array to neutralise.
-        weights: The folded weight vector, zero wherever an element is excluded.
-        mask: Elements to keep, or ``None``. Needed separately from ``weights``: a masked
-            element goes whatever it holds, where a zero-weighted one keeps a finite value.
+        values: The array to neutralise, converted.
+        mask: Elements to keep, a boolean array that broadcasts to ``values`` (no larger),
+            or ``None``. Needed separately from ``weights``: a masked element goes whatever
+            it holds, where a zero-weighted one keeps a finite value.
+        weights: The folded weight vector, zero wherever an element is excluded, when the
+            caller was given weights; ``None`` when only a mask was given.
 
     Returns:
         ``values`` with the excluded elements set to zero.
     """
-    v = jnp.asarray(values)
+    if weights is None:
+        return values if mask is None else jnp.where(mask, values, 0.0)
     # A zero weight alone is no reason to substitute: the element is an observation
     # carrying weight zero, and `d/dw_i` there is its contribution. Only a value that
     # would survive the multiply as a NaN has to go.
-    drop = (weights == 0.0) & ~jnp.isfinite(v)
+    drop = (weights == 0.0) & ~jnp.isfinite(values)
     if mask is not None:
-        drop = drop | ~jnp.broadcast_to(jnp.asarray(mask, dtype=bool), v.shape)
-    return jnp.where(drop, 0.0, v)
+        drop = drop | ~mask
+    return jnp.where(drop, 0.0, values)
 
 
 def excluded_difference(

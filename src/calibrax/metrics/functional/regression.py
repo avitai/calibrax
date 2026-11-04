@@ -695,7 +695,22 @@ def per_sample_relative_l2(predictions: ArrayLike, targets: ArrayLike) -> jax.Ar
     Raises:
         ValueError: If shapes do not match.
     """
-    pred, target = _prepare_arrays(predictions, targets)
+    return _relative_l2_of_arrays(*_prepare_arrays(predictions, targets))
+
+
+def _relative_l2_of_arrays(pred: jax.Array, target: jax.Array) -> jax.Array:
+    """:func:`per_sample_relative_l2` of arrays already converted and checked.
+
+    For :func:`relative_l2_error`, which converts its inputs once to substitute the excluded
+    samples; converting them again costs eager dispatch for nothing.
+
+    Args:
+        pred: Predicted fields, ``(n_samples, *field_dims)``.
+        target: Ground truth fields, the same shape.
+
+    Returns:
+        Per-sample relative L2 errors, ``(n_samples,)``.
+    """
     batch = pred.shape[0]
     numerator = safe_norm((pred - target).reshape(batch, -1), axis=1)
     denominator = safe_norm(target.reshape(batch, -1), axis=1)
@@ -735,40 +750,40 @@ def relative_l2_error(  # noqa: DOC502  # raised by reduce_values
         ValueError: If shapes do not match, or if ``mask`` or ``weights`` is dimensioned
             against the field rather than the sample axis.
     """
-    p = predictions
-    t = targets
-    if mask is not None or weights is not None:
-        p = jnp.asarray(p)
-        t = jnp.asarray(t)
-        # The only function here whose mask is dimensioned against the *output*: one value
-        # per sample, while the NaN sits inside that sample's field. So fold at the sample
-        # axis and restore the field axes, rather than folding at the input's own shape --
-        # which rejects the documented ``(n_samples,)`` mask outright for a 2-D field.
-        for label, given in (("mask", mask), ("weights", weights)):
-            if given is None:
-                continue
-            shape = jnp.shape(given)
-            if shape not in {(), p.shape[:1]}:
-                msg = (
-                    f"{label} must be per sample: shape {p.shape[:1]} or scalar, got {shape}. "
-                    f"This metric reduces to one value per sample, so its {label} is "
-                    f"dimensioned against the sample axis, not against the field "
-                    f"{p.shape}."
-                )
-                raise ValueError(msg)
-        per_sample = sample_weights(mask, weights, p.shape[:1])
-        field = per_sample.reshape(per_sample.shape + (1,) * (p.ndim - 1))
-        field_mask = (
-            None
-            if mask is None
-            else jnp.broadcast_to(jnp.asarray(mask, dtype=bool), p.shape[:1]).reshape(
-                per_sample.shape + (1,) * (p.ndim - 1)
-            )
+    if mask is None and weights is None:
+        return reduce_values(
+            per_sample_relative_l2(predictions, targets), reduction=reduction, axis=axis
         )
-        p = substitute_excluded(p, field, field_mask)
-        t = substitute_excluded(t, field, field_mask)
+    p, t = _prepare_arrays(predictions, targets)
+    # The only function here whose mask is dimensioned against the *output*: one value
+    # per sample, while the NaN sits inside that sample's field. So fold at the sample
+    # axis and restore the field axes, rather than folding at the input's own shape --
+    # which rejects the documented ``(n_samples,)`` mask outright for a 2-D field.
+    keep = None if mask is None else jnp.asarray(mask, dtype=bool)
+    scale = None if weights is None else jnp.asarray(weights)
+    for label, given in (("mask", keep), ("weights", scale)):
+        if given is None:
+            continue
+        shape = given.shape
+        if shape not in {(), p.shape[:1]}:
+            msg = (
+                f"{label} must be per sample: shape {p.shape[:1]} or scalar, got {shape}. "
+                f"This metric reduces to one value per sample, so its {label} is "
+                f"dimensioned against the sample axis, not against the field "
+                f"{p.shape}."
+            )
+            raise ValueError(msg)
+    field_shape = p.shape[:1] + (1,) * (p.ndim - 1)
+    field_mask = None if keep is None else jnp.broadcast_to(keep, p.shape[:1]).reshape(field_shape)
+    # The folded weights only where weights were given: with a mask alone the mask says
+    # everything, and folding a vector of ones to say it again is eager dispatch for nothing.
+    field_weights = (
+        None if scale is None else sample_weights(keep, scale, p.shape[:1]).reshape(field_shape)
+    )
+    p = substitute_excluded(p, field_mask, field_weights)
+    t = substitute_excluded(t, field_mask, field_weights)
     return reduce_values(
-        per_sample_relative_l2(p, t),
+        _relative_l2_of_arrays(p, t),
         mask=mask,
         weights=weights,
         reduction=reduction,

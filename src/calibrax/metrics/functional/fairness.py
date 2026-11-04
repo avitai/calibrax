@@ -23,7 +23,13 @@ import jax.numpy as jnp
 from jax.typing import ArrayLike
 
 from calibrax.metrics._types import MetricFn
-from calibrax.metrics._utils import _validate_shapes, label_masks, safe_divide
+from calibrax.metrics._utils import (
+    _shape_mismatch_message,
+    dense_labels,
+    label_masks,
+    label_membership,
+    safe_divide,
+)
 
 
 # Scores and labels above this are the positive class; a group needs two members to test.
@@ -54,7 +60,7 @@ def _spread(rates: jax.Array, present: jax.Array) -> jax.Array:
     )
 
 
-def demographic_parity_ratio(  # noqa: DOC502  # raised by _validate_shapes
+def demographic_parity_ratio(
     predictions: ArrayLike,
     protected_attribute: ArrayLike,
     *,
@@ -85,13 +91,15 @@ def demographic_parity_ratio(  # noqa: DOC502  # raised by _validate_shapes
             same shape.
     """
     # One prediction and one group per sample. `disparate_impact_ratio` delegates here,
-    # so this covers both ratios.
-    _validate_shapes(predictions, protected_attribute)
-    masks, sizes = label_masks(protected_attribute, num_groups)
+    # so this covers both ratios. Both inputs are converted once and the check compares the
+    # converted arrays.
+    scores = jnp.asarray(predictions, dtype=jnp.float32)
+    ids, count = dense_labels(protected_attribute, num_groups)
+    if scores.shape != ids.shape:
+        raise ValueError(_shape_mismatch_message(scores, ids))
+    masks, sizes = label_membership(ids, count)
     present = sizes > 0
-    selected = (jnp.asarray(predictions, dtype=jnp.float32) > _POSITIVE_THRESHOLD).astype(
-        jnp.float32
-    )
+    selected = (scores > _POSITIVE_THRESHOLD).astype(jnp.float32)
     rates = masks @ selected / jnp.where(present, sizes, 1.0)
     highest = jnp.max(jnp.where(present, rates, -jnp.inf))
     lowest = jnp.min(jnp.where(present, rates, jnp.inf))
@@ -165,7 +173,7 @@ def equal_opportunity_difference(
     return _spread(_group_rates(masks, predictions, targets, positive=True), sizes > 0)
 
 
-def disparate_impact_ratio(  # noqa: DOC502  # raised by _validate_shapes
+def disparate_impact_ratio(  # noqa: DOC502  # raised by demographic_parity_ratio
     predictions: ArrayLike,
     protected_attribute: ArrayLike,
     *,
