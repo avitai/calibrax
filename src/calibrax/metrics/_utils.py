@@ -433,6 +433,27 @@ def weighted_mean(values: ArrayLike, weights: ArrayLike) -> jax.Array:
     return jnp.sum(w * jnp.asarray(values)) / (jnp.sum(w) + _EPSILON)
 
 
+def nan_when_empty(value: jax.Array, weights: jax.Array) -> jax.Array:
+    """A statistic's ``value``, or ``NaN`` where ``weights`` select nothing.
+
+    A statistic over no observations is undefined, and ``NaN`` is how numpy, scipy,
+    scikit-learn, xarray and R report one, which keeps an empty evaluation visible instead
+    of reading as a measurement. That is the metric read-out's role; a loss reduction
+    (:func:`reduce_values`) returns ``0.0`` for the same selection, so a differentiated
+    objective stays finite. ``jnp.where`` selects around a finite ``value``, so the
+    gradient stays finite too, and the emptiness test is a reduction rather than a Python
+    branch, so it survives ``jit`` and ``vmap``.
+
+    Args:
+        value: The statistic, computed from the folded weights.
+        weights: The folded weight vector the statistic was computed with.
+
+    Returns:
+        ``value`` where the weights sum to more than zero, ``NaN`` elsewhere.
+    """
+    return jnp.where(jnp.sum(weights) > 0.0, value, jnp.nan)
+
+
 def coefficient_of_determination(
     predictions: jax.Array,
     targets: jax.Array,
@@ -466,13 +487,16 @@ def coefficient_of_determination(
     a different number; the weighted mean is what
     ``sklearn.metrics.r2_score(sample_weight=...)`` uses.
 
-    A selection with no members returns ``0.0``, the result :func:`reduce_values` documents
-    for that case and the one :func:`weighted_mean` already returns when its scale sums to
-    zero. The guard keys on the **weight sum**, not on ``SS_tot``: constant targets have no
-    variance to explain but are still a sample, and keying on ``SS_tot`` would return
-    ``0.0`` for them, making a full mask disagree with passing no mask at all. Only the
-    weighted branch needs this -- the unweighted branch has no mask and so cannot be
-    empty, which is why the fused suite's call is untouched.
+    A selection with no members reads ``NaN``: a statistic over no observations is
+    undefined, as in ``numpy.mean([])``, ``sklearn.metrics.r2_score`` on one sample and
+    ``xarray``'s weighted mean over weights summing to zero. That is the metric's role, kept
+    apart from a loss reduction's: :func:`reduce_values` returns ``0.0`` for an empty
+    selection so a differentiated objective stays finite. The guard keys on the **weight
+    sum**, not on ``SS_tot``: constant targets have no variance to explain but are still a
+    sample, and keying on ``SS_tot`` would treat them as empty, making a full mask disagree
+    with passing no mask at all. ``jnp.where`` selects the ``NaN`` around a finite ratio, so
+    the gradient stays finite. Only the weighted branch needs this -- the unweighted branch
+    has no mask and so cannot be empty, which is why the fused suite's call is untouched.
 
     Two passes over the targets, deliberately. The one-pass identity
     ``sum(w t^2) - sum(w) * mean^2`` was measured and rejected: in float32 with targets
@@ -502,10 +526,9 @@ def coefficient_of_determination(
     t = substitute_excluded(t, w, mask)
     ss_res = jnp.sum(w * (p - t) ** 2)
     ss_tot = jnp.sum(w * (t - weighted_mean(t, w)) ** 2)
-    # An empty selection has no sample to describe. Without this it reported exactly 1.0 --
-    # both sums are zero, so the ratio is 0/_EPSILON -- a perfect fit from no observations,
-    # which under `vmap` put an empty bin at the top of a per-bin curve.
-    return jnp.where(jnp.sum(w) > 0.0, 1.0 - ss_res / (ss_tot + _EPSILON), 0.0)
+    # An empty selection has no sample to describe. Unguarded both sums are zero and the
+    # ratio is 0/_EPSILON, a perfect fit from no observations.
+    return nan_when_empty(1.0 - ss_res / (ss_tot + _EPSILON), w)
 
 
 def substitute_excluded(values: ArrayLike, weights: jax.Array, mask: ArrayLike | None) -> jax.Array:

@@ -26,6 +26,7 @@ from calibrax.metrics._utils import (
     _FEATURE_MATRIX_NDIM,
     _MIN_CORRELATED_FEATURES,
     _SERIES_NDIM,
+    nan_when_empty,
     safe_root,
     sample_weights,
     substitute_excluded,
@@ -64,7 +65,7 @@ def pearson_correlation(
         weights: Element weights (broadcastable), or ``None`` for unit weights.
 
     Returns:
-        Pearson r as a scalar value.
+        Pearson r as a scalar value; ``NaN`` for a selection with no members.
 
     Examples:
         >>> import jax.numpy as jnp
@@ -111,7 +112,7 @@ def pearson_correlation(
     # same number at every input; only the derivative at zero differs.
     std_a = safe_root(jnp.sum(w * a_centered**2))
     std_b = safe_root(jnp.sum(w * b_centered**2))
-    return cov / (std_a * std_b + _EPSILON)
+    return nan_when_empty(cov / (std_a * std_b + _EPSILON), w)
 
 
 def spearman_rank_correlation(
@@ -146,7 +147,7 @@ def spearman_rank_correlation(
             computed within the retained subset.
 
     Returns:
-        Spearman rho as a scalar value.
+        Spearman rho as a scalar value; ``NaN`` for a selection with no members.
 
     Examples:
         >>> import jax.numpy as jnp
@@ -238,7 +239,7 @@ def kendall_tau(
         weights: Element frequency weights (broadcastable), or ``None`` for unit weights.
 
     Returns:
-        Kendall tau as a scalar value.
+        Kendall tau as a scalar value; ``NaN`` for a selection with no members.
 
     Examples:
         >>> import jax.numpy as jnp
@@ -302,6 +303,7 @@ def kendall_tau(
         # selection drives to zero together. A constant input reaches it exactly as well:
         # every pair is tied, so `total_pairs - tied_in_b` is zero rather than merely small.
         untied_pairs = safe_root((total_pairs - tied_in_a) * (total_pairs - tied_in_b))
+        return nan_when_empty(concordant_minus_discordant / (untied_pairs + _EPSILON), pair_scale)
 
     return concordant_minus_discordant / (untied_pairs + _EPSILON)
 
@@ -343,7 +345,8 @@ def concordance_correlation(
         weights: Element weights (broadcastable), or ``None`` for unit weights.
 
     Returns:
-        Concordance correlation as a scalar value.
+        Concordance correlation as a scalar value; ``NaN`` for a selection with no
+        members.
 
     Examples:
         >>> import jax.numpy as jnp
@@ -382,7 +385,7 @@ def concordance_correlation(
     var_b = jnp.sum(w * (b_arr - mean_b) ** 2) / total
     cov = jnp.sum(w * (a_arr - mean_a) * (b_arr - mean_b)) / total
     denom = var_a + var_b + (mean_a - mean_b) ** 2
-    return 2.0 * cov / (denom + _EPSILON)
+    return nan_when_empty(2.0 * cov / (denom + _EPSILON), w)
 
 
 def correlation_preservation(real: ArrayLike, generated: ArrayLike) -> jax.Array:
