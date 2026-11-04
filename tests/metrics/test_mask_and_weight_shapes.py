@@ -1,7 +1,7 @@
 """``mask`` and ``weights`` broadcast against the input's own shape, for every statistic.
 
-Six statistics take a ``mask``; five of them also take ``weights``. All six document the
-parameter as "broadcastable", and these tests hold every one of them to it. Ravelling the
+Six statistics take a ``mask`` and ``weights``. All six document the parameters as
+"broadcastable", and these tests hold every one of them to it. Ravelling the
 inputs first and broadcasting the mask against the **raveled** shape breaks that contract: a
 same-shape 2-D mask over 2-D data then raises
 ``ValueError: Cannot broadcast to shape with fewer dimensions``.
@@ -49,18 +49,13 @@ TOLERANCE = 1e-6
 #: the row/column distinction is observable.
 SHAPE = (8, 5)
 
-#: Statistics taking both parameters, and the keyword arguments they additionally require.
-WEIGHTED: list[tuple[str, Callable[..., jnp.ndarray], dict[str, object]]] = [
+#: Every statistic taking both parameters, and the keyword arguments it additionally requires.
+STATISTICS: list[tuple[str, Callable[..., jnp.ndarray], dict[str, object]]] = [
     ("r_squared", r_squared, {}),
     ("r_squared_adjusted", r_squared_adjusted, {"num_predictors": 2}),
     ("pearson_correlation", pearson_correlation, {}),
     ("concordance_correlation", concordance_correlation, {}),
     ("kendall_tau", kendall_tau, {}),
-]
-
-#: Every statistic taking a mask, including the one that takes no weights.
-MASKED: list[tuple[str, Callable[..., jnp.ndarray], dict[str, object]]] = [
-    *WEIGHTED,
     ("spearman_rank_correlation", spearman_rank_correlation, {}),
 ]
 
@@ -87,7 +82,9 @@ def _row_weights() -> jnp.ndarray:
 class TestTheMaskBroadcastsAgainstTheInput:
     """A mask shaped like the data, or broadcastable to it, is accepted and correct."""
 
-    @pytest.mark.parametrize(("name", "metric", "extra"), MASKED, ids=[m[0] for m in MASKED])
+    @pytest.mark.parametrize(
+        ("name", "metric", "extra"), STATISTICS, ids=[m[0] for m in STATISTICS]
+    )
     def test_a_same_shape_mask_equals_the_explicitly_raveled_computation(
         self,
         two_dimensional: tuple[jnp.ndarray, jnp.ndarray],
@@ -104,7 +101,9 @@ class TestTheMaskBroadcastsAgainstTheInput:
             flat, abs=TOLERANCE
         ), f"{name} disagrees with its own raveled form"
 
-    @pytest.mark.parametrize(("name", "metric", "extra"), MASKED, ids=[m[0] for m in MASKED])
+    @pytest.mark.parametrize(
+        ("name", "metric", "extra"), STATISTICS, ids=[m[0] for m in STATISTICS]
+    )
     def test_a_row_mask_broadcasts_across_rows(
         self,
         two_dimensional: tuple[jnp.ndarray, jnp.ndarray],
@@ -121,7 +120,9 @@ class TestTheMaskBroadcastsAgainstTheInput:
             flat, abs=TOLERANCE
         ), f"{name} does not broadcast a row mask the way numpy does"
 
-    @pytest.mark.parametrize(("name", "metric", "extra"), MASKED, ids=[m[0] for m in MASKED])
+    @pytest.mark.parametrize(
+        ("name", "metric", "extra"), STATISTICS, ids=[m[0] for m in STATISTICS]
+    )
     def test_a_column_mask_is_refused(
         self,
         two_dimensional: tuple[jnp.ndarray, jnp.ndarray],
@@ -153,7 +154,9 @@ class TestAFloatMaskIsAMask:
     breaks the one convention the masking change set extends.
     """
 
-    @pytest.mark.parametrize(("name", "metric", "extra"), MASKED, ids=[m[0] for m in MASKED])
+    @pytest.mark.parametrize(
+        ("name", "metric", "extra"), STATISTICS, ids=[m[0] for m in STATISTICS]
+    )
     def test_a_float_mask_equals_its_boolean_form(
         self,
         two_dimensional: tuple[jnp.ndarray, jnp.ndarray],
@@ -172,9 +175,11 @@ class TestAFloatMaskIsAMask:
 
 
 class TestTheWeightsBroadcastAgainstTheInput:
-    """Identically for weights, on the five statistics that take them."""
+    """Identically for weights, on every statistic."""
 
-    @pytest.mark.parametrize(("name", "metric", "extra"), WEIGHTED, ids=[m[0] for m in WEIGHTED])
+    @pytest.mark.parametrize(
+        ("name", "metric", "extra"), STATISTICS, ids=[m[0] for m in STATISTICS]
+    )
     def test_same_shape_weights_equal_the_explicitly_raveled_computation(
         self,
         two_dimensional: tuple[jnp.ndarray, jnp.ndarray],
@@ -190,7 +195,9 @@ class TestTheWeightsBroadcastAgainstTheInput:
             flat, abs=TOLERANCE
         ), f"{name} disagrees with its own raveled form"
 
-    @pytest.mark.parametrize(("name", "metric", "extra"), WEIGHTED, ids=[m[0] for m in WEIGHTED])
+    @pytest.mark.parametrize(
+        ("name", "metric", "extra"), STATISTICS, ids=[m[0] for m in STATISTICS]
+    )
     def test_row_weights_broadcast_across_rows(
         self,
         two_dimensional: tuple[jnp.ndarray, jnp.ndarray],
@@ -212,7 +219,9 @@ class TestTheWeightsBroadcastAgainstTheInput:
             flat, abs=TOLERANCE
         ), f"{name} does not broadcast row weights the way numpy does"
 
-    @pytest.mark.parametrize(("name", "metric", "extra"), WEIGHTED, ids=[m[0] for m in WEIGHTED])
+    @pytest.mark.parametrize(
+        ("name", "metric", "extra"), STATISTICS, ids=[m[0] for m in STATISTICS]
+    )
     def test_scalar_weights_are_accepted(
         self,
         two_dimensional: tuple[jnp.ndarray, jnp.ndarray],
@@ -232,7 +241,9 @@ class TestTheWeightsBroadcastAgainstTheInput:
 class TestOneDimensionalInputIsUnchanged:
     """The common case must not move, since every existing caller is one-dimensional."""
 
-    @pytest.mark.parametrize(("name", "metric", "extra"), MASKED, ids=[m[0] for m in MASKED])
+    @pytest.mark.parametrize(
+        ("name", "metric", "extra"), STATISTICS, ids=[m[0] for m in STATISTICS]
+    )
     def test_a_flat_mask_over_flat_data_still_works(
         self,
         name: str,
@@ -252,7 +263,9 @@ class TestOneDimensionalInputIsUnchanged:
 class TestTransformations:
     """The broadcast must not cost traceability, weights gradients included."""
 
-    @pytest.mark.parametrize(("name", "metric", "extra"), WEIGHTED, ids=[m[0] for m in WEIGHTED])
+    @pytest.mark.parametrize(
+        ("name", "metric", "extra"), STATISTICS, ids=[m[0] for m in STATISTICS]
+    )
     def test_jit_vmap_and_grad_over_two_dimensional_input(
         self,
         two_dimensional: tuple[jnp.ndarray, jnp.ndarray],

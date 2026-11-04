@@ -10,22 +10,31 @@ and uses semantic versioning while the public API stabilizes.
 ### Added
 
 - `r_squared`, `pearson_correlation` and `concordance_correlation` accept `mask` and
-  `weights`, and `spearman_rank_correlation` accepts `mask`, bringing the ratio statistics
+  `weights`, bringing the ratio statistics
   under the semantics `reduce_values` already documents as meaning the same thing
   everywhere. Weighted R-squared centres `SS_tot` on the **weighted** mean of the targets,
   which is what `sklearn.metrics.r2_score(sample_weight=...)` does and what a weighted
-  implementation most often gets wrong. `spearman_rank_correlation` deliberately takes no
-  `weights`: no commonly accepted weighted Spearman coefficient exists, so a caller passing
-  one gets a `TypeError` rather than an arbitrary convention.
+  implementation most often gets wrong.
+- `spearman_rank_correlation` accepts `mask` and `weights`, and its weights are **frequency
+  weights**: a weight counts an element as observed that many times, so integer weights give
+  Spearman's coefficient of the sample with each element repeated, the quantity SPSS computes
+  for weighted cases (R's `expss` reproduces it by repeating rows) and SAS's `FREQ` statement
+  means. Measured against `scipy.stats.spearmanr` on replicated samples over 360 tied
+  fixtures, the worst float32 difference is 2.9e-07. The ranks are R Hmisc's `wtd.rank`,
+  computed the way `jax.scipy.stats.rankdata` computes average ranks with cumulative weights
+  in place of counts, and the coefficient is their weighted Pearson r; `wtd.rank` takes any
+  non-negative weight, so weights need not be integers. Sampling or probability weights are
+  not what these mean: `wCorr`'s convention for those does not reproduce replication. A mask,
+  boolean or 0/1 float, is a 0/1 weight through the same ranks, so a kept infinity ranks among
+  the kept elements and an excluded `NaN` reaches no rank. Jitted on an RTX 4090 the weighted path runs a
+  1,000,000-element call in 1.40 ms and a `vmap` over 256 bootstrap count vectors of 56,658 in
+  13.5 ms, which is what a fixed-shape bootstrap within a subset needs.
 - `kendall_tau` accepts `mask` and `weights`, completing the ratio statistics. Its
   weights are **frequency weights**: tau-b is a statistic over pairs, so a per-element
   weight lifts to the pair weight `w_i * w_j` with nothing left to choose, and integer
   weights reproduce physically replicating each element that many times -- measured over
-  60 fixtures, 20 of them with ties, to within 2.2e-16 of `scipy.stats.kendalltau`. This
-  is the one place the earlier reasoning was wrong: Kendall was held back alongside
-  Spearman on the grounds that weighted Kendall was equally undefined, but Spearman's
-  problem is that ranks give a per-element weight nowhere to go, which does not apply to
-  a pairwise statistic. No within-element tie term is needed: the pairs replication
+  60 fixtures, 20 of them with ties, to within 2.2e-16 of `scipy.stats.kendalltau`. No
+  within-element tie term is needed: the pairs replication
   creates are tied in both variables, so they cancel from both tie corrections, and a
   test pins that because adding them back also reproduces replication.
 - `r_squared_adjusted` accepts `mask` and `weights`. A mask changes `n`, because an
@@ -98,9 +107,6 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Fixed
 
-- Masked `spearman_rank_correlation` accepts a 0/1 float mask, which every other masked
-  statistic and `reduce_values` read as a mask (nonzero keeps, zero excludes). It combined
-  the mask with `&` before casting it, which refuses a float operand with `TypeError`.
 - **Breaking:** `mel_cepstral_distortion` refuses a mismatched pair in the words every other
   metric uses. It already refused one -- it was the single metric of the forty-three that
   refuse whose message named neither argument nor contract -- but the `ValueError` came from
@@ -168,40 +174,6 @@ and uses semantic versioning while the public API stabilizes.
   here, because the rest sit outside this change set and each needs its own decision about
   which shapes its contract admits; the measurement is recorded so the question is not
   re-derived.
-
-- Masked `spearman_rank_correlation` ranks the kept subset, so a kept infinity no longer
-  takes a rank averaged over excluded positions. The excluded go to `+inf` so they sort
-  last, which leaves a kept element's rank equal to its rank within the subset -- except for
-  a kept `+inf`, which ties with them, and `rankdata` gives tied values their average rank.
-  Measured on `a = [1, 2, inf, 4, 5, 6]`, `b = [2, 1, 4, 3, 6, 5]` with the last two
-  excluded: `0.8315`, where the subsample's coefficient and `scipy.stats.spearmanr`'s are
-  both `0.8000`.
-
-  No float sorts above `+inf`, so no choice of sentinel avoids the tie. The correction is
-  exact instead: a kept `+inf` is tied with every one of the excluded elements, so averaging
-  over that tie adds `excluded / 2`, and subtracting it restores the rank the lexicographic
-  order -- exclusion first, value second -- would have produced. A kept `NaN` is not `+inf`,
-  takes no correction, and still reads `NaN`; with nothing excluded the correction is zero
-  and the expression is the unmasked one. Checked against scipy on the physically subsetted
-  arrays over 2,856 random masked cases with infinities planted in either array, kept and
-  excluded, and excluded `NaN`s: no mismatch, worst disagreement `1.26e-07`.
-
-  The cost is one comparison, not a second sort. Ranking the rank -- `rankdata` being
-  order-preserving, tie-equal and bounded, so it serves as the lexicographic key's secondary
-  component -- also gives the right answer on every case tried, and was rejected on
-  measurement: it took the masked path from 798 compiled instructions to 1,404 at 256
-  elements and doubled the sorts from 64 to 128. The correction costs 46 instructions
-  (798 to 844) at 256 elements and 53 (834 to 887) at 4,096, three and four more fusions,
-  and no additional sort. Wall clock cannot resolve a change that size here: repeated runs
-  span 1,344 to 2,043 microseconds at 4,096 elements on both sides.
-
-  The unmasked path is untouched -- byte-identical values and 681 and 751 compiled
-  instructions at the two sizes, against 712 and 770 when that branch is perturbed, so the
-  measurement can see such a change. Masked values on data without infinities are
-  bit-identical too; only cases with a kept infinity move. Outside this repository, opifex
-  (`src/opifex/uncertainty/scientific/domain_metrics.py:345`) and cellifex
-  (`src/cellifex/metrics/correlation_metrics.py:45`) both call it without a mask, so both
-  take the unchanged path.
 
 - `r_squared_adjusted` reads `NaN` when `weights` sum to zero, as for any selection with no
   members. `n` counts observations and a zero weight leaves the observation in the sample,

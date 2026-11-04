@@ -2,8 +2,7 @@
 
 These four are the statistics that cannot reduce through ``reduce_values``, because each is
 a ratio of reductions rather than a reduction of per-element values. The tests below pin
-the three properties that make a weighted statistic trustworthy, and one deliberate
-refusal.
+the three properties that make a weighted statistic trustworthy.
 
 Reference values come from ``sklearn.metrics.r2_score(sample_weight=...)`` and
 ``numpy.cov(aweights=...)``, computed in an environment with no JAX in it so the comparison
@@ -253,15 +252,6 @@ class TestTheWeightedMeanIsTheOneThatMatters:
             "the weighted and unweighted centrings agree on this fixture, so it no longer "
             "detects the mistake; pick weights more correlated with the targets"
         )
-
-
-class TestSpearmanRefusesWeights:
-    """Taking no ``weights`` is a decision, recorded in the docstring with its sources."""
-
-    def test_passing_weights_is_a_type_error(self, sample: WeightedSample) -> None:
-        targets, predictions, weights, _ = sample
-        with pytest.raises(TypeError, match="weights"):
-            spearman_rank_correlation(targets, predictions, weights=weights)  # type: ignore[call-arg]
 
 
 class TestTransformations:

@@ -1,9 +1,5 @@
 """Frequency weights and a mask on ``kendall_tau``, against physical replication.
 
-Kendall's tau was the one ratio statistic left without either, on the stated grounds that
-weighted Kendall had the same no-accepted-definition problem as weighted Spearman. That was
-wrong, and these tests are the evidence.
-
 Kendall's tau is a statistic over **pairs**, so a per-element weight lifts to the pair
 weight ``w_i * w_j`` with nothing left to choose. The test that settles it is the defining
 property of a frequency weight: integer weights must equal physically replicating each
