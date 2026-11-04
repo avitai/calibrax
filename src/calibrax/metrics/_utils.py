@@ -624,55 +624,63 @@ def substitute_excluded(values: ArrayLike, weights: jax.Array, mask: ArrayLike |
     return jnp.where(drop, 0.0, v)
 
 
-def exclude_inputs(
-    mask: ArrayLike | None, weights: ArrayLike | None, *arrays: jax.Array
-) -> tuple[jax.Array, ...]:
-    """Each array with the elements ``mask`` and ``weights`` exclude replaced by zero.
+def excluded_difference(
+    predictions: jax.Array,
+    targets: jax.Array,
+    *,
+    mask: ArrayLike | None,
+    weights: ArrayLike | None,
+) -> jax.Array:
+    """``predictions - targets``, with every element the mask and weights exclude set to zero.
 
-    For the element-wise losses, whose ``mask`` and ``weights`` broadcast against the input
-    itself and which need the folded vector for nothing else: ``mse``, ``mae``,
-    ``huber_loss`` and ``charbonnier_loss``, with ``rmse`` through ``mse``. One line each,
-    and a caller passing neither argument emits no extra work at all.
+    For the element-wise losses, which read their inputs only through this difference:
+    ``mse``, ``mae``, ``huber_loss`` and ``charbonnier_loss``, with ``rmse`` through
+    ``mse``. A caller passing neither argument gets the plain difference and no extra work.
 
-    Everything else calls :func:`substitute_excluded` directly, which is not duplication but
-    the absence of it. A statistic that already folds a weight vector for its own formula --
-    ``pearson_correlation``, ``concordance_correlation``, ``kendall_tau``,
-    :func:`coefficient_of_determination` -- reuses that vector rather than folding a second
-    one. The rest need a different shape entirely: ``softmax_cross_entropy`` folds at the
-    label shape because its ``NaN`` sits one axis deeper, ``relative_l2_error`` at the sample
-    axis because its mask is dimensioned against its output, ``rmsd`` from
-    ``mask_a & mask_b`` rather than from a mask and weights at all, and ``perplexity`` from a
-    vector it has already validated and cast.
+    **One selection, on the difference.** The ``NaN`` hazard sits in the first non-linear
+    operation after it -- the square, the absolute value, Huber's and Charbonnier's kernels --
+    whose derivative at a ``NaN`` is ``NaN``; the subtraction's derivative is constant. So
+    zeroing the difference before that operation keeps both the value and the gradient
+    finite, and costs one ``jnp.where`` where substituting each input costs two. On the CPU
+    backend XLA runs the reduction as an XNNPACK custom fusion that takes no select, so each
+    selection before it is a pass over memory of its own.
 
-    Substitution belongs here, on the raw inputs, rather than in :func:`reduce_values`: by
-    the time a loss has formed its element-wise values the ``NaN`` has already reached the
-    derivative, and ``0 * dvalues/dp`` is ``NaN`` when ``dvalues/dp`` is. Guarding the
-    reduction repairs the number and leaves the gradient poisoned, which is worse than a
-    plain ``NaN`` because a forward test then passes.
+    **A mask alone needs nothing but the mask.** With no weights, the excluded elements are
+    exactly the ones the mask drops. With weights, a zero weight and an excluded element are
+    not the same thing: a mask says the element is not an observation, so it goes whatever it
+    holds; a zero weight says the observation is present carrying weight zero, so a finite
+    difference stays and ``d/dw_i`` remains its contribution. Only a non-finite difference at
+    a zero weight goes, since ``0 * nan`` is ``nan``. One cost buys that gradient: a zero
+    weight on a finite difference whose square overflows reads ``NaN``. To discard an
+    element, mask it.
 
-    ``arrays`` must already be :class:`jax.Array`, which every caller has from
-    :func:`_prepare_arrays` one line earlier. Converting again here is not free on the eager
-    path, where there is no compilation to absorb it: measured, re-wrapping them with
-    ``jnp.asarray`` takes an eager ``mse`` over 100,000 elements to 585 Python-level calls
-    against 455, a 28.6% increase in interpreter work for a compiled graph that is identical
-    either way -- 7 fusions with the conversion and 7 without. Wall clock could not resolve it
-    (6 microseconds on 92, inside a 7% noise floor) but CodSpeed's instruction-count
-    simulation did, reporting a 11.8% regression on exactly that benchmark.
+    Substitution belongs here, before the element-wise values exist, rather than in
+    :func:`reduce_values`: by then a ``NaN`` has reached the derivative, and ``0 *
+    dvalues/dp`` is ``NaN`` when ``dvalues/dp`` is, so guarding the reduction repairs the
+    number and leaves the gradient poisoned. Both arrays must already be :class:`jax.Array`,
+    which every caller has from :func:`_prepare_arrays` one line earlier; converting again is
+    not free on the eager path, where no compilation absorbs it.
 
     Args:
-        mask: Elements to keep, or ``None``.
-        weights: Element weights, or ``None``.
-        *arrays: The inputs to neutralise, already converted. The first fixes the shape the
-            others broadcast against, which is the shape the mask and weights are folded at.
+        predictions: Predicted values, already converted.
+        targets: Ground truth values, already converted, the same shape.
+        mask: Elements to keep (boolean, broadcastable), or ``None``.
+        weights: Element weights (broadcastable), or ``None``.
 
     Returns:
-        The arrays, in order, returned untouched when neither ``mask`` nor ``weights`` is
-        given.
+        The difference, with excluded elements zero.
     """
-    if mask is None and weights is None:
-        return arrays
-    folded = sample_weights(mask, weights, arrays[0].shape)
-    return tuple(substitute_excluded(a, folded, mask) for a in arrays)
+    difference = predictions - targets
+    if weights is None:
+        if mask is None:
+            return difference
+        keep = jnp.broadcast_to(jnp.asarray(mask, dtype=bool), difference.shape)
+        return jnp.where(keep, difference, 0.0)
+    zero_weight = jnp.broadcast_to(jnp.asarray(weights), difference.shape) == 0.0
+    drop = zero_weight & ~jnp.isfinite(difference)
+    if mask is not None:
+        drop = drop | ~jnp.broadcast_to(jnp.asarray(mask, dtype=bool), difference.shape)
+    return jnp.where(drop, 0.0, difference)
 
 
 def reduce_values(

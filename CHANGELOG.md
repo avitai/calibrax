@@ -41,7 +41,7 @@ and uses semantic versioning while the public API stabilizes.
   converted both inputs with `jnp.asarray` only to read `.shape`, and `_prepare_arrays` then
   converted both again: measured, one conversion costs 33 Python-level calls against 4 for
   `jnp.shape`, and the double conversion put 65 calls on every caller -- the same class of
-  eager-dispatch waste a previous change removed from `exclude_inputs`. `_validate_shapes`
+  eager-dispatch waste `excluded_difference` avoids by taking converted arrays. `_validate_shapes`
   now reads shapes directly and `_prepare_arrays` converts once and compares the result.
   The affected metrics pay 3 to 7 Python-level calls for the new check, between 0.5% and
   4.4%, and the twenty-four metrics that already validated get faster. No compiled graph
@@ -291,11 +291,15 @@ and uses semantic versioning while the public API stabilizes.
   "even if x is NaN or infinite". Neither is sound for a differentiable metric.
 
   Nine sites carry the rule, each keeping its own fold shape: `coefficient_of_determination`
-  and `exclude_inputs` in `_utils`, `pearson_correlation`, `kendall_tau` and
+  and `excluded_difference` in `_utils`, `pearson_correlation`, `kendall_tau` and
   `concordance_correlation`, `relative_l2_error` over the sample axis,
   `softmax_cross_entropy` with the class axis restored, `rmsd` through its presence mask, and
   `perplexity`, whose single parameter is both mask and weights so a zero there stays the
-  only way to drop a position.
+  only way to drop a position. The element-wise losses (`mse`, `mae`, `huber_loss`,
+  `charbonnier_loss`, and `rmse` through `mse`) zero their difference `p - t` once, since
+  the hazard sits in the non-linear operation after it, so a masked loss compiles to one
+  selection rather than one per input: on the CPU backend each selection before the
+  reduction is a pass over memory of its own.
 
   Costs between 3 and 11 HLO instructions on the weighted paths, the worst case being a call
   that passes both a mask and weights, and `+0` on every unweighted path. Fusion counts are

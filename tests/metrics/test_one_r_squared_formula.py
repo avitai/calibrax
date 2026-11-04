@@ -13,7 +13,6 @@ convention, and the fused path's values.
 from __future__ import annotations
 
 import inspect
-from collections.abc import Callable
 
 import jax
 import jax.numpy as jnp
@@ -24,7 +23,7 @@ import calibrax.metrics._builtin_registrations as registrations
 from calibrax.metrics._builtin_registrations import _calculate_regression_fused
 from calibrax.metrics._utils import _EPSILON, coefficient_of_determination
 from calibrax.metrics.functional.regression import r_squared, r_squared_adjusted
-from tests.factories import WeightedSample
+from tests.factories import fusion_count, WeightedSample
 
 
 #: Predictors for the adjusted variant, matching the recorded references.
@@ -38,30 +37,6 @@ ADJUSTED_MASKED = 0.7904727522980777
 
 #: What the rejected convention would give, kept so the choice stays observable.
 ADJUSTED_IF_N_WERE_SUM_OF_WEIGHTS = 0.7570401171729566
-
-
-def fusion_count(
-    function: Callable[[jnp.ndarray, jnp.ndarray], object],
-    predictions: jnp.ndarray,
-    targets: jnp.ndarray,
-) -> int:
-    """Fusions in the HLO ``function`` compiles to, for these argument shapes.
-
-    A proxy for how much work the compiler kept, used only to compare two spellings of
-    the same computation against each other in one process -- never against a recorded
-    number, which a jax upgrade would invalidate.
-
-    Args:
-        function: The function to trace and compile.
-        predictions: Predicted values, for shape and dtype.
-        targets: Ground truth values, for shape and dtype.
-
-    Returns:
-        How many times ``fusion`` appears in the compiled HLO.
-    """
-    text = jax.jit(function).lower(predictions, targets).compile().as_text()
-    assert text is not None, "the compiler returned no HLO text to count"
-    return text.count("fusion")
 
 
 def mask_of(sample: WeightedSample, kept: int) -> jnp.ndarray:
