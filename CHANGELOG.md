@@ -41,16 +41,14 @@ and uses semantic versioning while the public API stabilizes.
   its `resources` table (`resources = {accelerator = {kind = "L4"}}`), the form substrax
   reads since 0.1.19; the job-level `accelerator` key is refused there.
 
-- `_prepare_arrays` and `_validate_shapes` read shapes without building arrays, which makes
-  the shape check cheaper than it was before it checked anything. `_validate_shapes`
-  converted both inputs with `jnp.asarray` only to read `.shape`, and `_prepare_arrays` then
-  converted both again: measured, one conversion costs 33 Python-level calls against 4 for
-  `jnp.shape`, and the double conversion put 65 calls on every caller -- the same class of
-  eager-dispatch waste `excluded_difference` avoids by taking converted arrays. `_validate_shapes`
-  now reads shapes directly and `_prepare_arrays` converts once and compares the result.
-  The affected metrics pay 3 to 7 Python-level calls for the new check, between 0.5% and
-  4.4%, and the twenty-four metrics that already validated get faster. No compiled graph
-  changes: the check is trace-time, because shapes are static under `jit` and `vmap`.
+- A shape check compares the arrays a metric has already converted, so a passing check costs
+  two attribute reads and no conversion: each input is converted once and its shape is
+  never read on its own (`jnp.shape` beside a conversion pays twice for one fact on the eager
+  path). The refusal is built only when a check fails, so it keeps one wording without a
+  Python frame on the passing path. Measured per eager call, the checked metrics pay 0 to 4
+  Python-level calls for the check, and no compiled program changes, since shapes are static
+  under `jit` and `vmap`. `_prepare_arrays` takes a `dtype`, for the metrics that convert to
+  float32, and `_validate_shapes` is gone: every caller now checks its converted arrays.
 
 - **Breaking:** `r_squared_adjusted` moves from `calibrax.metrics.functional.statistical` to
   `calibrax.metrics.functional.regression`, and its registered domain moves from
@@ -94,7 +92,7 @@ and uses semantic versioning while the public API stabilizes.
   inside its mel filterbank: `Incompatible shapes for broadcasting: shapes=[(12, 0), (12,)]`,
   reporting the shapes the filterbank had arrived at rather than the `(12, 1)` and `(12,)`
   the caller passed. Its docstring gives both inputs shape `(n,)`, so it takes the same
-  `_validate_shapes` preamble as its sibling `spectral_convergence` and now says
+  `_prepare_arrays` preamble as its sibling `spectral_convergence` and now says
   `Shape mismatch: predictions (12, 1) vs targets (12,)`. Every refusing metric now gives
   one message, so a caller need not learn which metric refused them in which words.
 
@@ -300,7 +298,9 @@ and uses semantic versioning while the public API stabilizes.
   `concordance_correlation`, `relative_l2_error` over the sample axis,
   `softmax_cross_entropy` with the class axis restored, `rmsd` through its presence mask, and
   `perplexity`, whose single parameter is both mask and weights so a zero there stays the
-  only way to drop a position. The element-wise losses (`mse`, `mae`, `huber_loss`,
+  only way to drop a position. With a mask alone the rule is the mask: the `isfinite` test
+  exists only for a zero weight, so it runs only where weights were given, and the
+  substitution takes the arrays its caller has already converted. The element-wise losses (`mse`, `mae`, `huber_loss`,
   `charbonnier_loss`, and `rmse` through `mse`) zero their difference `p - t` once, since
   the hazard sits in the non-linear operation after it, so a masked loss compiles to one
   selection rather than one per input: on the CPU backend each selection before the

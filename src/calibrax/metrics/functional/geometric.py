@@ -175,8 +175,9 @@ def rmsd(
         # differentiates the branch it did not take. Neutralise the coordinates before the
         # first sum reads them.
         present = (present_a & present_b)[:, None]
-        a = substitute_excluded(a, weights, present)
-        b = substitute_excluded(b, weights, present)
+        # The weights here are the presence mask itself, so the mask says everything.
+        a = substitute_excluded(a, present)
+        b = substitute_excluded(b, present)
     count = jnp.sum(weights)
     safe_count = jnp.where(count > 0.0, count, 1.0)
     centred_a = a - jnp.sum(a * weights, axis=0) / safe_count

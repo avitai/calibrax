@@ -13,10 +13,10 @@ import jax
 import jax.numpy as jnp
 from jax.typing import ArrayLike
 
-from calibrax.metrics._utils import _EPSILON, _validate_shapes
+from calibrax.metrics._utils import _EPSILON, _prepare_arrays
 
 
-def spectral_convergence(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _validate_shapes
+def spectral_convergence(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _prepare_arrays
     """Spectral convergence between predicted and target signals.
 
     Computes ||STFT(targets) - STFT(predictions)||_F / ||STFT(targets)||_F.
@@ -38,9 +38,7 @@ def spectral_convergence(predictions: ArrayLike, targets: ArrayLike) -> jax.Arra
         ValueError: If ``predictions`` and ``targets`` do not have the same shape.
     """
     # Two signals over the same frames, so the shapes must agree.
-    _validate_shapes(predictions, targets)
-    predictions = jnp.asarray(predictions, dtype=jnp.float32)
-    targets = jnp.asarray(targets, dtype=jnp.float32)
+    predictions, targets = _prepare_arrays(predictions, targets, dtype=jnp.float32)
 
     spec_pred = jnp.fft.rfft(predictions)
     spec_tgt = jnp.fft.rfft(targets)
@@ -51,7 +49,7 @@ def spectral_convergence(predictions: ArrayLike, targets: ArrayLike) -> jax.Arra
     return diff_norm / (tgt_norm + _EPSILON)
 
 
-def mel_cepstral_distortion(  # noqa: DOC502  # raised by _validate_shapes
+def mel_cepstral_distortion(  # noqa: DOC502  # raised by _prepare_arrays
     predictions: ArrayLike, targets: ArrayLike, *, num_mels: int = 80
 ) -> jax.Array:
     """Mel Cepstral Distortion between two signals.
@@ -78,9 +76,7 @@ def mel_cepstral_distortion(  # noqa: DOC502  # raised by _validate_shapes
     """
     # Two signals over the same frames. Without this the mismatch surfaces from inside
     # the mel filterbank, which reports its own shapes rather than the ones passed in.
-    _validate_shapes(predictions, targets)
-    predictions = jnp.asarray(predictions, dtype=jnp.float32)
-    targets = jnp.asarray(targets, dtype=jnp.float32)
+    predictions, targets = _prepare_arrays(predictions, targets, dtype=jnp.float32)
 
     # Compute magnitude spectra
     spec_pred = jnp.abs(jnp.fft.rfft(predictions))

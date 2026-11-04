@@ -24,7 +24,13 @@ import jax.numpy as jnp
 from jax.scipy.special import betaln
 from jax.typing import ArrayLike
 
-from calibrax.metrics._utils import _EPSILON, _validate_shapes, dense_labels, label_masks, safe_norm
+from calibrax.metrics._utils import (
+    _EPSILON,
+    _shape_mismatch_message,
+    dense_labels,
+    label_masks,
+    safe_norm,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -34,16 +40,17 @@ from calibrax.metrics._utils import _EPSILON, _validate_shapes, dense_labels, la
 _AVERAGES = ("arithmetic", "geometric", "min", "max")
 
 
-def _contingency(  # noqa: DOC502  # raised by _validate_shapes
+def _contingency(
     labels_true: ArrayLike,
     labels_pred: ArrayLike,
     num_classes: int | None,
     num_clusters: int | None,
-) -> jax.Array:
-    """Counts of samples per (true label, predicted label), shape ``(classes, clusters)``.
+) -> tuple[jax.Array, int]:
+    """Counts of samples per (true label, predicted label), and how many samples there are.
 
     The two label arrays describe the same points, so they must have the same shape. Every
-    metric here reaches this function first, which is why the check lives in it.
+    metric here reaches this function first, which is why the check lives in it; it compares
+    the converted ids, so each label array is converted once.
 
     Args:
         labels_true: Ground truth integer labels.
@@ -52,15 +59,17 @@ def _contingency(  # noqa: DOC502  # raised by _validate_shapes
         num_clusters: Number of predicted labels, or ``None`` to read it from the data.
 
     Returns:
-        The contingency table, shape ``(classes, clusters)``.
+        The contingency table, shape ``(classes, clusters)``, and the number of samples.
 
     Raises:
         ValueError: If the two label arrays do not have the same shape.
     """
-    _validate_shapes(labels_true, labels_pred)
     true_ids, classes = dense_labels(labels_true, num_classes)
     pred_ids, clusters = dense_labels(labels_pred, num_clusters)
-    return jnp.zeros((classes, clusters), jnp.float32).at[true_ids, pred_ids].add(1.0)
+    if true_ids.shape != pred_ids.shape:
+        raise ValueError(_shape_mismatch_message(true_ids, pred_ids))
+    table = jnp.zeros((classes, clusters), jnp.float32).at[true_ids, pred_ids].add(1.0)
+    return table, true_ids.shape[0]
 
 
 def _entropy(counts: jax.Array) -> jax.Array:
@@ -151,7 +160,7 @@ def _pairwise_distances(features: jax.Array) -> jax.Array:
 # ---------------------------------------------------------------------------
 
 
-def adjusted_rand_index(  # noqa: DOC502  # raised by _validate_shapes
+def adjusted_rand_index(  # noqa: DOC502  # raised by _contingency
     labels_true: ArrayLike,
     labels_pred: ArrayLike,
     *,
@@ -181,7 +190,7 @@ def adjusted_rand_index(  # noqa: DOC502  # raised by _validate_shapes
     Raises:
         ValueError: If the two label arrays do not have the same shape.
     """
-    contingency = _contingency(labels_true, labels_pred, num_classes, num_clusters)
+    contingency, _ = _contingency(labels_true, labels_pred, num_classes, num_clusters)
     n = jnp.sum(contingency)
     sum_comb_c = jnp.sum(contingency * (contingency - 1) / 2.0)
     row_sums = jnp.sum(contingency, axis=1)
@@ -195,7 +204,7 @@ def adjusted_rand_index(  # noqa: DOC502  # raised by _validate_shapes
     return jnp.where(trivial, 1.0, (sum_comb_c - expected) / jnp.where(trivial, 1.0, denominator))
 
 
-def normalized_mutual_information_clustering(  # noqa: DOC502  # raised by _validate_shapes
+def normalized_mutual_information_clustering(  # noqa: DOC502  # raised by _contingency
     labels_true: ArrayLike,
     labels_pred: ArrayLike,
     *,
@@ -229,7 +238,7 @@ def normalized_mutual_information_clustering(  # noqa: DOC502  # raised by _vali
         ValueError: If the two label arrays do not have the same shape.
     """
     _check_average(average)
-    contingency = _contingency(labels_true, labels_pred, num_classes, num_clusters)
+    contingency, _ = _contingency(labels_true, labels_pred, num_classes, num_clusters)
     h_true = _entropy(jnp.sum(contingency, axis=1))
     h_pred = _entropy(jnp.sum(contingency, axis=0))
     normalizer = jnp.maximum(_generalized_mean(h_true, h_pred, average), _EPSILON)
@@ -237,7 +246,7 @@ def normalized_mutual_information_clustering(  # noqa: DOC502  # raised by _vali
     return jnp.where(both_trivial, 1.0, _mutual_information(contingency) / normalizer)
 
 
-def adjusted_mutual_information(  # noqa: DOC502  # raised by _validate_shapes
+def adjusted_mutual_information(  # noqa: DOC502  # raised by _contingency
     labels_true: ArrayLike,
     labels_pred: ArrayLike,
     *,
@@ -272,10 +281,10 @@ def adjusted_mutual_information(  # noqa: DOC502  # raised by _validate_shapes
         ValueError: If the two label arrays do not have the same shape.
     """
     _check_average(average)
-    contingency = _contingency(labels_true, labels_pred, num_classes, num_clusters)
+    contingency, num_samples = _contingency(labels_true, labels_pred, num_classes, num_clusters)
     h_true = _entropy(jnp.sum(contingency, axis=1))
     h_pred = _entropy(jnp.sum(contingency, axis=0))
-    emi = _expected_mutual_information(contingency, jnp.shape(labels_true)[0])
+    emi = _expected_mutual_information(contingency, num_samples)
     denominator = _generalized_mean(h_true, h_pred, average) - emi
     denominator = jnp.where(
         denominator < 0, jnp.minimum(denominator, -_EPSILON), jnp.maximum(denominator, _EPSILON)
@@ -285,7 +294,7 @@ def adjusted_mutual_information(  # noqa: DOC502  # raised by _validate_shapes
     return jnp.where(both_trivial, 1.0, ami)
 
 
-def v_measure(  # noqa: DOC502  # raised by _validate_shapes
+def v_measure(  # noqa: DOC502  # raised by _contingency
     labels_true: ArrayLike,
     labels_pred: ArrayLike,
     *,
@@ -317,7 +326,7 @@ def v_measure(  # noqa: DOC502  # raised by _validate_shapes
     Raises:
         ValueError: If the two label arrays do not have the same shape.
     """
-    contingency = _contingency(labels_true, labels_pred, num_classes, num_clusters)
+    contingency, _ = _contingency(labels_true, labels_pred, num_classes, num_clusters)
     mi = _mutual_information(contingency)
     h_true = _entropy(jnp.sum(contingency, axis=1))
     h_pred = _entropy(jnp.sum(contingency, axis=0))

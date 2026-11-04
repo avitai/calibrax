@@ -101,8 +101,9 @@ def pearson_correlation(
     )
     # Before any arithmetic, so an excluded NaN reaches neither the moments nor the
     # gradient. The unweighted path returned above, so this always has work to do.
-    a_arr = substitute_excluded(a_arr, w, flat_mask)
-    b_arr = substitute_excluded(b_arr, w, flat_mask)
+    given = None if weights is None else w
+    a_arr = substitute_excluded(a_arr, flat_mask, given)
+    b_arr = substitute_excluded(b_arr, flat_mask, given)
     a_centered = a_arr - weighted_mean(a_arr, w)
     b_centered = b_arr - weighted_mean(b_arr, w)
     cov = jnp.sum(w * a_centered * b_centered)
@@ -267,8 +268,9 @@ def kendall_tau(
             if mask is None
             else jnp.broadcast_to(jnp.asarray(mask, dtype=bool), a_raw.shape).ravel()
         )
-        a_arr = substitute_excluded(a_arr, pair_scale, flat_mask)
-        b_arr = substitute_excluded(b_arr, pair_scale, flat_mask)
+        given = None if weights is None else pair_scale
+        a_arr = substitute_excluded(a_arr, flat_mask, given)
+        b_arr = substitute_excluded(b_arr, flat_mask, given)
 
     # Pairwise comparisons using broadcasting
     a_diff = a_arr[:, None] - a_arr[None, :]  # (n, n)
@@ -376,8 +378,9 @@ def concordance_correlation(
     )
     # Before any arithmetic, so an excluded NaN reaches neither the moments nor the
     # gradient. The unweighted path returned above, so this always has work to do.
-    a_arr = substitute_excluded(a_arr, w, flat_mask)
-    b_arr = substitute_excluded(b_arr, w, flat_mask)
+    given = None if weights is None else w
+    a_arr = substitute_excluded(a_arr, flat_mask, given)
+    b_arr = substitute_excluded(b_arr, flat_mask, given)
     total = jnp.sum(w) + _EPSILON
     mean_a = weighted_mean(a_arr, w)
     mean_b = weighted_mean(b_arr, w)

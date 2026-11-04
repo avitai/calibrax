@@ -373,7 +373,9 @@ def softmax_cross_entropy(
             else jnp.broadcast_to(jnp.asarray(mask, dtype=bool), targets.shape)[..., None]
         )
         scores = substitute_excluded(
-            scores, sample_weights(mask, weights, targets.shape)[..., None], row_mask
+            scores,
+            row_mask,
+            None if weights is None else sample_weights(mask, weights, targets.shape)[..., None],
         )
     log_probs = jax.nn.log_softmax(scores, axis=-1)
     picked = jnp.take_along_axis(log_probs, targets[..., None], axis=-1)[..., 0]
