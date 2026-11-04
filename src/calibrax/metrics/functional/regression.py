@@ -30,7 +30,7 @@ from calibrax.metrics._utils import (
     _prepare_arrays,
     _prepare_ensemble_arrays,
     coefficient_of_determination,
-    exclude_inputs,
+    excluded_difference,
     reduce_values,
     safe_divide,
     safe_norm,
@@ -156,8 +156,8 @@ def mse(  # noqa: DOC502  # raised by _prepare_arrays
         ValueError: If shapes do not match.
     """
     p, t = _prepare_arrays(predictions, targets)
-    p, t = exclude_inputs(mask, weights, p, t)
-    return reduce_values((p - t) ** 2, mask=mask, weights=weights, reduction=reduction, axis=axis)
+    diff = excluded_difference(p, t, mask=mask, weights=weights)
+    return reduce_values(diff**2, mask=mask, weights=weights, reduction=reduction, axis=axis)
 
 
 def mae(  # noqa: DOC502  # raised by _prepare_arrays
@@ -194,8 +194,8 @@ def mae(  # noqa: DOC502  # raised by _prepare_arrays
         ValueError: If shapes do not match.
     """
     p, t = _prepare_arrays(predictions, targets)
-    p, t = exclude_inputs(mask, weights, p, t)
-    return reduce_values(jnp.abs(p - t), mask=mask, weights=weights, reduction=reduction, axis=axis)
+    diff = excluded_difference(p, t, mask=mask, weights=weights)
+    return reduce_values(jnp.abs(diff), mask=mask, weights=weights, reduction=reduction, axis=axis)
 
 
 def rmse(
@@ -505,8 +505,7 @@ def huber_loss(  # noqa: DOC502  # raised by _prepare_arrays
         ValueError: If shapes do not match.
     """
     p, t = _prepare_arrays(predictions, targets)
-    p, t = exclude_inputs(mask, weights, p, t)
-    err = p - t
+    err = excluded_difference(p, t, mask=mask, weights=weights)
     return reduce_values(
         _huber_elementwise(err**2, jnp.abs(err), delta),
         mask=mask,
@@ -552,8 +551,8 @@ def charbonnier_loss(  # noqa: DOC502  # raised by _prepare_arrays
         ValueError: If shapes do not match.
     """
     p, t = _prepare_arrays(predictions, targets)
-    p, t = exclude_inputs(mask, weights, p, t)
-    smoothed = jnp.sqrt((p - t) ** 2 + epsilon**2) ** alpha
+    diff = excluded_difference(p, t, mask=mask, weights=weights)
+    smoothed = jnp.sqrt(diff**2 + epsilon**2) ** alpha
     return reduce_values(smoothed, mask=mask, weights=weights, reduction=reduction, axis=axis)
 
 

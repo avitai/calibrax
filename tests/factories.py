@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import time
 import types
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import datetime
 from typing import Protocol
@@ -376,3 +376,23 @@ def make_weighted_sample(seed: int = 11) -> WeightedSample:
         jnp.asarray(weights),
         jnp.asarray(mask),
     )
+
+
+def fusion_count(function: Callable[..., object], *args: jax.Array) -> int:
+    """Fusions in the HLO ``function`` compiles to, for these argument shapes.
+
+    A proxy for how much work the compiler kept, used only to compare two spellings of the
+    same computation against each other in one process -- never against a recorded number,
+    which a jax upgrade would invalidate. Every array is passed as a traced argument: one
+    captured as a constant would let XLA fold the work it is meant to count.
+
+    Args:
+        function: The function to trace and compile.
+        *args: Its arguments, for shape and dtype.
+
+    Returns:
+        How many times ``fusion`` appears in the compiled HLO.
+    """
+    text = jax.jit(function).lower(*args).compile().as_text()
+    assert text is not None, "the compiler returned no HLO text to count"
+    return text.count("fusion")
