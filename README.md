@@ -16,19 +16,18 @@
 
 ---
 
-> **Research preview.** The API will change while we iterate toward v1.0, so pin a version if you
-> need stability. Calibrax depends on one other Avitai package, substrax, which it uses for device
-> detection, so it is a low-commitment way to try one piece.
+> **Research preview.** The API changes between releases until v1.0, so pin a version if you need
+> stability. Calibrax depends on one other Avitai package, substrax, for its record format, typing,
+> RNG keys and device detection, so it can be tried on its own.
 >
-> This is public this early on purpose. Issues, questions and pull requests genuinely steer
-> what gets built next, and a star tells us which layer to push on.
+> Issues, questions and pull requests decide what gets built next.
 
 ---
 
-**Calibrax** (*Calibrate + JAX*) is a unified benchmarking and metrics framework for the JAX scientific ML ecosystem. It extracts and consolidates shared benchmarking, profiling, statistical analysis, and evaluation functionality from
-[Datarax](https://github.com/avitai/datarax),
-[Artifex](https://github.com/avitai/artifex), and
-[Opifex](https://github.com/avitai/opifex).
+**Calibrax** (*Calibrate + JAX*) holds the evaluation metrics, benchmarking, profiling and
+statistical analysis that [Datarax](https://github.com/avitai/datarax),
+[Artifex](https://github.com/avitai/artifex) and [Opifex](https://github.com/avitai/opifex) share,
+in one JAX package.
 
 ## Features
 
@@ -55,18 +54,19 @@ package architecture but are not all registered metric entries today.
 - **Graph metrics** - spectral distance, resistance distance, Floyd-Warshall shortest paths
 - **Reference checks** - representative Tier 0 metrics are tested against scikit-learn and SciPy references with `1e-6` tolerance; see [Peer Comparison](docs/user-guide/peer-comparison.md)
 - **Losses with masks and weights** - MSE, MAE, Huber, Charbonnier, relative L2 and softmax cross-entropy take `mask`, `weights`, `reduction` and `axis`, reduced one way
+- **Statistics with masks and weights** - R-squared, adjusted R-squared, Pearson, concordance, Kendall's tau and Spearman's rho take `mask` and `weights`. Kendall's and Spearman's weights are frequency weights: integer weights give the coefficient of the sample with each element repeated. A masked or zero-weighted `NaN` reaches neither the value nor the gradient, and a selection with no members reads `NaN` for a statistic and `0.0` for a loss
 - **Composition** - `MetricCollection`, `WeightedMetric`, `MetricSuite`, `ThresholdMetric`
 - **Wrappers** - `BootstrapMetric` (confidence intervals), `ClasswiseWrapper`, `MetricTracker`, `MinMaxTracker`
 - **Metric learning losses** - contrastive, triplet margin, NTXent, ArcFace, CosFace, ProxyNCA, ProxyAnchor, with hard/semi-hard negative mining
 
 ### Benchmarking & Profiling
 
-- **Timing** - Warm-up aware timing with JIT compilation separation
+- **Timing** - `time_calls`: median and percentiles of repeated calls, each waited on, with warm-up calls absorbing compilation
 - **Resource monitoring** - CPU, memory, GPU memory/clock/power tracking
 - **Energy & carbon** - Energy measurement with carbon footprint estimation
 - **FLOPS & roofline** - XLA-level FLOP counting, roofline performance analysis
 - **Compilation** - XLA compilation profiling and tracing
-- **Complexity** - Algorithmic complexity analysis
+- **Complexity** - Parameter counts, parameter memory and computational cost of Flax NNX modules
 - **Hardware** - Automatic hardware detection and capability reporting
 
 ### Analysis & Infrastructure
@@ -79,14 +79,14 @@ package architecture but are not all registered metric entries today.
 - **Exporters** - W&B and MLflow integration, publication-ready LaTeX/HTML/CSV tables and matplotlib plots
 - **CI integration** - Regression gate with git bisect automation
 - **Monitoring** - Production alerting with configurable thresholds
-- **CLI** - `calibrax ingest|export|check|baseline|trend|summary|profile`
+- **CLI** - `calibrax ingest|export|check|baseline|trend|summary|profile|profile-gpu`
 
 ## Quick Start
 
 ```python
 import jax.numpy as jnp
 from calibrax.metrics import MetricRegistry, calculate_all
-from calibrax.metrics.functional.regression import mse, mae, r_squared
+from calibrax.metrics.functional.regression import mse, r_squared
 
 predictions = jnp.array([1.1, 2.3, 2.8, 4.2, 4.7])
 targets = jnp.array([1.0, 2.0, 3.0, 4.0, 5.0])
@@ -110,14 +110,8 @@ rotation_inv = registry.list_by_invariance("rotation")
 # Basic installation
 uv pip install calibrax
 
-# With GPU monitoring
+# With CUDA 12 JAX and NVML GPU monitoring
 uv pip install "calibrax[cuda12]"
-
-# With image quality plugins (FID, Inception Score)
-uv pip install "calibrax[image]"
-
-# With text quality plugins (BERTScore)
-uv pip install "calibrax[text]"
 
 # With publication export (matplotlib)
 uv pip install "calibrax[publication]"
