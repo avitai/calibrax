@@ -40,7 +40,7 @@ dependencies = [
   "pydantic>=2.10",
   # Significance tests and the chi-squared interval use SciPy, which JAX itself requires.
   "scipy>=1.15",
-  "substrax>=0.1.15"
+  "substrax>=0.1.25"
 ]
 description = "JAX benchmarking, profiling and evaluation metrics for Flax NNX: a metric registry across regression, classification, calibration, uncertainty, forecasting, generative, image, text, audio, graph and fairness domains, XLA FLOP counting, roofline analysis, GPU and energy monitoring, regression detection, publication exports, W&B and MLflow"
 dynamic = ["version"]
@@ -129,7 +129,7 @@ dev = [
   # Types for scipy.stats; follows the locked scipy minor.
   "scipy-stubs>=1.17,<1.18",
   # `substrax-compute` runs the examples on a GPU; the Modal backend needs Modal
-  "substrax[modal]>=0.1.15",
+  "substrax[modal]>=0.1.25",
   "twine>=4.0.2"
 ]
 docs = [
@@ -435,9 +435,9 @@ backend = "modal"
 outputs_volume = "calibrax-example-outputs"
 
 [tool.substrax.compute.jobs.examples]
-accelerator = {kind = "L4"}
 examples = ["examples/metrics"]
 extras = ["cuda12"]
+resources = {accelerator = {kind = "L4"}}
 runtime = {platforms = ["cuda"], preallocate = false, xla_flags = ["--xla_gpu_deterministic_ops=true"]}
 task_timeout_seconds = 1800
 timeout_seconds = 10800
