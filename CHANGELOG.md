@@ -80,6 +80,9 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Fixed
 
+- Masked `spearman_rank_correlation` accepts a 0/1 float mask, which every other masked
+  statistic and `reduce_values` read as a mask (nonzero keeps, zero excludes). It combined
+  the mask with `&` before casting it, which refuses a float operand with `TypeError`.
 - **Breaking:** `mel_cepstral_distortion` refuses a mismatched pair in the words every other
   metric uses. It already refused one -- it was the single metric of the forty-three that
   refuse whose message named neither argument nor contract -- but the `ValueError` came from

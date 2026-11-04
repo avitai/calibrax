@@ -144,6 +144,33 @@ class TestTheMaskBroadcastsAgainstTheInput:
         )
 
 
+class TestAFloatMaskIsAMask:
+    """A 0/1 float mask means what the boolean mask means, in every statistic.
+
+    :func:`calibrax.metrics._utils.reduce_values` folds a mask with ``jnp.where``, so a
+    numeric mask's nonzero entries keep and its zeros exclude, and ``perplexity`` documents
+    "Booleans and 0/1 floats are both accepted". A statistic that refuses the float form
+    breaks the one convention the masking change set extends.
+    """
+
+    @pytest.mark.parametrize(("name", "metric", "extra"), MASKED, ids=[m[0] for m in MASKED])
+    def test_a_float_mask_equals_its_boolean_form(
+        self,
+        two_dimensional: tuple[jnp.ndarray, jnp.ndarray],
+        name: str,
+        metric: Callable[..., jnp.ndarray],
+        extra: dict[str, object],
+    ) -> None:
+        """Same elements kept, so the same value, bit for bit."""
+        predictions, targets = two_dimensional
+        keep = np.random.default_rng(2).random(SHAPE) > 0.3
+        as_bool = float(metric(predictions, targets, mask=jnp.asarray(keep), **extra))
+        as_float = float(
+            metric(predictions, targets, mask=jnp.asarray(keep, dtype=jnp.float32), **extra)
+        )
+        assert as_float == as_bool, f"{name} reads a 0/1 float mask unlike its boolean form"
+
+
 class TestTheWeightsBroadcastAgainstTheInput:
     """Identically for weights, on the five statistics that take them."""
 
