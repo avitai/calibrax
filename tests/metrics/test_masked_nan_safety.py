@@ -10,8 +10,7 @@ The denominator was enumerated from the signatures rather than from memory: of e
 or ``mask_b``, seventeen are metrics -- the rest are the shared primitives, plus ``bleu``,
 whose ``weights`` are n-gram orders and not sample weights. Every one of the seventeen is
 asserted against all three criteria below, so the file's own coverage is the denominator
-rather than a sample of it. :func:`spearman_rank_correlation` needs no substitution of its
-own -- its mask reaches a rank, not an arithmetic sum -- and serves as the control.
+rather than a sample of it.
 
 **Substitution happens on the inputs, before any arithmetic.** A ``jnp.where`` placed
 after the multiply repairs the value and leaves the gradient ``NaN``, because ``where``
@@ -81,6 +80,7 @@ PAIRED: list[tuple[str, Callable[..., jnp.ndarray], dict[str, object]]] = [
     ("pearson_correlation", pearson_correlation, {}),
     ("concordance_correlation", concordance_correlation, {}),
     ("kendall_tau", kendall_tau, {}),
+    ("spearman_rank_correlation", spearman_rank_correlation, {}),
     ("mse", mse, {}),
     ("mae", mae, {}),
     ("rmse", rmse, {}),
@@ -224,26 +224,9 @@ class TestTheReducersDeliberatelyDoNotGuard:
             assert masked == pytest.approx(subset, abs=TOLERANCE), metric.__name__
 
 
-class TestSpearmanIsTheUntouchedControl:
-    """It was already correct, so this change must leave it exactly as it was.
-
-    It reaches ``pearson_correlation`` twice internally, so it is the function most
-    exposed to a double substitution.
-    """
-
-    def test_it_still_matches_the_physical_subset(self) -> None:
-        clean, dirty, keep, kept = _series()
-        targets = clean - jnp.asarray(0.3, dtype=jnp.float32)
-        assert float(spearman_rank_correlation(dirty, targets, mask=keep)) == pytest.approx(
-            float(spearman_rank_correlation(clean[kept], targets[kept])), abs=TOLERANCE
-        )
-
-    def test_its_excluded_slot_still_receives_a_zero_cotangent(self) -> None:
-        clean, dirty, keep, _ = _series()
-        targets = clean - jnp.asarray(0.3, dtype=jnp.float32)
-        grad = jax.grad(lambda x: spearman_rank_correlation(x, targets, mask=keep))(dirty)
-        assert jnp.all(jnp.isfinite(grad))
-        assert float(grad[EXCLUDED]) == 0.0
+#: Rank statistics, which this file's fixture saturates at exactly 1.0: ``targets`` is a
+#: strictly increasing function of the inputs, so both series share one order.
+_SATURATED_HERE = frozenset({"kendall_tau", "spearman_rank_correlation"})
 
 
 class TestTransformations:
@@ -270,12 +253,13 @@ class TestTransformations:
         # The kept elements must carry a derivative. Reading zero at every element was the
         # defect, and it was finite, so finiteness alone could not see it.
         #
-        # `kendall_tau` is exempt, and measured rather than assumed: this fixture sets
-        # `targets = clean - 0.3`, which is strictly increasing in `clean`, so every pair is
-        # concordant and tau is exactly 1.0 for any positive weights. A saturated rank
-        # statistic is locally constant in its weights, so a zero derivative is the right
-        # answer here. On a shuffled target it reads 0.5238 with a non-zero weight gradient.
-        if name != "kendall_tau":
+        # The rank statistics are exempt, and measured rather than assumed: this fixture sets
+        # `targets = clean - 0.3`, which is strictly increasing in `clean`, so the two series
+        # have the same order and tau and rho are exactly 1.0 for any positive weights. A
+        # saturated rank statistic is locally constant in its weights, so a zero derivative is
+        # the right answer here. On a shuffled target tau reads 0.5238 with a non-zero weight
+        # gradient.
+        if name not in _SATURATED_HERE:
             kept = jnp.asarray([i for i in range(SIZE) if i != EXCLUDED])
             assert bool(jnp.any(grad_w[kept] != 0.0)), (
                 f"{name} returns a zero weight derivative at every kept element"

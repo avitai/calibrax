@@ -131,3 +131,30 @@ def kendall(a: np.ndarray, b: np.ndarray, w: np.ndarray) -> float:
     tied_a = np.where(a_diff == 0, pair, 0.0).sum()
     tied_b = np.where(b_diff == 0, pair, 0.0).sum()
     return float(concordant / (np.sqrt((total - tied_a) * (total - tied_b)) + EPSILON))
+
+
+def frequency_ranks(x: np.ndarray, w: np.ndarray) -> np.ndarray:
+    """R Hmisc's ``wtd.rank``, ported line for line.
+
+    Hmisc builds ``wtd.table(x, weights)`` -- the distinct values in order, each with the sum
+    of its weights -- then takes ``r <- cumsum(freqs) - .5*(freqs-1)`` per distinct value and
+    spreads it back to every observation with ``approx(tab$x, r, xout=x)``. Here
+    ``np.unique`` is the table's sorted distinct values, ``np.bincount`` its ``tapply`` sum
+    and the inverse index its look-up. For integer weights these are the midranks of the
+    sample with each element repeated that many times.
+
+    Args:
+        x: Values to rank, finite.
+        w: Their non-negative weights.
+
+    Returns:
+        Each element's weighted midrank.
+    """
+    values, inverse = np.unique(x, return_inverse=True)
+    freqs = np.bincount(inverse, weights=w, minlength=values.size)
+    return (np.cumsum(freqs) - 0.5 * (freqs - 1.0))[inverse]
+
+
+def spearman(a: np.ndarray, b: np.ndarray, w: np.ndarray) -> float:
+    """Frequency-weighted Spearman rho: the weighted Pearson r of Hmisc's weighted ranks."""
+    return pearson(frequency_ranks(a, w), frequency_ranks(b, w), w)

@@ -48,6 +48,7 @@ from calibrax.metrics.functional.statistical import (
     concordance_correlation,
     kendall_tau,
     pearson_correlation,
+    spearman_rank_correlation,
 )
 from tests.metrics import float64_references as references
 
@@ -236,6 +237,7 @@ STATISTICS = [
     ("pearson_correlation", pearson_correlation, references.pearson, {}),
     ("concordance_correlation", concordance_correlation, references.concordance, {}),
     ("kendall_tau", kendall_tau, references.kendall, {}),
+    ("spearman_rank_correlation", spearman_rank_correlation, references.spearman, {}),
 ]
 
 #: The same table for assertions that need no reference formula.

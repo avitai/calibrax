@@ -94,8 +94,8 @@ _FIELD_P = _RNG.normal(size=(16, 8)).astype(np.float32)
 _FIELD_T = _RNG.normal(size=(16, 8)).astype(np.float32)
 _SAMPLE_KEEP = _RNG.random(16) > 0.3
 
-#: Every masked metric, called with a mask alone and, where it takes them, with weights.
-_MASKED: list[tuple[str, Callable[..., object], Callable[..., object] | None]] = [
+#: Every masked metric, called with a mask alone and with weights.
+_MASKED: list[tuple[str, Callable[..., object], Callable[..., object]]] = [
     ("mse", lambda: mse(_P, _T, mask=_KEEP), lambda: mse(_P, _T, weights=_W)),
     ("mae", lambda: mae(_P, _T, mask=_KEEP), lambda: mae(_P, _T, weights=_W)),
     ("huber_loss", lambda: huber_loss(_P, _T, mask=_KEEP), lambda: huber_loss(_P, _T, weights=_W)),
@@ -125,7 +125,11 @@ _MASKED: list[tuple[str, Callable[..., object], Callable[..., object] | None]] =
         lambda: kendall_tau(_P, _T, mask=_KEEP),
         lambda: kendall_tau(_P, _T, weights=_W),
     ),
-    ("spearman_rank_correlation", lambda: spearman_rank_correlation(_P, _T, mask=_KEEP), None),
+    (
+        "spearman_rank_correlation",
+        lambda: spearman_rank_correlation(_P, _T, mask=_KEEP),
+        lambda: spearman_rank_correlation(_P, _T, weights=_W),
+    ),
     (
         "relative_l2_error",
         lambda: relative_l2_error(_FIELD_P, _FIELD_T, mask=_SAMPLE_KEEP),
@@ -136,11 +140,10 @@ _MASKED: list[tuple[str, Callable[..., object], Callable[..., object] | None]] =
 
 @pytest.mark.parametrize(("name", "masked", "weighted"), _MASKED, ids=[m[0] for m in _MASKED])
 def test_a_mask_alone_runs_no_finiteness_test(
-    name: str, masked: Callable[..., object], weighted: Callable[..., object] | None
+    name: str, masked: Callable[..., object], weighted: Callable[..., object]
 ) -> None:
     """With no weights the mask says everything; with weights the test still runs."""
     assert _counts(masked, isfinite=_isfinite) == {"isfinite": 0}, f"{name} with a mask alone"
-    if weighted is not None:
-        assert _counts(weighted, isfinite=_isfinite)["isfinite"] > 0, (
-            f"{name} with weights no longer guards a non-finite value at a zero weight"
-        )
+    assert _counts(weighted, isfinite=_isfinite)["isfinite"] > 0, (
+        f"{name} with weights no longer guards a non-finite value at a zero weight"
+    )
