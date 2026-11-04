@@ -19,7 +19,6 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 
-from calibrax.metrics._utils import _EPSILON
 from calibrax.metrics.functional.regression import r_squared, r_squared_adjusted
 from calibrax.metrics.functional.statistical import (
     concordance_correlation,
@@ -28,6 +27,7 @@ from calibrax.metrics.functional.statistical import (
     spearman_rank_correlation,
 )
 from tests.factories import WeightedSample
+from tests.metrics import float64_references as references
 
 
 #: One float32 ULP at magnitude 1.
@@ -472,77 +472,12 @@ class TestDegenerateWeights:
         assert not np.isnan(with_mask), "a constant sample was treated as an empty one"
 
 
-#: Tolerance for the weight gradient against a float64 central difference, in float32 ULP at
-#: the gradient's own scale. The comparison is a float32 gradient against a float64
-#: difference, so the discrepancy is float32 evaluation error rather than truncation: at
-#: ``h = 1e-5`` the reference's own truncation is near 1e-10. Measured over 20 seeds x sizes
-#: 8/12/24 with a quarter of the weights zeroed, the worst was 4.37 ULP for
-#: ``pearson_correlation`` and 0.87 for ``kendall_tau``; the bound allows 16. An absolute
-#: constant cannot express it: the same readings span 8.438e-10 to 5.208e-07, so one number
-#: is fixed by the worst statistic and runs loose by nearly three orders of magnitude for the
-#: other. This is the convention ``tests/metrics/test_zero_weight_gradients.py`` records.
-_GRADIENT_ULPS = 16
-
-#: The central difference's step. Both reference formulas are rational in the weights away
-#: from an all-zero vector, so a +/-h step stays in their domain.
-_STEP = 1e-5
-
-
-def _gradient_atol(reference: np.ndarray) -> float:
-    """Float32 ULP at the scale of the gradient being compared."""
-    return (
-        _GRADIENT_ULPS * float(np.finfo(np.float32).eps) * max(1.0, float(np.abs(reference).max()))
-    )
-
-
-def _reference_pearson(a: np.ndarray, b: np.ndarray, w: np.ndarray) -> float:
-    """Weighted Pearson r in float64, written from the definition rather than from the code."""
-    a, b, w = (np.asarray(v, dtype=np.float64) for v in (a, b, w))
-    total = w.sum()
-    a_centered = a - (w * a).sum() / total
-    b_centered = b - (w * b).sum() / total
-    covariance = (w * a_centered * b_centered).sum()
-    std_a = np.sqrt((w * a_centered**2).sum())
-    std_b = np.sqrt((w * b_centered**2).sum())
-    return float(covariance / (std_a * std_b + _EPSILON))
-
-
-def _reference_kendall(a: np.ndarray, b: np.ndarray, w: np.ndarray) -> float:
-    """Weighted tau-b in float64: one weight per pair, from the definition."""
-    a, b, w = (np.asarray(v, dtype=np.float64) for v in (a, b, w))
-    upper = np.triu(np.ones((a.size, a.size), dtype=bool), k=1)
-    pair_weight = np.where(upper, np.outer(w, w), 0.0)
-    a_diff = a[:, None] - a[None, :]
-    b_diff = b[:, None] - b[None, :]
-    concordant = (pair_weight * np.sign(a_diff) * np.sign(b_diff)).sum()
-    total = pair_weight.sum()
-    untied_a = total - np.where(a_diff == 0, pair_weight, 0.0).sum()
-    untied_b = total - np.where(b_diff == 0, pair_weight, 0.0).sum()
-    return float(concordant / (np.sqrt(untied_a * untied_b) + _EPSILON))
-
-
-def _central_difference(
-    reference: Callable[[np.ndarray, np.ndarray, np.ndarray], float],
-    a: np.ndarray,
-    b: np.ndarray,
-    w: np.ndarray,
-) -> np.ndarray:
-    """``d/dw`` of ``reference`` by a float64 central difference, one coordinate at a time."""
-    gradient = np.zeros(w.size, dtype=np.float64)
-    for i in range(w.size):
-        up, down = np.array(w, dtype=np.float64), np.array(w, dtype=np.float64)
-        up[i] += _STEP
-        down[i] -= _STEP
-        gradient[i] = (reference(a, b, up) - reference(a, b, down)) / (2.0 * _STEP)
-    return gradient
-
-
 #: The two statistics whose weighted path takes a root of a sum that an empty selection
 #: drives to zero. ``concordance_correlation`` is excluded deliberately: it divides by a sum
 #: of squares and never takes a root, so it already reported finite weight gradients here.
 _ROOTED = [
-    ("pearson_correlation", pearson_correlation, _reference_pearson),
-    ("kendall_tau", kendall_tau, _reference_kendall),
+    ("pearson_correlation", pearson_correlation, references.pearson),
+    ("kendall_tau", kendall_tau, references.kendall),
 ]
 
 
@@ -583,7 +518,7 @@ class TestWeightGradientsWhereTheRootIsSingular:
             ),
             dtype=np.float64,
         )
-        expected = _central_difference(
+        expected = references.central_difference(
             reference,
             np.asarray(predictions, dtype=np.float64),
             np.asarray(targets, dtype=np.float64),
@@ -591,7 +526,11 @@ class TestWeightGradientsWhereTheRootIsSingular:
         )
         assert np.all(np.isfinite(gradient)), f"{name} has a non-finite weight gradient"
         np.testing.assert_allclose(
-            gradient, expected, atol=_gradient_atol(expected), rtol=0.0, err_msg=name
+            gradient,
+            expected,
+            atol=references.weight_gradient_atol(expected),
+            rtol=0.0,
+            err_msg=name,
         )
 
     @pytest.mark.parametrize(("name", "metric", "reference"), _ROOTED, ids=[r[0] for r in _ROOTED])
