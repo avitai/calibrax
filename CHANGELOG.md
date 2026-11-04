@@ -36,6 +36,11 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Changed
 
+- calibrax requires substrax 0.1.25, the release whose `substrax.testing.counted_calls`
+  measures the Python-level cost of an eager call. The examples job's accelerator moves into
+  its `resources` table (`resources = {accelerator = {kind = "L4"}}`), the form substrax
+  reads since 0.1.19; the job-level `accelerator` key is refused there.
+
 - `_prepare_arrays` and `_validate_shapes` read shapes without building arrays, which makes
   the shape check cheaper than it was before it checked anything. `_validate_shapes`
   converted both inputs with `jnp.asarray` only to read `.shape`, and `_prepare_arrays` then
