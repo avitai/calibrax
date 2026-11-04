@@ -232,9 +232,10 @@ class TestTheDocumentedRangeHolds:
     ``-5.9e8`` at ``p=2, kept=3`` where the denominator is exactly zero -- six range
     violations across the swept combinations.
 
-    The adjusted statistic is undefined without residual degrees of freedom, so it returns
-    the same ``0.0`` the package documents for a sample it cannot describe, rather than a
-    number above its own stated maximum.
+    The adjusted statistic is undefined without residual degrees of freedom, so it reads
+    ``NaN``, as every statistic here does over a sample it cannot describe, rather than a
+    number above its own stated maximum. Where ``n > p + 1`` it is defined and stays in its
+    range.
     """
 
     #: Predictor counts and kept-element counts that bracket the undefined region.
@@ -251,18 +252,26 @@ class TestTheDocumentedRangeHolds:
         value = float(
             r_squared_adjusted(predictions, targets, num_predictors=num_predictors, mask=mask)
         )
-        assert value <= 1.0, f"{value} is above the documented maximum of 1.0"
+        if kept <= num_predictors + 1:
+            assert np.isnan(value), f"{value} reported where the statistic is undefined"
+        else:
+            assert value <= 1.0, f"{value} is above the documented maximum of 1.0"
 
     @pytest.mark.parametrize("num_predictors", PREDICTOR_COUNTS)
     @pytest.mark.parametrize("kept", KEPT_COUNTS)
-    def test_is_finite(self, sample: WeightedSample, num_predictors: int, kept: int) -> None:
+    def test_is_finite_where_defined(
+        self, sample: WeightedSample, num_predictors: int, kept: int
+    ) -> None:
         """Unguarded, a zero denominator divides by ``_EPSILON`` and reaches ~1e9."""
         value = float(
             r_squared_adjusted(
                 sample[1], sample[0], num_predictors=num_predictors, mask=mask_of(sample, kept)
             )
         )
-        assert abs(value) < 1e6, f"{value} is not a plausible magnitude for this statistic"
+        if kept <= num_predictors + 1:
+            assert np.isnan(value), f"{value} reported where the statistic is undefined"
+        else:
+            assert abs(value) < 1e6, f"{value} is not a plausible magnitude for this statistic"
 
     def test_the_undefined_region_is_exactly_where_dof_runs_out(
         self, sample: WeightedSample
@@ -273,15 +282,16 @@ class TestTheDocumentedRangeHolds:
         undefined = [
             kept
             for kept in range(8)
-            if float(
-                r_squared_adjusted(
-                    predictions,
-                    targets,
-                    num_predictors=predictors,
-                    mask=mask_of(sample, kept),
+            if np.isnan(
+                float(
+                    r_squared_adjusted(
+                        predictions,
+                        targets,
+                        num_predictors=predictors,
+                        mask=mask_of(sample, kept),
+                    )
                 )
             )
-            == 0.0
         ]
         assert undefined == [0, 1, 2, 3], (
             f"the undefined region is {undefined}, expected every kept count up to p + 1"

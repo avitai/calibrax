@@ -319,23 +319,25 @@ class TestTransformations:
 
 
 class TestDegenerateWeights:
-    """An empty selection has no sample to describe, so every statistic returns ``0.0``.
+    """An empty selection has no sample to describe, so every statistic reads ``NaN``.
 
-    That is the value :func:`calibrax.metrics._utils.reduce_values` documents for the case --
-    "one documented, finite result, so a caller that treats an empty selection as an error
-    can check the mask at the host boundary instead of finding a NaN later" -- and the value
-    :func:`calibrax.metrics._utils.weighted_mean` already returns when its scale sums to
-    zero. Pinning it here for all five keeps one convention rather than one per statistic.
+    A statistic over no observations is undefined, and ``NaN`` is how a reference
+    implementation says so: ``numpy.mean([])``, ``scipy.stats.spearmanr`` and
+    ``kendalltau`` on fewer than two points, ``sklearn.metrics.r2_score`` on one sample,
+    ``xarray``'s weighted mean over weights summing to zero ("0-weights are not valid"),
+    ``flax.nnx.metrics.Average`` and ``clu.metrics.Average`` before any update, and R's
+    ``cor`` and ``weighted.mean``. ``NaN`` keeps an empty evaluation visible: a ``0.0`` reads
+    as a measurement, a fit no better than the mean, and under ``vmap`` over one mask per
+    bin it sits in the curve beside the real bins. A **loss** reduction is the other role:
+    :func:`calibrax.metrics._utils.reduce_values` returns ``0.0`` over an empty selection,
+    as every loss library does, so a differentiated objective over an all-padding batch
+    stays finite. These statistics are read-outs, not losses.
 
     **Assert the value, never a disjunction the shipped behaviour happens to satisfy.** A
-    check reading ``assert value == pytest.approx(1.0) or not np.isfinite(value)`` would sit
-    under this same docstring and accept ``1.0`` -- the most plausible-looking number
-    available -- while *failing* for ``0.0``. Such a check does not merely miss a defect of
-    this kind, it forbids the fix.
+    check reading ``assert value == pytest.approx(1.0) or not np.isfinite(value)`` would
+    accept ``1.0`` -- the most plausible-looking number available. ``NaN`` compares unequal
+    to itself, so every assertion here is ``np.isnan``, never ``==``.
     """
-
-    #: The documented result for a selection with no members.
-    EMPTY_RESULT = 0.0
 
     @pytest.mark.parametrize(
         ("name", "metric"),
@@ -352,25 +354,21 @@ class TestDegenerateWeights:
     ) -> None:
         targets, predictions, _, _ = sample
         empty = jnp.zeros_like(targets, dtype=bool)
-        assert float(metric(predictions, targets, mask=empty)) == self.EMPTY_RESULT, (
+        assert np.isnan(float(metric(predictions, targets, mask=empty))), (
             f"{name} reported a measurement for a selection with no members"
         )
 
     def test_an_all_zero_weight_vector_is_the_same_case(self, sample: WeightedSample) -> None:
         """Weights reach the same state by a different route, so they get the same answer."""
         targets, predictions, _, _ = sample
-        assert (
-            float(r_squared(predictions, targets, weights=jnp.zeros_like(targets)))
-            == self.EMPTY_RESULT
-        )
+        assert np.isnan(float(r_squared(predictions, targets, weights=jnp.zeros_like(targets))))
 
     def test_adjusted_r_squared_agrees(self, sample: WeightedSample) -> None:
         """The adjusted form reads its R-squared from the same core, so it follows."""
         targets, predictions, _, _ = sample
         empty = jnp.zeros_like(targets, dtype=bool)
-        assert (
+        assert np.isnan(
             float(r_squared_adjusted(predictions, targets, num_predictors=2, mask=empty))
-            == self.EMPTY_RESULT
         )
 
     @pytest.mark.parametrize("kept", [6, 10, None], ids=["keeps_6", "keeps_10", "no_mask"])
@@ -379,17 +377,13 @@ class TestDegenerateWeights:
     ) -> None:
         """Weights that sum to zero select nothing, so the adjusted form reports nothing.
 
-        ``r_squared`` already returns ``0.0`` here, from the shared core's guard on the
-        weight sum. The adjustment then multiplied that ``0.0`` by ``(n - 1) / (n - p - 1)``
-        and reported ``1 - (n - 1) / (n - p - 1)`` -- a number that depends on the sample
-        size and the predictor count rather than on the data, and is below the documented
-        range's own empty result. At ``n = 12, p = 2`` that is ``-0.2222``.
-
-        ``n`` cannot see this case. A mask shrinks ``n``, so an all-false mask already drives
-        ``residual_dof`` below zero and lands on the documented ``0.0``; weights deliberately
-        do not shrink ``n``, because a zero weight leaves the observation in the sample. The
-        parametrisation keeps ``residual_dof`` positive on purpose -- a mask keeping 3 of
-        these would make it zero and reach ``0.0`` for the wrong reason.
+        The adjustment reads R-squared from the shared core and scales its complement by
+        ``(n - 1) / (n - p - 1)``. ``n`` cannot see this case: a mask shrinks ``n``, so an
+        all-false mask already drives ``residual_dof`` below zero; weights deliberately do not
+        shrink ``n``, because a zero weight leaves the observation in the sample. So the
+        emptiness has to come from the weight sum, as in the core. The parametrisation keeps
+        ``residual_dof`` positive on purpose -- a mask keeping 3 of these would make it zero
+        and reach ``NaN`` for the wrong reason.
         """
         targets, predictions, _, _ = sample
         size = targets.shape[0]
@@ -403,7 +397,7 @@ class TestDegenerateWeights:
         value = float(
             r_squared_adjusted(predictions, targets, num_predictors=2, weights=zeroed, **kwargs)
         )
-        assert value == self.EMPTY_RESULT, (
+        assert np.isnan(value), (
             "weights summing to zero gave a measurement for a selection with no members"
         )
 
@@ -423,7 +417,8 @@ class TestDegenerateWeights:
                 predictions, targets, num_predictors=2, weights=jnp.zeros_like(targets)
             )
         )
-        assert by_mask == by_weights == self.EMPTY_RESULT
+        assert np.isnan(by_mask), "an all-false mask gave a measurement"
+        assert np.isnan(by_weights), "all-zero weights gave a measurement"
 
     def test_the_empty_weight_guard_traces(self, sample: WeightedSample) -> None:
         """The guard is a ``jnp.where`` on a reduction, so it survives jit and vmap.
@@ -440,26 +435,25 @@ class TestDegenerateWeights:
                 lambda w: r_squared_adjusted(predictions, targets, num_predictors=2, weights=w)
             )
         )(bins)
-        assert float(curve[0]) == self.EMPTY_RESULT
-        assert float(curve[1]) != self.EMPTY_RESULT, "the populated bin lost its measurement"
+        assert np.isnan(float(curve[0]))
+        assert np.isfinite(float(curve[1])), "the populated bin lost its measurement"
 
     def test_an_empty_bin_does_not_read_as_a_perfect_fit_under_vmap(
         self, sample: WeightedSample
     ) -> None:
         """Why this matters, in the shape the feature was built for.
 
-        A per-bin applicability curve maps one mask per bin. A bin with no members used to
-        return 1.0, so an empty bin appeared mid-curve as the best-fitting bin in the plot.
+        A per-bin applicability curve maps one mask per bin. A bin with no members has no
+        value to plot: a finite number would sit mid-curve as a real bin, ``1.0`` as the best
+        fit and ``0.0`` as one no better than the mean.
         """
         targets, predictions, _, _ = sample
         size = targets.shape[0]
         counts = (0, 5, size)
         masks = jnp.stack([jnp.arange(size) < kept for kept in counts])
         curve = jax.jit(jax.vmap(lambda m: r_squared(predictions, targets, mask=m)))(masks)
-        assert float(curve[0]) == self.EMPTY_RESULT
-        assert float(curve[0]) < float(curve[-1]), (
-            "the empty bin outranks the full one, which is what the 1.0 reading did"
-        )
+        assert np.isnan(float(curve[0])), "the empty bin reads as a measurement"
+        assert np.all(np.isfinite(np.asarray(curve[1:]))), "a populated bin lost its value"
 
     def test_a_constant_target_is_not_treated_as_empty(self, sample: WeightedSample) -> None:
         """The guard keys on the weight sum, not on the variance, and this is why.
@@ -475,7 +469,7 @@ class TestDegenerateWeights:
         )
         without_mask = float(r_squared(predictions, constant))
         assert with_mask == without_mask
-        assert with_mask != self.EMPTY_RESULT
+        assert not np.isnan(with_mask), "a constant sample was treated as an empty one"
 
 
 #: Tolerance for the weight gradient against a float64 central difference, in float32 ULP at

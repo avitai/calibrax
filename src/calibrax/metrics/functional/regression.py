@@ -277,7 +277,8 @@ def r_squared(  # noqa: DOC502  # raised by _prepare_arrays
         weights: Element weights (broadcastable), or ``None`` for unit weights.
 
     Returns:
-        R-squared value as a scalar value. Values near 1.0 indicate good fit.
+        R-squared value as a scalar value. Values near 1.0 indicate good fit; ``NaN`` for
+        a selection with no members (an all-false ``mask`` or ``weights`` summing to zero).
 
     Raises:
         ValueError: If shapes do not match.
@@ -315,11 +316,10 @@ def r_squared_adjusted(  # noqa: DOC502  # raised by _prepare_arrays
 
     Note:
         Direction: HIGHER (1.0 = perfect fit).
-        Range: (-inf, 1]. Returns ``0.0`` where there is no residual degree of
-        freedom, meaning ``n <= num_predictors + 1``, because the correction is
-        undefined there rather than merely large, and ``0.0`` for a selection with
-        no members -- reached by an all-false ``mask`` or by ``weights`` that sum
-        to zero.
+        Range: (-inf, 1]. ``NaN`` where the statistic is undefined: without a
+        residual degree of freedom, meaning ``n <= num_predictors + 1``, where the
+        correction divides by zero or less, and for a selection with no members --
+        an all-false ``mask`` or ``weights`` that sum to zero.
 
     Args:
         predictions: Predicted values.
@@ -348,28 +348,19 @@ def r_squared_adjusted(  # noqa: DOC502  # raised by _prepare_arrays
     n = t_arr.size if mask is None else jnp.sum(jnp.broadcast_to(jnp.asarray(mask), t_arr.shape))
     r2 = coefficient_of_determination(p_arr, t_arr, mask=mask, weights=weights)
     # Residual degrees of freedom. At or below zero the correction stops being a penalty
-    # and inverts: a mask leaving `n <= num_predictors + 1` returned values above the
-    # documented maximum of 1 (measured: +19.66 at n=2, p=2) and, where the denominator is
-    # exactly zero, divided by `_EPSILON` to reach about -5.9e8. The statistic is not
-    # defined without a residual degree of freedom, so it reports the same 0.0 the package
-    # uses for a sample it cannot describe. `jnp.where` rather than a Python branch, so a
-    # traced count from a mask keeps working under jit and vmap.
+    # and inverts: a mask leaving `n <= num_predictors + 1` would return values above the
+    # documented maximum of 1 (+19.66 at n=2, p=2) and, where the denominator is exactly
+    # zero, divide by `_EPSILON` to reach about -5.9e8. The statistic is undefined there,
+    # so it reads NaN, selected by `jnp.where` so a traced count from a mask keeps working
+    # under jit and vmap and the finite branch keeps a finite gradient.
+    #
+    # Weights summing to zero need no test of their own here. `n` counts observations and a
+    # zero weight leaves the observation in the sample, so `residual_dof` stays positive;
+    # the core already reads NaN for that selection, and NaN passes through the correction.
     residual_dof = n - num_predictors - 1
-    adjusted = jnp.where(
-        residual_dof > 0, 1.0 - (1.0 - r2) * (n - 1) / (residual_dof + _EPSILON), 0.0
+    return jnp.where(
+        residual_dof > 0, 1.0 - (1.0 - r2) * (n - 1) / (residual_dof + _EPSILON), jnp.nan
     )
-    if weights is None:
-        # Without weights the folded scale counts the kept elements, so an empty selection
-        # has already driven `n` to zero and `residual_dof` below it.
-        return adjusted
-    # With weights it has not. `n` counts observations and a zero weight leaves the
-    # observation in the sample, which is the convention above -- so a weight vector summing
-    # to zero selects nothing while `n` still reports the full count, and the penalty turns
-    # the core's `0.0` into `1 - (n - 1) / (n - p - 1)`: a number set by the sample size and
-    # the predictor count rather than by the data. Emptiness therefore needs the test the
-    # shared core applies, on the folded scale rather than on anything `n` can see.
-    scale = sample_weights(mask, weights, t_arr.shape)
-    return jnp.where(jnp.sum(scale) > 0.0, adjusted, 0.0)
 
 
 def mape(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _prepare_arrays

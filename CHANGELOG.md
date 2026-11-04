@@ -185,36 +185,10 @@ and uses semantic versioning while the public API stabilizes.
   (`src/cellifex/metrics/correlation_metrics.py:45`) both call it without a mask, so both
   take the unchanged path.
 
-- `r_squared_adjusted` returns `0.0` when `weights` sum to zero, the result the package
-  documents for a selection with no members. It returned `1 - (n - 1) / (n - p - 1)`: a
-  number set by the sample size and the predictor count rather than by the data, and below
-  the documented range's own empty result. At `n = 12, p = 2` that is `-0.2222222089767456`.
-
-  The shared core was already right -- it guards on the weight sum and returns `0.0` -- and
-  the adjustment then multiplied that `0.0` by `(n - 1) / (n - p - 1)`. `n` cannot see the
-  case: a mask shrinks `n`, so an all-false mask drives the residual degrees of freedom below
-  zero and lands on `0.0` already, but weights deliberately do not shrink `n`, because a zero
-  weight leaves the observation in the sample. So the adjusted form now applies the same test
-  the core does, on the folded scale.
-
-  Four of six degenerate combinations were affected, not just all-zero weights: a mask
-  keeping 6 of 12 elements whose weights are zero gave `-0.6667`, and keeping 10 gave
-  `-0.2857`. The two that already returned `0.0` did so because the mask had shrunk `n`
-  enough to remove the residual degree of freedom, which is a different guard reached by
-  accident rather than the right answer arrived at.
-
-  Nothing else moves. Values are identical across 1,500 draws in each of 12 cells -- the
-  shared core, `r_squared` and the adjusted form, on unweighted, weighted, masked and
-  masked-and-weighted paths -- and the fused regression suite is unchanged, each negative
-  with a control behind it: perturbing the weighted result by one part in a million moves
-  exactly the two adjusted cells. The guard costs **one** compiled instruction on the
-  weighted paths and no fusions, because the core already computes the identical
-  `sum(w) > 0` predicate and XLA shares it; keyed on `jnp.max` instead it costs 16 and adds
-  a fusion. The mask-only path is unchanged at 166 instructions, against 167 when the guard
-  is applied unconditionally, so that measurement discriminates. On the fully unweighted
-  path it cannot: `sample_weights(None, None, shape)` is `jnp.ones`, so the predicate is a
-  compile-time constant and folds away whether the guard is there or not -- that path is held
-  by an early return instead, so it does not reach the guard at all.
+- `r_squared_adjusted` reads `NaN` when `weights` sum to zero, as for any selection with no
+  members. `n` counts observations and a zero weight leaves the observation in the sample,
+  so the residual degrees of freedom stay positive there; the shared core reads `NaN` for
+  the selection, and `NaN` passes through the degrees-of-freedom correction.
 
 - `pearson_correlation` and `kendall_tau` report finite weight gradients at a degenerate
   selection. Their weighted denominators are square roots of weighted sums -- two standard
@@ -549,21 +523,21 @@ and uses semantic versioning while the public API stabilizes.
   free on the one-dimensional path: identical fusion counts across all seven measured
   configurations (47, 55, 189, 50, 26, 18, 40) and identical values.
 
-- An empty selection no longer reports a perfect fit. With an all-false `mask` or an
-  all-zero `weights` vector both weighted sums are zero, so `r_squared` returned exactly
-  `1.0` -- and `r_squared_adjusted` followed it. Under `vmap` over per-bin masks, which is
-  what these parameters were added for, an empty bin appeared mid-curve as the best-fitting
-  bin. Both now return `0.0`, the result `reduce_values` documents for the case and the one
-  `weighted_mean` already returns when its scale sums to zero; the other four masked
-  statistics returned `0.0` already. The guard keys on the **weight sum**, not on `SS_tot`:
-  constant targets have no variance to explain but are still a sample, and keying on
-  `SS_tot` would have made a full mask disagree with passing no mask at all. Only the
-  weighted branch is guarded, so the unweighted path and the fused suite are untouched --
-  124 fusions and the same value either way.
+- A statistic over an empty selection reads `NaN`. With an all-false `mask` or weights
+  summing to zero, `r_squared`, `r_squared_adjusted`, `pearson_correlation`,
+  `spearman_rank_correlation`, `kendall_tau` and `concordance_correlation` have no sample to
+  describe, and `NaN` is how numpy, scipy, scikit-learn, xarray, flax's and clu's metrics
+  and R report one. It keeps an empty evaluation visible: under `vmap` over per-bin masks, an
+  empty bin reads `NaN` rather than a number beside the real bins. A loss reduction keeps
+  `0.0` for the same selection (`reduce_values`), so a differentiated objective stays
+  finite. The guard keys on the **weight sum**, not on `SS_tot`: constant targets have no
+  variance to explain but are still a sample. It selects with `jnp.where` around a finite
+  value, so gradients stay finite, and only the weighted branches carry it, so the
+  unweighted paths and the fused suite are untouched.
 - `r_squared_adjusted` honours its documented `Range: (-inf, 1]`. The degrees-of-freedom
-  correction `(n - 1) / (n - p - 1)` inverts once a mask leaves `n <= p + 1`, which
-  returned values **above 1** (measured: +19.66 at `n=2, p=2`) and about `-5.9e8` where the
-  denominator is exactly zero. It now returns `0.0` without a residual degree of freedom,
+  correction `(n - 1) / (n - p - 1)` inverts once a mask leaves `n <= p + 1`, giving values
+  above 1 (+19.66 at `n=2, p=2`) and about `-5.9e8` where the denominator is exactly zero.
+  The statistic is undefined without a residual degree of freedom, so it reads `NaN` there,
   and the docstring says so. A parametrised test sweeps predictor and kept counts across
   the boundary.
 - `huber_loss` and `quantile_loss` share one expression with the fused regression suite
