@@ -38,6 +38,14 @@ def _readings(*first: int, then: int) -> Callable[[], int]:
     return lambda: next(values, then)
 
 
+def _wait_for_samples(monitor: EnergyMonitor, count: int, timeout_sec: float = 5.0) -> None:
+    """Return once the sampling thread has taken ``count`` samples, however slow the machine."""
+    deadline = time.monotonic() + timeout_sec
+    while len(monitor.samples) < count:
+        assert time.monotonic() < deadline, f"the sampling thread took no {count} samples"
+        time.sleep(0.005)
+
+
 class TestEnergySample:
     """Tests for EnergySample frozen dataclass."""
 
@@ -134,14 +142,30 @@ class TestEnergyMonitor:
 
     @patch("calibrax.profiling.energy._read_rapl_range_uj", new=MagicMock(return_value=None))
     @patch("calibrax.profiling.energy._read_rapl_energy_uj")
-    def test_cpu_energy_is_the_rapl_increase(self, mock_rapl: MagicMock) -> None:
+    def test_cpu_energy_is_the_rapl_increase_from_enter_to_exit(self, mock_rapl: MagicMock) -> None:
+        """The counter reads 1 J at enter, 1.5 J at the one sample, and 3 J when the block ends.
+
+        A sampling interval far longer than the block leaves exactly one sample, so the reading
+        at exit is the only way to the 2 J the block used, on any machine.
+        """
         mock_rapl.side_effect = _readings(1_000_000, 1_500_000, then=3_000_000)
 
-        mon = EnergyMonitor(sample_interval_sec=0.05)
+        mon = EnergyMonitor(sample_interval_sec=60.0)
         with mon:
-            time.sleep(0.15)
+            _wait_for_samples(mon, 1)
 
         assert mon.summary.total_cpu_energy_joules == pytest.approx(2.0)
+
+    def test_gpu_energy_and_duration_reach_the_exit(self) -> None:
+        """The block's tail after its one sample counts, in the integral and the duration."""
+        mon = EnergyMonitor(sample_interval_sec=60.0, gpu=_gpu_drawing(100.0))
+        with mon:
+            _wait_for_samples(mon, 1)
+            time.sleep(0.1)
+
+        summary = mon.summary
+        assert summary.duration_sec >= 0.1
+        assert summary.total_gpu_energy_joules == pytest.approx(100.0 * summary.duration_sec)
 
     @patch("calibrax.profiling.energy._read_rapl_range_uj", new=MagicMock(return_value=10_000_000))
     @patch("calibrax.profiling.energy._read_rapl_energy_uj")

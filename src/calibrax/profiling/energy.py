@@ -124,8 +124,10 @@ class EnergyMonitor:
     """Background energy monitoring of a GPU power source and the CPU's RAPL counter.
 
     GPU energy integrates the source's power draw over the sampling interval (rectangular
-    rule); CPU energy is the RAPL counter's increase, across its wraparound. Without a GPU
-    source, or where RAPL is unreadable, those fields stay ``None``.
+    rule); CPU energy is the RAPL counter's increase, across its wraparound. Both run from the
+    reading at ``__enter__`` to a last reading at ``__exit__``, so they cover the whole block
+    whatever the sampling interval. Without a GPU source, or where RAPL is unreadable, those
+    fields stay ``None``.
 
     ```python
     with NvmlDevice(0) as gpu, EnergyMonitor(gpu=gpu) as monitor:
@@ -167,28 +169,37 @@ class EnergyMonitor:
         return self
 
     def __exit__(self, *args: object) -> None:
-        """Stop background energy sampling thread."""
+        """Stop the sampling thread, then take the reading that closes the window.
+
+        The window ends with a reading, as zeus's ``ZeusMonitor.end_window`` reads the counters
+        it began with: without one, the energy used after the last sample, up to one sampling
+        interval, would be missing from the totals and the duration.
+        """
         self._sampling_thread.stop()
+        self._take_sample()
 
     def _sample_loop(self) -> None:
         """Collect energy samples until stopped."""
         while not self._sampling_thread.stop_event.is_set():
-            now = time.perf_counter()
-            gpu_power_w = self._read_gpu_power()
-            if gpu_power_w is not None:
-                self._integrate_gpu_power(now, gpu_power_w)
-            self._update_rapl()
-
-            self._samples.append(
-                EnergySample(
-                    timestamp=now,
-                    gpu_power_watts=gpu_power_w,
-                    cpu_energy_joules=self._compute_cpu_energy(),
-                    gpu_energy_joules=self._gpu_energy_j,
-                ),
-            )
-
+            self._take_sample()
             self._sampling_thread.stop_event.wait(timeout=self._interval)
+
+    def _take_sample(self) -> None:
+        """Read the GPU's power and the RAPL counter, integrate them, and record a sample."""
+        now = time.perf_counter()
+        gpu_power_w = self._read_gpu_power()
+        if gpu_power_w is not None:
+            self._integrate_gpu_power(now, gpu_power_w)
+        self._update_rapl()
+
+        self._samples.append(
+            EnergySample(
+                timestamp=now,
+                gpu_power_watts=gpu_power_w,
+                cpu_energy_joules=self._compute_cpu_energy(),
+                gpu_energy_joules=self._gpu_energy_j,
+            ),
+        )
 
     def _read_gpu_power(self) -> float | None:
         """The GPU power source's draw in watts, or None without one or a reading."""
