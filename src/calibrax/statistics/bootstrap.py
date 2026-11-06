@@ -150,10 +150,9 @@ def bootstrap_interval(
     def one_resample(index: jax.Array) -> jax.Array:
         return jnp.asarray(statistic(*(a[index] for a in arrays)))
 
-    # The default path is left exactly as it was, so no existing caller's speed or numbers
-    # change; `batch_size` is strictly opt-in. `jax.lax.map` with a batch size vmaps each group
-    # in turn, which is where the few-ULP difference comes from: the reduction inside the
-    # statistic accumulates over a group rather than over every resample at once.
+    # `batch_size=None` evaluates every resample in one `jax.vmap`. With a batch size,
+    # `jax.lax.map` vmaps one group at a time, so a reduction inside the statistic accumulates
+    # over a group rather than over every resample at once: that is the few-ULP difference.
     if batch_size is None:
         samples = jax.vmap(one_resample)(indices)
     else:
