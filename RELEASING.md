@@ -30,19 +30,43 @@ also runs the PyPI upload path.
    uv run twine check dist/*
    ```
 
-5. Commit the version and changelog updates.
-6. Create and push an annotated tag from the exact release commit.
+5. Commit the version and changelog updates on a branch and open a pull request. `main` changes
+   only through a pull request whose checks passed, merged by rebase:
 
    ```bash
-   target_sha=$(git rev-parse HEAD)
-   git tag -a vX.Y.Z -m "calibrax X.Y.Z"
-   git push origin main vX.Y.Z
+   gh pr create --base main --fill
+   gh pr merge --rebase   # once its checks have passed
    ```
 
-7. In GitHub Actions, manually run `Publish to PyPI` with:
+6. Run the macOS workflow on the release commit `main` now holds and wait for it to pass. No push
+   or pull request runs on macOS, so this is the release's macOS check. A rebase merge gives the
+   release commit a new SHA, so `main` is pulled first, and the run watched is the dispatch on that
+   commit; `--exit-status` makes a failed run fail the step (`gh run watch` exits 0 without it).
 
-   - `target=github-release`
-   - `version_tag=vX.Y.Z`
+   ```bash
+   git switch main
+   git pull --ff-only
+   target_sha=$(git rev-parse HEAD)
+   gh workflow run macos.yml --ref main
+   sleep 15   # the dispatched run takes a few seconds to appear
+   run_id=$(gh run list --workflow macos.yml --event workflow_dispatch --branch main \
+     --commit "$target_sha" --limit 1 --json databaseId --jq '.[0].databaseId')
+   gh run watch "$run_id" --exit-status
+   ```
+
+7. Create and push an annotated tag on that commit. Only the tag is pushed: `main` itself changes
+   only through pull requests.
+
+   ```bash
+   git tag -a vX.Y.Z -m "calibrax X.Y.Z" "$target_sha"
+   git push origin vX.Y.Z
+   ```
+
+8. Run `Publish to PyPI` from the tag, with `target=github-release` and `version_tag=vX.Y.Z`:
+
+   ```bash
+   gh workflow run publish.yml --ref vX.Y.Z -f target=github-release -f version_tag=vX.Y.Z
+   ```
 
    The workflow verifies that the tag exists, creates the GitHub Release with
    generated release notes, then publishes to PyPI.
