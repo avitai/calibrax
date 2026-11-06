@@ -7,6 +7,8 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+## [0.1.16] - 2026-11-05
+
 ### Added
 
 - `bootstrap_interval` takes `batch_size`, which evaluates the resamples in groups through
