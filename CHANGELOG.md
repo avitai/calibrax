@@ -27,6 +27,14 @@ and uses semantic versioning while the public API stabilizes.
   than 0.1.15 did**, so intervals and samples computed from a fixed key change by Monte Carlo
   noise; figures pinned against 0.1.15 need regenerating.
 
+### Fixed
+
+- `EnergyMonitor` takes a last reading when its block ends, so CPU energy is the RAPL counter's
+  increase from enter to exit and GPU energy and `duration_sec` run to the exit, as zeus's
+  `end_window` reads the counters it began with. Before, both stopped at the last sample and
+  left out up to one `sample_interval_sec` of the block; with one sample in the block, CPU
+  energy read 0.5 J where the counter had risen 2 J.
+
 ## [0.1.15] - 2026-11-04
 
 ### Added
