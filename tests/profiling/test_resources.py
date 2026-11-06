@@ -7,7 +7,9 @@ and daemon thread behavior.
 
 import dataclasses
 import time
+import types
 
+import psutil
 import pytest
 
 from calibrax.profiling.resources import (
@@ -24,11 +26,26 @@ from tests.factories import (
     assert_monitor_thread_lifecycle,
     FakeGpu,
     make_default_resource_summary,
+    wait_until,
 )
 
 
 class _GpuQueryError(Exception):
     pass
+
+
+class _ProcessHolding:
+    """A process whose resident memory reads ``first`` MB once, then ``then`` MB on every read."""
+
+    def __init__(self, first: float, *, then: float) -> None:
+        self._readings = iter([first])
+        self._then = then
+
+    def cpu_percent(self) -> float:
+        return 0.0
+
+    def memory_info(self) -> types.SimpleNamespace:
+        return types.SimpleNamespace(rss=next(self._readings, self._then) * 1024 * 1024)
 
 
 _ALL_READINGS = FakeGpu(
@@ -223,6 +240,23 @@ class TestResourceMonitor:
             ResourceMonitor(sample_interval_sec=0.05, gpu_profiler=_FailingGpu()),
         ):
             time.sleep(0.1)
+
+    def test_peak_growth_and_duration_reach_the_exit(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """The process holds 100 MB at the one sample and 300 MB when the block ends.
+
+        A sampling interval far longer than the block leaves exactly one sample, so only the
+        reading that closes the window can give the 300 MB peak and the 200 MB growth.
+        """
+        monkeypatch.setattr(psutil, "Process", lambda: _ProcessHolding(100.0, then=300.0))
+
+        with ResourceMonitor(sample_interval_sec=60.0) as mon:
+            wait_until(lambda: len(mon.samples) >= 1)
+
+        summary = mon.summary
+        assert summary.num_samples == 2
+        assert summary.peak_rss_mb == 300.0
+        assert summary.memory_growth_mb == 200.0
+        assert summary.duration_sec > 0.0
 
     def test_thread_is_daemon(self) -> None:
         mon = ResourceMonitor(sample_interval_sec=0.05)

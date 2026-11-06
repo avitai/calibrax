@@ -30,6 +30,13 @@ and uses semantic versioning while the public API stabilizes.
   without ties the values are unchanged. **`roc_auc` is `NaN` when the targets hold one class**,
   where it is undefined, as scikit-learn returns; it gave 0.0 before. Both stay jittable and
   vmappable, and their gradient is zero, as before.
+- `ResourceMonitor` ends its window with a reading, as `EnergyMonitor` does since 0.1.16, so
+  peak RSS, memory growth and `duration_sec` reach the end of the block instead of stopping at
+  the last sample. Both monitors now share one sampling loop, which takes the closing reading
+  on the sampling thread after the stop signal (memory_profiler reads the same way), so no
+  reading runs beside another. A sampling thread still alive after the bounded join raises
+  `SamplingThreadStillRunningError` instead of returning as if the window had closed; before,
+  `EnergyMonitor`'s closing reading could then race a reading still in progress.
 
 ## [0.1.16] - 2026-11-05
 

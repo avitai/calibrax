@@ -145,10 +145,9 @@ class EnergyMonitor:
             sample_interval_sec: Seconds between energy samples.
             gpu: The GPU power source; None measures the CPU only.
         """
-        self._interval = sample_interval_sec
         self._gpu = gpu
         self._samples: list[EnergySample] = []
-        self._sampling_thread = SamplingThread(target=self._sample_loop)
+        self._sampling_thread = SamplingThread(self._take_sample, interval_sec=sample_interval_sec)
 
         self._last_gpu_reading: tuple[float, float] | None = None
         self._gpu_energy_j: float | None = None
@@ -169,20 +168,14 @@ class EnergyMonitor:
         return self
 
     def __exit__(self, *args: object) -> None:
-        """Stop the sampling thread, then take the reading that closes the window.
+        """Stop sampling; the window ends with a reading.
 
-        The window ends with a reading, as zeus's ``ZeusMonitor.end_window`` reads the counters
-        it began with: without one, the energy used after the last sample, up to one sampling
-        interval, would be missing from the totals and the duration.
+        As zeus's ``ZeusMonitor.end_window`` reads the counters it began with: without the
+        closing reading, the energy used after the last sample, up to one sampling interval,
+        would be missing from the totals and the duration. ``SamplingThread`` takes it on the
+        sampling thread, after the stop signal.
         """
         self._sampling_thread.stop()
-        self._take_sample()
-
-    def _sample_loop(self) -> None:
-        """Collect energy samples until stopped."""
-        while not self._sampling_thread.stop_event.is_set():
-            self._take_sample()
-            self._sampling_thread.stop_event.wait(timeout=self._interval)
 
     def _take_sample(self) -> None:
         """Read the GPU's power and the RAPL counter, integrate them, and record a sample."""
