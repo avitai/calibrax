@@ -258,6 +258,14 @@ class _SamplingMonitor(Protocol):
     def _sampling_thread(self) -> SamplingThread: ...
 
 
+def wait_until(condition: Callable[[], bool], timeout_sec: float = 5.0) -> None:
+    """Return once ``condition`` holds, however slow the machine; fail after ``timeout_sec``."""
+    deadline = time.monotonic() + timeout_sec
+    while not condition():
+        assert time.monotonic() < deadline, f"the condition did not hold within {timeout_sec} s"
+        time.sleep(0.005)
+
+
 def assert_monitor_collects_samples_twice(
     monitor: _SamplingMonitor,
     *,

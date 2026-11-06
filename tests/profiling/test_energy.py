@@ -21,6 +21,7 @@ from tests.factories import (
     assert_monitor_thread_lifecycle,
     FakeGpu,
     make_empty_energy_summary,
+    wait_until,
 )
 
 
@@ -36,14 +37,6 @@ def _readings(*first: int, then: int) -> Callable[[], int]:
     """A RAPL counter reading ``first`` in order, then ``then`` on every later read."""
     values: Iterator[int] = iter(first)
     return lambda: next(values, then)
-
-
-def _wait_for_samples(monitor: EnergyMonitor, count: int, timeout_sec: float = 5.0) -> None:
-    """Return once the sampling thread has taken ``count`` samples, however slow the machine."""
-    deadline = time.monotonic() + timeout_sec
-    while len(monitor.samples) < count:
-        assert time.monotonic() < deadline, f"the sampling thread took no {count} samples"
-        time.sleep(0.005)
 
 
 class TestEnergySample:
@@ -152,7 +145,7 @@ class TestEnergyMonitor:
 
         mon = EnergyMonitor(sample_interval_sec=60.0)
         with mon:
-            _wait_for_samples(mon, 1)
+            wait_until(lambda: len(mon.samples) >= 1)
 
         assert mon.summary.total_cpu_energy_joules == pytest.approx(2.0)
 
@@ -160,7 +153,7 @@ class TestEnergyMonitor:
         """The block's tail after its one sample counts, in the integral and the duration."""
         mon = EnergyMonitor(sample_interval_sec=60.0, gpu=_gpu_drawing(100.0))
         with mon:
-            _wait_for_samples(mon, 1)
+            wait_until(lambda: len(mon.samples) >= 1)
             time.sleep(0.1)
 
         summary = mon.summary

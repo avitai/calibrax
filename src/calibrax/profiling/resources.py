@@ -187,10 +187,9 @@ class ResourceMonitor:
             sample_interval_sec: Seconds between resource samples.
             gpu_profiler: Optional GPU profiler for GPU metrics.
         """
-        self._interval = sample_interval_sec
         self._gpu_profiler = gpu_profiler
         self._samples: list[ResourceSample] = []
-        self._sampling_thread = SamplingThread(target=self._sample_loop)
+        self._sampling_thread = SamplingThread(self._take_sample, interval_sec=sample_interval_sec)
         self._process = psutil.Process()
 
     def __enter__(self) -> ResourceMonitor:
@@ -200,17 +199,17 @@ class ResourceMonitor:
         return self
 
     def __exit__(self, *args: object) -> None:
-        """Stop background sampling thread."""
+        """Stop sampling; the window ends with a reading, so the block's last interval counts."""
         self._sampling_thread.stop()
 
-    def _sample_loop(self) -> None:
-        """Collect samples at the configured interval until stopped."""
+    def _take_sample(self) -> None:
+        """Read the process's CPU and memory, and the GPU's, and record a sample."""
         gpu = self._gpu_profiler
-        while not self._sampling_thread.stop_event.is_set():
-            memory = gpu.memory() if gpu is not None else None
-            clocks = gpu.clocks() if gpu is not None else None
-            power = gpu.power() if gpu is not None else None
-            sample = ResourceSample(
+        memory = gpu.memory() if gpu is not None else None
+        clocks = gpu.clocks() if gpu is not None else None
+        power = gpu.power() if gpu is not None else None
+        self._samples.append(
+            ResourceSample(
                 timestamp=time.perf_counter(),
                 cpu_percent=self._process.cpu_percent(),
                 rss_mb=self._process.memory_info().rss / (1024 * 1024),
@@ -219,8 +218,7 @@ class ResourceMonitor:
                 gpu_clock_mhz=clocks.graphics_mhz if clocks is not None else None,
                 gpu_power_w=power.draw_w if power is not None else None,
             )
-            self._samples.append(sample)
-            self._sampling_thread.stop_event.wait(timeout=self._interval)
+        )
 
     @property
     def samples(self) -> list[ResourceSample]:
