@@ -37,6 +37,15 @@ and uses semantic versioning while the public API stabilizes.
   reading runs beside another. A sampling thread still alive after the bounded join raises
   `SamplingThreadStillRunningError` instead of returning as if the window had closed; before,
   `EnergyMonitor`'s closing reading could then race a reading still in progress.
+- The ranking metrics (`ndcg`, `ndcg_at_k`, `mean_average_precision`, `precision_at_k`,
+  `recall_at_k`, `mean_reciprocal_rank`, `hit_rate`) average over the orderings of tied scores,
+  so they no longer depend on the input order of tied items: before, reordering the same tied
+  items changed `ndcg` by up to 0.335. Each is its mean over every ordering of each tied group,
+  in closed form (McSherry and Najork, ECIR 2008), as scikit-learn's `ndcg_score` computes NDCG;
+  on untied scores the values are unchanged. `hit_rate` on a tied group straddling the cutoff is
+  now the chance that a relevant item reaches the top `k`, between 0 and 1. On tied scores
+  `mean_average_precision` differs from scikit-learn's `average_precision_score`, which takes one
+  operating point per tied group rather than the mean over orderings.
 
 ## [0.1.16] - 2026-11-05
 
