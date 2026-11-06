@@ -61,6 +61,17 @@ print(f"99% CI: [{interval.lower:.4f}, {interval.upper:.4f}]")
 `bootstrap_interval` takes the statistic, so an interval around a median or a ratio costs the
 same call. It resamples several arrays together when they are given together, as scipy's `paired=True` does.
 
+By default every resample is evaluated at once, so memory grows with `num_resamples` times the
+data's length. On large data, pass `batch_size` to evaluate the resamples in groups: memory then
+depends on `batch_size` times the length and no longer on `num_resamples`, and every batch size
+draws the same resamples:
+
+```python
+interval = bootstrap_interval(
+    jnp.mean, samples, key=jax.random.key(42), num_resamples=1000, batch_size=10
+)
+```
+
 ## Outlier Detection
 
 `outlier_mask` measures each observation against the median absolute deviation (MAD) rather
