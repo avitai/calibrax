@@ -12,6 +12,9 @@ import yaml
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOWS = ROOT / ".github" / "workflows"
 CAP_OVERRIDES = ("--no-cov", "-o addopts", "--override-ini")
+# The already-tested gate's condition: the one condition the test job may carry. The gate's own
+# rules are checked once for the whole stack, not by a copy in this repository.
+GATE_CONDITION = "needs.already_tested.outputs.skip != 'true'"
 
 
 def _load_workflow(path: Path) -> dict:
@@ -35,7 +38,9 @@ def coverage_cap_violations(workflow: dict, pyproject: dict) -> list[str]:
         problems.append(f"the pytest coverage floor is {caps}, not at least 80")
     if not {"push", "pull_request"} <= set(workflow["on"]):
         problems.append(f"CI runs on {sorted(workflow['on'])}, not on both push and pull_request")
-    if "if" in job:
+    # The one condition allowed is the already-tested gate: it skips a merge only when its pull
+    # request ran this job, floor included, over the same tree with every check green.
+    if job.get("if", GATE_CONDITION) != GATE_CONDITION:
         problems.append(f"the test job only runs when {job['if']}")
     problems += [
         f"the pytest command overrides the floor with {override}"
@@ -46,7 +51,11 @@ def coverage_cap_violations(workflow: dict, pyproject: dict) -> list[str]:
 
 
 def test_ci_test_job_fails_below_the_coverage_floor() -> None:
-    """The test job runs pytest with a floor of at least 80% on every push and pull request."""
+    """Every tree that reaches main passed pytest with a floor of at least 80%.
+
+    The test job runs it on every pull request, and on every push except a merge whose pull
+    request already ran it over the same tree.
+    """
     pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text())
 
     assert coverage_cap_violations(_load_workflow(WORKFLOWS / "ci.yml"), pyproject) == []

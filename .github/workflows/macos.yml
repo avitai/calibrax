@@ -1,0 +1,54 @@
+name: macOS
+
+# macOS runners are scarce and slow, so no push or pull request runs on them. This workflow runs
+# the suite and the build on macOS nightly when main has moved, and on demand: RELEASING.md runs it
+# on the release commit before the tag.
+on:
+  schedule:
+    - cron: "0 6 * * *" # 06:00 UTC
+  workflow_dispatch:
+
+concurrency:
+  # The event is part of the group, so the 06:00 night never cancels a release check in flight.
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# actions: main-moved reads this workflow's runs. pull-requests, checks and statuses: ci.yml's
+# already_tested job asks for them, and a called job holds no more than its caller grants.
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+  checks: read
+  statuses: read
+
+jobs:
+  main_moved:
+    name: Main moved since the last green night
+    runs-on: ubuntu-latest
+    outputs:
+      unchanged: ${{ steps.compare.outputs.unchanged }}
+    steps:
+      # Only a scheduled run compares; a manual run, a failed lookup or a first night always runs.
+      - id: compare
+        uses: avitai/substrax/.github/actions/main-moved@4fbb06fc389402fe1a633623bdaaff8da9f324b5
+        with:
+          workflow: macos.yml
+
+  tests:
+    name: Tests on macOS
+    needs: main_moved
+    if: needs.main_moved.outputs.unchanged != 'true'
+    uses: ./.github/workflows/ci.yml
+    with:
+      os: macos-15
+
+  # After the tests, so the nightly holds at most two macOS runners at a time; `!cancelled()` keeps
+  # the order without the gate, so a red test leg still reports the build.
+  build:
+    name: Build on macOS
+    needs: [main_moved, tests]
+    if: ${{ !cancelled() && needs.main_moved.outputs.unchanged != 'true' }}
+    uses: ./.github/workflows/build-verification.yml
+    with:
+      os: macos-15

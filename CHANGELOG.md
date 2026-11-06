@@ -7,6 +7,18 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+### Changed
+
+- macOS runs nightly rather than on every push to `main`. `macos.yml` runs the suite and the build
+  on `macos-15` at 06:00 UTC when `main` has moved since the last green night (substrax's
+  `main-moved` action), on demand, and on the release commit before its tag (`RELEASING.md`). A
+  push or pull request tests and builds on ubuntu, and CI, like Quality Checks, stands every job
+  down on a merge whose tree its pull request already tested with every check green.
+- The release checklist lands the release through its pull request, runs the macOS workflow on
+  the commit `main` then holds and fails on a red run (`gh run watch --exit-status`), and pushes
+  only the tag. The CI cost rules are checked once for the whole stack rather than by a copy here,
+  so `tests/ci/test_ci_cost_rules.py` is gone.
+
 ## [0.1.16] - 2026-11-05
 
 ### Added
