@@ -7,6 +7,8 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+## [0.1.17] - 2026-11-06
+
 ### Changed
 
 - macOS runs nightly rather than on every push to `main`. `macos.yml` runs the suite and the build
