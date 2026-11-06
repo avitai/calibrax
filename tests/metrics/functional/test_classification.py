@@ -6,11 +6,13 @@ import math
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 import pytest
-from sklearn.metrics import fbeta_score as sk_fbeta
+from sklearn.metrics import average_precision_score, fbeta_score as sk_fbeta, roc_auc_score
 
 from calibrax.metrics.functional.classification import (
     accuracy,
+    average_precision,
     balanced_accuracy,
     cohen_kappa,
     confusion_matrix,
@@ -136,6 +138,111 @@ class TestROCAUC:
         result = roc_auc(jnp.array([0.5, 0.5]), jnp.array([0, 1]))
         assert hasattr(result, "shape")
         assert result.shape == ()
+
+
+def _tied_fixtures(
+    count: int, size: int = 12, levels: int = 3
+) -> list[tuple[np.ndarray, np.ndarray]]:
+    """Scores drawn from ``levels`` distinct values, so most fixtures tie across both classes."""
+    rng = np.random.default_rng(0)
+    fixtures = []
+    while len(fixtures) < count:
+        scores = rng.integers(0, levels, size) / (levels - 1)
+        labels = rng.integers(0, 2, size)
+        if labels.min() != labels.max():
+            fixtures.append((scores.astype(np.float32), labels.astype(np.int32)))
+    return fixtures
+
+
+TIED = _tied_fixtures(200)
+_UNIT_ROUNDOFF = float(np.finfo(np.float32).eps) / 2
+
+
+def _summation_bound(size: int) -> float:
+    """The float32 error bound on either metric of ``size`` records, derived, not measured.
+
+    Every count is an exact integer in float32 and each per-record term is one correctly rounded
+    division, so the only other error is one sum of at most ``size`` terms in [0, 1] and one final
+    division. A sum of n terms in any order is within ``gamma_(n-1) * sum |x_i|`` of the exact
+    value, ``gamma_k = k u / (1 - k u)`` (Higham, Accuracy and Stability of Numerical Algorithms,
+    2nd ed., sec. 4.2), whatever order eager code or XLA under ``jit`` and ``vmap`` chooses; the
+    terms and the result are at most 1, so ``gamma_(size + 2)`` covers the term roundings and the
+    division too.
+    """
+    k = size + 2
+    return k * _UNIT_ROUNDOFF / (1 - k * _UNIT_ROUNDOFF)
+
+
+class TestRankingMetricsWithTiedScores:
+    """Tied scores form one point of the curve, as scikit-learn's thresholds do.
+
+    A score shared by a positive and a negative orders them neither way: ROC AUC counts the pair
+    half (Mann-Whitney with midranks) and average precision steps once, at the precision after
+    the whole tied run. Before, the order of tied records decided it: four tied scores gave 1.0
+    or 0.0 by label order.
+    """
+
+    def test_tied_scores_do_not_depend_on_record_order(self) -> None:
+        scores = jnp.full(4, 0.5)
+        for labels in ([1, 1, 0, 0], [0, 0, 1, 1]):
+            assert float(roc_auc(scores, jnp.array(labels))) == pytest.approx(0.5)
+            assert float(average_precision(scores, jnp.array(labels))) == pytest.approx(0.5)
+
+    @pytest.mark.parametrize("index", range(0, 200, 7))
+    def test_roc_auc_matches_scikit_learn_on_tied_scores(self, index: int) -> None:
+        scores, labels = TIED[index]
+        assert float(roc_auc(scores, labels)) == pytest.approx(
+            roc_auc_score(labels, scores), abs=_summation_bound(scores.size)
+        )
+
+    @pytest.mark.parametrize("index", range(0, 200, 7))
+    def test_average_precision_matches_scikit_learn_on_tied_scores(self, index: int) -> None:
+        scores, labels = TIED[index]
+        assert float(average_precision(scores, labels)) == pytest.approx(
+            average_precision_score(labels, scores), abs=_summation_bound(scores.size)
+        )
+
+    def test_a_permutation_of_the_records_changes_neither_metric(self) -> None:
+        rng = np.random.default_rng(1)
+        for scores, labels in TIED[:40]:
+            order = rng.permutation(scores.size)
+            assert float(roc_auc(scores[order], labels[order])) == float(roc_auc(scores, labels))
+            assert float(average_precision(scores[order], labels[order])) == float(
+                average_precision(scores, labels)
+            )
+
+    def test_one_class_has_no_roc_auc(self) -> None:
+        """ROC AUC is undefined with one class; scikit-learn returns NaN and warns."""
+        scores = jnp.array([0.2, 0.5, 0.9])
+        assert math.isnan(float(roc_auc(scores, jnp.array([1, 1, 1]))))
+        assert math.isnan(float(roc_auc(scores, jnp.array([0, 0, 0]))))
+
+    def test_average_precision_with_one_class_follows_scikit_learn(self) -> None:
+        scores = jnp.array([0.2, 0.5, 0.9])
+        assert float(average_precision(scores, jnp.array([1, 1, 1]))) == pytest.approx(1.0)
+        assert float(average_precision(scores, jnp.array([0, 0, 0]))) == pytest.approx(0.0)
+
+    @pytest.mark.parametrize(
+        ("metric", "reference"),
+        [(roc_auc, roc_auc_score), (average_precision, average_precision_score)],
+    )
+    def test_jit_and_vmap_give_the_metric(self, metric, reference) -> None:  # noqa: ANN001
+        """Compiled and batched, each metric is still the defined quantity, to the same bound."""
+        scores = np.stack([fixture[0] for fixture in TIED[:8]])
+        labels = np.stack([fixture[1] for fixture in TIED[:8]])
+        compiled = np.asarray(jax.jit(jax.vmap(metric))(scores, labels))
+        expected = np.array([reference(y, s) for s, y in zip(scores, labels, strict=True)])
+        np.testing.assert_allclose(
+            compiled, expected, rtol=0, atol=_summation_bound(scores.shape[1])
+        )
+
+    @pytest.mark.parametrize("metric", [roc_auc, average_precision])
+    def test_a_gradient_traces_and_is_zero(self, metric) -> None:  # noqa: ANN001
+        """Both are step functions of the scores: the gradient is zero, and finite (DiffBio's
+        ExactAUROC differentiates through roc_auc in its tests)."""
+        scores, labels = TIED[0]
+        grads = jax.grad(lambda s: metric(s, labels))(jnp.asarray(scores))
+        assert np.array_equal(np.asarray(grads), np.zeros_like(scores))
 
 
 class TestLogLoss:

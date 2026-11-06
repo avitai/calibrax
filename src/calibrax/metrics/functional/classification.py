@@ -11,8 +11,11 @@ cohen_kappa, balanced_accuracy, specificity, sensitivity.
 
 from __future__ import annotations
 
+import functools
+
 import jax
 import jax.numpy as jnp
+from jax import lax
 from jax.typing import ArrayLike
 
 from calibrax.metrics._utils import (
@@ -382,12 +385,51 @@ def softmax_cross_entropy(
     return reduce_values(-picked, mask=mask, weights=weights, reduction=reduction, axis=axis)
 
 
+def _tied_runs(
+    predictions: ArrayLike, targets: ArrayLike
+) -> tuple[jax.Array, jax.Array, jax.Array, jax.Array]:
+    """Each record in descending score order, with the counts where its run of tied scores ends.
+
+    A run of equal scores is one threshold, so one point of the ROC and precision-recall
+    curves, as scikit-learn's ``confusion_matrix_at_thresholds`` keeps only the last index of
+    each run (``sklearn/metrics/_ranking.py``). With static shapes the run is a segment: each
+    record gets its run's true and false positives at the run's end, and the positives inside
+    it. Counts stay integers, exact for any length JAX can index.
+
+    Args:
+        predictions: Scores for the positive class.
+        targets: Binary labels (0 or 1).
+
+    Returns:
+        The labels in descending score order, and per record the true positives and false
+        positives at the end of its run and the positives within its run.
+    """
+    scores = jnp.asarray(predictions).ravel()
+    labels = jnp.asarray(targets).astype(jnp.int32).ravel()
+    keys, ordered = lax.sort_key_val(-scores, labels)
+    size = keys.size
+    starts = jnp.concatenate([jnp.ones(min(size, 1), dtype=bool), keys[1:] != keys[:-1]])
+    run = jnp.cumsum(starts) - 1
+    run_end = functools.partial(jax.ops.segment_max, segment_ids=run, num_segments=size)
+    true_positives = run_end(jnp.cumsum(ordered))[run]
+    false_positives = run_end(jnp.cumsum(1 - ordered))[run]
+    run_positives = jax.ops.segment_sum(ordered, run, num_segments=size)[run]
+    return ordered, true_positives, false_positives, run_positives
+
+
 def roc_auc(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:
     """Area under the ROC curve (binary classification only).
 
+    The curve has one point per distinct score, so a positive and a negative with the same
+    score count as half a correctly ordered pair: the Mann-Whitney statistic with midranks,
+    scikit-learn's ``roc_auc_score``. Each negative contributes the fraction of positives
+    scored above it plus half of those tied with it; summing per negative keeps each term in
+    [0, 1], where one pair count would overflow ``int32`` at a few million records.
+
     Note:
         Direction: HIGHER (1.0 = perfect separation, 0.5 = random).
-        Range: [0, 1].
+        Range: [0, 1]. ``NaN`` when ``targets`` hold one class, where it is undefined (as
+        scikit-learn returns).
 
     Args:
         predictions: Probability scores for the positive class.
@@ -396,36 +438,24 @@ def roc_auc(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:
     Returns:
         AUC-ROC as a scalar value.
     """
-    p = jnp.asarray(predictions).ravel()
-    t = jnp.asarray(targets).astype(jnp.int32).ravel()
-
-    # Sort by descending score
-    order = jnp.argsort(-p)
-    sorted_targets = t[order]
-
-    # Compute TPR and FPR at each threshold
-    tps = jnp.cumsum(sorted_targets)
-    fps = jnp.cumsum(1 - sorted_targets)
-    total_pos = jnp.sum(t)
-    total_neg = jnp.sum(1 - t)
-
-    tpr = safe_divide(tps, total_pos)
-    fpr = safe_divide(fps, total_neg)
-
-    # Prepend origin
-    tpr = jnp.concatenate([jnp.array([0.0]), tpr])
-    fpr = jnp.concatenate([jnp.array([0.0]), fpr])
-
-    # Trapezoidal rule
-    return jnp.trapezoid(tpr, fpr)
+    ordered, true_positives, _, run_positives = _tied_runs(predictions, targets)
+    positives = jnp.sum(ordered)
+    negatives = ordered.size - positives
+    above_or_tied = (true_positives - 0.5 * run_positives) / jnp.maximum(positives, 1)
+    area = jnp.sum((1 - ordered) * above_or_tied) / jnp.maximum(negatives, 1)
+    return jnp.where((positives > 0) & (negatives > 0), area, jnp.nan)
 
 
 def average_precision(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:
     """Area under precision-recall curve.
 
+    ``AP = sum_n (R_n - R_{n-1}) P_n`` over distinct scores, scikit-learn's
+    ``average_precision_score``: recall steps once per run of tied scores, at the precision
+    after the whole run, so each positive weighs in at its run's end.
+
     Note:
         Direction: HIGHER (1.0 = perfect).
-        Range: [0, 1].
+        Range: [0, 1]. ``0.0`` when ``targets`` hold no positive, as scikit-learn returns.
 
     Args:
         predictions: Probability scores for the positive class.
@@ -434,18 +464,10 @@ def average_precision(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:
     Returns:
         Average precision as a scalar value.
     """
-    p = jnp.asarray(predictions).ravel()
-    t = jnp.asarray(targets).astype(jnp.int32).ravel()
-
-    order = jnp.argsort(-p)
-    sorted_targets = t[order]
-
-    tps = jnp.cumsum(sorted_targets)
-    total_pred = jnp.arange(1, len(sorted_targets) + 1)
-    precisions = safe_divide(tps, total_pred)
-
-    # AP = sum of precision at each recall change point
-    return jnp.sum(precisions * sorted_targets) / (jnp.sum(t) + _EPSILON)
+    ordered, true_positives, false_positives, _ = _tied_runs(predictions, targets)
+    positives = jnp.sum(ordered)
+    precision_at_run_end = true_positives / (true_positives + false_positives)
+    return jnp.sum(ordered * precision_at_run_end) / jnp.maximum(positives, 1)
 
 
 def log_loss(

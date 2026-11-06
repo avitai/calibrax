@@ -19,6 +19,18 @@ and uses semantic versioning while the public API stabilizes.
   only the tag. The CI cost rules are checked once for the whole stack rather than by a copy here,
   so `tests/ci/test_ci_cost_rules.py` is gone.
 
+### Fixed
+
+- `roc_auc` and `average_precision` give tied scores one point of their curve, as
+  scikit-learn's thresholds do, so they no longer depend on the order of tied records. Before,
+  four records scored 0.5 gave a ROC AUC of 1.0 or 0.0 depending on which label came first, and
+  on tied scores either metric could differ from scikit-learn by up to 0.5. A positive and a
+  negative with the same score now count as half a correctly ordered pair (the Mann-Whitney
+  statistic with midranks), and average precision steps once per run of tied scores. On scores
+  without ties the values are unchanged. **`roc_auc` is `NaN` when the targets hold one class**,
+  where it is undefined, as scikit-learn returns; it gave 0.0 before. Both stay jittable and
+  vmappable, and their gradient is zero, as before.
+
 ## [0.1.16] - 2026-11-05
 
 ### Added
