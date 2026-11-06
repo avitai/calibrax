@@ -133,10 +133,9 @@ def test_batching_the_resamples_stays_within_rounding(batch_size: int) -> None:
 
     Each resample's mathematical value is independent of the grouping, but XLA's reduction
     layout is not: a statistic that reduces over the data axis accumulates in an order that
-    depends on the batch shape. So this asserts a rounding bound rather than equality. An
-    earlier version of this test asserted `array_equal` on the strength of Spearman being exact
-    at 100 resamples over 50,000 rows; the statistic below is not exact at 400, which is what
-    makes the bound the honest assertion and the grouping's exactness a per-case measurement.
+    depends on the batch shape. So this asserts a rounding bound rather than equality: Spearman
+    is exact at 100 resamples over 50,000 rows, but the statistic below is not exact at 400, so
+    exactness is a per-case measurement.
     """
     data = np.random.default_rng(3).normal(size=400).astype(np.float32)
     other = (data * 0.5 + np.random.default_rng(4).normal(size=400)).astype(np.float32)
