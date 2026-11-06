@@ -112,6 +112,89 @@ def test_jit_traces_once_for_new_data_and_keys() -> None:
         compiled(jnp.arange(8.0) * 2.0, jax.random.key(1))
 
 
+@pytest.mark.parametrize(
+    ("batch_size", "traces"),
+    [
+        (None, 2),  # the point estimate and the vmapped resample
+        (8, 2),  # the point estimate and one group, which `jax.lax.map` traces once
+        (7, 3),  # 32 resamples leave a remainder of 4, which `jax.lax.map` traces separately
+    ],
+)
+def test_a_bootstrap_traces_once_under_jit_and_matches_eager(
+    batch_size: int | None, traces: int
+) -> None:
+    """Each path compiles once, and the compiled program computes what eager execution does.
+
+    Grouping adds no trace per group or per call: the group body traces once (and the remainder
+    once more), and new data or a new key reuse the compiled program. The data are small
+    integers, so every sum is exact in any order of accumulation: jit and eager compile
+    different programs, and on float data their reductions differ in the last bits by backend
+    and grouping (on GPU even with no remainder), which says nothing about the draw.
+    """
+    counter = TraceCounter()
+    counted_mean = counter.wrap(_mean)
+    compiled = jax.jit(
+        lambda data, key: bootstrap_interval(
+            counted_mean, data, key=key, num_resamples=32, batch_size=batch_size
+        )
+    )
+    data = jnp.asarray(np.random.default_rng(0).integers(0, 10, size=400).astype(np.float32))
+
+    with counter.expect(new_traces=traces):
+        jitted = compiled(data, jax.random.key(0))
+    with counter.expect(new_traces=0):
+        compiled(data * 2.0, jax.random.key(1))
+
+    eager = bootstrap_interval(
+        _mean, data, key=jax.random.key(0), num_resamples=32, batch_size=batch_size
+    )
+    assert jnp.array_equal(jitted.samples, eager.samples)
+    assert float(jitted.value) == float(eager.value)
+
+
+@pytest.mark.parametrize("batch_size", [None, 1, 3, 7, 32, 1000])
+def test_every_batch_size_draws_the_same_resamples(batch_size: int | None) -> None:
+    """A resample's indices depend only on its own key, never on how resamples are grouped.
+
+    The statistic sums integers, which is exact in any order, so any difference is the draw.
+    """
+    data = jnp.arange(1000, dtype=jnp.int32)
+    shared = {"key": jax.random.key(11), "num_resamples": 32}
+
+    reference = bootstrap_interval(jnp.sum, data, **shared).samples
+    grouped = bootstrap_interval(jnp.sum, data, **shared, batch_size=batch_size).samples
+
+    assert jnp.array_equal(grouped, reference)
+
+
+def test_a_batched_bootstraps_memory_does_not_grow_with_the_resample_count() -> None:
+    """With `batch_size`, ten times the resamples costs less than one resample's indices more.
+
+    XLA's own accounting of the compiled program's temporary buffers, so it reads the same on any
+    machine. Drawing every resample's indices up front makes this grow by about four index
+    vectors per extra resample; drawing each from its own key inside the group grows only by the
+    keys and the per-resample results.
+    """
+    length = 100_000
+    data = jax.ShapeDtypeStruct((length,), jnp.float32)
+    key = jax.eval_shape(lambda: jax.random.key(0))
+
+    def temporary_bytes(num_resamples: int) -> int:
+        def samples(x: jax.Array, k: jax.Array) -> jax.Array:
+            interval = bootstrap_interval(
+                _mean, x, key=k, num_resamples=num_resamples, batch_size=10
+            )
+            return interval.samples
+
+        analysis = jax.jit(samples).lower(data, key).compile().memory_analysis()
+        assert analysis is not None, "this backend gives no compiled memory analysis to measure"
+        return analysis.temp_size_in_bytes
+
+    one_index_vector = length * jnp.dtype(jnp.int32).itemsize
+
+    assert temporary_bytes(1000) - temporary_bytes(100) < one_index_vector
+
+
 def _spread(a: jax.Array, b: jax.Array) -> jax.Array:
     """A paired statistic with a reduction in it, so batching could plausibly shift a bit."""
     centred = a - jnp.mean(a)
@@ -119,9 +202,10 @@ def _spread(a: jax.Array, b: jax.Array) -> jax.Array:
 
 
 #: How far a grouped resample may sit from the ungrouped one, in ULP at the samples' scale.
-#: Derived from measurement rather than fitted to a failure: on CPU at 32 resamples over 400
-#: rows the mean-centred dot product below moved 3 ULP and Spearman 1.5, so this sits a little
-#: over twice the worst observed. It is a *rounding* bound -- the grouping changes the order a
+#: Derived from measurement rather than fitted to a failure: at 32 resamples over 400 to 50,000
+#: rows, on CPU and on an RTX 4090, the mean-centred dot product below moved at most 3 ULP and
+#: a mean at most 1.6, so this sits a little over twice the worst observed. It is a *rounding*
+#: bound -- the grouping changes the order a
 #: reduction accumulates in, nothing else -- and a batch that reordered or dropped a resample
 #: would exceed it by orders of magnitude.
 _GROUPING_ULP_BOUND = 8
@@ -182,6 +266,15 @@ def test_a_batch_size_above_the_resample_count_is_exact() -> None:
         assert jnp.array_equal(
             bootstrap_interval(statistic, *arrays, **shared, batch_size=1000).samples,
             bootstrap_interval(statistic, *arrays, **shared).samples,
+        )
+
+
+@pytest.mark.parametrize("num_resamples", [0, -1])
+def test_a_resample_count_below_one_is_refused(num_resamples: int) -> None:
+    """No resample would leave no distribution to take an interval from."""
+    with pytest.raises(ValueError, match="num_resamples must be at least 1"):
+        bootstrap_interval(
+            _mean, jnp.arange(8.0), key=jax.random.key(0), num_resamples=num_resamples
         )
 
 

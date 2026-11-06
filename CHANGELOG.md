@@ -7,6 +7,26 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+### Added
+
+- `bootstrap_interval` takes `batch_size`, which evaluates the resamples in groups through
+  `jax.lax.map`, so memory scales with `batch_size` times the data's length rather than with
+  `num_resamples`. For a Spearman correlation over 2,778,200 rows, XLA's compiled memory analysis
+  gives 1.64 GB of temporaries at `batch_size=10` whether there are 100, 1,000 or 10,000
+  resamples, against 16.1 GB and 161 GB for the default at 100 and 1,000. `None`, the default,
+  still evaluates every resample in one `jax.vmap`. Grouping moves a reduction's last bits by a
+  few ULP (measured at most 3 on CPU and on an RTX 4090), so figures pinned exactly should be
+  re-measured before adopting it.
+
+### Changed
+
+- `bootstrap_interval` draws each resample's indices from its own key: the key is split once
+  per resample and each draws an int32 `randint` inside the mapped function, the design of
+  jaxgsa's `resample_keys` and `draw_rows`. No `num_resamples` by length index array is built,
+  and every batch size draws the same resamples. **The same key now gives different resamples
+  than 0.1.15 did**, so intervals and samples computed from a fixed key change by Monte Carlo
+  noise; figures pinned against 0.1.15 need regenerating.
+
 ## [0.1.15] - 2026-11-04
 
 ### Added
