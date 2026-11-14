@@ -53,7 +53,7 @@ jobs:
           uv run --no-sync twine check --strict dist/*
 
       - name: Pyright
-        run: uv run --no-sync pyright --warnings src/ tests/
+        run: uv run --no-sync pyright --warnings src/ tests/ examples/
 
       - name: Install in clean venv and verify import
         run: |

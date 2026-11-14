@@ -1,6 +1,6 @@
 # Metric Learning Losses
 
-> Ran in 5.2 s on 1 cpu (python 3.12.14, jax 0.11.1, substrax 0.1.27, calibrax 0.1.17), from [`examples/metrics/metric_learning.py`](https://github.com/avitai/calibrax/blob/main/examples/metrics/metric_learning.py) ([notebook](https://github.com/avitai/calibrax/blob/main/examples/metrics/metric_learning.ipynb)). Run it from the repository root:
+> Ran in 10.0 s on 1 cpu (python 3.12.14, jax 0.11.1, substrax 0.1.27, calibrax 0.1.17), from [`examples/metrics/metric_learning.py`](https://github.com/avitai/calibrax/blob/main/examples/metrics/metric_learning.py) ([notebook](https://github.com/avitai/calibrax/blob/main/examples/metrics/metric_learning.ipynb)). Run it from the repository root:
 
 ```bash
 source ./activate.sh
@@ -220,6 +220,7 @@ def gradient_norms(embeddings: jax.Array) -> dict[str, float]:
     }
 
     def arcface_of(model: ArcFaceLoss, batch: jax.Array) -> jax.Array:
+        """ArcFace's loss on ``batch``, a function of the model so ``nnx.grad`` can split it."""
         return model(batch, LABELS)
 
     arcface_grad = nnx.grad(arcface_of, argnums=1)(arcface_loss(), embeddings)
@@ -411,4 +412,4 @@ if __name__ == "__main__":
 - [Learning API reference](../../api-reference/metrics/learning.md): every loss and miner's
   signature
 
-<!-- substrax-notebooks: {"page": {"body": "12c42c4cd1a3260a6afe46daa513cde91e0740618f960f158929af1c02b365e9", "figures": {}, "record": "733ce40d09c5588ee6778eeaf8614adaba8c60d7c37a0f216d93a20aff9aefdb"}, "provenance": {"device": "1 cpu", "outputs": [[], [], [], [], [], [], [], [], [], ["text"]], "seconds": 5.2, "sha256": "2c35a446a58b7be10fc6ff5bfdde4d3d71b3123560bfdd4be2d180b7f73a6162", "source": "examples/metrics/metric_learning.py", "versions": {"calibrax": "0.1.17", "jax": "0.11.1", "python": "3.12.14", "substrax": "0.1.27"}}} -->
+<!-- substrax-notebooks: {"page": {"body": "76240b1e66eb4b8108350210feb2f61a608617f281ff0474cc46ac554dabed5f", "figures": {}, "record": "e8dba47de31e6bdc601498efbe2e1cb9c5d887499ff7dd5460517674a3371d55"}, "provenance": {"device": "1 cpu", "outputs": [[], [], [], [], [], [], [], [], [], ["text"]], "seconds": 10.0, "sha256": "07ef26e3066b41626d54c1ecafaef5fab8875450cd95377a05a239918b3b192d", "source": "examples/metrics/metric_learning.py", "versions": {"calibrax": "0.1.17", "jax": "0.11.1", "python": "3.12.14", "substrax": "0.1.27"}}} -->

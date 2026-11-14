@@ -45,8 +45,8 @@ jobs:
       - name: Bandit
         if: ${{ !cancelled() }}
         run: |
-          uv run bandit -r src/calibrax/ -c pyproject.toml -ll
-          uv run bandit -r src/calibrax/ -c pyproject.toml -f json -o bandit-report.json -q
+          uv run bandit -r src/calibrax/ examples/ -c pyproject.toml -ll
+          uv run bandit -r src/calibrax/ examples/ -c pyproject.toml -f json -o bandit-report.json -q
 
       - name: Upload Bandit report
         if: always()

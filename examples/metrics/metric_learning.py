@@ -232,6 +232,7 @@ def gradient_norms(embeddings: jax.Array) -> dict[str, float]:
     }
 
     def arcface_of(model: ArcFaceLoss, batch: jax.Array) -> jax.Array:
+        """ArcFace's loss on ``batch``, a function of the model so ``nnx.grad`` can split it."""
         return model(batch, LABELS)
 
     arcface_grad = nnx.grad(arcface_of, argnums=1)(arcface_loss(), embeddings)
