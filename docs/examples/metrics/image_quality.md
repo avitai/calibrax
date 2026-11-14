@@ -1,6 +1,6 @@
 # Image Quality and Text Evaluation Metrics
 
-> Ran in 4.4 s on 1 cpu (python 3.12.14, jax 0.11.1, substrax 0.1.27, calibrax 0.1.17), from [`examples/metrics/image_quality.py`](https://github.com/avitai/calibrax/blob/main/examples/metrics/image_quality.py) ([notebook](https://github.com/avitai/calibrax/blob/main/examples/metrics/image_quality.ipynb)). Run it from the repository root:
+> Ran in 4.5 s on 1 cpu (python 3.12.14, jax 0.11.1, substrax 0.1.27, calibrax 0.1.17), from [`examples/metrics/image_quality.py`](https://github.com/avitai/calibrax/blob/main/examples/metrics/image_quality.py) ([notebook](https://github.com/avitai/calibrax/blob/main/examples/metrics/image_quality.ipynb)). Run it from the repository root:
 
 ```bash
 source ./activate.sh
@@ -370,7 +370,7 @@ if __name__ == "__main__":
 
 ## Next Steps
 
-- [Metric learning losses](metric-learning.md): contrastive, triplet, NTXent and ArcFace losses
+- [Metric learning losses](metric_learning.md): contrastive, triplet, NTXent and ArcFace losses
   for training embeddings
 - [Metric composition](composition.md): combine quality metrics with gates and tracking
 - [Stateful metrics guide](../../user-guide/stateful-metrics.md): FID and Inception Score on
@@ -378,4 +378,4 @@ if __name__ == "__main__":
 - [Image API reference](../../api-reference/metrics/image.md): every image metric's signature
 - [Text API reference](../../api-reference/metrics/text.md): every text metric's signature
 
-<!-- substrax-notebooks: {"page": {"body": "2c3373a6a7bbb6c206b372a869ba0e434e836e7291c09b81502268758ca71ecd", "figures": {}, "record": "10ae414e96e24f94e11fd780982ce959b68a80eec19c09eee1dd0517fa705927"}, "provenance": {"device": "1 cpu", "outputs": [[], [], [], [], [], [], [], [], ["text"]], "seconds": 4.4, "sha256": "542616042d57d96af53ce52987a20316c5683b83b2babb941b4f7533231a34be", "source": "examples/metrics/image_quality.py", "versions": {"calibrax": "0.1.17", "jax": "0.11.1", "python": "3.12.14", "substrax": "0.1.27"}}} -->
+<!-- substrax-notebooks: {"page": {"body": "9a1d43fda022e44e16abc94574e3a1d643c8d5ca6d741277af9a5ade678b30af", "figures": {}, "record": "b561e7b4ab43c434d74c13a800ea0c71b3ae4dc230418b7d5696349f7f3e5410"}, "provenance": {"device": "1 cpu", "outputs": [[], [], [], [], [], [], [], [], ["text"]], "seconds": 4.5, "sha256": "009eb3d7eeda5e01eb6e6a03e1778fd335a80c9f15084574ebdf7b521496f891", "source": "examples/metrics/image_quality.py", "versions": {"calibrax": "0.1.17", "jax": "0.11.1", "python": "3.12.14", "substrax": "0.1.27"}}} -->

@@ -307,7 +307,7 @@ if __name__ == "__main__":
 ## Next Steps
 
 - [Image quality and text metrics](image_quality.md): PSNR, SSIM, MS-SSIM, BLEU and ROUGE
-- [Metric learning losses](metric-learning.md): contrastive, triplet, NTXent and ArcFace losses
+- [Metric learning losses](metric_learning.md): contrastive, triplet, NTXent and ArcFace losses
 - [Metrics API reference](../../api-reference/metrics/index.md): the composition API
 
-<!-- substrax-notebooks: {"page": {"body": "81df10072d420018fa619fccdc72f350a56868f2f1a55947a7edd8794030aa5e", "figures": {}, "record": "0dd792734f6ac2fd8e3b14b492382b5e373f64417dd6d90ad6006351ef2d504d"}, "provenance": {"device": "1 cpu", "outputs": [[], [], [], [], [], [], [], ["text"]], "seconds": 2.4, "sha256": "03786f09cefee80fc05fe4ac8bb9daa14ec51930170b05b0cefed4a1f40647a3", "source": "examples/metrics/composition.py", "versions": {"calibrax": "0.1.17", "jax": "0.11.1", "python": "3.12.14", "substrax": "0.1.27"}}} -->
+<!-- substrax-notebooks: {"page": {"body": "9f06c6238bc71f9bb0ab6d03f40de4ea561bc1dced930f61e12b0550ef6104c5", "figures": {}, "record": "d6215649bd041606f5e509718430d98ee0a15e53c644b6d708957726cf08d079"}, "provenance": {"device": "1 cpu", "outputs": [[], [], [], [], [], [], [], ["text"]], "seconds": 2.4, "sha256": "27acebcbef5ef4c3f9e842ca4aa39aa57d502ff18b345d396aef993d4957abe1", "source": "examples/metrics/composition.py", "versions": {"calibrax": "0.1.17", "jax": "0.11.1", "python": "3.12.14", "substrax": "0.1.27"}}} -->
