@@ -52,6 +52,10 @@ and uses semantic versioning while the public API stabilizes.
   interrogate and pydoclint check `examples/` in pre-commit and in the CI, Quality Checks, Build
   Verification and Security workflows. coverage's omit drops `examples`, which `source = ["src"]`
   never reached.
+- A commit checks each changed example against the shared guide's source rules (substrax's
+  `example-conformance` hook at v0.1.27), and CI runs the examples through substrax's reusable
+  `examples` workflow: on a pull request the ones the change reaches, on a push to main and on
+  macos.yml's nightly call every one.
 
 ### Removed
 

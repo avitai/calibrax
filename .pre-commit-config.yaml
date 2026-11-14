@@ -138,6 +138,13 @@ repos:
         pass_filenames: false
         files: ^(src/calibrax|examples)/.*\.py$
 
+  # Each changed example against the shared guide's source rules, at the substrax release the
+  # lock pins (substrax's Writing examples guide, Checks).
+  - repo: https://github.com/avitai/substrax
+    rev: v0.1.27
+    hooks:
+      - id: example-conformance
+
   # Shell script linting
   - repo: https://github.com/shellcheck-py/shellcheck-py
     rev: v0.10.0.1
