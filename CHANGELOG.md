@@ -30,7 +30,8 @@ and uses semantic versioning while the public API stabilizes.
 - The Modal `examples` job runs each example as its notebook (`examples_mode = "test"`), installs
   the `test` extra beside `cuda12`, and names its per-example limit `command_timeout_seconds`, as
   substrax 0.1.27 requires. `[tool.substrax.examples]` sets each example's budget to 60 s, Bazel's
-  "short" test timeout, from runs of 2.4 to 5.3 s on one CPU.
+  "short" test timeout; the examples, as the shared guide shapes them, run in 1.9 to 5.5 s on one
+  CPU.
 - An example's notebook is written by `substrax-notebooks convert` alone: ruff skips
   `examples/**/*.ipynb` even when a hook names one (`force-exclude`), the nbQA hook, which only
   ever reached those notebooks, is gone, and `trailing-whitespace` leaves `docs/examples` to the
