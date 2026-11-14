@@ -212,6 +212,7 @@ nav:
           - Scientific: api-reference/metrics/scientific.md
       - CI: api-reference/ci.md
   - Examples:
+      - Overview: examples.md
       - Metrics:
           - Quickstart: examples/metrics/quickstart.md
           - Regression Metrics: examples/metrics/regression_deep_dive.md

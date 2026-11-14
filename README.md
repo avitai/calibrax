@@ -144,18 +144,9 @@ src/calibrax/
 
 ## Examples
 
-Runnable examples are in `examples/metrics/`, available as both Python scripts and Jupyter notebooks:
-
-| Example | Level | Topics |
-|---------|-------|--------|
-| [quickstart.py](examples/metrics/quickstart.py) | Beginner | Individual metrics, `calculate_all`, registry queries |
-| [regression_deep_dive.py](examples/metrics/regression_deep_dive.py) | Beginner | Same-shape regression metrics, outlier sensitivity |
-| [classification.py](examples/metrics/classification.py) | Intermediate | Classification, calibration, segmentation |
-| [distances.py](examples/metrics/distances.py) | Intermediate | Euclidean, hyperbolic, divergences, information theory |
-| [composition.py](examples/metrics/composition.py) | Intermediate | Collections, weighted metrics, quality gates, tracking |
-| [image_quality.py](examples/metrics/image_quality.py) | Intermediate | PSNR, SSIM, MS-SSIM, BLEU, ROUGE |
-| [metric_learning.py](examples/metrics/metric_learning.py) | Advanced | Contrastive, triplet, NTXent, ArcFace, mining |
-| [manifold_graph.py](examples/metrics/manifold_graph.py) | Advanced | SPD, Grassmann, spectral distance, Floyd-Warshall |
+Eight runnable examples live in `examples/metrics/`, each a Python script with its notebook beside
+it. [docs/examples.md](docs/examples.md) lists them by tier, with what each covers and how to run
+it.
 
 ## Contributing
 
