@@ -281,20 +281,135 @@ class TestUltrahyperbolicDistance:
     """Tests for ultrahyperbolic_distance."""
 
     def test_lorentz_special_case(self) -> None:
-        """signature=(1, n) matches lorentz_distance."""
-
+        """signature=(1, n) is lorentz_distance, the same haversine computation."""
         # Points on the hyperboloid: -x0^2 + x1^2 + x2^2 = -1
         a = jnp.array([jnp.sqrt(2.0), 1.0, 0.0])
         b = jnp.array([jnp.sqrt(5.0), 2.0, 0.0])
-        d_ultra = ultrahyperbolic_distance(a, b, signature=(1, 2))
-        d_lorentz = lorentz_distance(a, b)
-        assert d_ultra == pytest.approx(d_lorentz, abs=1e-3)
+        assert float(ultrahyperbolic_distance(a, b, signature=(1, 2))) == float(
+            lorentz_distance(a, b)
+        )
 
-    def test_identical_points(self) -> None:
-        """Distance between identical points is ~0."""
-        a = jnp.array([jnp.sqrt(2.0), 1.0, 0.0])
-        result = ultrahyperbolic_distance(a, a, signature=(1, 2))
-        assert result == pytest.approx(0.0, abs=1e-3)
+    @pytest.mark.parametrize(
+        ("point", "signature"),
+        [
+            ([2.0**0.5, 1.0, 0.0], (1, 2)),
+            ([1.0, 0.0, 0.0, 0.0], (2, 2)),
+            ([2.0**0.5, 2.0**0.5, 1.0, 1.0, 0.5], (3, 2)),
+        ],
+    )
+    def test_identical_points_are_exactly_zero_with_a_zero_gradient(
+        self, point: list[float], signature: tuple[int, int]
+    ) -> None:
+        """One point given as both arguments: distance 0 and gradient 0, with no floor."""
+        a = jnp.asarray(point, dtype=jnp.float32)
+        assert float(ultrahyperbolic_distance(a, a, signature=signature)) == 0.0
+        gradient = jax.grad(lambda x: ultrahyperbolic_distance(x, x, signature=signature))(a)
+        assert np.all(np.asarray(gradient) == 0.0)
+
+    @pytest.mark.parametrize("angle", [0.3, 1.0, 2.5])
+    def test_a_timelike_pair_is_at_the_angle_between_them(self, angle: float) -> None:
+        """On (2, 2), (1, 0, 0, 0) and (cos t, sin t, 0, 0) have u = cos t, so d = t (Bengtsson eq. 20).
+
+        The tolerance is a few float32 roundings of the half-angle ``atan2`` form, 10 eps relative.
+        """
+        a = jnp.array([1.0, 0.0, 0.0, 0.0])
+        b = jnp.array([np.cos(angle), np.sin(angle), 0.0, 0.0], dtype=jnp.float32)
+        result = float(ultrahyperbolic_distance(a, b, signature=(2, 2)))
+        assert result == pytest.approx(angle, rel=10 * float(jnp.finfo(jnp.float32).eps))
+
+    @pytest.mark.parametrize("rapidity", [0.5, 1.5])
+    def test_a_spacelike_pair_is_at_the_hyperbolic_angle_between_them(
+        self, rapidity: float
+    ) -> None:
+        """On (2, 2), (1, 0, 0, 0) and (cosh s, 0, sinh s, 0) have u = cosh s, so d = s (eq. 19)."""
+        a = jnp.array([1.0, 0.0, 0.0, 0.0])
+        b = jnp.array([np.cosh(rapidity), 0.0, np.sinh(rapidity), 0.0], dtype=jnp.float32)
+        result = float(ultrahyperbolic_distance(a, b, signature=(2, 2)))
+        assert result == pytest.approx(rapidity, rel=10 * float(jnp.finfo(jnp.float32).eps))
+
+    @pytest.mark.parametrize("rapidity", [0.5, 1.5])
+    def test_a_disconnected_pair_is_at_the_broken_geodesic_length(self, rapidity: float) -> None:
+        """(1, 0, 0, 0) and (-cosh s, 0, sinh s, 0) have u = -cosh s < -1: no geodesic joins them.
+
+        The default is the broken geodesic through -x (Law & Stam 2020, p. 5; QGCN): its first leg,
+        x to -x, has length pi, and -x and y are spacelike at distance s. With
+        ``disconnected="nan"`` the undefined distance is NaN.
+        """
+        a = jnp.array([1.0, 0.0, 0.0, 0.0])
+        b = jnp.array([-np.cosh(rapidity), 0.0, np.sinh(rapidity), 0.0], dtype=jnp.float32)
+        broken = float(ultrahyperbolic_distance(a, b, signature=(2, 2)))
+        assert broken == pytest.approx(np.pi + rapidity, rel=10 * float(jnp.finfo(jnp.float32).eps))
+        assert np.isnan(float(ultrahyperbolic_distance(a, b, signature=(2, 2), disconnected="nan")))
+
+    @pytest.mark.parametrize("rapidity", [0.5, 1.5])
+    def test_the_two_sheets_of_the_hyperboloid(self, rapidity: float) -> None:
+        """At (1, 2), points on opposite sheets have no geodesic; a pair on the lower sheet does.
+
+        (1, 0, 0) and (-cosh s, sinh s, 0) sit on opposite sheets: the broken geodesic is pi + s,
+        as -a and b share the lower sheet at distance s. Two lower-sheet points are the mirror
+        image of an upper-sheet pair, at that pair's distance.
+        """
+        eps = float(jnp.finfo(jnp.float32).eps)
+        a = jnp.array([1.0, 0.0, 0.0])
+        lower = jnp.array([-np.cosh(rapidity), np.sinh(rapidity), 0.0], dtype=jnp.float32)
+        broken = float(ultrahyperbolic_distance(a, lower, signature=(1, 2)))
+        assert broken == pytest.approx(np.pi + rapidity, rel=10 * eps)
+        assert np.isnan(
+            float(ultrahyperbolic_distance(a, lower, signature=(1, 2), disconnected="nan"))
+        )
+        mirrored = float(ultrahyperbolic_distance(-a, lower, signature=(1, 2)))
+        assert mirrored == pytest.approx(rapidity, rel=10 * eps)
+
+    def test_the_broken_geodesic_meets_the_timelike_branch_at_pi(self) -> None:
+        """At u = -1 both branches reach pi, so the default is continuous across the boundary."""
+        a = jnp.array([1.0, 0.0, 0.0, 0.0])
+        near = np.pi - 1e-3
+        just_connected = jnp.array([np.cos(near), np.sin(near), 0.0, 0.0], dtype=jnp.float32)
+        just_disconnected = jnp.array([-np.cosh(1e-3), 0.0, np.sinh(1e-3), 0.0], dtype=jnp.float32)
+        before = float(ultrahyperbolic_distance(a, just_connected, signature=(2, 2)))
+        after = float(ultrahyperbolic_distance(a, just_disconnected, signature=(2, 2)))
+        assert before == pytest.approx(np.pi - 1e-3, abs=1e-5)
+        assert after == pytest.approx(np.pi + 1e-3, abs=1e-5)
+
+    @pytest.mark.parametrize(
+        "pair",
+        [
+            ([1.0, 0.0, 0.0, 0.0], [0.6, 0.8, 0.0, 0.0]),
+            ([1.0, 0.0, 0.0, 0.0], [1.25, 0.0, 0.75, 0.0]),
+            ([1.0, 0.0, 0.0, 0.0], [-1.25, 0.0, 0.75, 0.0]),
+        ],
+        ids=["timelike", "spacelike", "disconnected"],
+    )
+    def test_gradients_are_finite_in_every_regime(
+        self, pair: tuple[list[float], list[float]]
+    ) -> None:
+        a, b = (jnp.asarray(p, dtype=jnp.float32) for p in pair)
+        gradient = jax.grad(lambda x: ultrahyperbolic_distance(x, b, signature=(2, 2)))(a)
+        assert np.all(np.isfinite(np.asarray(gradient)))
+
+    def test_jit_with_the_static_choice(self) -> None:
+        a = jnp.array([1.0, 0.0, 0.0, 0.0])
+        b = jnp.array([-1.25, 0.0, 0.75, 0.0])
+        jitted = jax.jit(ultrahyperbolic_distance, static_argnames=("signature", "disconnected"))
+        eager = float(ultrahyperbolic_distance(a, b, signature=(2, 2)))
+        assert float(jitted(a, b, signature=(2, 2))) == eager
+        assert np.isnan(float(jitted(a, b, signature=(2, 2), disconnected="nan")))
+
+    @pytest.mark.parametrize(
+        ("signature", "disconnected", "message"),
+        [
+            ((0, 4), "broken_geodesic", "timelike"),
+            ((1, 2), "broken_geodesic", "4 coordinates"),
+            ((2, 2), "clamp", "disconnected"),
+        ],
+    )
+    def test_refuses_a_signature_or_choice_it_cannot_honour(
+        self, signature: tuple[int, int], disconnected: str, message: str
+    ) -> None:
+        """(0, q) has no points (<x, x> = -1 needs a timelike coordinate); p + q is the size."""
+        a = jnp.array([1.0, 0.0, 0.0, 0.0])
+        with pytest.raises(ValueError, match=message):
+            ultrahyperbolic_distance(a, a, signature=signature, disconnected=disconnected)  # type: ignore[arg-type]
 
     def test_symmetric(self) -> None:
         """d(a, b) = d(b, a)."""

@@ -262,9 +262,15 @@ from calibrax.metrics.functional.manifold import ultrahyperbolic_distance
 x = jnp.array([1.0, 0.0, 0.0, 0.0, 0.0])  # satisfies -1-0-0+0+0 = -1
 y = jnp.array([jnp.sqrt(1.25), 0.0, 0.0, 0.5, 0.0])
 
-# Pseudo-hyperboloid with p positive and q negative dimensions
+# p = 3 timelike coordinates first, then q = 2 spacelike ones
 d = ultrahyperbolic_distance(x, y, signature=(3, 2))
 ```
+
+The distance is the geodesic one where a geodesic joins the points: `arccosh(u)` for
+`u = -<x, y> >= 1` and `arccos(u)` for `-1 <= u < 1`. For `u < -1` none does, as a
+pseudo-hyperboloid with `p >= 2` is geodesically disconnected; there it returns the
+broken-geodesic length `pi + d(-x, y)` by default, finite and continuous for training, or
+NaN with `disconnected="nan"`.
 
 ## Graph Distances
 

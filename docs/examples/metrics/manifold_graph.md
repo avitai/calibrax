@@ -1,6 +1,6 @@
 # Manifold and Graph Metrics
 
-> Ran in 3.2 s on 1 cpu (python 3.12.14, jax 0.11.1, substrax 0.1.27, calibrax 0.1.17), from [`examples/metrics/manifold_graph.py`](https://github.com/avitai/calibrax/blob/main/examples/metrics/manifold_graph.py) ([notebook](https://github.com/avitai/calibrax/blob/main/examples/metrics/manifold_graph.ipynb)). Run it from the repository root:
+> Ran in 3.7 s on 1 cpu (python 3.12.14, jax 0.11.1, substrax 0.1.27, calibrax 0.1.17), from [`examples/metrics/manifold_graph.py`](https://github.com/avitai/calibrax/blob/main/examples/metrics/manifold_graph.py) ([notebook](https://github.com/avitai/calibrax/blob/main/examples/metrics/manifold_graph.ipynb)). Run it from the repository root:
 
 ```bash
 source ./activate.sh
@@ -197,7 +197,9 @@ def grassmann_distances() -> dict[str, float]:
 ### Step 5: Compute ultrahyperbolic distances
 
 Points on the `(1, 2)` hyperboloid satisfy `-t^2 + x^2 + y^2 = -1`; points on the `(2, 2)`
-pseudo-hyperboloid satisfy `-t1^2 - t2^2 + x1^2 + x2^2 = -1`, here with `t1 = t2`.
+pseudo-hyperboloid satisfy `-t1^2 - t2^2 + x1^2 + x2^2 = -1`, here with `t1 = t2`. On the
+`(2, 2)` manifold no geodesic joins a point to `-q2`: the default returns the broken-geodesic length
+`pi + d(-origin, -q2)` there, and `disconnected="nan"` returns NaN.
 
 
 ```python
@@ -249,6 +251,12 @@ def ultrahyperbolic_distances() -> dict[str, float]:
         ),
         "(2, 2) d(origin, q1)": float(ultrahyperbolic_distance(origin_22, q1, signature=(2, 2))),
         "(2, 2) d(origin, q2)": float(ultrahyperbolic_distance(origin_22, q2, signature=(2, 2))),
+        "(2, 2) d(origin, -q2), broken": float(
+            ultrahyperbolic_distance(origin_22, -q2, signature=(2, 2))
+        ),
+        "(2, 2) d(origin, -q2), nan": float(
+            ultrahyperbolic_distance(origin_22, -q2, signature=(2, 2), disconnected="nan")
+        ),
     }
 ```
 
@@ -266,8 +274,9 @@ The two SPD distances agree on the pairs that include the identity and differ on
 pair; after the congruence the affine-invariant distance is unchanged and the log-Euclidean one
 is not. The Grassmann distance is 0 for the same plane in a rotated basis, as it depends only on
 the subspace, `pi / 6` for the tilt of 30 degrees, and `sqrt(2) * pi / 2` for the complement,
-whose two principal angles are both a right angle. The distance from an ultrahyperbolic point to
-itself prints as 0.0001 rather than 0.
+whose two principal angles are both a right angle. Each ultrahyperbolic point is at 0 from
+itself; `-q2` is `pi` further from the origin than `q2` is, by the broken geodesic through
+`-origin`, and NaN when the undefined distance is asked for.
 
 
 ```python
@@ -301,7 +310,7 @@ def main() -> dict[str, float]:
     spd = spd_distances()
     print("=== SPD Matrix Distances (affine-invariant, log-Euclidean) ===")
     for name, (affine, log_euclidean) in spd.items():
-        print(f"  {name:26s} {affine:.6f}  {log_euclidean:.6f}")
+        print(f"  {name:30s} {affine:.6f}  {log_euclidean:.6f}")
     tables = {
         "Grassmann Subspace Distances": grassmann_distances(),
         "Ultrahyperbolic Distances": ultrahyperbolic_distances(),
@@ -309,7 +318,7 @@ def main() -> dict[str, float]:
     for title, values in tables.items():
         print(f"=== {title} ===")
         for name, value in values.items():
-            print(f"  {name:26s} {value:.6f}")
+            print(f"  {name:30s} {value:.6f}")
     return {
         **spectral,
         "path resistance d(0, 3)": graphs["Path"]["resistance"][0][3],
@@ -350,23 +359,25 @@ if __name__ == "__main__":
         node 2: [1.0, 0.75, 0.0, 0.75]
         node 3: [0.75, 1.0, 0.75, 0.0]
     === SPD Matrix Distances (affine-invariant, log-Euclidean) ===
-      d(I, I)                    0.000000  0.000000
-      d(I, 4*I)                  2.401132  2.401132
-      d(I, aniso)                1.373887  1.373887
-      d(aniso, other)            1.997191  1.988113
-      d(M aniso M', M other M')  1.997191  1.534569
+      d(I, I)                        0.000000  0.000000
+      d(I, 4*I)                      2.401132  2.401132
+      d(I, aniso)                    1.373887  1.373887
+      d(aniso, other)                1.997191  1.988113
+      d(M aniso M', M other M')      1.997191  1.534569
     === Grassmann Subspace Distances ===
-      d(U1, U1)                  0.000000
-      d(U1, U2), same plane      0.000000
-      d(U1, U3), tilted          0.523599
-      d(U1, U4), complement      2.221442
+      d(U1, U1)                      0.000000
+      d(U1, U2), same plane          0.000000
+      d(U1, U3), tilted              0.523599
+      d(U1, U4), complement          2.221442
     === Ultrahyperbolic Distances ===
-      (1, 2) d(origin, origin)   0.000100
-      (1, 2) d(origin, p1)       0.554275
-      (1, 2) d(origin, p2)       0.881374
-      (2, 2) d(origin, origin)   0.000100
-      (2, 2) d(origin, q1)       0.481212
-      (2, 2) d(origin, q2)       0.881374
+      (1, 2) d(origin, origin)       0.000000
+      (1, 2) d(origin, p1)           0.554275
+      (1, 2) d(origin, p2)           0.881373
+      (2, 2) d(origin, origin)       0.000000
+      (2, 2) d(origin, q1)           0.481212
+      (2, 2) d(origin, q2)           0.881373
+      (2, 2) d(origin, -q2), broken  4.022966
+      (2, 2) d(origin, -q2), nan     nan
 
 
 ## Next Steps
@@ -378,4 +389,4 @@ if __name__ == "__main__":
 - [Manifold API reference](../../api-reference/metrics/manifold.md): every manifold metric's
   signature
 
-<!-- substrax-notebooks: {"page": {"body": "5247564f56b18c0eabeaa936f6e3397af07244c4de7b0d10c7bfe08989e4d49a", "figures": {}, "record": "4d40f1bb77b2df222f9590301c0f57a5d9e3e303c95c777b366e291247ef88a0"}, "provenance": {"device": "1 cpu", "outputs": [[], [], [], [], [], [], ["text"]], "seconds": 3.2, "sha256": "ec590fca6dd7b9788cddcf0e1a7aad2789c8ca4949e2785c531f039822e08082", "source": "examples/metrics/manifold_graph.py", "versions": {"calibrax": "0.1.17", "jax": "0.11.1", "python": "3.12.14", "substrax": "0.1.27"}}} -->
+<!-- substrax-notebooks: {"page": {"body": "bb73dce7cdb3065bc8df06a6c910e2e7cf66041da9bc89998912fa282c0e35a1", "figures": {}, "record": "d05c907c89a6e37071eb1be867657b54737d89ba6a05d9fdf86e908aff7b1a8f"}, "provenance": {"device": "1 cpu", "outputs": [[], [], [], [], [], [], ["text"]], "seconds": 3.7, "sha256": "5467afcb349149c71d1ade9724e3e4e92bef3e4d27d06bc713f270b29210ec2f", "source": "examples/metrics/manifold_graph.py", "versions": {"calibrax": "0.1.17", "jax": "0.11.1", "python": "3.12.14", "substrax": "0.1.27"}}} -->
