@@ -311,7 +311,7 @@ if __name__ == "__main__":
 
 - [Metric composition](composition.md): combine metrics into collections, suites and quality
   gates
-- [Manifold and graph metrics](advanced-manifold.md): SPD, Grassmann and graph-theoretic
+- [Manifold and graph metrics](manifold_graph.md): SPD, Grassmann and graph-theoretic
   distances
 - [Distance API reference](../../api-reference/metrics/distance.md): every distance function's
   signature
