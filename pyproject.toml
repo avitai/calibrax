@@ -40,7 +40,7 @@ dependencies = [
   "pydantic>=2.10",
   # Significance tests and the chi-squared interval use SciPy, which JAX itself requires.
   "scipy>=1.15",
-  "substrax>=0.1.25"
+  "substrax>=0.1.27"
 ]
 description = "JAX benchmarking, profiling and evaluation metrics for Flax NNX: a metric registry across regression, classification, calibration, uncertainty, forecasting, generative, image, text, audio, graph and fairness domains, XLA FLOP counting, roofline analysis, GPU and energy monitoring, regression detection, publication exports, W&B and MLflow"
 dynamic = ["version"]
@@ -108,8 +108,6 @@ dev = [
   "coverage>=7",
   "import-linter>=2.0",
   "interrogate>=1.5",
-  "ipykernel>=6.29.5",
-  "jupytext>=1.16.6",
   "pre-commit>=4.2",
   "pydeps>=1.12.17",
   "pydoclint>=0.5",
@@ -129,7 +127,7 @@ dev = [
   # Types for scipy.stats; follows the locked scipy minor.
   "scipy-stubs>=1.17,<1.18",
   # `substrax-compute` runs the examples on a GPU; the Modal backend needs Modal
-  "substrax[modal]>=0.1.25",
+  "substrax[modal]>=0.1.27",
   "twine>=4.0.2"
 ]
 docs = [
@@ -178,6 +176,9 @@ test = [
   "pytest>=9.0.3",
   "ruptures>=1.1",
   "scikit-learn>=1.4",
+  # The shared example tests and the notebook tools: `substrax-notebooks` converts, checks,
+  # pages and tests the examples.
+  "substrax[notebooks,testing]>=0.1.27",
   "wandb>=0.18"
 ]
 text = [
@@ -435,12 +436,19 @@ backend = "modal"
 outputs_volume = "calibrax-example-outputs"
 
 [tool.substrax.compute.jobs.examples]
+command_timeout_seconds = 1800
 examples = ["examples/metrics"]
-extras = ["cuda12"]
+examples_mode = "test"
+extras = ["cuda12", "test"]
 resources = {accelerator = {kind = "L4"}}
 runtime = {platforms = ["cuda"], preallocate = false, xla_flags = ["--xla_gpu_deterministic_ops=true"]}
-task_timeout_seconds = 1800
 timeout_seconds = 10800
+
+[tool.substrax.examples]
+# Bazel's "short" test timeout: each example's run as its notebook, kernel start included,
+# took 2.4 to 5.3 s on one CPU (2026-11-14), under the 30 s floor of "moderate".
+budget_seconds = 60
+source_url = "https://github.com/avitai/calibrax/blob/main"
 
 [tool.uv]
 # calibrax does not import optax; flax does. Below 0.2.8 optax calls

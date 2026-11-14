@@ -7,6 +7,16 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+### Changed
+
+- calibrax requires substrax 0.1.27. The `test` extra brings `substrax[notebooks,testing]`, the
+  notebook tools and shared example tests the examples use, in place of the `jupytext` and
+  `ipykernel` that `dev` declared.
+- The Modal `examples` job runs each example as its notebook (`examples_mode = "test"`), installs
+  the `test` extra beside `cuda12`, and names its per-example limit `command_timeout_seconds`, as
+  substrax 0.1.27 requires. `[tool.substrax.examples]` sets each example's budget to 60 s, Bazel's
+  "short" test timeout, from runs of 2.4 to 5.3 s on one CPU.
+
 ### Security
 
 - The lock takes the fixed releases of the three packages pip-audit reports across every extra:
