@@ -135,7 +135,6 @@ class LearnedMetric(nnx.Module):
         Args:
             name: Metric name.
         """
-        super().__init__()
         self._name = name
 
     @property

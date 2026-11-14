@@ -42,7 +42,6 @@ class ArcFaceLoss(nnx.Module):
             scale: Logit scale factor.
             rngs: RNG streams.
         """
-        super().__init__()
         self._margin = margin
         self._scale = scale
         self._weight = nnx.Param(
@@ -108,7 +107,6 @@ class CosFaceLoss(nnx.Module):
             scale: Logit scale factor.
             rngs: RNG streams.
         """
-        super().__init__()
         self._margin = margin
         self._scale = scale
         self._weight = nnx.Param(
