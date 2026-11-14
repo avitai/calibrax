@@ -4,7 +4,7 @@
 |---|---|
 | **Level** | Advanced |
 | **Time** | ~15 minutes |
-| **Prerequisites** | [Quickstart](quickstart.md), [Distances and Spaces](distances.md), [Model Evaluation](model-evaluation.md) |
+| **Prerequisites** | [Quickstart](quickstart.md), [Distances and Spaces](distances.md), [Model Evaluation](composition.md) |
 | **Format** | Python + Jupyter |
 
 ## Overview
