@@ -286,7 +286,7 @@ if __name__ == "__main__":
 """
 ## Next Steps
 
-- [Regression metrics deep dive](regression-metrics.md): regression metrics with outlier,
+- [Regression metrics deep dive](regression_deep_dive.md): regression metrics with outlier,
   quantile and CRPS analysis
 - [Metrics API reference](../../api-reference/metrics/index.md): every function's signature and
   parameters

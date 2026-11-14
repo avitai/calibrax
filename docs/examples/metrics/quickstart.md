@@ -1,6 +1,6 @@
 # Metrics Quickstart
 
-> Ran in 2.0 s on 1 cpu (python 3.12.14, jax 0.11.1, substrax 0.1.27, calibrax 0.1.17), from [`examples/metrics/quickstart.py`](https://github.com/avitai/calibrax/blob/main/examples/metrics/quickstart.py) ([notebook](https://github.com/avitai/calibrax/blob/main/examples/metrics/quickstart.ipynb)). Run it from the repository root:
+> Ran in 1.9 s on 1 cpu (python 3.12.14, jax 0.11.1, substrax 0.1.27, calibrax 0.1.17), from [`examples/metrics/quickstart.py`](https://github.com/avitai/calibrax/blob/main/examples/metrics/quickstart.py) ([notebook](https://github.com/avitai/calibrax/blob/main/examples/metrics/quickstart.ipynb)). Run it from the repository root:
 
 ```bash
 source ./activate.sh
@@ -322,11 +322,11 @@ if __name__ == "__main__":
 
 ## Next Steps
 
-- [Regression metrics deep dive](regression-metrics.md): regression metrics with outlier,
+- [Regression metrics deep dive](regression_deep_dive.md): regression metrics with outlier,
   quantile and CRPS analysis
 - [Metrics API reference](../../api-reference/metrics/index.md): every function's signature and
   parameters
 - [Geometric metrics guide](../../user-guide/geometric-metrics.md): choosing the right metric for
   your task
 
-<!-- substrax-notebooks: {"page": {"body": "8035d0d79576c7616dad808313914b5bef0f8b268ef0ab1cea03f59bf579b4fd", "figures": {}, "record": "ff0a01b52ea91e601d1f4785099ca55c02d3d38a52b47a2c616a64385e347b7e"}, "provenance": {"device": "1 cpu", "outputs": [[], [], [], [], [], [], ["text"]], "seconds": 2.0, "sha256": "e8f2148033f2f317060b2f3b16a65c17f79d98a902ce7d2a999922d8bb032d48", "source": "examples/metrics/quickstart.py", "versions": {"calibrax": "0.1.17", "jax": "0.11.1", "python": "3.12.14", "substrax": "0.1.27"}}} -->
+<!-- substrax-notebooks: {"page": {"body": "50a64501418e32d95b08c0098b34c80a6025b1846a3af9651d916eb5f00030af", "figures": {}, "record": "4374e0c6749c33d8a793f3d4baa82d09c9e6502e4d82b1a59eac3ca9647270ab"}, "provenance": {"device": "1 cpu", "outputs": [[], [], [], [], [], [], ["text"]], "seconds": 1.9, "sha256": "f4c7b78a30d02e2b4bc80b49324e655dec0ce0ff5e6f2f4d4c90e428dc98fa28", "source": "examples/metrics/quickstart.py", "versions": {"calibrax": "0.1.17", "jax": "0.11.1", "python": "3.12.14", "substrax": "0.1.27"}}} -->
