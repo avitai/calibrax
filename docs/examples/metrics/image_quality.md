@@ -1,6 +1,6 @@
 # Image Quality and Text Evaluation Metrics
 
-> Ran in 4.3 s on 1 cpu (python 3.12.14, jax 0.11.1, substrax 0.1.27, calibrax 0.1.17), from [`examples/metrics/image_quality.py`](https://github.com/avitai/calibrax/blob/main/examples/metrics/image_quality.py) ([notebook](https://github.com/avitai/calibrax/blob/main/examples/metrics/image_quality.ipynb)). Run it from the repository root:
+> Ran in 4.4 s on 1 cpu (python 3.12.14, jax 0.11.1, substrax 0.1.27, calibrax 0.1.17), from [`examples/metrics/image_quality.py`](https://github.com/avitai/calibrax/blob/main/examples/metrics/image_quality.py) ([notebook](https://github.com/avitai/calibrax/blob/main/examples/metrics/image_quality.ipynb)). Run it from the repository root:
 
 ```bash
 source ./activate.sh
@@ -173,23 +173,27 @@ def diversity() -> dict[str, float]:
 
 ### Step 4: Score a translation with BLEU
 
-One candidate against one reference, then against two.
+One candidate against one reference, then against two. The first reference shares no 4-gram
+with the candidate; the second shares "cat sat on the", a phrasing the first lacks. BLEU-2 stops
+at bigrams, so it is the same score without the 3-gram and 4-gram precisions.
 
 
 ```python
 CANDIDATE = "the cat sat on the mat"
-REFERENCES = ["the cat is on the mat", "there is a cat on the mat"]
+REFERENCES = ["the cat is on the mat", "a cat sat on the floor"]
 
 
 def translation_scores() -> dict[str, float]:
-    """Compute BLEU-4 against one reference and against two.
+    """Compute BLEU-4 and BLEU-2 against one reference and against two.
 
     Returns:
-        Both BLEU scores.
+        Each BLEU score.
     """
     return {
-        "BLEU-4 (two references)": float(bleu(CANDIDATE, REFERENCES)),
         "BLEU-4 (one reference)": float(bleu(CANDIDATE, REFERENCES[:1])),
+        "BLEU-4 (two references)": float(bleu(CANDIDATE, REFERENCES)),
+        "BLEU-2 (one reference)": float(bleu(CANDIDATE, REFERENCES[:1], max_n=2)),
+        "BLEU-2 (two references)": float(bleu(CANDIDATE, REFERENCES, max_n=2)),
     }
 ```
 
@@ -265,8 +269,10 @@ score is 1 for identical items and 4 for four orthogonal ones, with the two simi
 
 ### Text quality and the registry
 
-Both BLEU-4 scores are 0: the candidate shares no 4-gram with either reference, and BLEU's
-geometric mean of the n-gram precisions is 0 when one of them is. The repetitive text's
+Against the first reference alone BLEU-4 is 0: the candidate shares no 4-gram with it, and
+BLEU's geometric mean of the n-gram precisions is 0 when one of them is. The second reference
+supplies the missing phrasing and raises both BLEU-4 and BLEU-2, which is why a test set gives a
+sentence several references. The repetitive text's
 Distinct-N is far below the diverse one's, and the registry lists each image and text metric
 with its direction.
 
@@ -336,8 +342,10 @@ if __name__ == "__main__":
       Two similar pairs              2.871095
       8 nearly orthogonal items      7.803111
     === BLEU Score (Machine Translation) ===
-      BLEU-4 (two references)        0.000000
       BLEU-4 (one reference)         0.000000
+      BLEU-4 (two references)        0.707107
+      BLEU-2 (one reference)         0.707107
+      BLEU-2 (two references)        1.000000
     === ROUGE Scores (Summarization) ===
       ROUGE-1 (unigram recall)       0.666667
       ROUGE-2 (bigram recall)        0.250000
@@ -370,4 +378,4 @@ if __name__ == "__main__":
 - [Image API reference](../../api-reference/metrics/image.md): every image metric's signature
 - [Text API reference](../../api-reference/metrics/text.md): every text metric's signature
 
-<!-- substrax-notebooks: {"page": {"body": "c99b76dea8e3f194578a0cc70a6440e611ee4dceb8cde00d872fe95303f27807", "figures": {}, "record": "4100c6992a8051bd79350953ab68dd9af5d8f675d3037fd929a1d6075886a68d"}, "provenance": {"device": "1 cpu", "outputs": [[], [], [], [], [], [], [], [], ["text"]], "seconds": 4.3, "sha256": "8dbd79e40d023bc1b33090adfc166d090f82c8344954b02ba2ed4bfaba2a7881", "source": "examples/metrics/image_quality.py", "versions": {"calibrax": "0.1.17", "jax": "0.11.1", "python": "3.12.14", "substrax": "0.1.27"}}} -->
+<!-- substrax-notebooks: {"page": {"body": "2c3373a6a7bbb6c206b372a869ba0e434e836e7291c09b81502268758ca71ecd", "figures": {}, "record": "10ae414e96e24f94e11fd780982ce959b68a80eec19c09eee1dd0517fa705927"}, "provenance": {"device": "1 cpu", "outputs": [[], [], [], [], [], [], [], [], ["text"]], "seconds": 4.4, "sha256": "542616042d57d96af53ce52987a20316c5683b83b2babb941b4f7533231a34be", "source": "examples/metrics/image_quality.py", "versions": {"calibrax": "0.1.17", "jax": "0.11.1", "python": "3.12.14", "substrax": "0.1.27"}}} -->

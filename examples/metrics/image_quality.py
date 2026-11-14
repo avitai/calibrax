@@ -179,23 +179,27 @@ def diversity() -> dict[str, float]:
 """
 ### Step 4: Score a translation with BLEU
 
-One candidate against one reference, then against two.
+One candidate against one reference, then against two. The first reference shares no 4-gram
+with the candidate; the second shares "cat sat on the", a phrasing the first lacks. BLEU-2 stops
+at bigrams, so it is the same score without the 3-gram and 4-gram precisions.
 """
 
 # %%
 CANDIDATE = "the cat sat on the mat"
-REFERENCES = ["the cat is on the mat", "there is a cat on the mat"]
+REFERENCES = ["the cat is on the mat", "a cat sat on the floor"]
 
 
 def translation_scores() -> dict[str, float]:
-    """Compute BLEU-4 against one reference and against two.
+    """Compute BLEU-4 and BLEU-2 against one reference and against two.
 
     Returns:
-        Both BLEU scores.
+        Each BLEU score.
     """
     return {
-        "BLEU-4 (two references)": float(bleu(CANDIDATE, REFERENCES)),
         "BLEU-4 (one reference)": float(bleu(CANDIDATE, REFERENCES[:1])),
+        "BLEU-4 (two references)": float(bleu(CANDIDATE, REFERENCES)),
+        "BLEU-2 (one reference)": float(bleu(CANDIDATE, REFERENCES[:1], max_n=2)),
+        "BLEU-2 (two references)": float(bleu(CANDIDATE, REFERENCES, max_n=2)),
     }
 
 
@@ -280,8 +284,10 @@ score is 1 for identical items and 4 for four orthogonal ones, with the two simi
 
 ### Text quality and the registry
 
-Both BLEU-4 scores are 0: the candidate shares no 4-gram with either reference, and BLEU's
-geometric mean of the n-gram precisions is 0 when one of them is. The repetitive text's
+Against the first reference alone BLEU-4 is 0: the candidate shares no 4-gram with it, and
+BLEU's geometric mean of the n-gram precisions is 0 when one of them is. The second reference
+supplies the missing phrasing and raises both BLEU-4 and BLEU-2, which is why a test set gives a
+sentence several references. The repetitive text's
 Distinct-N is far below the diverse one's, and the registry lists each image and text metric
 with its direction.
 """
