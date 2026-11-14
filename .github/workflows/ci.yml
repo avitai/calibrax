@@ -80,6 +80,14 @@ jobs:
       - name: Pyright
         run: uv run --no-sync pyright --warnings src/ tests/ examples/
 
+  # The examples, run as substrax's Writing examples guide runs them: on a pull request the ones
+  # the change reaches, on any other event every one, so macos.yml's nightly call runs them all.
+  examples:
+    needs: [already_tested]
+    uses: avitai/substrax/.github/workflows/examples.yml@ca731a4d1ac23db5752fea90d629865ce78f71b6
+    with:
+      already-tested: ${{ needs.already_tested.outputs.skip }}
+
   test:
     name: Test (Python ${{ matrix.python-version }}, ${{ inputs.os || 'ubuntu-latest' }})
     # A push or pull request tests on ubuntu; macos.yml passes macos-15 nightly and before a
