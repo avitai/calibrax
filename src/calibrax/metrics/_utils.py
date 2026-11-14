@@ -13,6 +13,9 @@ from jax.typing import ArrayLike
 
 _EPSILON = 1e-8
 _EPSILON_CLIP = 1e-7
+#: The floor on a radius or a sum that divides, hyperbolix's ``MIN_NORM``: it only keeps a fully
+#: degenerate input from becoming ``0/0``, and a radius at it cancels out of the gradient.
+_MIN_NORM = 1e-15
 #: The one root order with a dedicated primitive: `jnp.sqrt` rather than a general power.
 _SQUARE_ROOT_ORDER = 2.0
 
@@ -197,7 +200,8 @@ def safe_root(x: ArrayLike, *, order: float = 2.0) -> jax.Array:
     return jnp.where(at_the_singularity, jnp.zeros_like(x), root)
 
 
-# The rescaled norm below (`_pow2_divisor`, `safe_norm`) is ported from hyperbolix, `hyperbolix/utils/math_utils.py` at commit
+# The rescaled norm family below (`_pow2_divisor`, `safe_norm`, `safe_hypot`, `floor_at`,
+# `safe_asinh`) is ported from hyperbolix, `hyperbolix/utils/math_utils.py` at commit
 # 96aba0558e0b41e88a98b6670fa28928431720a7 (https://github.com/timoklein/hyperbolix), whose
 # docstrings carry the measurements behind each choice. `safe_norm` keeps calibrax's `axis`
 # argument. hyperbolix is distributed under the MIT License:
@@ -272,6 +276,84 @@ def safe_norm(x: ArrayLike, *, axis: int | tuple[int, ...] | None = None) -> jax
     is_zero = jnp.squeeze(scale, axis=axis) == 0.0 if axis is not None else scale.reshape(()) == 0.0
     squares_safe = jnp.where(is_zero, jnp.ones_like(squares), squares)
     return jnp.where(is_zero, jnp.zeros_like(squares), divisor * jnp.sqrt(squares_safe))
+
+
+def safe_hypot(p: ArrayLike, q: ArrayLike) -> jax.Array:
+    """``sqrt(p**2 + q**2)`` without intermediate overflow or underflow.
+
+    The two-argument form of :func:`safe_norm`, with the same power-of-two rescale and double
+    ``where``: exactly 0 with zero gradients at ``p == q == 0``, and no ``p**2`` is formed, so a
+    float32 ``safe_hypot(1e30, 1.0)`` is finite.
+
+    Args:
+        p: The first leg.
+        q: The second leg, broadcast against ``p``.
+
+    Returns:
+        The hypotenuse.
+    """
+    p, q = jnp.asarray(p), jnp.asarray(q)
+    scale = jax.lax.stop_gradient(jnp.maximum(jnp.abs(p), jnp.abs(q)))
+    is_zero = scale == 0.0
+    divisor = _pow2_divisor(scale)
+    squares = (p / divisor) ** 2 + (q / divisor) ** 2
+    squares_safe = jnp.where(is_zero, jnp.ones_like(squares), squares)
+    return jnp.where(is_zero, jnp.zeros_like(squares), divisor * jnp.sqrt(squares_safe))
+
+
+def floor_at(x: ArrayLike, min_value: ArrayLike) -> jax.Array:
+    """``max(x, min_value)`` as a ``where``, for floors on a differentiated path.
+
+    The same value as ``jnp.maximum`` for every input, a ``NaN`` included (``NaN < min_value`` is
+    false, so the ``NaN`` is kept). Its gradient avoids jax 0.11.1's ``maximum`` JVP, which tests
+    the operand for bit equality with the result and on XLA:GPU can zero a whole gradient branch
+    when the backward pass recomputes the operand 1 ulp differently (jax-ml/jax#40564, fixed by
+    jax-ml/jax#40578 after 0.11.1).
+
+    Args:
+        x: Values.
+        min_value: The floor, broadcast against ``x``.
+
+    Returns:
+        ``x`` where it is not below ``min_value``, ``min_value`` elsewhere.
+    """
+    x = jnp.asarray(x)
+    return jnp.where(x < min_value, min_value, x)
+
+
+@jax.custom_jvp
+def safe_asinh(x: ArrayLike) -> jax.Array:
+    """``asinh`` whose derivative does not overflow: ``1 / hypot(1, x)``.
+
+    The value is ``jnp.arcsinh``'s. jax's derivative rule, ``rsqrt(x * x + 1)``, forms ``x * x``,
+    which overflows float32 past ``1.8e19`` and makes the derivative exactly 0 there while the true
+    value ``~1/|x|`` is an ordinary float; this one is :func:`safe_hypot`'s, exact where the
+    builtin is finite.
+
+    Args:
+        x: Values.
+
+    Returns:
+        ``asinh(x)``.
+    """
+    return jnp.arcsinh(x)
+
+
+@safe_asinh.defjvp
+def _safe_asinh_jvp(
+    primals: tuple[jax.Array], tangents: tuple[jax.Array]
+) -> tuple[jax.Array, jax.Array]:
+    """The value and the overflow-free derivative of :func:`safe_asinh`.
+
+    Args:
+        primals: The input.
+        tangents: Its tangent.
+
+    Returns:
+        The value and its tangent.
+    """
+    (x,), (t,) = primals, tangents
+    return safe_asinh(x), t / safe_hypot(jnp.ones_like(x), x)
 
 
 def dense_labels(labels: ArrayLike, num_labels: int | None) -> tuple[jax.Array, int]:
