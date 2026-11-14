@@ -70,6 +70,9 @@ and uses semantic versioning while the public API stabilizes.
   overview and the docs navigation point there.
 - `mkdocs-jupyter` and `mkdocs-ipynb` from the `docs` extra. No `plugins:` entry loaded either,
   and the example pages are Markdown that `substrax-notebooks page` writes.
+- The getting-started guide's metadata table (Level, Runtime, Prerequisites), the Documentation
+  Design Framework's format, which outlived the framework; its unmeasured "~5 min" runtime goes
+  with it, and the prerequisites are a sentence of the guide.
 
 ### Fixed
 
