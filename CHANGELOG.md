@@ -69,6 +69,14 @@ and uses semantic versioning while the public API stabilizes.
   `e^(a + b)` and lost every float32 digit for nearby points past radius ~10. It computes the
   cancellation-free hyperbolic-haversine distance ported from hyperbolix (MIT, commit 96aba05),
   with its overflow-free `safe_hypot`, `floor_at` and `safe_asinh`.
+- `poincare_distance` computed `arccosh(1 + 2t)`, which has an infinite derivative at 1 and
+  rounds a close pair's `2t` into the leading 1: `d(x, x)` had a NaN gradient, a pair `1e-5`
+  apart read 0 (true 2.2e-5), and two opposite points at radius 9 read 17.960 (true 18.000). It
+  now computes hyperbolix's `2 asinh(sqrt(t))`, the same function without the cancellation
+  (ported, MIT, commit 96aba05): exactly 0 with a zero gradient at `x = y`, float32-accurate for
+  close and far pairs alike. hyperbolix's floor on `1 - c ||x||^2` replaces the `1e-8` guard, so
+  a point on the boundary reads about 13.3 from the origin where it read 19.8, and one outside
+  the ball about 14.7 where it read 0.
 - `ultrahyperbolic_distance` computed `arccosh(-<a, b>)` behind a clamp for every pair, so a
   timelike-separated pair, whose distance is `arccos(u)`, and a pair no geodesic joins both came
   out near 0 (two orthogonal points on the (2, 2) manifold gave 1.0e-4, a point and itself
