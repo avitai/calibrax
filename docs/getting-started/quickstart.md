@@ -1,14 +1,8 @@
 # Quick Start
 
-| Metadata | Value |
-|----------|-------|
-| **Level** | Beginner |
-| **Runtime** | ~5 min |
-| **Prerequisites** | Python 3.12+, JAX installed |
-
 This guide walks through four progressive examples covering the core Calibrax
 workflow: defining results, profiling workloads, detecting regressions, and
-using the CLI.
+using the CLI. It needs Python 3.12 or later with JAX installed.
 
 ## 1. Define and Store Results
 
