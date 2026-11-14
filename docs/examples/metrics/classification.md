@@ -1,183 +1,332 @@
-# Classification Metrics
+# Classification, Calibration and Segmentation
 
-| | |
-|---|---|
-| **Level** | Intermediate |
-| **Time** | ~12 minutes |
-| **Prerequisites** | [Quickstart](quickstart.md), [Regression Metrics](regression_deep_dive.md) |
-| **Format** | Python + Jupyter |
+> Ran in 3.4 s on 1 cpu (python 3.12.14, jax 0.11.1, substrax 0.1.27, calibrax 0.1.17), from [`examples/metrics/classification.py`](https://github.com/avitai/calibrax/blob/main/examples/metrics/classification.py) ([notebook](https://github.com/avitai/calibrax/blob/main/examples/metrics/classification.ipynb)). Run it from the repository root:
+
+```bash
+source ./activate.sh
+uv run python examples/metrics/classification.py
+```
+
+| Metadata | Value |
+| --- | --- |
+| **Tier** | Tutorial |
+| **Devices** | CPU-compatible |
+| **Prerequisites** | The quickstart example; binary classification concepts |
 
 ## Overview
 
-This example covers the full classification evaluation pipeline: binary metrics on hard and soft predictions, confusion matrix interpretation, probability calibration assessment, and segmentation quality for pixel-level tasks. It demonstrates 14 classification metrics, 7 calibration metrics, and 3 segmentation metrics.
+This example walks through calibrax's classification evaluation: binary metrics on hard and soft
+predictions, the confusion matrix, probability calibration, and segmentation quality for
+pixel-level tasks. Classification metrics come in two families. Hard-prediction metrics
+(accuracy, precision, recall, F1) need thresholded 0/1 labels; probabilistic metrics (ROC-AUC,
+log loss, Brier score, ECE) read the predicted probabilities and measure how well a model ranks
+and calibrates its confidence.
 
-Classification metrics divide into two families. Hard-prediction metrics (accuracy, precision, recall, F1) require thresholded 0/1 labels. Probabilistic metrics (ROC-AUC, log loss, Brier score, ECE) operate directly on predicted probabilities and measure how well the model ranks and calibrates its confidence.
+## Learning Goals
 
-## What You'll Learn
+1. Evaluate a binary classifier with accuracy, precision, recall, F1 and Matthews correlation
+2. Build and read a confusion matrix
+3. Assess probability calibration with the Brier score and the expected calibration error (ECE)
+4. Measure segmentation quality with IoU, the Dice coefficient and pixel accuracy
+5. Extend segmentation metrics to several classes with macro averaging
 
-1. Evaluate binary classifiers with accuracy, precision, recall, F1, and Matthews correlation
-2. Build and interpret a confusion matrix (TP, FP, FN, TN)
-3. Assess probability calibration with Brier score and Expected Calibration Error (ECE)
-4. Measure segmentation quality with IoU, Dice coefficient, and pixel accuracy
-5. Extend binary segmentation to multiclass with macro averaging
+## Setup
 
-## Files
-
-- **Python Script**: [`examples/metrics/03_classification.py`](https://github.com/avitai/calibrax/blob/main/examples/metrics/03_classification.py)
-- **Jupyter Notebook**: [`examples/metrics/03_classification.ipynb`](https://github.com/avitai/calibrax/blob/main/examples/metrics/03_classification.ipynb)
-
-## Quick Start
-
-```bash
-source activate.sh && uv run python examples/metrics/03_classification.py
-```
-
-## Key Concepts
-
-### Core Classification Metrics
-
-All metrics follow the `(predictions, targets) -> scalar` signature, consistent with the rest of calibrax.
 
 ```python
-from calibrax.metrics.functional.classification import (
-    accuracy, balanced_accuracy, precision, recall, f1_score,
-    sensitivity, specificity, matthews_corrcoef, cohen_kappa,
-    roc_auc, log_loss, confusion_matrix,
-)
+import jax
+import jax.numpy as jnp
 
-targets = jnp.array([1, 1, 1, 1, 0, 0, 0, 0, 1, 0])
-preds_hard = jnp.array([1, 1, 0, 1, 0, 1, 0, 0, 1, 0])
-preds_soft = jnp.array([0.9, 0.8, 0.4, 0.7, 0.2, 0.6, 0.3, 0.1, 0.85, 0.15])
-
-accuracy(preds_hard, targets)
-precision(preds_hard, targets)
-recall(preds_hard, targets)
-f1_score(preds_hard, targets)
-matthews_corrcoef(preds_hard, targets)
-roc_auc(preds_soft, targets)   # requires probabilities
-log_loss(preds_soft, targets)  # requires probabilities
-```
-
-**Terminal Output:**
-```
-=== Binary Classification Metrics ===
-  Targets:     [1, 1, 1, 1, 0, 0, 0, 0, 1, 0]
-  Predictions: [1, 1, 0, 1, 0, 1, 0, 0, 1, 0]
-  Probabilities: [0.8999999761581421, 0.800000011920929, 0.4000000059604645, 0.699999988079071, 0.20000000298023224, 0.6000000238418579, 0.30000001192092896, 0.10000000149011612, 0.8500000238418579, 0.15000000596046448]
-
-  --- Core metrics (hard predictions) ---
-  Accuracy:          0.8000
-  Balanced Accuracy: 0.8000
-  Precision:         0.8000
-  Recall:            0.8000
-  F1 Score:          0.8000
-  Sensitivity (TPR): 0.8000
-  Specificity (TNR): 0.8000
-  Matthews CC:       0.6000
-  Cohen's Kappa:     0.6000
-
-  --- Probabilistic metrics (soft predictions) ---
-  ROC-AUC:           0.9600
-  Log Loss:          0.3528
-```
-
-**Balanced accuracy** corrects for class imbalance by averaging per-class recall. **Matthews correlation coefficient** and **Cohen's kappa** account for chance agreement, making them more informative than raw accuracy on skewed datasets.
-
-### Confusion Matrix
-
-The confusion matrix gives a complete picture of classification errors. Calibrax returns a `(num_classes, num_classes)` JAX array.
-
-```python
-cm = confusion_matrix(preds_hard, targets, num_classes=2)
-# cm[0, 0] = TN, cm[0, 1] = FP
-# cm[1, 0] = FN, cm[1, 1] = TP
-```
-
-**Terminal Output:**
-```
-=== Confusion Matrix ===
-  [[TN=4, FP=1],
-   [FN=1, TP=4]]
-  True Positives:  4
-  False Positives: 1
-  False Negatives: 1
-  True Negatives:  4
-```
-
-### Calibration Metrics
-
-A well-calibrated model's predicted probabilities match the observed frequency of positive outcomes. Two metrics measure this:
-
-- **Brier score**: mean squared difference between predicted probability and true label. Lower is better.
-- **ECE (Expected Calibration Error)**: average absolute gap between predicted confidence and observed accuracy across bins.
-
-```python
 from calibrax.metrics.functional.calibration import brier_score, expected_calibration_error
-
-probabilities = preds_soft  # from the classification block above
-brier_score(probabilities, targets)
-expected_calibration_error(probabilities, targets)
+from calibrax.metrics.functional.classification import (
+    accuracy,
+    balanced_accuracy,
+    cohen_kappa,
+    confusion_matrix,
+    f1_score,
+    log_loss,
+    matthews_corrcoef,
+    precision,
+    recall,
+    roc_auc,
+    sensitivity,
+    specificity,
+)
+from calibrax.metrics.functional.segmentation import dice_coefficient, iou, pixel_accuracy
 ```
 
-The example compares a well-calibrated model against an overconfident one to show how ECE detects miscalibration even when accuracy is high.
+## Core Concepts
 
-### Segmentation Metrics
+Every metric follows the `(predictions, targets) -> scalar` signature of the rest of calibrax.
+Balanced accuracy corrects for class imbalance by averaging the per-class recall; Matthews
+correlation and Cohen's kappa account for agreement by chance, so on skewed data they say more
+than raw accuracy. A well-calibrated model's predicted probabilities match the observed
+frequency of positives: the Brier score is the mean squared gap between probability and label,
+and ECE the average gap between confidence and accuracy across probability bins. For pixel-level
+predictions, accuracy misleads when the background dominates; IoU and Dice measure the overlap
+of the predicted and true masks instead.
 
-For pixel-level predictions, accuracy alone is misleading when the background class dominates. IoU and Dice are intersection-based metrics that focus on the overlap between predicted and ground-truth masks.
+## Implementation
+
+### Step 1: Evaluate hard and soft predictions
+
+The targets are labels, the hard predictions are thresholded labels, and the soft predictions are
+probabilities, which ROC-AUC and log loss need.
+
 
 ```python
-from calibrax.metrics.functional.segmentation import iou, dice_coefficient, pixel_accuracy
+TARGETS = jnp.array([1, 1, 1, 1, 0, 0, 0, 0, 1, 0])
+HARD_PREDICTIONS = jnp.array([1, 1, 0, 1, 0, 1, 0, 0, 1, 0])
+SOFT_PREDICTIONS = jnp.array([0.9, 0.8, 0.4, 0.7, 0.2, 0.6, 0.3, 0.1, 0.85, 0.15])
 
-pred_mask = jnp.array([1, 1, 0, 1, 0, 0, 1, 1])
-gt_mask = jnp.array([1, 0, 0, 1, 0, 1, 1, 1])
 
-iou(pred_mask, gt_mask)               # intersection / union
-dice_coefficient(pred_mask, gt_mask)   # 2 * intersection / (|pred| + |gt|)
-pixel_accuracy(pred_mask, gt_mask)     # correct pixels / total pixels
+def hard_metrics(predictions: jax.Array, targets: jax.Array) -> dict[str, float]:
+    """Compute the metrics of thresholded predictions.
+
+    Args:
+        predictions: The predicted labels.
+        targets: The true labels.
+
+    Returns:
+        Each metric's value by name.
+    """
+    return {
+        "Accuracy": float(accuracy(predictions, targets)),
+        "Balanced Accuracy": float(balanced_accuracy(predictions, targets)),
+        "Precision": float(precision(predictions, targets)),
+        "Recall": float(recall(predictions, targets)),
+        "F1 Score": float(f1_score(predictions, targets)),
+        "Sensitivity (TPR)": float(sensitivity(predictions, targets)),
+        "Specificity (TNR)": float(specificity(predictions, targets)),
+        "Matthews CC": float(matthews_corrcoef(predictions, targets)),
+        "Cohen's Kappa": float(cohen_kappa(predictions, targets)),
+    }
+
+
+def soft_metrics(probabilities: jax.Array, targets: jax.Array) -> dict[str, float]:
+    """Compute the metrics of predicted probabilities.
+
+    Args:
+        probabilities: The predicted probabilities of the positive class.
+        targets: The true labels.
+
+    Returns:
+        ROC-AUC and log loss by name.
+    """
+    return {
+        "ROC-AUC": float(roc_auc(probabilities, targets)),
+        "Log Loss": float(log_loss(probabilities, targets)),
+    }
 ```
 
-For multiclass segmentation, pass `num_classes` and `average="macro"` to get the macro-averaged score across all classes:
+### Step 2: Build the confusion matrix
+
+calibrax returns a `(num_classes, num_classes)` array: row `i`, column `j` counts the samples of
+class `i` predicted as `j`.
+
 
 ```python
-pred_multi = jnp.array([0, 1, 2, 0, 1, 2])
-gt_multi = jnp.array([0, 1, 1, 0, 2, 2])
+def confusion_counts(predictions: jax.Array, targets: jax.Array) -> dict[str, int]:
+    """Read the four counts of a binary confusion matrix.
 
-iou(pred_multi, gt_multi, num_classes=3, average="macro")
-dice_coefficient(pred_multi, gt_multi, num_classes=3, average="macro")
+    Args:
+        predictions: The predicted labels.
+        targets: The true labels.
+
+    Returns:
+        The true negatives, false positives, false negatives and true positives.
+    """
+    matrix = confusion_matrix(predictions, targets, num_classes=2)
+    return {
+        "TN": int(matrix[0, 0]),
+        "FP": int(matrix[0, 1]),
+        "FN": int(matrix[1, 0]),
+        "TP": int(matrix[1, 1]),
+    }
 ```
 
-## Example Code
+### Step 3: Compare two models' calibration
 
-The calibration section illustrates the difference between well-calibrated and overconfident models:
+Two models score the same targets; lower Brier score and ECE mean better calibration.
+
 
 ```python
-well_calibrated_probs = jnp.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95])
-overconfident_probs = jnp.array([0.05, 0.05, 0.1, 0.1, 0.9, 0.9, 0.95, 0.95, 0.9, 0.95])
-calibration_targets = jnp.array([0, 0, 0, 0, 1, 1, 1, 1, 1, 1])
+CALIBRATION_TARGETS = jnp.array([0, 0, 0, 0, 1, 1, 1, 1, 1, 1])
+WELL_CALIBRATED = jnp.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95])
+OVERCONFIDENT = jnp.array([0.05, 0.05, 0.1, 0.1, 0.9, 0.9, 0.95, 0.95, 0.9, 0.95])
 
-# Well-calibrated: low Brier score, low ECE
-brier_score(well_calibrated_probs, calibration_targets)
-expected_calibration_error(well_calibrated_probs, calibration_targets)
 
-# Overconfident: higher Brier score, higher ECE
-brier_score(overconfident_probs, calibration_targets)
-expected_calibration_error(overconfident_probs, calibration_targets)
+def calibration(probabilities: jax.Array, targets: jax.Array) -> dict[str, float]:
+    """Measure how well predicted probabilities match observed outcomes.
+
+    Args:
+        probabilities: The predicted probabilities of the positive class.
+        targets: The true labels.
+
+    Returns:
+        The Brier score and the ECE.
+    """
+    return {
+        "Brier Score": float(brier_score(probabilities, targets)),
+        "ECE": float(expected_calibration_error(probabilities, targets)),
+    }
 ```
 
-**Terminal Output:**
+### Step 4: Measure a predicted mask
+
+A 4x4 binary mask, flattened: the true mask covers the top-left 2x2 block, and the prediction
+adds one pixel to its right and misses one inside it.
+
+
+```python
+TRUE_MASK = jnp.array([1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+PREDICTED_MASK = jnp.array([1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+
+
+def segmentation(predicted: jax.Array, true: jax.Array) -> dict[str, float]:
+    """Measure the overlap of a predicted mask with the true one.
+
+    Args:
+        predicted: The predicted mask.
+        true: The true mask.
+
+    Returns:
+        IoU, the Dice coefficient and pixel accuracy.
+    """
+    return {
+        "IoU (Jaccard)": float(iou(predicted, true)),
+        "Dice Coefficient": float(dice_coefficient(predicted, true)),
+        "Pixel Accuracy": float(pixel_accuracy(predicted, true)),
+    }
 ```
-=== Calibration Metrics ===
-  Well-calibrated model:
-    Brier Score: 0.0852
-    ECE:         0.2550
-  Overconfident model:
-    Brier Score: 0.0063
-    ECE:         0.0750
-  Lower Brier score and ECE indicate better calibration.
+
+### Step 5: Average over several classes
+
+With `num_classes` and `average="macro"`, IoU and Dice are computed per class and averaged.
+
+
+```python
+TRUE_CLASSES = jnp.array([0, 0, 1, 1, 2, 2, 0, 1])
+PREDICTED_CLASSES = jnp.array([0, 0, 1, 2, 2, 1, 0, 1])
+
+
+def macro_segmentation(predicted: jax.Array, true: jax.Array) -> dict[str, float]:
+    """Macro-average IoU and Dice over three classes.
+
+    Args:
+        predicted: The predicted class of each pixel.
+        true: The true class of each pixel.
+
+    Returns:
+        The macro IoU and the macro Dice.
+    """
+    return {
+        "Macro IoU": float(iou(predicted, true, num_classes=3, average="macro")),
+        "Macro Dice": float(dice_coefficient(predicted, true, num_classes=3, average="macro")),
+    }
 ```
+
+## Results
+
+### Classification and the confusion matrix
+
+The hard predictions get eight of ten labels right, one false positive and one false negative.
+
+### Calibration and segmentation
+
+The calibration table compares the two models, and the segmentation tables show IoU and Dice
+below pixel accuracy, which the many background pixels inflate.
+
+
+```python
+def print_table(title: str, values: dict[str, float]) -> None:
+    """Print one table of metric values.
+
+    Args:
+        title: The table's title.
+        values: Each metric's value by name.
+    """
+    print(f"=== {title} ===")
+    for name, value in values.items():
+        print(f"  {name:20s} {value:.4f}")
+
+
+def main() -> dict[str, float | int]:
+    """Run the example and return its results.
+
+    Returns:
+        The classification metrics, the confusion counts, both models' calibration and the
+        segmentation metrics.
+    """
+    hard = hard_metrics(HARD_PREDICTIONS, TARGETS)
+    soft = soft_metrics(SOFT_PREDICTIONS, TARGETS)
+    print_table("Core metrics (hard predictions)", hard)
+    print_table("Probabilistic metrics (soft predictions)", soft)
+    counts = confusion_counts(HARD_PREDICTIONS, TARGETS)
+    print("=== Confusion Matrix ===")
+    print(f"  [[TN={counts['TN']}, FP={counts['FP']}],")
+    print(f"   [FN={counts['FN']}, TP={counts['TP']}]]")
+    well = calibration(WELL_CALIBRATED, CALIBRATION_TARGETS)
+    over = calibration(OVERCONFIDENT, CALIBRATION_TARGETS)
+    print_table("Calibration: well-calibrated model", well)
+    print_table("Calibration: overconfident model", over)
+    masks = segmentation(PREDICTED_MASK, TRUE_MASK)
+    macro = macro_segmentation(PREDICTED_CLASSES, TRUE_CLASSES)
+    print_table("Segmentation Metrics", masks)
+    print_table("Multiclass Segmentation (macro average)", macro)
+    return {
+        **hard,
+        **soft,
+        **counts,
+        **{f"well-calibrated {name}": value for name, value in well.items()},
+        **{f"overconfident {name}": value for name, value in over.items()},
+        **masks,
+        **macro,
+    }
+
+
+if __name__ == "__main__":
+    main()
+```
+
+    === Core metrics (hard predictions) ===
+      Accuracy             0.8000
+      Balanced Accuracy    0.8000
+      Precision            0.8000
+      Recall               0.8000
+      F1 Score             0.8000
+      Sensitivity (TPR)    0.8000
+      Specificity (TNR)    0.8000
+      Matthews CC          0.6000
+      Cohen's Kappa        0.6000
+    === Probabilistic metrics (soft predictions) ===
+      ROC-AUC              0.9600
+      Log Loss             0.3528
+    === Confusion Matrix ===
+      [[TN=4, FP=1],
+       [FN=1, TP=4]]
+    === Calibration: well-calibrated model ===
+      Brier Score          0.0852
+      ECE                  0.2550
+    === Calibration: overconfident model ===
+      Brier Score          0.0063
+      ECE                  0.0750
+    === Segmentation Metrics ===
+      IoU (Jaccard)        0.6000
+      Dice Coefficient     0.7500
+      Pixel Accuracy       0.8750
+    === Multiclass Segmentation (macro average) ===
+      Macro IoU            0.6111
+      Macro Dice           0.7222
+
 
 ## Next Steps
 
-- [Distances and Spaces](distances-and-spaces.md) -- vector distances, hyperbolic geometry, and divergences
-- [API Reference: `calibrax.metrics.functional.classification`](../../api-reference/metrics/classification.md) -- full signatures
-- [API Reference: `calibrax.metrics.functional.calibration`](../../api-reference/metrics/calibration.md) -- calibration function details
+- [Distances and spaces](distances-and-spaces.md): vector distances, hyperbolic geometry and
+  divergences
+- [Classification API reference](../../api-reference/metrics/classification.md): every
+  classification function's signature
+- [Calibration API reference](../../api-reference/metrics/calibration.md): the calibration
+  functions
+
+<!-- substrax-notebooks: {"page": {"body": "848ff6612bc1248a6a2320cf35f3bc4ddce98a83e2877281235b9bb124bfca21", "figures": {}, "record": "a13fb1a2a8c95171f8ba87ba2f88a2c44c77cb262458f534490a1b8ad70e8735"}, "provenance": {"device": "1 cpu", "outputs": [[], [], [], [], [], [], ["text"]], "seconds": 3.4, "sha256": "9c04381457932efcbcbd2e67bad1f228f7ffb3499f9f93e3fbbddfa857aebeaf", "source": "examples/metrics/classification.py", "versions": {"calibrax": "0.1.17", "jax": "0.11.1", "python": "3.12.14", "substrax": "0.1.27"}}} -->
