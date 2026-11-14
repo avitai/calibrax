@@ -1,168 +1,332 @@
 # Metrics Quickstart
 
-| | |
-|---|---|
-| **Level** | Beginner |
-| **Time** | ~5 minutes |
-| **Prerequisites** | [Installation guide](../../getting-started/installation.md) |
-| **Format** | Python + Jupyter |
+> Ran in 2.0 s on 1 cpu (python 3.12.14, jax 0.11.1, substrax 0.1.27, calibrax 0.1.17), from [`examples/metrics/quickstart.py`](https://github.com/avitai/calibrax/blob/main/examples/metrics/quickstart.py) ([notebook](https://github.com/avitai/calibrax/blob/main/examples/metrics/quickstart.ipynb)). Run it from the repository root:
+
+```bash
+source ./activate.sh
+uv run python examples/metrics/quickstart.py
+```
+
+| Metadata | Value |
+| --- | --- |
+| **Tier** | Tutorial |
+| **Devices** | CPU-compatible |
+| **Prerequisites** | Basic Python and JAX arrays |
 
 ## Overview
 
-This example introduces the core metrics API in calibrax. You will compute individual regression metrics, evaluate an entire metric suite in a single call with `calculate_all()`, and explore the `MetricRegistry` to discover what metrics are available, filter them by domain or tier, and inspect their metadata.
+This example introduces calibrax's core metrics API: it computes individual regression metrics,
+evaluates a whole metric suite in one call with `calculate_all()`, and uses the `MetricRegistry`
+to discover the metrics calibrax ships, filter them by domain, tier and property, and read their
+metadata. Start here if you are new to calibrax; the other examples build on these patterns.
 
-Start here if you are new to calibrax. Every subsequent example builds on the patterns shown below.
-
-## What You'll Learn
+## Learning Goals
 
 1. Compute individual metrics (MSE, MAE, R-squared) on JAX arrays
-2. Batch-evaluate all registered metrics with `calculate_all()`
-3. Query the `MetricRegistry` by name, domain, tier, and invariance
-4. Inspect `MetricEntry` metadata (direction, differentiability, invariances)
+2. Evaluate every general metric, or a chosen subset, with `calculate_all()`
+3. Query the `MetricRegistry` by domain, tier and invariance
+4. Inspect a `MetricEntry`'s metadata: direction, differentiability, invariances
 
-## Files
+## Setup
 
-- **Python Script**: [`examples/metrics/01_quickstart.py`](https://github.com/avitai/calibrax/blob/main/examples/metrics/01_quickstart.py)
-- **Jupyter Notebook**: [`examples/metrics/01_quickstart.ipynb`](https://github.com/avitai/calibrax/blob/main/examples/metrics/01_quickstart.ipynb)
-
-## Quick Start
-
-```bash
-source activate.sh && uv run python examples/metrics/01_quickstart.py
-```
-
-## Key Concepts
-
-### Individual Metric Computation
-
-Every metric in calibrax is a pure JAX function with the signature `(predictions, targets) -> scalar`. These functions are JIT-compatible and differentiable.
 
 ```python
+import jax
 import jax.numpy as jnp
+
+from calibrax.metrics import calculate_all, MetricEntry, MetricRegistry, MetricTier
 from calibrax.metrics.functional.regression import mae, mse, r_squared
-
-targets = jnp.array([1.0, 2.0, 3.0, 4.0, 5.0])
-predictions = jnp.array([1.1, 2.3, 2.8, 4.2, 4.7])
-
-mse_val = mse(predictions, targets)
-mae_val = mae(predictions, targets)
-r2_val = r_squared(predictions, targets)
 ```
 
-### Batch Computation with `calculate_all`
+## Core Concepts
 
-Rather than calling metrics one at a time, `calculate_all()` evaluates every registered general-domain metric in a single call. You can also pass a `metrics` list to select a subset.
+Every metric in calibrax is a pure JAX function with the signature
+`(predictions, targets) -> scalar`, so it is JIT-compatible and differentiable. The
+`MetricRegistry` is the catalogue of those functions: each `MetricEntry` stores the function with
+its tier (pure function, stateful or plugin), its domain, its direction (whether lower or higher
+is better), its mathematical properties and its invariances, which is what an automated
+evaluation pipeline reads to configure itself.
+
+## Implementation
+
+### Step 1: Compute individual metrics
+
+Each metric takes the predictions first and the targets second.
+
 
 ```python
-from calibrax.metrics import calculate_all
+TARGETS = jnp.array([1.0, 2.0, 3.0, 4.0, 5.0])
+PREDICTIONS = jnp.array([1.1, 2.3, 2.8, 4.2, 4.7])
 
-# All general metrics
-all_results = calculate_all(predictions, targets)
 
-# Selected subset
-selected = calculate_all(
-    predictions, targets,
-    metrics=["mse", "mae", "rmse", "r_squared"],
-)
+def individual_metrics(predictions: jax.Array, targets: jax.Array) -> dict[str, float]:
+    """Compute MSE, MAE and R-squared one function at a time.
+
+    Args:
+        predictions: The model's predictions.
+        targets: The true values.
+
+    Returns:
+        Each metric's value by name.
+    """
+    return {
+        "mse": float(mse(predictions, targets)),
+        "mae": float(mae(predictions, targets)),
+        "r_squared": float(r_squared(predictions, targets)),
+    }
 ```
 
-### MetricRegistry
+### Step 2: Evaluate every general metric at once
 
-The registry is the central catalogue of all metrics. Each entry stores the metric function alongside rich metadata -- tier, domain, direction (lower/higher is better), mathematical properties, and invariances.
+`calculate_all()` evaluates every registered general-domain metric in one call; a `metrics` list
+selects a subset.
+
 
 ```python
-from calibrax.metrics import MetricRegistry, MetricTier
+def all_general_metrics(predictions: jax.Array, targets: jax.Array) -> dict[str, float]:
+    """Evaluate every registered general-domain metric.
 
-registry = MetricRegistry()
+    Args:
+        predictions: The model's predictions.
+        targets: The true values.
 
-# List all names
-all_names = registry.list_names()
+    Returns:
+        Each metric's value by name, sorted by name.
+    """
+    values = calculate_all(predictions, targets)
+    return {name: float(value) for name, value in sorted(values.items())}
 
-# Filter by domain
-general_metrics = registry.list_by_domain("general")
-classification_metrics = registry.list_by_domain("classification")
 
-# Filter by tier (pure functions, stateful, plugins)
-tier0 = registry.list_by_tier(MetricTier.PURE_FUNCTION)
+def selected_metrics(predictions: jax.Array, targets: jax.Array) -> dict[str, float]:
+    """Evaluate a chosen subset of the general metrics.
 
-# Filter by mathematical property
-true_metrics = registry.list_true_metrics()
-rotation_invariant = registry.list_by_invariance("rotation")
+    Args:
+        predictions: The model's predictions.
+        targets: The true values.
+
+    Returns:
+        The four selected metrics' values by name.
+    """
+    chosen = calculate_all(predictions, targets, metrics=["mse", "mae", "rmse", "r_squared"])
+    return {name: float(value) for name, value in chosen.items()}
 ```
 
-### Inspecting a MetricEntry
+### Step 3: Query the registry
 
-Each registry entry exposes fields that describe the metric's behaviour, which is useful for automated pipeline configuration.
+The registry lists every metric by name, and filters them by domain and by tier.
+
 
 ```python
-entry = registry.get("mse")
-entry.name              # "mse"
-entry.tier              # MetricTier.PURE_FUNCTION
-entry.domain            # "general"
-entry.direction         # "lower" (lower is better)
-entry.properties.is_true_metric    # whether it satisfies metric space axioms
-entry.properties.is_symmetric      # d(x,y) == d(y,x)
-entry.properties.is_differentiable # smooth gradient everywhere
-entry.properties.is_jit_compatible # safe inside jax.jit
-entry.properties.invariances       # e.g., ["translation"]
+DOMAINS = ("general", "classification", "distance", "image")
+
+
+def metrics_by_domain(registry: MetricRegistry) -> dict[str, list[str]]:
+    """List the metrics registered in each of a few domains.
+
+    Args:
+        registry: The metric registry.
+
+    Returns:
+        The metric names of each domain in `DOMAINS`.
+    """
+    return {domain: [entry.name for entry in registry.list_by_domain(domain)] for domain in DOMAINS}
 ```
 
-## Example Code
+### Step 4: Inspect a MetricEntry
 
-The full script walks through five sections. Here is the registry inspection section that ties everything together:
+An entry describes how its metric behaves.
+
 
 ```python
-registry = MetricRegistry()
+def describe(entry: MetricEntry) -> dict[str, str]:
+    """Read the fields of a registry entry.
 
-# How many metrics are available?
-print(f"Total registered: {len(registry.list_names())}")
+    Args:
+        entry: The registry entry.
 
-# Group by domain
-for domain in ("general", "classification", "distance", "image"):
-    entries = registry.list_by_domain(domain)
-    names = [e.name for e in entries]
-    print(f"  {domain} ({len(names)}): {names}")
-
-# Find all metrics that satisfy the triangle inequality
-true_metrics = registry.list_true_metrics()
-print(f"True metrics: {[e.name for e in true_metrics[:8]]}...")
+    Returns:
+        Each field's value, as text.
+    """
+    properties = entry.properties
+    return {
+        "name": entry.name,
+        "tier": str(entry.tier),
+        "domain": entry.domain,
+        "direction": str(entry.direction),
+        "description": entry.description,
+        "signature": str(entry.signature),
+        "is_true_metric": str(properties.is_true_metric),
+        "is_symmetric": str(properties.is_symmetric),
+        "is_differentiable": str(properties.is_differentiable),
+        "is_jit_compatible": str(properties.is_jit_compatible),
+        "invariances": str(properties.invariances),
+    }
 ```
 
-**Terminal Output:**
+### Step 5: Find metrics by their properties
+
+The registry also answers questions about properties: which metrics satisfy the metric-space
+axioms, and which are invariant to a transformation.
+
+
+```python
+def true_metrics(registry: MetricRegistry) -> list[str]:
+    """List the metrics that satisfy the metric-space axioms.
+
+    Args:
+        registry: The metric registry.
+
+    Returns:
+        Their names.
+    """
+    return [entry.name for entry in registry.list_true_metrics()]
+
+
+def rotation_invariant(registry: MetricRegistry) -> list[str]:
+    """List the metrics invariant to rotation.
+
+    Args:
+        registry: The metric registry.
+
+    Returns:
+        Their names.
+    """
+    return [entry.name for entry in registry.list_by_invariance("rotation")]
 ```
-=== Registry: all registered metric names ===
-  Total registered: 140
-  First 10: ['accuracy', 'adaptive_calibration_error', 'adjusted_mutual_information', 'adjusted_rand_index', 'anees', 'average_precision', 'balanced_accuracy', 'bleu', 'bregman_divergence', 'brier_score']
 
-=== Registry: metrics by domain ===
-  general              (15): ['mse', 'mae', 'rmse', 'r_squared', 'mape', 'relative_error', 'relative_l2_error', 'explained_variance', 'max_error', 'huber_loss', 'charbonnier_loss', 'quantile_loss', 'log_cosh_loss', 'smape', 'crps']
-  classification       (13): ['accuracy', 'precision', 'recall', 'f1_score', 'roc_auc', 'average_precision', 'log_loss', 'matthews_corrcoef', 'cohen_kappa', 'balanced_accuracy', 'specificity', 'sensitivity', 'softmax_cross_entropy']
-  distance             (11): ['cosine_distance', 'euclidean_distance', 'manhattan_distance', 'chebyshev_distance', 'mahalanobis_distance', 'hamming_distance', 'minkowski_distance', 'jaccard_distance', 'poincare_distance', 'lorentz_distance', 'randers_distance']
-  image                (4): ['psnr', 'ssim', 'ms_ssim', 'vendi_score']
+## Results
 
-=== Registry: Tier 0 pure functions ===
-  Count: 140
+### Individual metrics, the whole suite and a subset
 
-=== MetricEntry fields for 'mse' ===
-  name:              mse
-  tier:              pure_function
-  domain:            general
-  direction:         lower
-  description:       Mean squared error
-  signature:         predictions_targets
-  is_true_metric:    False
-  is_symmetric:      True
-  is_differentiable: True
-  is_jit_compatible: True
-  invariances:       ()
+The first three tables print each metric's value on the same five predictions.
 
-=== Registry: true metrics (satisfy metric space axioms) ===
-  Count: 27
-  Names: ['mae', 'rmse', 'euclidean_distance', 'manhattan_distance', 'chebyshev_distance', 'mahalanobis_distance', 'hamming_distance', 'minkowski_distance']...
+### What the registry holds
+
+The rest of the run lists the registry by domain and by tier, describes the `mse` entry, and
+names the true metrics and the rotation-invariant ones.
+
+
+```python
+def print_values(title: str, values: dict[str, float]) -> None:
+    """Print one table of metric values.
+
+    Args:
+        title: The table's title.
+        values: Each metric's value by name.
+    """
+    print(f"=== {title} ===")
+    for name, value in values.items():
+        print(f"  {name:25s} = {value:.6f}")
+
+
+def print_registry(registry: MetricRegistry) -> dict[str, int]:
+    """Print what the registry holds.
+
+    Args:
+        registry: The metric registry.
+
+    Returns:
+        The number of metrics registered, of pure functions and of true metrics.
+    """
+    names = sorted(registry.list_names())
+    print("=== Registry: all registered metric names ===")
+    print(f"  Total registered: {len(names)}")
+    print(f"  First 10: {names[:10]}")
+    print("=== Registry: metrics by domain ===")
+    for domain, domain_names in metrics_by_domain(registry).items():
+        print(f"  {domain:20s} ({len(domain_names)}): {domain_names}")
+    tier0 = registry.list_by_tier(MetricTier.PURE_FUNCTION)
+    print("=== Registry: Tier 0 pure functions ===")
+    print(f"  Count: {len(tier0)}")
+    print("=== MetricEntry fields for 'mse' ===")
+    for field, value in describe(registry.get("mse")).items():
+        print(f"  {field + ':':18s} {value}")
+    metrics = true_metrics(registry)
+    print("=== Registry: true metrics (satisfy metric space axioms) ===")
+    print(f"  Count: {len(metrics)}")
+    print(f"  Names: {metrics[:8]}...")
+    print("=== Registry: rotation-invariant metrics ===")
+    print(f"  Names: {rotation_invariant(registry)}")
+    return {"registered": len(names), "tier0": len(tier0), "true_metrics": len(metrics)}
+
+
+def main() -> dict[str, float | int]:
+    """Run the example and return its results.
+
+    Returns:
+        The three individual metrics and the registry's counts.
+    """
+    individual = individual_metrics(PREDICTIONS, TARGETS)
+    print_values("Individual metrics", individual)
+    print_values("calculate_all (all general metrics)", all_general_metrics(PREDICTIONS, TARGETS))
+    print_values("calculate_all (selected subset)", selected_metrics(PREDICTIONS, TARGETS))
+    return {**individual, **print_registry(MetricRegistry())}
+
+
+if __name__ == "__main__":
+    main()
 ```
+
+    === Individual metrics ===
+      mse                       = 0.054000
+      mae                       = 0.220000
+      r_squared                 = 0.973000
+    === calculate_all (all general metrics) ===
+      charbonnier_loss          = 0.220003
+      explained_variance        = 0.973200
+      huber_loss                = 0.027000
+      log_cosh_loss             = 0.026682
+      mae                       = 0.220000
+      mape                      = 0.085333
+      max_error                 = 0.300000
+      mse                       = 0.054000
+      quantile_loss             = 0.110000
+      r_squared                 = 0.973000
+      relative_error            = 0.070065
+      relative_l2_error         = 0.085333
+      rmse                      = 0.232379
+      smape                     = 0.082875
+    === calculate_all (selected subset) ===
+      mse                       = 0.054000
+      mae                       = 0.220000
+      rmse                      = 0.232379
+      r_squared                 = 0.973000
+    === Registry: all registered metric names ===
+      Total registered: 140
+      First 10: ['accuracy', 'adaptive_calibration_error', 'adjusted_mutual_information', 'adjusted_rand_index', 'anees', 'average_precision', 'balanced_accuracy', 'bleu', 'bregman_divergence', 'brier_score']
+    === Registry: metrics by domain ===
+      general              (16): ['mse', 'mae', 'rmse', 'r_squared', 'r_squared_adjusted', 'mape', 'relative_error', 'relative_l2_error', 'explained_variance', 'max_error', 'huber_loss', 'charbonnier_loss', 'quantile_loss', 'log_cosh_loss', 'smape', 'crps']
+      classification       (13): ['accuracy', 'precision', 'recall', 'f1_score', 'roc_auc', 'average_precision', 'log_loss', 'matthews_corrcoef', 'cohen_kappa', 'balanced_accuracy', 'specificity', 'sensitivity', 'softmax_cross_entropy']
+      distance             (11): ['cosine_distance', 'euclidean_distance', 'manhattan_distance', 'chebyshev_distance', 'mahalanobis_distance', 'hamming_distance', 'minkowski_distance', 'jaccard_distance', 'poincare_distance', 'lorentz_distance', 'randers_distance']
+      image                (4): ['psnr', 'ssim', 'ms_ssim', 'vendi_score']
+    === Registry: Tier 0 pure functions ===
+      Count: 140
+    === MetricEntry fields for 'mse' ===
+      name:              mse
+      tier:              pure_function
+      domain:            general
+      direction:         lower
+      description:       Mean squared error
+      signature:         predictions_targets
+      is_true_metric:    False
+      is_symmetric:      True
+      is_differentiable: True
+      is_jit_compatible: True
+      invariances:       ()
+    === Registry: true metrics (satisfy metric space axioms) ===
+      Count: 27
+      Names: ['mae', 'rmse', 'euclidean_distance', 'manhattan_distance', 'chebyshev_distance', 'mahalanobis_distance', 'hamming_distance', 'minkowski_distance']...
+    === Registry: rotation-invariant metrics ===
+      Names: ['euclidean_distance']
+
 
 ## Next Steps
 
-- [Regression Metrics Deep Dive](regression-metrics.md) -- explore regression metrics with outlier, quantile, and CRPS analysis
-- [API Reference: `calibrax.metrics`](../../api-reference/metrics/index.md) -- full function signatures and parameters
-- [User Guide: Geometric Metrics](../../user-guide/geometric-metrics.md) -- choosing the right metric for your task
+- [Regression metrics deep dive](regression-metrics.md): regression metrics with outlier,
+  quantile and CRPS analysis
+- [Metrics API reference](../../api-reference/metrics/index.md): every function's signature and
+  parameters
+- [Geometric metrics guide](../../user-guide/geometric-metrics.md): choosing the right metric for
+  your task
+
+<!-- substrax-notebooks: {"page": {"body": "8035d0d79576c7616dad808313914b5bef0f8b268ef0ab1cea03f59bf579b4fd", "figures": {}, "record": "ff0a01b52ea91e601d1f4785099ca55c02d3d38a52b47a2c616a64385e347b7e"}, "provenance": {"device": "1 cpu", "outputs": [[], [], [], [], [], [], ["text"]], "seconds": 2.0, "sha256": "e8f2148033f2f317060b2f3b16a65c17f79d98a902ce7d2a999922d8bb032d48", "source": "examples/metrics/quickstart.py", "versions": {"calibrax": "0.1.17", "jax": "0.11.1", "python": "3.12.14", "substrax": "0.1.27"}}} -->
