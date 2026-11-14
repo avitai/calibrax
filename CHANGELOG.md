@@ -29,6 +29,8 @@ and uses semantic versioning while the public API stabilizes.
   [Writing examples](https://substrax.readthedocs.io/en/latest/guides/writing-examples/) guide,
   and `substrax-notebooks` converts, checks and pages them; `CONTRIBUTING.md`, the contributing
   overview and the docs navigation point there.
+- `mkdocs-jupyter` and `mkdocs-ipynb` from the `docs` extra. No `plugins:` entry loaded either,
+  and the example pages are Markdown that `substrax-notebooks page` writes.
 
 ### Security
 
