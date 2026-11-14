@@ -118,6 +118,11 @@ watch:
   - mkdocs.yml
   - README.md
 
+# A page left out of the navigation fails `mkdocs build --strict`.
+validation:
+  nav:
+    omitted_files: warn
+
 nav:
   - Home: index.md
   - Getting Started:
