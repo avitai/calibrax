@@ -206,7 +206,9 @@ def grassmann_distances() -> dict[str, float]:
 ### Step 5: Compute ultrahyperbolic distances
 
 Points on the `(1, 2)` hyperboloid satisfy `-t^2 + x^2 + y^2 = -1`; points on the `(2, 2)`
-pseudo-hyperboloid satisfy `-t1^2 - t2^2 + x1^2 + x2^2 = -1`, here with `t1 = t2`.
+pseudo-hyperboloid satisfy `-t1^2 - t2^2 + x1^2 + x2^2 = -1`, here with `t1 = t2`. On the
+`(2, 2)` manifold no geodesic joins a point to `-q2`: the default returns the broken-geodesic length
+`pi + d(-origin, -q2)` there, and `disconnected="nan"` returns NaN.
 """
 
 
@@ -259,6 +261,12 @@ def ultrahyperbolic_distances() -> dict[str, float]:
         ),
         "(2, 2) d(origin, q1)": float(ultrahyperbolic_distance(origin_22, q1, signature=(2, 2))),
         "(2, 2) d(origin, q2)": float(ultrahyperbolic_distance(origin_22, q2, signature=(2, 2))),
+        "(2, 2) d(origin, -q2), broken": float(
+            ultrahyperbolic_distance(origin_22, -q2, signature=(2, 2))
+        ),
+        "(2, 2) d(origin, -q2), nan": float(
+            ultrahyperbolic_distance(origin_22, -q2, signature=(2, 2), disconnected="nan")
+        ),
     }
 
 
@@ -278,8 +286,9 @@ The two SPD distances agree on the pairs that include the identity and differ on
 pair; after the congruence the affine-invariant distance is unchanged and the log-Euclidean one
 is not. The Grassmann distance is 0 for the same plane in a rotated basis, as it depends only on
 the subspace, `pi / 6` for the tilt of 30 degrees, and `sqrt(2) * pi / 2` for the complement,
-whose two principal angles are both a right angle. The distance from an ultrahyperbolic point to
-itself prints as 0.0001 rather than 0.
+whose two principal angles are both a right angle. Each ultrahyperbolic point is at 0 from
+itself; `-q2` is `pi` further from the origin than `q2` is, by the broken geodesic through
+`-origin`, and NaN when the undefined distance is asked for.
 """
 
 
@@ -314,7 +323,7 @@ def main() -> dict[str, float]:
     spd = spd_distances()
     print("=== SPD Matrix Distances (affine-invariant, log-Euclidean) ===")
     for name, (affine, log_euclidean) in spd.items():
-        print(f"  {name:26s} {affine:.6f}  {log_euclidean:.6f}")
+        print(f"  {name:30s} {affine:.6f}  {log_euclidean:.6f}")
     tables = {
         "Grassmann Subspace Distances": grassmann_distances(),
         "Ultrahyperbolic Distances": ultrahyperbolic_distances(),
@@ -322,7 +331,7 @@ def main() -> dict[str, float]:
     for title, values in tables.items():
         print(f"=== {title} ===")
         for name, value in values.items():
-            print(f"  {name:26s} {value:.6f}")
+            print(f"  {name:30s} {value:.6f}")
     return {
         **spectral,
         "path resistance d(0, 3)": graphs["Path"]["resistance"][0][3],

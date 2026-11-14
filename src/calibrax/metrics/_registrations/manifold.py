@@ -82,7 +82,8 @@ def register() -> None:
             _BuiltinMetricSpec(
                 "ultrahyperbolic_distance",
                 ultrahyperbolic_distance,
-                "Geodesic distance on pseudo-hyperboloid with mixed signature",
+                "Distance on a pseudo-hyperboloid of signature (p, q): geodesic where one exists, "
+                "the broken-geodesic length (or NaN) where none does",
                 MetricDirection.LOWER,
                 MetricProperties(is_symmetric=True),
                 signature=MetricSignature.CUSTOM,

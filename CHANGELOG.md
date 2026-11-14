@@ -69,6 +69,17 @@ and uses semantic versioning while the public API stabilizes.
   `e^(a + b)` and lost every float32 digit for nearby points past radius ~10. It computes the
   cancellation-free hyperbolic-haversine distance ported from hyperbolix (MIT, commit 96aba05),
   with its overflow-free `safe_hypot`, `floor_at` and `safe_asinh`.
+- `ultrahyperbolic_distance` computed `arccosh(-<a, b>)` behind a clamp for every pair, so a
+  timelike-separated pair, whose distance is `arccos(u)`, and a pair no geodesic joins both came
+  out near 0 (two orthogonal points on the (2, 2) manifold gave 1.0e-4, a point and itself
+  6.9e-4 with a gradient of ~1774). It now follows the three regimes of Bengtsson's anti-de
+  Sitter notes and Law & Stam (NeurIPS 2020, eq. 8): `arccosh(u)` for `u >= 1`, `arccos(u)` for
+  `-1 <= u < 1`, each in half-angle form, exactly 0 with a zero gradient for a point against
+  itself, and the (1, n) case is `lorentz_distance`'s computation. **Breaking:** where no
+  geodesic exists (`u < -1`) it returns the broken-geodesic length `pi + d(-a, b)` (Law & Stam;
+  QGCN), or NaN with the new static `disconnected="nan"`; a signature with no timelike
+  coordinate, which has no points, or one that does not match the points' size raises
+  `ValueError`. Its docstring no longer cites UltraE, which defines a different distance.
 
 - The classification example's calibration comparison taught the reverse of its claim: its
   "overconfident" model scored a lower Brier score (0.0063 against 0.0852) and ECE (0.0750
