@@ -7,6 +7,13 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+### Security
+
+- The lock takes the fixed releases of the three packages pip-audit reports across every extra:
+  opentelemetry-api 1.45.2 (CVE-2026-126360), soupsieve 4.1.1 (CVE-2026-126190, fixed only from
+  4.0.0, so no 3.x release carries it) and tornado 6.6.1 (CVE-2026-126347). opentelemetry-sdk and
+  opentelemetry-semantic-conventions follow.
+
 ## [0.1.17] - 2026-11-06
 
 ### Changed
