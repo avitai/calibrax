@@ -195,7 +195,6 @@ Repository = "https://github.com/avitai/calibrax"
 [tool.bandit]
 exclude_dirs = [
   "benchmarks",
-  "examples",
   "scripts",
   "tests"
 ]
@@ -233,7 +232,6 @@ branch = true
 omit = [
   "*/__pycache__/*",
   "*/conftest.py",
-  "*/examples/*",
   "*/scripts/*",
   "*/tests/*"
 ]
@@ -258,7 +256,7 @@ packages = ["src/calibrax"]
 path = "src/calibrax/__init__.py"
 
 [tool.interrogate]
-exclude = ["examples", "scripts", "tests"]
+exclude = ["scripts", "tests"]
 fail-under = 80
 ignore-init-method = true
 ignore-init-module = false
@@ -283,10 +281,10 @@ max-attributes = 12
 
 [tool.pyright]
 exclude = [
-  "examples",
   "scripts"
 ]
 include = [
+  "examples",
   "src",
   "tests"
 ]
@@ -413,10 +411,10 @@ order-by-type = false
 max-complexity = 10
 
 [tool.ruff.lint.per-file-ignores]
-# Examples are narrative walkthroughs: they print, and their main functions are long. The shared
-# guide's format opens with a markdown cell as the module docstring and imports after markdown
-# cells (D212, D415, E402).
-"examples/*" = ["C901", "D212", "D415", "E402", "PLR0915", "T20"]
+# The rules the example format itself breaks (substrax's Writing examples guide): the first
+# markdown cell is the module docstring and opens with its # title (D212, D415), imports follow
+# markdown cells (E402), and main() prints the results the page shows (T201).
+"examples/**/*.py" = ["D212", "D415", "E402", "T201"]
 # Development scripts report on stdout.
 "scripts/*" = ["T20"]
 # The CLI's output is print by design.

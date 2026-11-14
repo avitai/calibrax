@@ -112,7 +112,7 @@ repos:
       - id: bandit
         args: [-c, pyproject.toml]
         additional_dependencies: ["bandit[toml]"]
-        exclude: ^(tests|examples)/
+        exclude: ^tests/
 
   # Gates that need the project environment
   - repo: local
@@ -126,17 +126,17 @@ repos:
 
       - id: interrogate
         name: interrogate (docstring coverage)
-        entry: uv run --no-sync interrogate src/
+        entry: uv run --no-sync interrogate src/ examples/
         language: system
         pass_filenames: false
-        files: ^src/calibrax/.*\.py$
+        files: ^(src/calibrax|examples)/.*\.py$
 
       - id: pydoclint
         name: pydoclint (docstring sections match signatures)
-        entry: uv run --no-sync pydoclint src/
+        entry: uv run --no-sync pydoclint src/ examples/
         language: system
         pass_filenames: false
-        files: ^src/calibrax/.*\.py$
+        files: ^(src/calibrax|examples)/.*\.py$
 
   # Shell script linting
   - repo: https://github.com/shellcheck-py/shellcheck-py
