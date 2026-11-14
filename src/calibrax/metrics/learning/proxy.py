@@ -41,7 +41,6 @@ class ProxyNCALoss(nnx.Module):
             embedding_dim: Embedding dimensionality.
             rngs: RNG streams.
         """
-        super().__init__()
         self._proxies = nnx.Param(
             jax.random.normal(rngs.params(), (num_classes, embedding_dim)) * 0.01
         )
@@ -107,7 +106,6 @@ class ProxyAnchorLoss(nnx.Module):
             scale: Scale factor.
             rngs: RNG streams.
         """
-        super().__init__()
         self._margin = margin
         self._scale = scale
         self._proxies = nnx.Param(
