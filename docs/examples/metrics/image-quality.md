@@ -186,6 +186,6 @@ ssim(noisy_large, original)  # noticeably below 1.0
 ## Next Steps
 
 - [Metric Learning Losses](metric-learning.md) -- contrastive, triplet, NTXent, and ArcFace losses for embedding training
-- [Model Evaluation with Composition](model-evaluation.md) -- combine image quality metrics with quality gates and tracking
+- [Model Evaluation with Composition](composition.md) -- combine image quality metrics with quality gates and tracking
 - [API Reference: `calibrax.metrics.functional.image`](../../api-reference/metrics/image.md) -- full image metric signatures
 - [API Reference: `calibrax.metrics.functional.text`](../../api-reference/metrics/text.md) -- full text metric signatures

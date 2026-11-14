@@ -309,7 +309,7 @@ if __name__ == "__main__":
 """
 ## Next Steps
 
-- [Metric composition](model-evaluation.md): combine metrics into collections, suites and quality
+- [Metric composition](composition.md): combine metrics into collections, suites and quality
   gates
 - [Manifold and graph metrics](advanced-manifold.md): SPD, Grassmann and graph-theoretic
   distances
