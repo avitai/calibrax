@@ -59,6 +59,11 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Fixed
 
+- `safe_norm`, behind every Euclidean distance, error and norm-based metric, no longer overflows
+  or underflows in float32: it divides by the power of two below the largest magnitude before
+  squaring, as hyperbolix's `safe_norm` does (ported, MIT, commit 96aba05). A norm of `1e30` gave
+  `inf` and one of `5e-34` gave `0` with a zero gradient; values elsewhere are unchanged.
+
 - The classification example's calibration comparison taught the reverse of its claim: its
   "overconfident" model scored a lower Brier score (0.0063 against 0.0852) and ECE (0.0750
   against 0.2550) than its "well-calibrated" one, whose probabilities rose with the sample's

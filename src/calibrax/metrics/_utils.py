@@ -197,15 +197,65 @@ def safe_root(x: ArrayLike, *, order: float = 2.0) -> jax.Array:
     return jnp.where(at_the_singularity, jnp.zeros_like(x), root)
 
 
+# The rescaled norm below (`_pow2_divisor`, `safe_norm`) is ported from hyperbolix, `hyperbolix/utils/math_utils.py` at commit
+# 96aba0558e0b41e88a98b6670fa28928431720a7 (https://github.com/timoklein/hyperbolix), whose
+# docstrings carry the measurements behind each choice. `safe_norm` keeps calibrax's `axis`
+# argument. hyperbolix is distributed under the MIT License:
+#
+#   Copyright (c) 2026 Timo Klein, Thomas Lang
+#
+#   Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+#   and associated documentation files (the "Software"), to deal in the Software without
+#   restriction, including without limitation the rights to use, copy, modify, merge, publish,
+#   distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the
+#   Software is furnished to do so, subject to the following conditions:
+#
+#   The above copyright notice and this permission notice shall be included in all copies or
+#   substantial portions of the Software.
+#
+#   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+#   BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+#   NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+#   DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+#   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+def _pow2_divisor(m: jax.Array) -> jax.Array:
+    """The power of two just below ``m``, ``2**floor(log2 m)``: an exact rescaling divisor.
+
+    Dividing and multiplying by a power of two only shifts the exponent, so the rescale adds no
+    rounding of its own while no intermediate can overflow. The divisor is built by masking the
+    mantissa bits off ``m`` (``ldexp`` lowers to an inexact ``power`` on GPU), floored at the
+    smallest normal power of two so a subnormal ``m`` cannot give ``0/0``. A zero or non-finite
+    ``m`` gives 1, which lets ``inf`` flow through as ``inf`` and ``NaN`` as ``NaN``.
+
+    Args:
+        m: The largest magnitude of the operands, already ``stop_gradient``-ed.
+
+    Returns:
+        An exact power of two, the shape of ``m``.
+    """
+    m_safe = jnp.where((m > 0.0) & jnp.isfinite(m), m, jnp.ones_like(m))
+    uint_dtype = jnp.dtype(f"uint{8 * m.dtype.itemsize}")
+    mantissa_mask = jnp.asarray((1 << jnp.finfo(m.dtype).nmant) - 1, dtype=uint_dtype)
+    bits = jax.lax.bitcast_convert_type(m_safe, uint_dtype)
+    truncated = jax.lax.bitcast_convert_type(bits & ~mantissa_mask, m.dtype)
+    return jnp.maximum(truncated, jnp.asarray(jnp.finfo(m.dtype).tiny, dtype=m.dtype))
+
+
 def safe_norm(x: ArrayLike, *, axis: int | tuple[int, ...] | None = None) -> jax.Array:
     """The Euclidean norm of ``x`` over ``axis`` (all elements when ``None``), zero-safe.
 
-    ``jnp.linalg.norm`` has a NaN gradient at the zero vector, which a distance reaches at a
-    perfect match; this is ``safe_root`` of the sum of squares, with gradient 0 there.
+    The values are divided by the power of two just below their largest magnitude before they are
+    squared (:func:`_pow2_divisor`), so the sum of squares sits in ``[1, 4n)`` however large or
+    small they are: a float32 norm of ``1e30`` or ``5e-34`` is computed, where the plain sum of
+    squares overflows to ``inf`` or flushes to ``0``. The scale is a ``stop_gradient``, so the
+    gradient is exactly ``x / ||x||``.
 
-    The radicand is ``sum(square(x))``, non-negative by construction, so the domain error
-    :func:`safe_root` reports for a negative is unreachable from here. A ``NaN`` in ``x``
-    still propagates, as it should.
+    At ``x == 0`` the norm is exactly 0 with an exactly-zero gradient, where ``jnp.linalg.norm``'s
+    is NaN, which a distance reaches at a perfect match: the double ``where`` replaces the root's
+    argument so its infinite derivative is never formed. A ``NaN`` in ``x`` propagates and an
+    ``inf`` gives ``inf``.
 
     Args:
         x: Values.
@@ -214,7 +264,14 @@ def safe_norm(x: ArrayLike, *, axis: int | tuple[int, ...] | None = None) -> jax
     Returns:
         The norm, reduced over ``axis``.
     """
-    return safe_root(jnp.sum(jnp.square(x), axis=axis))
+    values = jnp.asarray(x)
+    scale = jax.lax.stop_gradient(jnp.max(jnp.abs(values), axis=axis, keepdims=True))
+    divisor = _pow2_divisor(scale)
+    squares = jnp.sum((values / divisor) ** 2, axis=axis)
+    divisor = jnp.squeeze(divisor, axis=axis) if axis is not None else divisor.reshape(())
+    is_zero = jnp.squeeze(scale, axis=axis) == 0.0 if axis is not None else scale.reshape(()) == 0.0
+    squares_safe = jnp.where(is_zero, jnp.ones_like(squares), squares)
+    return jnp.where(is_zero, jnp.zeros_like(squares), divisor * jnp.sqrt(squares_safe))
 
 
 def dense_labels(labels: ArrayLike, num_labels: int | None) -> tuple[jax.Array, int]:
