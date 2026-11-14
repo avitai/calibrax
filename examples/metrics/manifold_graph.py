@@ -121,18 +121,27 @@ def node_distances(adjacency: jax.Array) -> dict[str, list[list[float]]]:
 """
 ### Step 3: Measure distances between SPD matrices
 
-Three 3x3 SPD matrices: the identity, the identity scaled by 4 and an anisotropic matrix.
+The identity, the identity scaled by 4 and two anisotropic matrices that do not commute. The two
+distances agree on any pair of commuting matrices, the identity with anything included; they
+differ on the anisotropic pair, and a congruence `M A M^T` by an invertible, non-orthogonal `M`
+leaves only the affine-invariant one unchanged.
 """
 
 # %%
 IDENTITY = jnp.eye(3)
 SCALED = jnp.eye(3) * 4.0
 ANISOTROPIC = jnp.array([[2.0, 0.5, 0.0], [0.5, 1.0, 0.0], [0.0, 0.0, 3.0]])
+OTHER = jnp.array([[1.0, 0.0, 0.4], [0.0, 3.0, 0.0], [0.4, 0.0, 1.0]])
+CONGRUENCE = jnp.array([[1.0, 2.0, 0.0], [0.0, 1.0, 0.0], [0.5, 0.0, 1.0]])
 SPD_PAIRS = {
     "d(I, I)": (IDENTITY, IDENTITY),
     "d(I, 4*I)": (IDENTITY, SCALED),
     "d(I, aniso)": (IDENTITY, ANISOTROPIC),
-    "d(4*I, aniso)": (SCALED, ANISOTROPIC),
+    "d(aniso, other)": (ANISOTROPIC, OTHER),
+    "d(M aniso M', M other M')": (
+        CONGRUENCE @ ANISOTROPIC @ CONGRUENCE.T,
+        CONGRUENCE @ OTHER @ CONGRUENCE.T,
+    ),
 }
 
 
@@ -155,7 +164,9 @@ def spd_distances() -> dict[str, tuple[float, float]]:
 """
 ### Step 4: Measure distances between subspaces
 
-Each subspace of R^4 is given by an orthonormal basis of two columns.
+Each subspace of R^4 is given by an orthonormal basis of two columns. U2 spans the same plane as
+U1 in a basis rotated by 30 degrees, U3 tilts U1's plane by 30 degrees towards the third axis,
+and U4 spans the orthogonal complement, the last two axes.
 """
 
 # %%
@@ -171,8 +182,14 @@ U2, _ = jnp.linalg.qr(
         ]
     )
 )
-U3 = jnp.eye(4, 2, k=2)
-SUBSPACES = {"d(U1, U1)": U1, "d(U1, U2)": U2, "d(U1, U3)": U3}
+U3 = jnp.array([[1.0, 0.0], [0.0, jnp.cos(ANGLE)], [0.0, jnp.sin(ANGLE)], [0.0, 0.0]])
+U4 = jnp.eye(4, 2, k=-2)
+SUBSPACES = {
+    "d(U1, U1)": U1,
+    "d(U1, U2), same plane": U2,
+    "d(U1, U3), tilted": U3,
+    "d(U1, U4), complement": U4,
+}
 
 
 def grassmann_distances() -> dict[str, float]:
@@ -257,8 +274,12 @@ bring node 2 to 1.0 from node 0, against 3.0 for node 3 on the path's single one
 
 ### Manifold distances
 
-The SPD, Grassmann and ultrahyperbolic tables give each pair's distance; the distance from an
-ultrahyperbolic point to itself prints as 0.0001 rather than 0.
+The two SPD distances agree on the pairs that include the identity and differ on the anisotropic
+pair; after the congruence the affine-invariant distance is unchanged and the log-Euclidean one
+is not. The Grassmann distance is 0 for the same plane in a rotated basis, as it depends only on
+the subspace, `pi / 6` for the tilt of 30 degrees, and `sqrt(2) * pi / 2` for the complement,
+whose two principal angles are both a right angle. The distance from an ultrahyperbolic point to
+itself prints as 0.0001 rather than 0.
 """
 
 
@@ -293,7 +314,7 @@ def main() -> dict[str, float]:
     spd = spd_distances()
     print("=== SPD Matrix Distances (affine-invariant, log-Euclidean) ===")
     for name, (affine, log_euclidean) in spd.items():
-        print(f"  {name:14s} {affine:.6f}  {log_euclidean:.6f}")
+        print(f"  {name:26s} {affine:.6f}  {log_euclidean:.6f}")
     tables = {
         "Grassmann Subspace Distances": grassmann_distances(),
         "Ultrahyperbolic Distances": ultrahyperbolic_distances(),
