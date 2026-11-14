@@ -1,6 +1,7 @@
 """Test all Python code blocks in documentation run successfully.
 
-Auto-discovers every fenced code block in docs/**/*.md, groups them by file,
+Auto-discovers every fenced code block in docs/**/*.md, except the example pages
+substrax-notebooks generates under docs/examples, groups them by file,
 and executes each file's blocks sequentially in document order. This design is
 immune to pytest-randomly reordering — files are independent, but blocks within
 a file share a namespace and must run in order.
@@ -33,6 +34,8 @@ from tests.factories import make_fake_nvml
 logger = logging.getLogger(__name__)
 
 DOCS_DIR = Path(__file__).resolve().parent.parent / "docs"
+# The directory of docs/ that `substrax-notebooks page` writes, one page per example.
+GENERATED_EXAMPLE_PAGES = "examples"
 
 # The reason may follow an em dash, an en dash or a hyphen.
 SKIP_PATTERN = re.compile(r"^#\s*doctest:\s*\+SKIP(?:\s*[\u2014\u2013-]\s*(.+))?", re.MULTILINE)
@@ -59,9 +62,15 @@ def _extract_skip_reason(code: str) -> str | None:
 
 
 def discover_doc_code_blocks(docs_dir: Path) -> list[CodeBlock]:
-    """Scan all markdown files under *docs_dir* and extract every fenced code block."""
+    """Scan the markdown files under *docs_dir* and extract every fenced code block.
+
+    The pages under ``GENERATED_EXAMPLE_PAGES`` are left out: each repeats an example's code,
+    which ``substrax-notebooks test`` runs in its own invocation.
+    """
     blocks: list[CodeBlock] = []
     for md_file in sorted(docs_dir.rglob("*.md")):
+        if md_file.relative_to(docs_dir).parts[0] == GENERATED_EXAMPLE_PAGES:
+            continue
         content = md_file.read_text()
         for match in FENCE_PATTERN.finditer(content):
             lang = match.group(1)
@@ -273,6 +282,26 @@ def test_doc_file(file_path: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatc
 # ---------------------------------------------------------------------------
 # Coverage assertion: every Python block must be accounted for
 # ---------------------------------------------------------------------------
+
+
+@pytest.mark.doctest
+def test_generated_example_pages_are_left_to_their_own_run(tmp_path: Path) -> None:
+    """A page `substrax-notebooks page` writes under docs/examples is not run here.
+
+    Each such page repeats its example's code, which `substrax-notebooks test` runs in its own
+    invocation; running it in the main suite would run every example a second time, in this
+    process. Every other page, the examples overview at docs/examples.md included, is read.
+    """
+    fence = "```python\nx = 1\n```\n"
+    (tmp_path / "examples" / "metrics").mkdir(parents=True)
+    (tmp_path / "examples" / "metrics" / "quickstart.md").write_text(fence)
+    (tmp_path / "examples.md").write_text(fence)
+    (tmp_path / "user-guide").mkdir()
+    (tmp_path / "user-guide" / "statistics.md").write_text(fence)
+
+    files = {block.file for block in discover_doc_code_blocks(tmp_path)}
+
+    assert files == {"examples.md", "user-guide/statistics.md"}
 
 
 @pytest.mark.doctest
