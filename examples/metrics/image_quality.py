@@ -348,7 +348,7 @@ if __name__ == "__main__":
 """
 ## Next Steps
 
-- [Metric learning losses](metric-learning.md): contrastive, triplet, NTXent and ArcFace losses
+- [Metric learning losses](metric_learning.md): contrastive, triplet, NTXent and ArcFace losses
   for training embeddings
 - [Metric composition](composition.md): combine quality metrics with gates and tracking
 - [Stateful metrics guide](../../user-guide/stateful-metrics.md): FID and Inception Score on

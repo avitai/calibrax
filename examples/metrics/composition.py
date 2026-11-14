@@ -290,6 +290,6 @@ if __name__ == "__main__":
 ## Next Steps
 
 - [Image quality and text metrics](image_quality.md): PSNR, SSIM, MS-SSIM, BLEU and ROUGE
-- [Metric learning losses](metric-learning.md): contrastive, triplet, NTXent and ArcFace losses
+- [Metric learning losses](metric_learning.md): contrastive, triplet, NTXent and ArcFace losses
 - [Metrics API reference](../../api-reference/metrics/index.md): the composition API
 """
