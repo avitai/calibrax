@@ -218,7 +218,7 @@ nav:
           - Classification: examples/metrics/classification.md
           - Distances & Spaces: examples/metrics/distances.md
           - Model Evaluation: examples/metrics/composition.md
-          - Image Quality: examples/metrics/image-quality.md
+          - Image Quality: examples/metrics/image_quality.md
           - Metric Learning: examples/metrics/metric-learning.md
           - Manifold & Graph: examples/metrics/advanced-manifold.md
   - Contributing:

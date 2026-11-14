@@ -1,6 +1,6 @@
 # Metric Composition and Wrappers
 
-> Ran in 2.5 s on 1 cpu (python 3.12.14, jax 0.11.1, substrax 0.1.27, calibrax 0.1.17), from [`examples/metrics/composition.py`](https://github.com/avitai/calibrax/blob/main/examples/metrics/composition.py) ([notebook](https://github.com/avitai/calibrax/blob/main/examples/metrics/composition.ipynb)). Run it from the repository root:
+> Ran in 2.4 s on 1 cpu (python 3.12.14, jax 0.11.1, substrax 0.1.27, calibrax 0.1.17), from [`examples/metrics/composition.py`](https://github.com/avitai/calibrax/blob/main/examples/metrics/composition.py) ([notebook](https://github.com/avitai/calibrax/blob/main/examples/metrics/composition.ipynb)). Run it from the repository root:
 
 ```bash
 source ./activate.sh
@@ -306,8 +306,8 @@ if __name__ == "__main__":
 
 ## Next Steps
 
-- [Image quality and text metrics](image-quality.md): PSNR, SSIM, MS-SSIM, BLEU and ROUGE
+- [Image quality and text metrics](image_quality.md): PSNR, SSIM, MS-SSIM, BLEU and ROUGE
 - [Metric learning losses](metric-learning.md): contrastive, triplet, NTXent and ArcFace losses
 - [Metrics API reference](../../api-reference/metrics/index.md): the composition API
 
-<!-- substrax-notebooks: {"page": {"body": "58970b80d6e6df9f78b632008bf0c69de3204850a2c0a7a731855b6d4e063099", "figures": {}, "record": "9a800a45738cc620a713097a06553b0fea60cefb67a5ad708f2c11d0b8a2f5b5"}, "provenance": {"device": "1 cpu", "outputs": [[], [], [], [], [], [], [], ["text"]], "seconds": 2.5, "sha256": "afa0600efc0ad0a554a319e68c7498cfc3db75f4eba3f5d77740e15dfaabbab7", "source": "examples/metrics/composition.py", "versions": {"calibrax": "0.1.17", "jax": "0.11.1", "python": "3.12.14", "substrax": "0.1.27"}}} -->
+<!-- substrax-notebooks: {"page": {"body": "81df10072d420018fa619fccdc72f350a56868f2f1a55947a7edd8794030aa5e", "figures": {}, "record": "0dd792734f6ac2fd8e3b14b492382b5e373f64417dd6d90ad6006351ef2d504d"}, "provenance": {"device": "1 cpu", "outputs": [[], [], [], [], [], [], [], ["text"]], "seconds": 2.4, "sha256": "03786f09cefee80fc05fe4ac8bb9daa14ec51930170b05b0cefed4a1f40647a3", "source": "examples/metrics/composition.py", "versions": {"calibrax": "0.1.17", "jax": "0.11.1", "python": "3.12.14", "substrax": "0.1.27"}}} -->
