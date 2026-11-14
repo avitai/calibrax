@@ -46,11 +46,13 @@ uv run mkdocs build --strict --clean   # needs `./setup.sh --extra docs`
 uv run python scripts/derive_status.py --check   # README claims against the registry
 ```
 
-The example notebooks under `examples/metrics/` are generated from their `.py` sources:
+Examples follow substrax's [Writing examples](https://substrax.readthedocs.io/en/latest/guides/writing-examples/) guide. The script is
+the only file you author; `substrax-notebooks` writes its notebook and its page:
 
 ```bash
-uv run python scripts/jupytext_converter.py batch-py-to-nb examples/metrics/
-uv run python scripts/jupytext_converter.py validate examples/metrics/
+uv run substrax-notebooks convert examples/<topic>/<name>.py   # its clean notebook
+uv run substrax-notebooks page examples/<topic>/<name>.py      # run it and write its page
+uv run substrax-notebooks test                                 # the shared example tests
 ```
 
 ## Contribution Workflow
@@ -63,10 +65,8 @@ uv run python scripts/jupytext_converter.py validate examples/metrics/
 5. Use the pull request checklist and call out any intentionally skipped checks.
 
 For metric additions, follow
-[Adding a Metric](docs/contributing/adding-a-metric.md). For documentation
-style, use the
-[Documentation Design Framework](docs/contributing/example_documentation_design.md)
-as the standards reference.
+[Adding a Metric](docs/contributing/adding-a-metric.md). For examples,
+follow substrax's [Writing examples](https://substrax.readthedocs.io/en/latest/guides/writing-examples/) guide.
 
 ## Pull Request Expectations
 

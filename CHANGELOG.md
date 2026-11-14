@@ -17,6 +17,14 @@ and uses semantic versioning while the public API stabilizes.
   substrax 0.1.27 requires. `[tool.substrax.examples]` sets each example's budget to 60 s, Bazel's
   "short" test timeout, from runs of 2.4 to 5.3 s on one CPU.
 
+### Removed
+
+- `scripts/jupytext_converter.py`, `.jupytext.toml` and the Documentation Design Framework
+  (`docs/contributing/example_documentation_design.md`). Examples follow substrax's
+  [Writing examples](https://substrax.readthedocs.io/en/latest/guides/writing-examples/) guide,
+  and `substrax-notebooks` converts, checks and pages them; `CONTRIBUTING.md`, the contributing
+  overview and the docs navigation point there.
+
 ### Security
 
 - The lock takes the fixed releases of the three packages pip-audit reports across every extra:
