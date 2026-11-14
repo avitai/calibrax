@@ -18,7 +18,7 @@
 # |---|---|
 # | **Level** | Tier 1: Quick Reference |
 # | **Time** | ~10 minutes |
-# | **Prerequisites** | `01_quickstart.py`, basic statistics |
+# | **Prerequisites** | `quickstart.py`, basic statistics |
 # | **Metrics covered** | MSE, MAE, RMSE, R-squared, MAPE, SMAPE, Huber, CRPS |
 # | **Key concepts** | Outliers, robust losses, percentages, probabilistic forecasts |
 

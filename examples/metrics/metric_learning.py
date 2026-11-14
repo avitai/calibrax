@@ -22,7 +22,7 @@
 # |---|---|
 # | **Level** | Tier 3: Advanced Guide |
 # | **Time** | ~30 minutes |
-# | **Prerequisites** | `05_composition.py`, embedding space concepts |
+# | **Prerequisites** | `composition.py`, embedding space concepts |
 # | **Metrics covered** | contrastive_loss, triplet_margin_loss, ntxent_loss, arcface_loss |
 # | **Key concepts** | Pairwise losses, triplet mining, temperature scaling, angular margins |
 #

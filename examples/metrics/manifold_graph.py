@@ -19,7 +19,7 @@
 # |---|---|
 # | **Level** | Tier 3: Advanced Guide |
 # | **Time** | ~30 minutes |
-# | **Prerequisites** | `04_distances.py`, linear algebra basics |
+# | **Prerequisites** | `distances.py`, linear algebra basics |
 # | **Metrics covered** | SPD affine-invariant, Grassmann, spectral, resistance distance |
 # | **Key concepts** | Riemannian geometry, graph Laplacian, invariance verification |
 
