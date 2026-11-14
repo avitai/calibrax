@@ -218,12 +218,24 @@ basis-independent.
 ```python
 from calibrax.metrics.functional.manifold import grassmann_distance
 
-# (n, p) matrices with orthonormal columns: two 2D subspaces of R^4
-U = jnp.eye(4, 2)       # span of first two standard basis vectors
-V = jnp.eye(4, 2, k=2)  # span of last two standard basis vectors
+# (n, p) bases of two 2D subspaces of R^4
+U = jnp.eye(4)[:, :2]  # span of the first two standard basis vectors
+V = jnp.eye(4)[:, 2:]  # span of the last two
 
-# Compare two subspaces given by orthonormal bases
-d = grassmann_distance(U, V)
+d = grassmann_distance(U, V)  # sqrt(2) * pi / 2, about 2.2214
+same = grassmann_distance(U, 3.0 * U + U[:, ::-1])  # 0.0: any basis of the same plane
+```
+
+Each basis is orthonormalised first, so any basis of a subspace gives the same
+distance. A basis whose columns span fewer than $p$ dimensions is not a point of
+$\text{Gr}(p, n)$ and gives NaN; `rank_deficient="ye_lim"` returns Ye and Lim's
+distance between subspaces of different dimensions instead, which counts each
+missing direction as a right angle:
+
+```python
+Z = jnp.zeros((4, 2))
+grassmann_distance(U, Z)  # nan
+grassmann_distance(U, Z, rank_deficient="ye_lim")  # sqrt(2) * pi / 2
 ```
 
 **When to use Grassmann distance:**

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import functools
+
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -11,6 +13,8 @@ from scipy.linalg import subspace_angles
 from calibrax.metrics.functional.distance import lorentz_distance
 from calibrax.metrics.functional.manifold import (
     grassmann_distance,
+    RANK_DEFICIENT_CHOICES,
+    RankDeficient,
     spd_affine_invariant_distance,
     spd_log_euclidean_distance,
     stiefel_distance,
@@ -206,6 +210,118 @@ class TestGrassmannDistance:
         u = jnp.eye(3, 2)
         result = grassmann_distance(u, u)
         assert isinstance(result, jax.Array)
+
+    @pytest.mark.parametrize("scale", [3.0, 0.5])
+    def test_any_basis_of_the_subspace_gives_its_distance(self, scale: float) -> None:
+        """Each input is orthonormalised first (Bjorck and Golub; scipy's ``subspace_angles``).
+
+        A scaled or non-orthonormal basis spans the same subspace, so it gives the same distance
+        in either argument order. The tolerance is the one the scipy comparison above uses.
+        """
+        rng = np.random.default_rng(0)
+        u = np.linalg.qr(rng.normal(size=(5, 2)))[0]
+        w = np.linalg.qr(rng.normal(size=(5, 2)))[0]
+        skewed = w @ np.array([[1.0, 0.7], [0.0, 2.0]])
+        expected = float(np.linalg.norm(subspace_angles(u, w)))
+        for basis in (scale * w, skewed):
+            assert float(grassmann_distance(u, basis)) == pytest.approx(
+                expected, rel=1e-3, abs=1e-6
+            )
+            assert float(grassmann_distance(basis, u)) == pytest.approx(
+                expected, rel=1e-3, abs=1e-6
+            )
+
+    def test_the_two_choices_agree_on_full_rank_bases(self) -> None:
+        rng = np.random.default_rng(1)
+        u, v = (jnp.asarray(rng.normal(size=(6, 3)), dtype=jnp.float32) for _ in range(2))
+        default = float(grassmann_distance(u, v))
+        assert float(grassmann_distance(u, v, rank_deficient="ye_lim")) == default
+
+    @pytest.mark.parametrize(
+        "deficient",
+        [np.zeros((4, 2)), np.array([[1.0, 2.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0]])],
+        ids=["zero", "repeated column"],
+    )
+    def test_a_rank_deficient_basis_is_nan_by_default(self, deficient: np.ndarray) -> None:
+        """A basis spanning fewer than p dimensions is not a point of Gr(p, n)."""
+        u = jnp.eye(4, 2)
+        assert np.isnan(float(grassmann_distance(u, jnp.asarray(deficient, dtype=jnp.float32))))
+
+    def test_ye_lim_counts_each_missing_angle_as_a_right_angle(self) -> None:
+        """Ye & Lim 2016, Table 3: sqrt(abs(k - l) pi^2 / 4 + sum of the min(k, l) angles squared).
+
+        The zero matrix spans {0} (k = 0) against a plane (l = 2): sqrt(2) pi / 2. A repeated column
+        spans the line e1 (k = 1) inside the plane span(e1, e2) (l = 2): its one angle is 0, so pi / 2.
+        """
+        u = jnp.eye(4, 2)
+        zero = jnp.zeros((4, 2))
+        line = jnp.array([[1.0, 2.0], [0.0, 0.0], [0.0, 0.0], [0.0, 0.0]])
+        eps = float(jnp.finfo(jnp.float32).eps)
+        zero_distance = float(grassmann_distance(u, zero, rank_deficient="ye_lim"))
+        assert zero_distance == pytest.approx(np.sqrt(2.0) * np.pi / 2, rel=10 * eps)
+        assert float(grassmann_distance(u, line, rank_deficient="ye_lim")) == pytest.approx(
+            np.pi / 2, rel=10 * eps
+        )
+        assert float(grassmann_distance(zero, zero, rank_deficient="ye_lim")) == 0.0
+
+    def test_different_dimensions_are_refused_by_default_and_measured_by_ye_lim(self) -> None:
+        line, plane = jnp.eye(4, 1), jnp.eye(4, 2)
+        with pytest.raises(ValueError, match="columns"):
+            grassmann_distance(line, plane)
+        assert float(grassmann_distance(line, plane, rank_deficient="ye_lim")) == pytest.approx(
+            np.pi / 2, rel=10 * float(jnp.finfo(jnp.float32).eps)
+        )
+
+    def test_gradients_are_finite_for_a_scaled_basis(self) -> None:
+        """QR keeps the gradient finite where an SVD's, with repeated singular values, is NaN."""
+        rng = np.random.default_rng(2)
+        u = jnp.asarray(np.linalg.qr(rng.normal(size=(5, 2)))[0], jnp.float32)
+        w = jnp.asarray(np.linalg.qr(rng.normal(size=(5, 2)))[0], jnp.float32)
+        gradient = jax.jit(jax.grad(grassmann_distance))(3.0 * u, w)
+        assert bool(jnp.all(jnp.isfinite(gradient)))
+
+    def test_refuses_an_unknown_choice(self) -> None:
+        u = jnp.eye(4, 2)
+        with pytest.raises(ValueError, match="rank_deficient"):
+            grassmann_distance(u, u, rank_deficient="clamp")  # type: ignore[arg-type]
+
+    @pytest.mark.parametrize(
+        ("choice", "expected"),
+        [
+            ("nan", [np.sqrt(2.0) * np.pi / 2, 0.0, np.nan, np.nan]),
+            ("ye_lim", [np.sqrt(2.0) * np.pi / 2, 0.0, np.pi / 2, np.sqrt(2.0) * np.pi / 2]),
+        ],
+    )
+    def test_a_jitted_vmap_over_mixed_bases_gives_each_ones_distance(
+        self, choice: RankDeficient, expected: list[float]
+    ) -> None:
+        """One batch: the orthogonal plane, a scaled basis of ``u``, a line, the zero matrix.
+
+        The rank test and both branches are traced per lane, so each lane takes its own branch.
+        """
+        u = jnp.eye(4)[:, :2]
+        line = jnp.stack([u[:, 0], 2.0 * u[:, 0]], axis=1)
+        batch = jnp.stack([jnp.eye(4)[:, 2:], 2.0 * u, line, jnp.zeros((4, 2))])
+        distance = functools.partial(grassmann_distance, rank_deficient=choice)
+        out = np.asarray(jax.jit(jax.vmap(distance, in_axes=(None, 0)))(u, batch))
+        eps = float(jnp.finfo(jnp.float32).eps)
+        np.testing.assert_allclose(out, expected, rtol=10 * eps, atol=10 * eps)
+
+    @pytest.mark.parametrize("choice", RANK_DEFICIENT_CHOICES)
+    def test_the_gradient_at_a_rank_deficient_basis_is_zero_not_nan(
+        self, choice: RankDeficient
+    ) -> None:
+        """QR reads a full-rank stand-in there (inner where), as its own gradient divides by zero.
+
+        The rank-deficient value carries no gradient (the column space is not differentiable in
+        the matrix where the rank drops), so it leaves a batch's other gradients finite.
+        """
+        u = jnp.eye(4)[:, :2]
+        line = jnp.stack([u[:, 0], 2.0 * u[:, 0]], axis=1)
+        distance = functools.partial(grassmann_distance, rank_deficient=choice)
+        for deficient in (line, jnp.zeros((4, 2))):
+            gradient = np.asarray(jax.jit(jax.grad(distance, argnums=1))(u, deficient))
+            assert np.all(gradient == 0.0)
 
 
 class TestStiefelDistance:
