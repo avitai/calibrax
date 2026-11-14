@@ -1,7 +1,7 @@
-"""The rescaled ``safe_norm``.
+"""The rescaled norm family: ``safe_norm``, ``safe_hypot``, ``floor_at`` and ``safe_asinh``.
 
 Ported from hyperbolix (MIT, timoklein/hyperbolix at 96aba05, ``tests/test_math_utils.py``), in the
-float32 arms calibrax computes in: a norm that neither overflows nor underflows where
+float32 arms calibrax computes in: a norm or hypotenuse that neither overflows nor underflows where
 its squares would, is exactly 0 with an exactly-zero gradient at the origin, and propagates NaN and
 inf rather than hiding them.
 """
@@ -13,7 +13,7 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 
-from calibrax.metrics._utils import safe_norm
+from calibrax.metrics._utils import floor_at, safe_asinh, safe_hypot, safe_norm
 
 
 def test_safe_norm_does_not_overflow_or_underflow_in_float32() -> None:
@@ -56,3 +56,35 @@ def test_safe_norm_reduces_over_the_axis_it_is_given() -> None:
 def test_safe_norm_passes_infinity_and_nan_through() -> None:
     assert np.isinf(float(safe_norm(jnp.asarray([jnp.inf, 1.0, 0.0]))))
     assert np.isnan(float(safe_norm(jnp.asarray([jnp.nan, 1.0, 0.0]))))
+
+
+@pytest.mark.parametrize(
+    ("p", "q"), [(3.0, 4.0), (1e-20, 1e-25), (0.0, 2.5), (-7.0, 0.0), (1e30, 1.0)]
+)
+def test_safe_hypot_matches_numpy_and_survives_extreme_legs(p: float, q: float) -> None:
+    out = float(safe_hypot(jnp.asarray(p, dtype=jnp.float32), jnp.asarray(q, dtype=jnp.float32)))
+    assert out == pytest.approx(float(np.hypot(p, q)), rel=1e-6)
+
+
+def test_safe_hypot_is_exactly_zero_with_zero_gradients_at_the_origin() -> None:
+    zero = jnp.asarray(0.0, dtype=jnp.float32)
+    assert float(safe_hypot(zero, zero)) == 0.0
+    gp, gq = jax.grad(safe_hypot, argnums=(0, 1))(zero, zero)
+    assert float(gp) == 0.0
+    assert float(gq) == 0.0
+
+
+def test_floor_at_is_maximum_and_keeps_a_nan() -> None:
+    values = jnp.asarray([-1.0, 0.5, 2.0, jnp.nan], dtype=jnp.float32)
+    floored = np.asarray(floor_at(values, 1.0))
+    np.testing.assert_array_equal(floored[:3], [1.0, 1.0, 2.0])
+    assert np.isnan(floored[3])
+
+
+@pytest.mark.parametrize("x", [1e20, -3e25, 1e30])
+def test_safe_asinh_gradient_survives_the_float32_squaring_overflow(x: float) -> None:
+    """jax's ``asinh`` derivative forms ``x * x``, which overflows past 1.8e19 and returns 0."""
+    value = jnp.asarray(x, dtype=jnp.float32)
+    assert float(jax.grad(jnp.arcsinh)(value)) == 0.0  # the upstream rule the wrapper corrects
+    assert float(jax.grad(safe_asinh)(value)) == pytest.approx(1.0 / abs(x), rel=1e-6)
+    assert float(safe_asinh(value)) == float(jnp.arcsinh(value))

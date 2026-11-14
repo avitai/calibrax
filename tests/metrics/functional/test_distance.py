@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 import pytest
 from substrax.testing import TraceCounter
 
@@ -279,10 +280,50 @@ class TestPoincareDistance:
 class TestLorentzDistance:
     """Tests for lorentz_distance."""
 
-    def test_identical_points(self) -> None:
-        # Point on hyperboloid: x_0 = sqrt(1 + ||x_rest||^2)
-        a = jnp.array([jnp.sqrt(2.0), 1.0, 0.0])
-        assert lorentz_distance(a, a) == pytest.approx(0.0, abs=1e-3)
+    @pytest.mark.parametrize("spatial", [[0.0, 0.0], [1.0, 0.0], [0.3, -0.7], [3e4, 1e4]])
+    def test_identical_points_are_exactly_zero_with_a_zero_gradient(
+        self, spatial: list[float]
+    ) -> None:
+        """The docstring's "0.0 = identical points", with no floor and a finite gradient.
+
+        hyperbolix's contract: one point given as both arguments has distance exactly 0 and an
+        exactly-zero gradient. Against a separately computed copy, the two spatial directions can
+        round an ulp apart inside ``jax.grad``, and at the cone point that picks a unit
+        subgradient, so there the gradient is finite rather than zero.
+        """
+        s = jnp.asarray(spatial, dtype=jnp.float32)
+        a = jnp.concatenate([jnp.sqrt(1.0 + jnp.sum(s**2))[None], s])
+        assert float(lorentz_distance(a, a)) == 0.0
+        to_itself = np.asarray(jax.grad(lambda x: lorentz_distance(x, x))(a))
+        assert np.all(to_itself == 0.0)
+        one_sided = np.asarray(jax.grad(lambda x: lorentz_distance(x, a))(a))
+        assert np.all(np.isfinite(one_sided))
+
+    @pytest.mark.parametrize("radius", [9.0, 20.0, 30.0, 43.0])
+    def test_distance_along_a_radial_geodesic_is_the_radius_difference(self, radius: float) -> None:
+        """Ported from hyperbolix (MIT, 96aba05, ``tests/test_manifolds.py``), its float32 arm.
+
+        ``y``'s spatial part is ``x``'s scaled by an exact 2, so both lie on one geodesic ray
+        through the origin and their distance is the difference of their radii, which the
+        ``arccosh(-<x, y>)`` form loses to cancellation past radius ~10 in float32. The tolerance,
+        ``4e-3`` absolute and relative, is hyperbolix's for this test in float32.
+        """
+        direction = np.array([1.0, 2.0, -2.0], dtype=np.float64) / 3.0
+        x_s = (np.sinh(radius) * direction).astype(np.float32)
+        y_s = (2.0 * x_s).astype(np.float32)
+        x_time = np.sqrt(1.0 + x_s.astype(np.float64) @ x_s.astype(np.float64))
+        y_time = np.sqrt(1.0 + y_s.astype(np.float64) @ y_s.astype(np.float64))
+        x = jnp.asarray(np.concatenate([[x_time], x_s]).astype(np.float32))
+        y = jnp.asarray(np.concatenate([[y_time], y_s]).astype(np.float32))
+        expected = np.arcsinh(np.linalg.norm(y_s.astype(np.float64))) - np.arcsinh(
+            np.linalg.norm(x_s.astype(np.float64))
+        )
+        assert float(lorentz_distance(x, y)) == pytest.approx(expected, abs=4e-3, rel=4e-3)
+
+    def test_symmetry_is_exact(self) -> None:
+        a = jnp.array([jnp.sqrt(1.0 + 0.34), 0.5, 0.3])
+        b = jnp.array([jnp.sqrt(1.0 + 1.01), -0.1, 1.0])
+        assert float(lorentz_distance(a, b)) == float(lorentz_distance(b, a))
 
     def test_known_value(self) -> None:
         # Two points on hyperboloid
