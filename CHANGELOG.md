@@ -36,6 +36,8 @@ and uses semantic versioning while the public API stabilizes.
   ever reached those notebooks, is gone, and `trailing-whitespace` leaves `docs/examples` to the
   page generator. A plain `pytest` leaves `tests/examples` to `substrax-notebooks test`, and
   `mkdocs build --strict` fails on a page the navigation leaves out.
+- `tests/test_doc_examples.py` leaves `docs/examples` to `substrax-notebooks`: a generated page
+  repeats its example's code, which `substrax-notebooks test` runs in its own invocation.
 
 ### Removed
 
