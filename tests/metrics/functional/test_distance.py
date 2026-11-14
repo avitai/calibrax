@@ -228,9 +228,65 @@ class TestJaccardDistance:
 class TestPoincareDistance:
     """Tests for poincare_distance."""
 
-    def test_identical_points(self) -> None:
-        a = jnp.array([0.3, 0.2])
-        assert poincare_distance(a, a) == pytest.approx(0.0, abs=1e-4)
+    @pytest.mark.parametrize("point", [[0.0, 0.0], [0.3, 0.2], [0.6, -0.7]])
+    def test_identical_points_are_exactly_zero_with_a_zero_gradient(
+        self, point: list[float]
+    ) -> None:
+        """hyperbolix's contract (MIT, 96aba05): ``d(x, x)`` is 0 with the direction-free gradient 0.
+
+        The distance is a cone at ``x = y``, so no derivative exists there; ``safe_root``'s
+        convention supplies 0 where ``arccosh``'s infinite derivative at 1 gave NaN.
+        """
+        x = jnp.asarray(point, dtype=jnp.float32)
+        assert float(poincare_distance(x, x)) == 0.0
+        for gradient in (
+            jax.jit(jax.grad(lambda p: poincare_distance(p, p)))(x),
+            jax.jit(jax.grad(lambda p: poincare_distance(p, x)))(x),
+            jax.jit(jax.grad(lambda q: poincare_distance(x, q)))(x),
+        ):
+            assert np.all(np.asarray(gradient) == 0.0)
+
+    @pytest.mark.parametrize("separation", [1e-3, 1e-5, 1e-7])
+    def test_a_close_pair_keeps_its_float32_digits(self, separation: float) -> None:
+        """``arccosh(1 + 2t)`` rounds the ``2t`` of a close pair into the leading 1 and read 0.
+
+        The oracle is the distance of the stored float32 coordinates in float64. The ``asinh``
+        form rounds a handful of times (the difference, its squared norm and root, each
+        ``1 - c||x||^2``, their product and root, a quotient, ``asinh``), each within ``eps``
+        relative, so ``8 eps`` bounds its relative error.
+        """
+        x = jnp.asarray([0.3, 0.1], dtype=jnp.float32)
+        y = x + jnp.asarray([separation, 0.0], dtype=jnp.float32)
+        x64, y64 = np.asarray(x, dtype=np.float64), np.asarray(y, dtype=np.float64)
+        t = np.sum((x64 - y64) ** 2) / ((1.0 - x64 @ x64) * (1.0 - y64 @ y64))
+        expected = 2.0 * np.arcsinh(np.sqrt(t))
+        eps = float(jnp.finfo(jnp.float32).eps)
+        assert float(poincare_distance(x, y)) == pytest.approx(expected, rel=8 * eps)
+
+    @pytest.mark.parametrize("c", [0.3, 1.0])
+    @pytest.mark.parametrize("a", [7.2, 9.0])
+    def test_a_far_pair_is_float32_accurate(self, c: float, a: float) -> None:
+        """Ported from hyperbolix (MIT, 96aba05, ``tests/test_manifolds.py``), as it stands.
+
+        ``x = r e`` and ``y = -x``, each at scaled radius ``a``, so ``sqrt(c) d = 2a`` (14.4 and
+        18, inside the float32 chart). The oracle is the stored coordinates' exact distance
+        ``4 atanh(sqrt(c) ||x||) / sqrt(c)`` and its gradient ``lambda_x x_hat`` in float64; the
+        tolerances, ``1e-4`` relative on the value and ``1e-3`` on the gradient, are hyperbolix's.
+        """
+        e = np.ones(8) / np.sqrt(8.0)
+        x = jnp.asarray((np.tanh(a / 2.0) / np.sqrt(c) * e).astype(np.float32))
+        y = -x
+        x64 = np.asarray(x, dtype=np.float64)
+        r = float(np.linalg.norm(x64))
+        expected = 4.0 * np.arctanh(np.sqrt(c) * r) / np.sqrt(c)
+        expected_gradient = 2.0 / (1.0 - c * r * r) * x64 / r
+
+        assert abs(float(poincare_distance(x, y, curvature=c)) - expected) <= 1e-4 * expected
+        gradient = np.asarray(
+            jax.grad(lambda p: poincare_distance(p, y, curvature=c))(x), dtype=np.float64
+        )
+        error = np.linalg.norm(gradient - expected_gradient)
+        assert error <= 1e-3 * np.linalg.norm(expected_gradient)
 
     def test_origin_to_point(self) -> None:
         origin = jnp.array([0.0, 0.0])

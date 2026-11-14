@@ -1,6 +1,6 @@
 # Distances and Divergences Across Geometric Spaces
 
-> Ran in 3.4 s on 1 cpu (python 3.12.14, jax 0.11.1, substrax 0.1.27, calibrax 0.1.17), from [`examples/metrics/distances.py`](https://github.com/avitai/calibrax/blob/main/examples/metrics/distances.py) ([notebook](https://github.com/avitai/calibrax/blob/main/examples/metrics/distances.ipynb)). Run it from the repository root:
+> Ran in 4.5 s on 1 cpu (python 3.12.14, jax 0.11.1, substrax 0.1.27, calibrax 0.1.17), from [`examples/metrics/distances.py`](https://github.com/avitai/calibrax/blob/main/examples/metrics/distances.py) ([notebook](https://github.com/avitai/calibrax/blob/main/examples/metrics/distances.ipynb)). Run it from the repository root:
 
 ```bash
 source ./activate.sh
@@ -303,7 +303,7 @@ if __name__ == "__main__":
     === Poincare Ball ===
       d(origin, near)              = 0.619039
       d(origin, far)               = 2.197225
-      d(near, far)                 = 1.578185
+      d(near, far)                 = 1.578186
     === Lorentz Hyperboloid ===
       d(p1, p2)                    = 0.554275
       d(p1, p3)                    = 0.812978
@@ -337,4 +337,4 @@ if __name__ == "__main__":
 - [Distance API reference](../../api-reference/metrics/distance.md): every distance function's
   signature
 
-<!-- substrax-notebooks: {"page": {"body": "62ea8e502615ff93f67f98be116c0e74ba7b549ad9439fd44c4220ba39f80be5", "figures": {}, "record": "a5bdd08d096250394cad864efdaebd704136823e2781f0d3d5dcf2ed47ef049e"}, "provenance": {"device": "1 cpu", "outputs": [[], [], [], [], [], [], [], ["text"]], "seconds": 3.4, "sha256": "a21e597bd61905dd219407bfbbfc00f749e21696d3f6e9f6508fbca450c34b69", "source": "examples/metrics/distances.py", "versions": {"calibrax": "0.1.17", "jax": "0.11.1", "python": "3.12.14", "substrax": "0.1.27"}}} -->
+<!-- substrax-notebooks: {"page": {"body": "f5ea766c42afd1b71f0e02b46b5ac83d36c7bd464ec6444cc047eb11797ab67a", "figures": {}, "record": "b92c1563b2d06852f90679468b8d9619c0be87fafb3f3ecd484df0ca1f7f55c9"}, "provenance": {"device": "1 cpu", "outputs": [[], [], [], [], [], [], [], ["text"]], "seconds": 4.5, "sha256": "a21e597bd61905dd219407bfbbfc00f749e21696d3f6e9f6508fbca450c34b69", "source": "examples/metrics/distances.py", "versions": {"calibrax": "0.1.17", "jax": "0.11.1", "python": "3.12.14", "substrax": "0.1.27"}}} -->

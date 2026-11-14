@@ -19,7 +19,16 @@ import jax
 import jax.numpy as jnp
 from jax.typing import ArrayLike
 
-from calibrax.metrics._utils import _EPSILON, _prepare_arrays, safe_divide, safe_norm, safe_root
+from calibrax.metrics._utils import (
+    _EPSILON,
+    _MIN_NORM,
+    _prepare_arrays,
+    floor_at,
+    safe_asinh,
+    safe_divide,
+    safe_norm,
+    safe_root,
+)
 from calibrax.metrics.functional._hyperboloid import hyperboloid_haversine_distance
 
 
@@ -352,6 +361,14 @@ def poincare_distance(  # noqa: DOC502  # raised by _prepare_arrays
     Hyperbolic space has exponential volume growth matching tree/hierarchy
     structures.
 
+    ``d(x, y) = 2 asinh(sqrt(t)) / sqrt(c)`` with ``t = c ||x - y||^2 / ((1 - c ||x||^2)
+    (1 - c ||y||^2))``, the half-angle form of ``arccosh(1 + 2t) / sqrt(c)``, as hyperbolix computes
+    it (:func:`_poincare_ball_distance`): identical points are exactly 0 with a zero gradient, a
+    close pair keeps its float32 digits, and a far pair has no ``atanh`` domain clip to reach. A
+    point on or outside the ball, which is no point of the model, meets hyperbolix's floor on
+    ``1 - c ||x||^2`` and gives a large finite distance (about 13.3 from the origin at
+    ``c = 1`` in float32).
+
     Note:
         Direction: LOWER (0.0 = identical points).
         Range: [0, inf).
@@ -377,20 +394,61 @@ def poincare_distance(  # noqa: DOC502  # raised by _prepare_arrays
     Raises:
         ValueError: If ``a`` and ``b`` do not have the same shape.
     """
+    return _batch_or_single(a, b, _poincare_ball_distance, curvature=curvature)
 
-    def _single(x: jax.Array, y: jax.Array, *, curvature: float = 1.0) -> jax.Array:
-        c = curvature
-        diff_sq = jnp.sum((x - y) ** 2)
-        norm_x_sq = jnp.sum(x**2)
-        norm_y_sq = jnp.sum(y**2)
-        num = 2.0 * c * diff_sq
-        denom = (1.0 - c * norm_x_sq) * (1.0 - c * norm_y_sq)
-        arg = 1.0 + safe_divide(num, denom)
-        # Clamp for numerical stability
-        arg = jnp.maximum(arg, 1.0 + _EPSILON)
-        return (1.0 / jnp.sqrt(c)) * jnp.arccosh(arg)
 
-    return _batch_or_single(a, b, _single, curvature=curvature)
+def _ball_divisor_floor(c: ArrayLike, dtype: jnp.dtype) -> jax.Array:
+    """The floor on a ``1 - c ||x||^2`` that divides, hyperbolix's ``_boundary_divisor_floor``.
+
+    Half of ``1 - c m^2`` at hyperbolix's projection cap ``m = 1 / sqrt(c) - eps^0.75``, that is
+    ``sqrt(c) eps^0.75 - c eps^1.5 / 2``: below the rounding band of any point inside the ball,
+    so it binds only for a point on or outside it, whose divisor it keeps positive.
+
+    Args:
+        c: The curvature.
+        dtype: The points' floating dtype.
+
+    Returns:
+        The floor.
+    """
+    eps_power = float(jnp.finfo(dtype).eps) ** 0.75
+    abs_c = jnp.abs(jnp.asarray(c, dtype=dtype))
+    sqrt_abs_c = jnp.sqrt(floor_at(abs_c, _MIN_NORM))
+    return 0.5 * (2.0 * sqrt_abs_c * eps_power - abs_c * eps_power**2)
+
+
+def _poincare_ball_distance(x: jax.Array, y: jax.Array, *, curvature: ArrayLike) -> jax.Array:
+    """The geodesic distance between two points of the Poincare ball, free of cancellation.
+
+    Ported from hyperbolix, ``hyperbolix/manifolds/poincare.py`` ``_dist_mobius_direct`` and
+    ``hyperbolix/manifolds/_gyrovector_core.py`` ``_boundary_divisor_floor`` at commit
+    96aba0558e0b41e88a98b6670fa28928431720a7 (MIT License, Copyright (c) 2026 Timo Klein, Thomas
+    Lang; the notice is in :mod:`calibrax.metrics._utils`).
+
+    ``arccosh(1 + 2t)`` puts the whole separation of a close pair into a perturbation of a leading
+    1, which float32 rounds away (a pair 1e-5 apart read 0), and its derivative is infinite at 1,
+    so ``d(x, x)`` had a NaN gradient. The identity ``arccosh(1 + 2t) = 2 asinh(sqrt(t))`` has no
+    leading 1, ``asinh``'s derivative is at most 1, and ``safe_root`` gives the separation an
+    exact 0 with a zero gradient. ``2 atanh(||(-x) (+) y||)`` (geoopt, HypLL) is the same function
+    but saturates at ``atanh``'s float32 domain clip for a far pair: hyperbolix measured 14.333,
+    with a zero gradient, for pairs 14.4 and 18.0 apart.
+
+    Args:
+        x: A point of the ball.
+        y: Another.
+        curvature: ``c > 0``; the ball has radius ``1 / sqrt(c)``.
+
+    Returns:
+        The distance.
+    """
+    c = jnp.asarray(curvature, dtype=x.dtype)
+    sqrt_c = jnp.sqrt(c)
+    separation = safe_root(jnp.sum((y - x) ** 2))
+    floor = _ball_divisor_floor(c, x.dtype)
+    gap_x = floor_at(1.0 - c * jnp.sum(x**2), floor)
+    gap_y = floor_at(1.0 - c * jnp.sum(y**2), floor)
+    sqrt_t = sqrt_c * separation / jnp.sqrt(gap_x * gap_y)
+    return 2.0 * safe_asinh(sqrt_t) / sqrt_c
 
 
 def lorentz_distance(a: ArrayLike, b: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _prepare_arrays
