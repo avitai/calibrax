@@ -4,7 +4,7 @@
 |---|---|
 | **Level** | Advanced |
 | **Time** | ~15 minutes |
-| **Prerequisites** | [Quickstart](quickstart.md), [Distances and Spaces](distances-and-spaces.md), [Model Evaluation](model-evaluation.md) |
+| **Prerequisites** | [Quickstart](quickstart.md), [Distances and Spaces](distances.md), [Model Evaluation](model-evaluation.md) |
 | **Format** | Python + Jupyter |
 
 ## Overview
@@ -165,5 +165,5 @@ all_valid = all(
 ## Next Steps
 
 - [Advanced Manifold and Graph Metrics](advanced-manifold.md) -- SPD, Grassmann, and graph-theoretic distances
-- [Distances and Spaces](distances-and-spaces.md) -- the distance functions underlying metric learning losses
+- [Distances and Spaces](distances.md) -- the distance functions underlying metric learning losses
 - [API Reference: `calibrax.metrics.learning`](../../api-reference/metrics/learning.md) -- full loss function signatures and parameters

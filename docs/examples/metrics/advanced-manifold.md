@@ -4,7 +4,7 @@
 |---|---|
 | **Level** | Advanced |
 | **Time** | ~15 minutes |
-| **Prerequisites** | [Distances and Spaces](distances-and-spaces.md), [Metric Learning](metric-learning.md) |
+| **Prerequisites** | [Distances and Spaces](distances.md), [Metric Learning](metric-learning.md) |
 | **Format** | Python + Jupyter |
 
 ## Overview
@@ -280,7 +280,7 @@ def ultra_point(x1: float, x2: float) -> jnp.ndarray:
 
 ## Next Steps
 
-- [Distances and Spaces](distances-and-spaces.md) -- revisit flat and hyperbolic distances for comparison
+- [Distances and Spaces](distances.md) -- revisit flat and hyperbolic distances for comparison
 - [Metric Learning Losses](metric-learning.md) -- losses that operate on the embedding spaces measured by these metrics
 - [API Reference: `calibrax.metrics.functional.graph`](../../api-reference/metrics/graph.md) -- full graph metric signatures
 - [API Reference: `calibrax.metrics.functional.manifold`](../../api-reference/metrics/manifold.md) -- full manifold metric signatures

@@ -1,6 +1,6 @@
 # Classification, Calibration and Segmentation
 
-> Ran in 3.3 s on 1 cpu (python 3.12.14, jax 0.11.1, substrax 0.1.27, calibrax 0.1.17), from [`examples/metrics/classification.py`](https://github.com/avitai/calibrax/blob/main/examples/metrics/classification.py) ([notebook](https://github.com/avitai/calibrax/blob/main/examples/metrics/classification.ipynb)). Run it from the repository root:
+> Ran in 3.5 s on 1 cpu (python 3.12.14, jax 0.11.1, substrax 0.1.27, calibrax 0.1.17), from [`examples/metrics/classification.py`](https://github.com/avitai/calibrax/blob/main/examples/metrics/classification.py) ([notebook](https://github.com/avitai/calibrax/blob/main/examples/metrics/classification.ipynb)). Run it from the repository root:
 
 ```bash
 source ./activate.sh
@@ -327,11 +327,11 @@ if __name__ == "__main__":
 
 ## Next Steps
 
-- [Distances and spaces](distances-and-spaces.md): vector distances, hyperbolic geometry and
+- [Distances and spaces](distances.md): vector distances, hyperbolic geometry and
   divergences
 - [Classification API reference](../../api-reference/metrics/classification.md): every
   classification function's signature
 - [Calibration API reference](../../api-reference/metrics/calibration.md): the calibration
   functions
 
-<!-- substrax-notebooks: {"page": {"body": "4585bc11be1427c2e832b91cdc44b73645dd6cb08d3d417aea94168a60a72444", "figures": {}, "record": "13cf02d450bdb80608ec316e6b266f09d65a79547d30103c99f0f5dbecf6d923"}, "provenance": {"device": "1 cpu", "outputs": [[], [], [], [], [], [], ["text"]], "seconds": 3.3, "sha256": "08ccb28fa68ed4a717539c70fd98b6a622bbd7ddd35723aa8da2adb5b7ea5499", "source": "examples/metrics/classification.py", "versions": {"calibrax": "0.1.17", "jax": "0.11.1", "python": "3.12.14", "substrax": "0.1.27"}}} -->
+<!-- substrax-notebooks: {"page": {"body": "6228353f94f0355fd80db87db26cc8fb1a420304a36c53b78849e3827f26f353", "figures": {}, "record": "fc04df308630f225e921a01c375fbe38ae5cb4d25abc146b4f360794f9805d6a"}, "provenance": {"device": "1 cpu", "outputs": [[], [], [], [], [], [], ["text"]], "seconds": 3.5, "sha256": "3464b568bf328e3e0c3cc6ecdd461a2765784533dc380ee0126120b89143aca1", "source": "examples/metrics/classification.py", "versions": {"calibrax": "0.1.17", "jax": "0.11.1", "python": "3.12.14", "substrax": "0.1.27"}}} -->

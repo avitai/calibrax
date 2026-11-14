@@ -310,7 +310,7 @@ if __name__ == "__main__":
 """
 ## Next Steps
 
-- [Distances and spaces](distances-and-spaces.md): vector distances, hyperbolic geometry and
+- [Distances and spaces](distances.md): vector distances, hyperbolic geometry and
   divergences
 - [Classification API reference](../../api-reference/metrics/classification.md): every
   classification function's signature
