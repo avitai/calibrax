@@ -214,7 +214,7 @@ nav:
   - Examples:
       - Metrics:
           - Quickstart: examples/metrics/quickstart.md
-          - Regression Metrics: examples/metrics/regression-metrics.md
+          - Regression Metrics: examples/metrics/regression_deep_dive.md
           - Classification: examples/metrics/classification.md
           - Distances & Spaces: examples/metrics/distances-and-spaces.md
           - Model Evaluation: examples/metrics/model-evaluation.md

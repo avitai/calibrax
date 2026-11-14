@@ -4,7 +4,7 @@
 |---|---|
 | **Level** | Intermediate |
 | **Time** | ~15 minutes |
-| **Prerequisites** | [Quickstart](quickstart.md), [Regression Metrics](regression-metrics.md) |
+| **Prerequisites** | [Quickstart](quickstart.md), [Regression Metrics](regression_deep_dive.md) |
 | **Format** | Python + Jupyter |
 
 ## Overview
