@@ -73,14 +73,16 @@ from calibrax.metrics.learning import (
 ### Step 1: Create clustered embeddings
 
 Eight embeddings in 16 dimensions, two per class: each class has a random centroid, and each
-sample adds noise to its centroid.
+sample adds noise to its centroid. The centroids are spread little enough that the losses'
+margins, from 0.1 to 2.0, bind: classes far apart would satisfy every margin, and each loss and
+its gradient would then be 0.
 
 
 ```python
 LABELS = jnp.array([0, 0, 1, 1, 2, 2, 3, 3])
 EMBEDDING_DIM = 16
-CENTROID_SCALE = 2.0
-NOISE = 0.3
+CENTROID_SCALE = 0.15
+NOISE = 0.1
 
 
 def clustered_embeddings(key: jax.Array) -> tuple[jax.Array, jax.Array]:
@@ -229,7 +231,7 @@ def gradient_norms(embeddings: jax.Array) -> dict[str, float]:
 
 
 ```python
-SEMI_HARD_MARGIN = 2.0
+SEMI_HARD_MARGIN = 0.2
 
 
 def mined_triplets(embeddings: jax.Array) -> dict[str, int | bool | list[list[int]]]:
@@ -264,9 +266,9 @@ set of centroids.
 
 
 ```python
-RANDOM_SCALE = 1.0
-LOOSE_NOISE = 0.5
-TIGHT_NOISE = 0.05
+RANDOM_SCALE = 0.15
+LOOSE_NOISE = 0.15
+TIGHT_NOISE = 0.03
 
 
 def loss_by_quality(key: jax.Array) -> dict[str, float]:
@@ -298,15 +300,17 @@ def loss_by_quality(key: jax.Array) -> dict[str, float]:
 
 ### The four losses
 
-The contrastive loss is the same at every margin, as every negative pair is already farther apart
-than the largest margin, and the triplet loss is 0 at every margin, as every triplet already
-satisfies it. The NTXent loss grows with the temperature.
+The classes sit close enough together that the margins bind: the contrastive loss grows with its
+margin as more negative pairs fall inside it, and the triplet loss grows with its margin as more
+triplets fall short of it. The NTXent loss grows with the temperature, which flattens the softmax
+over the negatives.
 
 ### Gradients, mining and quality
 
-The triplet loss's gradient is 0 for the same reason, while the other three are not, and the
-semi-hard miner finds no negative within its margin. Random embeddings score a positive triplet
-loss; the loosely and the tightly clustered ones both score 0.
+Every loss has a nonzero gradient with respect to the embeddings, so each can train them. The
+hard-negative miner finds a valid triplet for every anchor, and the semi-hard miner keeps only
+the negatives within its margin of the positive. The triplet loss falls from random to loosely to
+tightly clustered embeddings, as within-class distances shrink against between-class ones.
 
 
 ```python
@@ -364,36 +368,36 @@ if __name__ == "__main__":
 
     Embeddings (8, 16), labels [0, 0, 1, 1, 2, 2, 3, 3]
     === ContrastiveLoss ===
-      margin=0.5  loss=0.434393
-      margin=1.0  loss=0.434393
-      margin=2.0  loss=0.434393
+      margin=0.5  loss=0.048266
+      margin=1.0  loss=0.073710
+      margin=2.0  loss=1.180608
     === TripletMarginLoss ===
-      margin=0.1  loss=0.000000
-      margin=0.2  loss=0.000000
-      margin=0.5  loss=0.000000
-      margin=1.0  loss=0.000000
+      margin=0.1  loss=0.000471
+      margin=0.2  loss=0.010976
+      margin=0.5  loss=0.224624
+      margin=1.0  loss=0.724624
     === NTXentLoss (InfoNCE) ===
-      temperature=0.1  loss=0.001124
-      temperature=0.5  loss=0.699871
-      temperature=1.0  loss=1.239738
-      temperature=2.0  loss=1.575539
+      temperature=0.1  loss=0.154258
+      temperature=0.5  loss=1.244618
+      temperature=1.0  loss=1.567968
+      temperature=2.0  loss=1.750083
     === ArcFaceLoss (Angular Margin) ===
-      loss                         42.630932
+      loss                         46.815022
       trainable parameters         64
       proxy matrix shape           [16, 4]
     === Gradient Norms ===
-      ContrastiveLoss              0.352296
-      TripletMarginLoss            0.000000
-      NTXentLoss                   0.072747
-      ArcFaceLoss                  5.167071
+      ContrastiveLoss              0.149052
+      TripletMarginLoss            0.220947
+      NTXentLoss                   1.633766
+      ArcFaceLoss                  52.484394
     === Negative Mining ===
       hard triplets                8
       hard triplets valid          True
-      first hard triplets          [[0, 1, 3], [1, 0, 7], [2, 3, 6], [3, 2, 6], [4, 5, 0]]
-      semi-hard triplets           0
+      first hard triplets          [[0, 1, 3], [1, 0, 7], [2, 3, 7], [3, 2, 7], [4, 5, 0]]
+      semi-hard triplets           7
     === Triplet Loss by Embedding Quality ===
-      Random embeddings            0.599816
-      Loosely clustered            0.000000
+      Random embeddings            0.203612
+      Loosely clustered            0.063251
       Tightly clustered            0.000000
 
 
@@ -407,4 +411,4 @@ if __name__ == "__main__":
 - [Learning API reference](../../api-reference/metrics/learning.md): every loss and miner's
   signature
 
-<!-- substrax-notebooks: {"page": {"body": "890a054aca0f0caf57185049d1e0486ca277e9936424472b53cfb8c7d58ba0d1", "figures": {}, "record": "020ac3a88b7aa381a7030dd3257641125f4b981b02e7f43aa1f43be906f8d385"}, "provenance": {"device": "1 cpu", "outputs": [[], [], [], [], [], [], [], [], [], ["text"]], "seconds": 5.1, "sha256": "74481855fbede026037755853bdac1753f42a0557a14ea1eda87ef09ffb52245", "source": "examples/metrics/metric_learning.py", "versions": {"calibrax": "0.1.17", "jax": "0.11.1", "python": "3.12.14", "substrax": "0.1.27"}}} -->
+<!-- substrax-notebooks: {"page": {"body": "257aad757f92a25380a95dd38871f51f52c69f7cc4eb04eff415a5a474a76364", "figures": {}, "record": "3769358a2b1a5d9371769b154a77d82b534a0b74a7aa4e856cc301c5cde115ac"}, "provenance": {"device": "1 cpu", "outputs": [[], [], [], [], [], [], [], [], [], ["text"]], "seconds": 5.1, "sha256": "9c80f704e96c149206a6698f2cc15006409328aa2b02cb30d3498bce21df3b78", "source": "examples/metrics/metric_learning.py", "versions": {"calibrax": "0.1.17", "jax": "0.11.1", "python": "3.12.14", "substrax": "0.1.27"}}} -->

@@ -69,6 +69,13 @@ and uses semantic versioning while the public API stabilizes.
   against one reference and against two: the second reference added none of the candidate's
   n-grams, and the candidate shared no 4-gram with either. The second reference now shares
   "cat sat on the", so BLEU-4 rises from 0 to 0.7071 and BLEU-2 from 0.7071 to 1.
+- The metric learning example's classes sat so far apart (centroids about 8 to 11 apart against
+  margins of at most 2) that no margin bound: the contrastive loss was the same at every margin,
+  the triplet loss and its gradient were 0 at every margin while the example printed that every
+  gradient norm was above 0, the semi-hard miner found nothing, and loosely and tightly
+  clustered embeddings scored alike. With the centroids spread by 0.15 and the noise 0.1, each
+  loss grows with its margin, every gradient is nonzero, the semi-hard miner keeps 7 of 8
+  anchors, and the triplet loss falls from random (0.204) to loose (0.063) to tight (0) clusters.
 
 ### Security
 
