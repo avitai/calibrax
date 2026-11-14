@@ -332,9 +332,9 @@ if __name__ == "__main__":
 
 - [Metric composition](composition.md): combine metrics into collections, suites and quality
   gates
-- [Manifold and graph metrics](advanced-manifold.md): SPD, Grassmann and graph-theoretic
+- [Manifold and graph metrics](manifold_graph.md): SPD, Grassmann and graph-theoretic
   distances
 - [Distance API reference](../../api-reference/metrics/distance.md): every distance function's
   signature
 
-<!-- substrax-notebooks: {"page": {"body": "789da5c76d68dab8be53914b1e3c40c6fe5d7ece0b57ff36e10dbd61a98ad6e3", "figures": {}, "record": "7fa49397b3dc4c3a741a38295f8c3255e2f9c441c9eae18d19eccfd4ab8131e5"}, "provenance": {"device": "1 cpu", "outputs": [[], [], [], [], [], [], [], ["text"]], "seconds": 3.4, "sha256": "8fdc9a9efcb9e3147aaf3d1ea12779cda253c78082cf57a33984915d19aa2071", "source": "examples/metrics/distances.py", "versions": {"calibrax": "0.1.17", "jax": "0.11.1", "python": "3.12.14", "substrax": "0.1.27"}}} -->
+<!-- substrax-notebooks: {"page": {"body": "62ea8e502615ff93f67f98be116c0e74ba7b549ad9439fd44c4220ba39f80be5", "figures": {}, "record": "a5bdd08d096250394cad864efdaebd704136823e2781f0d3d5dcf2ed47ef049e"}, "provenance": {"device": "1 cpu", "outputs": [[], [], [], [], [], [], [], ["text"]], "seconds": 3.4, "sha256": "a21e597bd61905dd219407bfbbfc00f749e21696d3f6e9f6508fbca450c34b69", "source": "examples/metrics/distances.py", "versions": {"calibrax": "0.1.17", "jax": "0.11.1", "python": "3.12.14", "substrax": "0.1.27"}}} -->

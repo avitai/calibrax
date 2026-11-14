@@ -389,7 +389,7 @@ if __name__ == "__main__":
 """
 ## Next Steps
 
-- [Manifold and graph metrics](advanced-manifold.md): SPD, Grassmann and graph-theoretic
+- [Manifold and graph metrics](manifold_graph.md): SPD, Grassmann and graph-theoretic
   distances
 - [Distances and divergences](distances.md): the distances these losses build on
 - [Metric learning guide](../../user-guide/metric-learning.md): training an embedding network with

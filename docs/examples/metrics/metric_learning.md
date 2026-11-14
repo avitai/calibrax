@@ -1,6 +1,6 @@
 # Metric Learning Losses
 
-> Ran in 5.1 s on 1 cpu (python 3.12.14, jax 0.11.1, substrax 0.1.27, calibrax 0.1.17), from [`examples/metrics/metric_learning.py`](https://github.com/avitai/calibrax/blob/main/examples/metrics/metric_learning.py) ([notebook](https://github.com/avitai/calibrax/blob/main/examples/metrics/metric_learning.ipynb)). Run it from the repository root:
+> Ran in 5.2 s on 1 cpu (python 3.12.14, jax 0.11.1, substrax 0.1.27, calibrax 0.1.17), from [`examples/metrics/metric_learning.py`](https://github.com/avitai/calibrax/blob/main/examples/metrics/metric_learning.py) ([notebook](https://github.com/avitai/calibrax/blob/main/examples/metrics/metric_learning.ipynb)). Run it from the repository root:
 
 ```bash
 source ./activate.sh
@@ -403,7 +403,7 @@ if __name__ == "__main__":
 
 ## Next Steps
 
-- [Manifold and graph metrics](advanced-manifold.md): SPD, Grassmann and graph-theoretic
+- [Manifold and graph metrics](manifold_graph.md): SPD, Grassmann and graph-theoretic
   distances
 - [Distances and divergences](distances.md): the distances these losses build on
 - [Metric learning guide](../../user-guide/metric-learning.md): training an embedding network with
@@ -411,4 +411,4 @@ if __name__ == "__main__":
 - [Learning API reference](../../api-reference/metrics/learning.md): every loss and miner's
   signature
 
-<!-- substrax-notebooks: {"page": {"body": "257aad757f92a25380a95dd38871f51f52c69f7cc4eb04eff415a5a474a76364", "figures": {}, "record": "3769358a2b1a5d9371769b154a77d82b534a0b74a7aa4e856cc301c5cde115ac"}, "provenance": {"device": "1 cpu", "outputs": [[], [], [], [], [], [], [], [], [], ["text"]], "seconds": 5.1, "sha256": "9c80f704e96c149206a6698f2cc15006409328aa2b02cb30d3498bce21df3b78", "source": "examples/metrics/metric_learning.py", "versions": {"calibrax": "0.1.17", "jax": "0.11.1", "python": "3.12.14", "substrax": "0.1.27"}}} -->
+<!-- substrax-notebooks: {"page": {"body": "12c42c4cd1a3260a6afe46daa513cde91e0740618f960f158929af1c02b365e9", "figures": {}, "record": "733ce40d09c5588ee6778eeaf8614adaba8c60d7c37a0f216d93a20aff9aefdb"}, "provenance": {"device": "1 cpu", "outputs": [[], [], [], [], [], [], [], [], [], ["text"]], "seconds": 5.2, "sha256": "2c35a446a58b7be10fc6ff5bfdde4d3d71b3123560bfdd4be2d180b7f73a6162", "source": "examples/metrics/metric_learning.py", "versions": {"calibrax": "0.1.17", "jax": "0.11.1", "python": "3.12.14", "substrax": "0.1.27"}}} -->

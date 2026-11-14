@@ -1,40 +1,40 @@
-# ---
-# jupyter:
-#   jupytext:
-#     formats: py:percent,ipynb
-#     text_representation:
-#       extension: .py
-#       format_name: percent
-#       format_version: '1.3'
-#   kernelspec:
-#     display_name: Python 3
-#     language: python
-#     name: python3
-# ---
-
 # %% [markdown]
-# # Manifold and Graph Metrics
-#
-# | | |
-# |---|---|
-# | **Level** | Tier 3: Advanced Guide |
-# | **Time** | ~30 minutes |
-# | **Prerequisites** | `distances.py`, linear algebra basics |
-# | **Metrics covered** | SPD affine-invariant, Grassmann, spectral, resistance distance |
-# | **Key concepts** | Riemannian geometry, graph Laplacian, invariance verification |
+"""
+# Manifold and Graph Metrics
 
-# %%
-"""Graph and manifold metrics: distances on structured mathematical objects.
+| Metadata | Value |
+| --- | --- |
+| **Tier** | Advanced Guide |
+| **Devices** | CPU-compatible |
+| **Prerequisites** | The distances example; linear algebra |
 
-Demonstrates:
-- Spectral distance between adjacency matrices
-- Resistance distance on a network
-- Shortest path computation (Floyd-Warshall)
-- SPD affine-invariant vs log-Euclidean distance
-- Grassmann distance between subspaces
-- Ultrahyperbolic distance with different signatures
+## Overview
+
+This example covers calibrax's metrics on structured mathematical objects: graphs, given as
+adjacency matrices, and Riemannian manifolds. For graphs it computes the spectral distance, which
+compares Laplacian eigenvalue spectra, the shortest-path distance (Floyd-Warshall) and the
+resistance distance, the effective resistance of the graph as an electrical network. For manifolds
+it computes distances between symmetric positive definite (SPD) matrices, between subspaces on the
+Grassmann manifold, and on ultrahyperbolic spaces of mixed signature. These metrics evaluate graph
+neural networks, compare covariance matrices (brain-computer interfaces, finance), track
+subspaces and embed knowledge graphs in mixed-curvature spaces.
+
+## Learning Goals
+
+1. Compare graph topology with the spectral distance between adjacency matrices
+2. Compute shortest-path and resistance distances on a graph
+3. Measure the distance between SPD matrices, affine-invariant and log-Euclidean
+4. Measure the separation of subspaces on the Grassmann manifold
+5. Compute ultrahyperbolic distances under two metric signatures
 """
 
+# %% [markdown]
+"""
+## Setup
+"""
+
+# %%
+import jax
 import jax.numpy as jnp
 
 from calibrax.metrics.functional.graph import (
@@ -50,193 +50,280 @@ from calibrax.metrics.functional.manifold import (
 )
 
 
-def main() -> None:
-    """Run graph and manifold metric examples."""
-    # == GRAPH METRICS =====================================================
-    print("=" * 60)
-    print("GRAPH METRICS")
-    print("=" * 60)
+# %% [markdown]
+"""
+## Core Concepts
 
-    # -- Path graph: 0 -- 1 -- 2 -- 3 ------------------------------------
-    print("\n=== Path Graph (4 nodes) ===")
-    path_adj = jnp.array(
+- A graph's Laplacian spectrum summarises its topology, so two graphs with different spectra are
+  structurally different. Resistance distance treats each edge as a unit resistor: two nodes
+  joined by several paths are closer than the hop count says.
+- The affine-invariant distance between SPD matrices is the geodesic distance of their manifold
+  and is unchanged by any congruence, `d(A, B) = d(M A M^T, M B M^T)`; the log-Euclidean distance
+  is cheaper and unchanged only by orthogonal ones.
+- The Grassmann distance depends only on the subspaces, not on the bases that span them.
+- An ultrahyperbolic space of signature `(p, q)` has `p` timelike and `q` spacelike dimensions;
+  `(1, n)` is the Lorentz hyperboloid, and mixed signatures model several curvature directions, as
+  in UltraE's knowledge-graph embeddings (Xiong et al., KDD 2022).
+
+## Implementation
+
+### Step 1: Compare a path graph with a cycle
+
+Both graphs have four nodes; the cycle adds the edge from node 3 back to node 0.
+"""
+
+# %%
+PATH = jnp.array(
+    [[0, 1, 0, 0], [1, 0, 1, 0], [0, 1, 0, 1], [0, 0, 1, 0]],
+    dtype=jnp.float32,
+)
+CYCLE = jnp.array(
+    [[0, 1, 0, 1], [1, 0, 1, 0], [0, 1, 0, 1], [1, 0, 1, 0]],
+    dtype=jnp.float32,
+)
+
+
+def spectral_distances() -> dict[str, float]:
+    """Compute the spectral distance of the path from itself and from the cycle.
+
+    Returns:
+        Both distances.
+    """
+    return {
+        "path vs itself": float(spectral_distance(PATH, PATH)),
+        "path vs cycle": float(spectral_distance(PATH, CYCLE)),
+    }
+
+
+# %% [markdown]
+"""
+### Step 2: Compute shortest-path and resistance distances
+"""
+
+
+# %%
+def node_distances(adjacency: jax.Array) -> dict[str, list[list[float]]]:
+    """Compute the shortest-path and resistance distances between every pair of nodes.
+
+    Args:
+        adjacency: The graph's adjacency matrix.
+
+    Returns:
+        Both distance matrices, as nested lists.
+    """
+    return {
+        "shortest path": shortest_path_distance(adjacency).tolist(),
+        "resistance": resistance_distance(adjacency).tolist(),
+    }
+
+
+# %% [markdown]
+"""
+### Step 3: Measure distances between SPD matrices
+
+Three 3x3 SPD matrices: the identity, the identity scaled by 4 and an anisotropic matrix.
+"""
+
+# %%
+IDENTITY = jnp.eye(3)
+SCALED = jnp.eye(3) * 4.0
+ANISOTROPIC = jnp.array([[2.0, 0.5, 0.0], [0.5, 1.0, 0.0], [0.0, 0.0, 3.0]])
+SPD_PAIRS = {
+    "d(I, I)": (IDENTITY, IDENTITY),
+    "d(I, 4*I)": (IDENTITY, SCALED),
+    "d(I, aniso)": (IDENTITY, ANISOTROPIC),
+    "d(4*I, aniso)": (SCALED, ANISOTROPIC),
+}
+
+
+def spd_distances() -> dict[str, tuple[float, float]]:
+    """Compute the affine-invariant and log-Euclidean distance of each pair.
+
+    Returns:
+        Each pair's affine-invariant and log-Euclidean distance.
+    """
+    return {
+        name: (
+            float(spd_affine_invariant_distance(a, b)),
+            float(spd_log_euclidean_distance(a, b)),
+        )
+        for name, (a, b) in SPD_PAIRS.items()
+    }
+
+
+# %% [markdown]
+"""
+### Step 4: Measure distances between subspaces
+
+Each subspace of R^4 is given by an orthonormal basis of two columns.
+"""
+
+# %%
+ANGLE = jnp.pi / 6
+U1 = jnp.eye(4, 2)
+U2, _ = jnp.linalg.qr(
+    jnp.array(
         [
-            [0, 1, 0, 0],
-            [1, 0, 1, 0],
-            [0, 1, 0, 1],
-            [0, 0, 1, 0],
-        ],
-        dtype=jnp.float32,
-    )
-    print("  Adjacency matrix:")
-    for row in path_adj.tolist():
-        print(f"    {row}")
-
-    # Spectral distance (same graph -> 0)
-    print(f"\n  Spectral distance (path vs itself): {spectral_distance(path_adj, path_adj):.6f}")
-
-    # -- Cycle graph: 0 -- 1 -- 2 -- 3 -- 0 ------------------------------
-    print("\n=== Cycle Graph (4 nodes) ===")
-    cycle_adj = jnp.array(
-        [
-            [0, 1, 0, 1],
-            [1, 0, 1, 0],
-            [0, 1, 0, 1],
-            [1, 0, 1, 0],
-        ],
-        dtype=jnp.float32,
-    )
-
-    spec_dist = spectral_distance(path_adj, cycle_adj)
-    print(f"  Spectral distance (path vs cycle): {spec_dist:.6f}")
-    print("  Non-zero because the Laplacian eigenvalue spectra differ.")
-
-    # -- Shortest path distance (Floyd-Warshall) --------------------------
-    print("\n=== Shortest Path Distance (Floyd-Warshall) ===")
-    sp_matrix = shortest_path_distance(path_adj)
-    print("  Path graph shortest distances:")
-    for i in range(4):
-        row = [f"{float(sp_matrix[i, j]):.0f}" for j in range(4)]
-        print(f"    node {i}: {row}")
-    print(f"  d(0, 3) = {float(sp_matrix[0, 3]):.0f} (3 hops along the path)")
-
-    sp_cycle = shortest_path_distance(cycle_adj)
-    print("\n  Cycle graph shortest distances:")
-    for i in range(4):
-        row = [f"{float(sp_cycle[i, j]):.0f}" for j in range(4)]
-        print(f"    node {i}: {row}")
-    print(f"  d(0, 2) = {float(sp_cycle[0, 2]):.0f} (2 hops either direction)")
-
-    # -- Resistance distance -----------------------------------------------
-    print("\n=== Resistance Distance ===")
-    omega_path = resistance_distance(path_adj)
-    print("  Path graph resistance distances:")
-    for i in range(4):
-        row = [f"{float(omega_path[i, j]):.2f}" for j in range(4)]
-        print(f"    node {i}: {row}")
-
-    omega_cycle = resistance_distance(cycle_adj)
-    print("\n  Cycle graph resistance distances:")
-    for i in range(4):
-        row = [f"{float(omega_cycle[i, j]):.2f}" for j in range(4)]
-        print(f"    node {i}: {row}")
-
-    print("\n  Resistance distance captures topology: nodes with more")
-    print("  parallel paths have lower resistance distance.")
-    print(f"  Path d(0,3) = {float(omega_path[0, 3]):.2f} (single path)")
-    print(f"  Cycle d(0,2) = {float(omega_cycle[0, 2]):.2f} (two parallel paths)")
-
-    # == MANIFOLD METRICS ==================================================
-    print()
-    print("=" * 60)
-    print("MANIFOLD METRICS")
-    print("=" * 60)
-
-    # -- SPD matrices (covariance matrices) --------------------------------
-    print("\n=== SPD Manifold: Covariance Matrix Distances ===")
-
-    # Three 3x3 SPD matrices (symmetric positive definite)
-    spd_identity = jnp.eye(3)
-    spd_scaled = jnp.eye(3) * 4.0  # uniformly scaled
-    spd_aniso = jnp.array(
-        [
-            [2.0, 0.5, 0.0],
-            [0.5, 1.0, 0.0],
-            [0.0, 0.0, 3.0],
-        ]
-    )  # anisotropic
-
-    print("  Affine-invariant distance (geometrically exact):")
-    print(f"    d(I, I)         = {spd_affine_invariant_distance(spd_identity, spd_identity):.6f}")
-    print(f"    d(I, 4*I)       = {spd_affine_invariant_distance(spd_identity, spd_scaled):.6f}")
-    print(f"    d(I, aniso)     = {spd_affine_invariant_distance(spd_identity, spd_aniso):.6f}")
-    print(f"    d(4*I, aniso)   = {spd_affine_invariant_distance(spd_scaled, spd_aniso):.6f}")
-
-    print("\n  Log-Euclidean distance (faster approximation):")
-    print(f"    d(I, I)         = {spd_log_euclidean_distance(spd_identity, spd_identity):.6f}")
-    print(f"    d(I, 4*I)       = {spd_log_euclidean_distance(spd_identity, spd_scaled):.6f}")
-    print(f"    d(I, aniso)     = {spd_log_euclidean_distance(spd_identity, spd_aniso):.6f}")
-    print(f"    d(4*I, aniso)   = {spd_log_euclidean_distance(spd_scaled, spd_aniso):.6f}")
-
-    print("\n  Affine-invariant is congruence-invariant: d(A,B) = d(MAM',MBM').")
-    print("  Log-Euclidean is faster but only orthogonally invariant.")
-
-    # -- Grassmann manifold (subspace comparison) --------------------------
-    print("\n=== Grassmann Manifold: Subspace Distances ===")
-
-    # Two 2-dimensional subspaces of R^4 (orthonormal bases)
-    # Subspace 1: span of first two standard basis vectors
-    u1 = jnp.eye(4, 2)  # shape (4, 2)
-    # Subspace 2: rotated version
-    angle = jnp.pi / 6  # 30 degrees
-    rotation = jnp.array(
-        [
-            [jnp.cos(angle), -jnp.sin(angle)],
-            [jnp.sin(angle), jnp.cos(angle)],
+            [jnp.cos(ANGLE), -jnp.sin(ANGLE)],
+            [jnp.sin(ANGLE), jnp.cos(ANGLE)],
             [0.0, 0.0],
             [0.0, 0.0],
         ]
     )
-    u2 = rotation
-    # Orthonormalize u2 via QR
-    u2, _ = jnp.linalg.qr(u2)
+)
+U3 = jnp.eye(4, 2, k=2)
+SUBSPACES = {"d(U1, U1)": U1, "d(U1, U2)": U2, "d(U1, U3)": U3}
 
-    # Subspace 3: orthogonal complement (last two basis vectors)
-    u3 = jnp.eye(4, 2, k=2)  # columns 2 and 3
 
-    print(f"  d(U1, U1) = {grassmann_distance(u1, u1):.6f}  (same subspace)")
-    print(f"  d(U1, U2) = {grassmann_distance(u1, u2):.6f}  (30-deg rotation)")
-    print(f"  d(U1, U3) = {grassmann_distance(u1, u3):.6f}  (orthogonal complement)")
-    print("  Grassmann distance is basis-independent: depends only on the subspace.")
+def grassmann_distances() -> dict[str, float]:
+    """Compute the Grassmann distance from U1 to each subspace.
 
-    # -- Ultrahyperbolic distance (mixed signature) ------------------------
-    print("\n=== Ultrahyperbolic Distance (Mixed Signature) ===")
+    Returns:
+        Each distance.
+    """
+    return {name: float(grassmann_distance(U1, basis)) for name, basis in SUBSPACES.items()}
 
-    # Signature (1, 2): 1 timelike + 2 spacelike (standard hyperboloid)
-    # Point on hyperboloid: -t^2 + x^2 + y^2 = -1, so t = sqrt(1 + x^2 + y^2)
-    def hyperboloid_point(x: float, y: float) -> jnp.ndarray:
-        """Create a point on the (1,2) hyperboloid."""
-        t = jnp.sqrt(1.0 + x**2 + y**2)
-        return jnp.array([t, x, y])
 
-    origin = hyperboloid_point(0.0, 0.0)
-    p1 = hyperboloid_point(0.5, 0.3)
-    p2 = hyperboloid_point(1.0, 0.0)
+# %% [markdown]
+"""
+### Step 5: Compute ultrahyperbolic distances
 
-    print("  Signature (1, 2) -- standard hyperboloid:")
-    d_12_self = ultrahyperbolic_distance(origin, origin, signature=(1, 2))
-    d_12_near = ultrahyperbolic_distance(origin, p1, signature=(1, 2))
-    d_12_far = ultrahyperbolic_distance(origin, p2, signature=(1, 2))
-    print(f"    d(origin, origin) = {d_12_self:.6f}")
-    print(f"    d(origin, p1)     = {d_12_near:.6f}")
-    print(f"    d(origin, p2)     = {d_12_far:.6f}")
+Points on the `(1, 2)` hyperboloid satisfy `-t^2 + x^2 + y^2 = -1`; points on the `(2, 2)`
+pseudo-hyperboloid satisfy `-t1^2 - t2^2 + x1^2 + x2^2 = -1`, here with `t1 = t2`.
+"""
 
-    # Signature (2, 2): 2 timelike + 2 spacelike (ultrahyperbolic)
-    # Point satisfying -t1^2 - t2^2 + x1^2 + x2^2 = -1
-    def ultra_point(x1: float, x2: float) -> jnp.ndarray:
-        """Create a point on the (2,2) pseudo-hyperboloid."""
-        t_sq = 1.0 + x1**2 + x2**2
-        t1 = jnp.sqrt(t_sq / 2.0)
-        t2 = jnp.sqrt(t_sq / 2.0)
-        return jnp.array([t1, t2, x1, x2])
 
-    origin_ultra = ultra_point(0.0, 0.0)
-    q1 = ultra_point(0.3, 0.4)
-    q2 = ultra_point(0.8, 0.6)
+# %%
+def hyperboloid_point(x: float, y: float) -> jax.Array:
+    """Lift a point onto the (1, 2) hyperboloid.
 
-    print("\n  Signature (2, 2) -- ultrahyperbolic space:")
-    d_22_self = ultrahyperbolic_distance(origin_ultra, origin_ultra, signature=(2, 2))
-    d_22_near = ultrahyperbolic_distance(origin_ultra, q1, signature=(2, 2))
-    d_22_far = ultrahyperbolic_distance(origin_ultra, q2, signature=(2, 2))
-    print(f"    d(origin, origin) = {d_22_self:.6f}")
-    print(f"    d(origin, q1)     = {d_22_near:.6f}")
-    print(f"    d(origin, q2)     = {d_22_far:.6f}")
+    Args:
+        x: The first spacelike coordinate.
+        y: The second spacelike coordinate.
 
-    print("\n  Ultrahyperbolic spaces generalize hyperbolic geometry.")
-    print("  Signature (1, n) recovers standard Lorentz/hyperbolic distance.")
-    print("  Mixed signatures model spaces with multiple curvature directions,")
-    print("  useful for knowledge graph embeddings (UltraE).")
+    Returns:
+        The point, its timelike coordinate first.
+    """
+    return jnp.array([jnp.sqrt(1.0 + x**2 + y**2), x, y])
+
+
+def pseudo_hyperboloid_point(x1: float, x2: float) -> jax.Array:
+    """Lift a point onto the (2, 2) pseudo-hyperboloid with equal timelike coordinates.
+
+    Args:
+        x1: The first spacelike coordinate.
+        x2: The second spacelike coordinate.
+
+    Returns:
+        The point, its two timelike coordinates first.
+    """
+    t = jnp.sqrt((1.0 + x1**2 + x2**2) / 2.0)
+    return jnp.array([t, t, x1, x2])
+
+
+def ultrahyperbolic_distances() -> dict[str, float]:
+    """Compute distances from each space's origin under both signatures.
+
+    Returns:
+        Each distance, by signature and point.
+    """
+    origin, p1, p2 = (hyperboloid_point(*xy) for xy in ((0.0, 0.0), (0.5, 0.3), (1.0, 0.0)))
+    origin_22, q1, q2 = (
+        pseudo_hyperboloid_point(*xy) for xy in ((0.0, 0.0), (0.3, 0.4), (0.8, 0.6))
+    )
+    return {
+        "(1, 2) d(origin, origin)": float(
+            ultrahyperbolic_distance(origin, origin, signature=(1, 2))
+        ),
+        "(1, 2) d(origin, p1)": float(ultrahyperbolic_distance(origin, p1, signature=(1, 2))),
+        "(1, 2) d(origin, p2)": float(ultrahyperbolic_distance(origin, p2, signature=(1, 2))),
+        "(2, 2) d(origin, origin)": float(
+            ultrahyperbolic_distance(origin_22, origin_22, signature=(2, 2))
+        ),
+        "(2, 2) d(origin, q1)": float(ultrahyperbolic_distance(origin_22, q1, signature=(2, 2))),
+        "(2, 2) d(origin, q2)": float(ultrahyperbolic_distance(origin_22, q2, signature=(2, 2))),
+    }
+
+
+# %% [markdown]
+"""
+## Results
+
+### Graph distances
+
+The path is at spectral distance 0 from itself and not from the cycle. Node 3 is three hops from
+node 0 on the path and node 2 two hops on the cycle; in resistance, the cycle's two parallel paths
+bring node 2 to 1.0 from node 0, against 3.0 for node 3 on the path's single one.
+
+### Manifold distances
+
+The SPD, Grassmann and ultrahyperbolic tables give each pair's distance; the distance from an
+ultrahyperbolic point to itself prints as 0.0001 rather than 0.
+"""
+
+
+# %%
+def print_matrix(title: str, rows: list[list[float]]) -> None:
+    """Print a distance matrix, one node per row.
+
+    Args:
+        title: The matrix's title.
+        rows: The matrix.
+    """
+    print(f"  {title}:")
+    for node, row in enumerate(rows):
+        print(f"    node {node}: {[round(value, 2) for value in row]}")
+
+
+def main() -> dict[str, float]:
+    """Run the example and return its results.
+
+    Returns:
+        The spectral distances, the two highlighted node distances and every manifold distance.
+    """
+    spectral = spectral_distances()
+    print("=== Spectral Distance ===")
+    for name, value in spectral.items():
+        print(f"  {name:16s} {value:.6f}")
+    graphs = {"Path": node_distances(PATH), "Cycle": node_distances(CYCLE)}
+    for graph, matrices in graphs.items():
+        print(f"=== {graph} Graph Distances ===")
+        for title, rows in matrices.items():
+            print_matrix(title, rows)
+    spd = spd_distances()
+    print("=== SPD Matrix Distances (affine-invariant, log-Euclidean) ===")
+    for name, (affine, log_euclidean) in spd.items():
+        print(f"  {name:14s} {affine:.6f}  {log_euclidean:.6f}")
+    tables = {
+        "Grassmann Subspace Distances": grassmann_distances(),
+        "Ultrahyperbolic Distances": ultrahyperbolic_distances(),
+    }
+    for title, values in tables.items():
+        print(f"=== {title} ===")
+        for name, value in values.items():
+            print(f"  {name:26s} {value:.6f}")
+    return {
+        **spectral,
+        "path resistance d(0, 3)": graphs["Path"]["resistance"][0][3],
+        "cycle resistance d(0, 2)": graphs["Cycle"]["resistance"][0][2],
+        **{f"affine-invariant {name}": affine for name, (affine, _) in spd.items()},
+        **{f"log-Euclidean {name}": log_euclidean for name, (_, log_euclidean) in spd.items()},
+        **{name: value for values in tables.values() for name, value in values.items()},
+    }
 
 
 if __name__ == "__main__":
     main()
+
+
+# %% [markdown]
+"""
+## Next Steps
+
+- [Distances and divergences](distances.md): flat and hyperbolic distances, for comparison
+- [Metric learning losses](metric_learning.md): losses on the embedding spaces these metrics
+  measure
+- [Graph API reference](../../api-reference/metrics/graph.md): every graph metric's signature
+- [Manifold API reference](../../api-reference/metrics/manifold.md): every manifold metric's
+  signature
+"""
