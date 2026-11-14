@@ -152,13 +152,16 @@ def confusion_counts(predictions: jax.Array, targets: jax.Array) -> dict[str, in
 """
 ### Step 3: Compare two models' calibration
 
-Two models score the same targets; lower Brier score and ECE mean better calibration.
+Two models rank ten samples the same way, so at a 0.5 threshold they predict the same labels and
+have the same accuracy. One in five of the samples the first five probabilities describe is
+positive, and four in five of the rest. The calibrated model says so, 0.2 and 0.8; the
+overconfident one says 0.02 and 0.98. Lower Brier score and ECE mean better calibration.
 """
 
 # %%
-CALIBRATION_TARGETS = jnp.array([0, 0, 0, 0, 1, 1, 1, 1, 1, 1])
-WELL_CALIBRATED = jnp.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95])
-OVERCONFIDENT = jnp.array([0.05, 0.05, 0.1, 0.1, 0.9, 0.9, 0.95, 0.95, 0.9, 0.95])
+CALIBRATION_TARGETS = jnp.array([1, 0, 0, 0, 0, 1, 1, 1, 1, 0])
+CALIBRATED = jnp.array([0.2] * 5 + [0.8] * 5)
+OVERCONFIDENT = jnp.array([0.02] * 5 + [0.98] * 5)
 
 
 def calibration(probabilities: jax.Array, targets: jax.Array) -> dict[str, float]:
@@ -245,8 +248,10 @@ The hard predictions get eight of ten labels right, one false positive and one f
 
 ### Calibration and segmentation
 
-The calibration table compares the two models, and the segmentation tables show IoU and Dice
-below pixel accuracy, which the many background pixels inflate.
+The calibrated model's confidence matches each group's frequency, so its ECE is zero; the
+overconfident model, with the same labels and accuracy, has a higher Brier score and ECE. The
+segmentation tables show IoU and Dice below pixel accuracy, which the many background pixels
+inflate.
 """
 
 
@@ -278,9 +283,9 @@ def main() -> dict[str, float | int]:
     print("=== Confusion Matrix ===")
     print(f"  [[TN={counts['TN']}, FP={counts['FP']}],")
     print(f"   [FN={counts['FN']}, TP={counts['TP']}]]")
-    well = calibration(WELL_CALIBRATED, CALIBRATION_TARGETS)
+    calibrated = calibration(CALIBRATED, CALIBRATION_TARGETS)
     over = calibration(OVERCONFIDENT, CALIBRATION_TARGETS)
-    print_table("Calibration: well-calibrated model", well)
+    print_table("Calibration: calibrated model", calibrated)
     print_table("Calibration: overconfident model", over)
     masks = segmentation(PREDICTED_MASK, TRUE_MASK)
     macro = macro_segmentation(PREDICTED_CLASSES, TRUE_CLASSES)
@@ -290,7 +295,7 @@ def main() -> dict[str, float | int]:
         **hard,
         **soft,
         **counts,
-        **{f"well-calibrated {name}": value for name, value in well.items()},
+        **{f"calibrated {name}": value for name, value in calibrated.items()},
         **{f"overconfident {name}": value for name, value in over.items()},
         **masks,
         **macro,

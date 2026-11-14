@@ -1,6 +1,6 @@
 # Classification, Calibration and Segmentation
 
-> Ran in 3.4 s on 1 cpu (python 3.12.14, jax 0.11.1, substrax 0.1.27, calibrax 0.1.17), from [`examples/metrics/classification.py`](https://github.com/avitai/calibrax/blob/main/examples/metrics/classification.py) ([notebook](https://github.com/avitai/calibrax/blob/main/examples/metrics/classification.ipynb)). Run it from the repository root:
+> Ran in 3.3 s on 1 cpu (python 3.12.14, jax 0.11.1, substrax 0.1.27, calibrax 0.1.17), from [`examples/metrics/classification.py`](https://github.com/avitai/calibrax/blob/main/examples/metrics/classification.py) ([notebook](https://github.com/avitai/calibrax/blob/main/examples/metrics/classification.ipynb)). Run it from the repository root:
 
 ```bash
 source ./activate.sh
@@ -147,13 +147,16 @@ def confusion_counts(predictions: jax.Array, targets: jax.Array) -> dict[str, in
 
 ### Step 3: Compare two models' calibration
 
-Two models score the same targets; lower Brier score and ECE mean better calibration.
+Two models rank ten samples the same way, so at a 0.5 threshold they predict the same labels and
+have the same accuracy. One in five of the samples the first five probabilities describe is
+positive, and four in five of the rest. The calibrated model says so, 0.2 and 0.8; the
+overconfident one says 0.02 and 0.98. Lower Brier score and ECE mean better calibration.
 
 
 ```python
-CALIBRATION_TARGETS = jnp.array([0, 0, 0, 0, 1, 1, 1, 1, 1, 1])
-WELL_CALIBRATED = jnp.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95])
-OVERCONFIDENT = jnp.array([0.05, 0.05, 0.1, 0.1, 0.9, 0.9, 0.95, 0.95, 0.9, 0.95])
+CALIBRATION_TARGETS = jnp.array([1, 0, 0, 0, 0, 1, 1, 1, 1, 0])
+CALIBRATED = jnp.array([0.2] * 5 + [0.8] * 5)
+OVERCONFIDENT = jnp.array([0.02] * 5 + [0.98] * 5)
 
 
 def calibration(probabilities: jax.Array, targets: jax.Array) -> dict[str, float]:
@@ -234,8 +237,10 @@ The hard predictions get eight of ten labels right, one false positive and one f
 
 ### Calibration and segmentation
 
-The calibration table compares the two models, and the segmentation tables show IoU and Dice
-below pixel accuracy, which the many background pixels inflate.
+The calibrated model's confidence matches each group's frequency, so its ECE is zero; the
+overconfident model, with the same labels and accuracy, has a higher Brier score and ECE. The
+segmentation tables show IoU and Dice below pixel accuracy, which the many background pixels
+inflate.
 
 
 ```python
@@ -266,9 +271,9 @@ def main() -> dict[str, float | int]:
     print("=== Confusion Matrix ===")
     print(f"  [[TN={counts['TN']}, FP={counts['FP']}],")
     print(f"   [FN={counts['FN']}, TP={counts['TP']}]]")
-    well = calibration(WELL_CALIBRATED, CALIBRATION_TARGETS)
+    calibrated = calibration(CALIBRATED, CALIBRATION_TARGETS)
     over = calibration(OVERCONFIDENT, CALIBRATION_TARGETS)
-    print_table("Calibration: well-calibrated model", well)
+    print_table("Calibration: calibrated model", calibrated)
     print_table("Calibration: overconfident model", over)
     masks = segmentation(PREDICTED_MASK, TRUE_MASK)
     macro = macro_segmentation(PREDICTED_CLASSES, TRUE_CLASSES)
@@ -278,7 +283,7 @@ def main() -> dict[str, float | int]:
         **hard,
         **soft,
         **counts,
-        **{f"well-calibrated {name}": value for name, value in well.items()},
+        **{f"calibrated {name}": value for name, value in calibrated.items()},
         **{f"overconfident {name}": value for name, value in over.items()},
         **masks,
         **macro,
@@ -305,12 +310,12 @@ if __name__ == "__main__":
     === Confusion Matrix ===
       [[TN=4, FP=1],
        [FN=1, TP=4]]
-    === Calibration: well-calibrated model ===
-      Brier Score          0.0852
-      ECE                  0.2550
+    === Calibration: calibrated model ===
+      Brier Score          0.1600
+      ECE                  0.0000
     === Calibration: overconfident model ===
-      Brier Score          0.0063
-      ECE                  0.0750
+      Brier Score          0.1924
+      ECE                  0.1800
     === Segmentation Metrics ===
       IoU (Jaccard)        0.6000
       Dice Coefficient     0.7500
@@ -329,4 +334,4 @@ if __name__ == "__main__":
 - [Calibration API reference](../../api-reference/metrics/calibration.md): the calibration
   functions
 
-<!-- substrax-notebooks: {"page": {"body": "848ff6612bc1248a6a2320cf35f3bc4ddce98a83e2877281235b9bb124bfca21", "figures": {}, "record": "a13fb1a2a8c95171f8ba87ba2f88a2c44c77cb262458f534490a1b8ad70e8735"}, "provenance": {"device": "1 cpu", "outputs": [[], [], [], [], [], [], ["text"]], "seconds": 3.4, "sha256": "9c04381457932efcbcbd2e67bad1f228f7ffb3499f9f93e3fbbddfa857aebeaf", "source": "examples/metrics/classification.py", "versions": {"calibrax": "0.1.17", "jax": "0.11.1", "python": "3.12.14", "substrax": "0.1.27"}}} -->
+<!-- substrax-notebooks: {"page": {"body": "4585bc11be1427c2e832b91cdc44b73645dd6cb08d3d417aea94168a60a72444", "figures": {}, "record": "13cf02d450bdb80608ec316e6b266f09d65a79547d30103c99f0f5dbecf6d923"}, "provenance": {"device": "1 cpu", "outputs": [[], [], [], [], [], [], ["text"]], "seconds": 3.3, "sha256": "08ccb28fa68ed4a717539c70fd98b6a622bbd7ddd35723aa8da2adb5b7ea5499", "source": "examples/metrics/classification.py", "versions": {"calibrax": "0.1.17", "jax": "0.11.1", "python": "3.12.14", "substrax": "0.1.27"}}} -->

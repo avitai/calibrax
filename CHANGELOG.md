@@ -56,6 +56,15 @@ and uses semantic versioning while the public API stabilizes.
 - `mkdocs-jupyter` and `mkdocs-ipynb` from the `docs` extra. No `plugins:` entry loaded either,
   and the example pages are Markdown that `substrax-notebooks page` writes.
 
+### Fixed
+
+- The classification example's calibration comparison taught the reverse of its claim: its
+  "overconfident" model scored a lower Brier score (0.0063 against 0.0852) and ECE (0.0750
+  against 0.2550) than its "well-calibrated" one, whose probabilities rose with the sample's
+  index rather than its label. The two models now rank the samples the same way and differ
+  only in confidence (0.2 and 0.8 against 0.02 and 0.98): the calibrated one scores an ECE of
+  0 and a Brier score of 0.16, the overconfident one 0.18 and 0.1924, at the same accuracy.
+
 ### Security
 
 - The lock takes the fixed releases of the three packages pip-audit reports across every extra:
