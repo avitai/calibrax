@@ -64,6 +64,10 @@ and uses semantic versioning while the public API stabilizes.
   index rather than its label. The two models now rank the samples the same way and differ
   only in confidence (0.2 and 0.8 against 0.02 and 0.98): the calibrated one scores an ECE of
   0 and a Brier score of 0.16, the overconfident one 0.18 and 0.1924, at the same accuracy.
+- The image quality example said a second reference raises BLEU while it printed BLEU-4 of 0
+  against one reference and against two: the second reference added none of the candidate's
+  n-grams, and the candidate shared no 4-gram with either. The second reference now shares
+  "cat sat on the", so BLEU-4 rises from 0 to 0.7071 and BLEU-2 from 0.7071 to 1.
 
 ### Security
 
