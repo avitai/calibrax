@@ -254,11 +254,10 @@ it distinguishes between different orientations of the same subspace.
 from calibrax.metrics.functional.manifold import stiefel_distance
 
 # Orthonormal frames: (n, p) matrices with orthonormal columns
-frame_a = jnp.eye(4, 2)
-frame_b = jnp.eye(4, 2, k=1)
+frame_a = jnp.eye(4)[:, :2]  # e1, e2
+frame_b = jnp.eye(4)[:, 1:3]  # e2, e3
 
-# Compare two orthonormal frames
-d = stiefel_distance(frame_a, frame_b)
+d = stiefel_distance(frame_a, frame_b)  # ||frame_a - frame_b||_F = 2.0
 ```
 
 ### Pseudo-Riemannian (Mixed Signature)

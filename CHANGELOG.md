@@ -117,6 +117,9 @@ and uses semantic versioning while the public API stabilizes.
   `sqrt(2) * pi / 2`), a subspace tilted by 30 degrees shows `pi / 6`, and a non-commuting pair
   and its congruence show the affine-invariant distance unchanged where the log-Euclidean one
   moves (1.988 to 1.535).
+- The geometric metrics guide's second Stiefel frame, `jnp.eye(4, 2, k=1)`, had one nonzero
+  entry, so it was no orthonormal frame and its distance from the first printed `sqrt(3)`. The
+  frames are now `e1, e2` and `e2, e3`, at distance 2.
 
 ### Security
 
