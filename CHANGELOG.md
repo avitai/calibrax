@@ -76,6 +76,13 @@ and uses semantic versioning while the public API stabilizes.
   clustered embeddings scored alike. With the centroids spread by 0.15 and the noise 0.1, each
   loss grows with its margin, every gradient is nonzero, the semi-hard miner keeps 7 of 8
   anchors, and the triplet loss falls from random (0.204) to loose (0.063) to tight (0) clusters.
+- The manifold and graph example's "orthogonal complement" subspace was the zero matrix
+  (`jnp.eye(4, 2, k=2)` has no nonzero entry), so its Grassmann distance printed 0, and every SPD
+  pair included a multiple of the identity, which commutes with any matrix, so the two SPD
+  distances it contrasts always agreed. The complement is now the last two axes (distance
+  `sqrt(2) * pi / 2`), a subspace tilted by 30 degrees shows `pi / 6`, and a non-commuting pair
+  and its congruence show the affine-invariant distance unchanged where the log-Euclidean one
+  moves (1.988 to 1.535).
 
 ### Security
 
