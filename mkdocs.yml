@@ -218,7 +218,7 @@ nav:
   - Contributing:
       - Overview: contributing/index.md
       - Adding a Metric: contributing/adding-a-metric.md
-      - Documentation Design Framework: contributing/example_documentation_design.md
+      - Writing Examples: https://substrax.readthedocs.io/en/latest/guides/writing-examples/
   - Architecture:
       - architecture/index.md
       - Design Decisions: architecture/design-decisions.md

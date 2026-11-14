@@ -119,7 +119,6 @@ README_CLAIMS: tuple[str, ...] = ("tier0_metrics", "metric_domains", "domain_nam
 DOCUMENT_SOURCES: dict[str, tuple[str, ...]] = {
     "docs/architecture/module-map.md": ("tier0_metrics", "metric_domains"),
     "docs/contributing/adding-a-metric.md": ("tier0_metrics", "metric_domains"),
-    "docs/contributing/example_documentation_design.md": ("tier0_metrics", "metric_domains"),
     "docs/contributing/index.md": ("tier0_metrics", "metric_domains"),
     "docs/user-guide/index.md": ("tier0_metrics", "metric_domains"),
     "docs/user-guide/metrics-overview.md": ("tier0_metrics", "metric_domains", "domain_counts"),

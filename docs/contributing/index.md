@@ -10,9 +10,8 @@ fit the current code and documentation system.
   and pull request expectations.
 - [Adding a Metric](adding-a-metric.md) - the implementation, registration,
   testing, and documentation path for new metrics.
-- [Documentation Design Framework](example_documentation_design.md) - the
-  detailed reference for example structure, progressive disclosure, and docs
-  quality standards.
+- [Writing examples](https://substrax.readthedocs.io/en/latest/guides/writing-examples/) - substrax's guide to how
+  every repository built on it writes, converts, runs and pages its examples.
 
 ## Local Commands
 
