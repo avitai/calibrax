@@ -1,6 +1,6 @@
 # Metric Learning Losses
 
-> Ran in 10.0 s on 1 cpu (python 3.12.14, jax 0.11.1, substrax 0.1.27, calibrax 0.1.17), from [`examples/metrics/metric_learning.py`](https://github.com/avitai/calibrax/blob/main/examples/metrics/metric_learning.py) ([notebook](https://github.com/avitai/calibrax/blob/main/examples/metrics/metric_learning.ipynb)). Run it from the repository root:
+> Ran in 5.2 s on 1 cpu (python 3.12.14, jax 0.11.1, substrax 0.1.27, calibrax 0.1.17), from [`examples/metrics/metric_learning.py`](https://github.com/avitai/calibrax/blob/main/examples/metrics/metric_learning.py) ([notebook](https://github.com/avitai/calibrax/blob/main/examples/metrics/metric_learning.ipynb)). Run it from the repository root:
 
 ```bash
 source ./activate.sh
@@ -412,4 +412,4 @@ if __name__ == "__main__":
 - [Learning API reference](../../api-reference/metrics/learning.md): every loss and miner's
   signature
 
-<!-- substrax-notebooks: {"page": {"body": "76240b1e66eb4b8108350210feb2f61a608617f281ff0474cc46ac554dabed5f", "figures": {}, "record": "e8dba47de31e6bdc601498efbe2e1cb9c5d887499ff7dd5460517674a3371d55"}, "provenance": {"device": "1 cpu", "outputs": [[], [], [], [], [], [], [], [], [], ["text"]], "seconds": 10.0, "sha256": "07ef26e3066b41626d54c1ecafaef5fab8875450cd95377a05a239918b3b192d", "source": "examples/metrics/metric_learning.py", "versions": {"calibrax": "0.1.17", "jax": "0.11.1", "python": "3.12.14", "substrax": "0.1.27"}}} -->
+<!-- substrax-notebooks: {"page": {"body": "a8ef6807b8ea2b9336449c2c72d15e1e3580c8ab74bfe27efbb865544cd502d5", "figures": {}, "record": "7f3b2d39e91bc4c3529a968514d89cba0934df6ce00ff67912dfad9fcd56f7d0"}, "provenance": {"device": "1 cpu", "outputs": [[], [], [], [], [], [], [], [], [], ["text"]], "seconds": 5.2, "sha256": "07ef26e3066b41626d54c1ecafaef5fab8875450cd95377a05a239918b3b192d", "source": "examples/metrics/metric_learning.py", "versions": {"calibrax": "0.1.17", "jax": "0.11.1", "python": "3.12.14", "substrax": "0.1.27"}}} -->
