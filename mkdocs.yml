@@ -216,7 +216,7 @@ nav:
           - Quickstart: examples/metrics/quickstart.md
           - Regression Metrics: examples/metrics/regression_deep_dive.md
           - Classification: examples/metrics/classification.md
-          - Distances & Spaces: examples/metrics/distances-and-spaces.md
+          - Distances & Spaces: examples/metrics/distances.md
           - Model Evaluation: examples/metrics/model-evaluation.md
           - Image Quality: examples/metrics/image-quality.md
           - Metric Learning: examples/metrics/metric-learning.md

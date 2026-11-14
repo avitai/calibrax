@@ -4,7 +4,7 @@
 |---|---|
 | **Level** | Intermediate |
 | **Time** | ~12 minutes |
-| **Prerequisites** | [Quickstart](quickstart.md), [Distances and Spaces](distances-and-spaces.md) |
+| **Prerequisites** | [Quickstart](quickstart.md), [Distances and Spaces](distances.md) |
 | **Format** | Python + Jupyter |
 
 ## Overview
