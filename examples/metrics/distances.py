@@ -18,7 +18,7 @@
 # |---|---|
 # | **Level** | Tier 2: Tutorial |
 # | **Time** | ~20 minutes |
-# | **Prerequisites** | `01_quickstart.py`, basic JAX arrays |
+# | **Prerequisites** | `quickstart.py`, basic JAX arrays |
 # | **Metrics covered** | euclidean, cosine, poincare, lorentz, KL, JS, Wasserstein, Sinkhorn |
 # | **Key concepts** | Geometric hierarchy, curvature matching, divergence asymmetry |
 

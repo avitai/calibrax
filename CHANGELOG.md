@@ -38,6 +38,8 @@ and uses semantic versioning while the public API stabilizes.
   `mkdocs build --strict` fails on a page the navigation leaves out.
 - `tests/test_doc_examples.py` leaves `docs/examples` to `substrax-notebooks`: a generated page
   repeats its example's code, which `substrax-notebooks test` runs in its own invocation.
+- The examples drop their number prefix (`examples/metrics/quickstart.py`, not
+  `01_quickstart.py`), as the shared guide names them; the docs navigation sets the reading order.
 
 ### Removed
 

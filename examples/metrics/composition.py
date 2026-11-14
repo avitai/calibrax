@@ -18,7 +18,7 @@
 # |---|---|
 # | **Level** | Tier 2: Tutorial |
 # | **Time** | ~20 minutes |
-# | **Prerequisites** | `01_quickstart.py`, `02_regression_deep_dive.py` |
+# | **Prerequisites** | `quickstart.py`, `regression_deep_dive.py` |
 # | **Metrics covered** | MetricCollection, WeightedMetric, MetricSuite, ThresholdMetric |
 # | **Key concepts** | Grouping, weighting, quality gates, confidence intervals, tracking |
 

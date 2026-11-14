@@ -148,14 +148,14 @@ Runnable examples are in `examples/metrics/`, available as both Python scripts a
 
 | Example | Level | Topics |
 |---------|-------|--------|
-| [01_quickstart.py](examples/metrics/01_quickstart.py) | Beginner | Individual metrics, `calculate_all`, registry queries |
-| [02_regression_deep_dive.py](examples/metrics/02_regression_deep_dive.py) | Beginner | Same-shape regression metrics, outlier sensitivity |
-| [03_classification.py](examples/metrics/03_classification.py) | Intermediate | Classification, calibration, segmentation |
-| [04_distances.py](examples/metrics/04_distances.py) | Intermediate | Euclidean, hyperbolic, divergences, information theory |
-| [05_composition.py](examples/metrics/05_composition.py) | Intermediate | Collections, weighted metrics, quality gates, tracking |
-| [06_image_quality.py](examples/metrics/06_image_quality.py) | Intermediate | PSNR, SSIM, MS-SSIM, BLEU, ROUGE |
-| [07_metric_learning.py](examples/metrics/07_metric_learning.py) | Advanced | Contrastive, triplet, NTXent, ArcFace, mining |
-| [08_manifold_graph.py](examples/metrics/08_manifold_graph.py) | Advanced | SPD, Grassmann, spectral distance, Floyd-Warshall |
+| [quickstart.py](examples/metrics/quickstart.py) | Beginner | Individual metrics, `calculate_all`, registry queries |
+| [regression_deep_dive.py](examples/metrics/regression_deep_dive.py) | Beginner | Same-shape regression metrics, outlier sensitivity |
+| [classification.py](examples/metrics/classification.py) | Intermediate | Classification, calibration, segmentation |
+| [distances.py](examples/metrics/distances.py) | Intermediate | Euclidean, hyperbolic, divergences, information theory |
+| [composition.py](examples/metrics/composition.py) | Intermediate | Collections, weighted metrics, quality gates, tracking |
+| [image_quality.py](examples/metrics/image_quality.py) | Intermediate | PSNR, SSIM, MS-SSIM, BLEU, ROUGE |
+| [metric_learning.py](examples/metrics/metric_learning.py) | Advanced | Contrastive, triplet, NTXent, ArcFace, mining |
+| [manifold_graph.py](examples/metrics/manifold_graph.py) | Advanced | SPD, Grassmann, spectral distance, Floyd-Warshall |
 
 ## Contributing
 

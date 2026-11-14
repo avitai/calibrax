@@ -22,7 +22,7 @@
 # |---|---|
 # | **Level** | Tier 2: Tutorial |
 # | **Time** | ~20 minutes |
-# | **Prerequisites** | `01_quickstart.py`, basic JAX arrays |
+# | **Prerequisites** | `quickstart.py`, basic JAX arrays |
 # | **Metrics covered** | PSNR, SSIM, MS-SSIM, Vendi score, BLEU, ROUGE-N, ROUGE-L |
 # | **Key concepts** | Image quality, text evaluation, diversity, registry |
 #

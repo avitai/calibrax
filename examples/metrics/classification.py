@@ -19,7 +19,7 @@
 # |---|---|
 # | **Level** | Tier 2: Tutorial |
 # | **Time** | ~15 minutes |
-# | **Prerequisites** | `01_quickstart.py`, binary classification concepts |
+# | **Prerequisites** | `quickstart.py`, binary classification concepts |
 # | **Metrics covered** | accuracy, precision, recall, F1, ROC-AUC, Brier score, ECE, IoU, Dice |
 # | **Key concepts** | Hard vs soft predictions, calibration, segmentation quality |
 
