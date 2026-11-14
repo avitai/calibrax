@@ -25,6 +25,7 @@ repos:
     rev: v5.0.0
     hooks:
       - id: trailing-whitespace
+        exclude: ^docs/examples/
       - id: end-of-file-fixer
       - id: check-yaml
         exclude: mkdocs\.yml
@@ -136,13 +137,6 @@ repos:
         language: system
         pass_filenames: false
         files: ^src/calibrax/.*\.py$
-
-  # Notebook linting via nbQA
-  - repo: https://github.com/nbQA-dev/nbQA
-    rev: 1.9.1
-    hooks:
-      - id: nbqa-ruff
-        args: [--fix]
 
   # Shell script linting
   - repo: https://github.com/shellcheck-py/shellcheck-py

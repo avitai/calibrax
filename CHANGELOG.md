@@ -16,6 +16,11 @@ and uses semantic versioning while the public API stabilizes.
   the `test` extra beside `cuda12`, and names its per-example limit `command_timeout_seconds`, as
   substrax 0.1.27 requires. `[tool.substrax.examples]` sets each example's budget to 60 s, Bazel's
   "short" test timeout, from runs of 2.4 to 5.3 s on one CPU.
+- An example's notebook is written by `substrax-notebooks convert` alone: ruff skips
+  `examples/**/*.ipynb` even when a hook names one (`force-exclude`), the nbQA hook, which only
+  ever reached those notebooks, is gone, and `trailing-whitespace` leaves `docs/examples` to the
+  page generator. A plain `pytest` leaves `tests/examples` to `substrax-notebooks test`, and
+  `mkdocs build --strict` fails on a page the navigation leaves out.
 
 ### Removed
 

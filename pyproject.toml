@@ -297,7 +297,7 @@ reportMissingTypeStubs = false
 typeCheckingMode = "standard"
 
 [tool.pytest.ini_options]
-addopts = "--strict-markers --strict-config --verbose --tb=short --color=yes --durations=10 --disable-warnings --cov=src/calibrax --cov-report=term-missing --cov-report=html --cov-fail-under=80 --timeout=300 --json-report --json-report-file=temp/test-results.json --json-report-indent=2"
+addopts = "--strict-markers --strict-config --verbose --tb=short --color=yes --durations=10 --disable-warnings --cov=src/calibrax --cov-report=term-missing --cov-report=html --cov-fail-under=80 --timeout=300 --json-report --json-report-file=temp/test-results.json --json-report-indent=2 --ignore=tests/examples"
 cache_dir = ".pytest_cache"
 console_output_style = "progress"
 filterwarnings = [
@@ -339,7 +339,10 @@ WANDB_MODE = {skip_if_set = true, value = "offline"}
 XLA_PYTHON_CLIENT_PREALLOCATE = {skip_if_set = true, value = "false"}
 
 [tool.ruff]
+# An example's notebook is written by `substrax-notebooks convert` alone; its script is linted.
+extend-exclude = ["examples/**/*.ipynb"]
 extend-include = ["*.ipynb"]
+force-exclude = true
 line-length = 100
 # First-party modules come from src/ and the isort settings only, so an untracked directory at the
 # repository root (wandb's run logs are ./wandb) cannot make a third-party package first-party.
