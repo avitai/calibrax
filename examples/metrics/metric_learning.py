@@ -73,14 +73,16 @@ from calibrax.metrics.learning import (
 ### Step 1: Create clustered embeddings
 
 Eight embeddings in 16 dimensions, two per class: each class has a random centroid, and each
-sample adds noise to its centroid.
+sample adds noise to its centroid. The centroids are spread little enough that the losses'
+margins, from 0.1 to 2.0, bind: classes far apart would satisfy every margin, and each loss and
+its gradient would then be 0.
 """
 
 # %%
 LABELS = jnp.array([0, 0, 1, 1, 2, 2, 3, 3])
 EMBEDDING_DIM = 16
-CENTROID_SCALE = 2.0
-NOISE = 0.3
+CENTROID_SCALE = 0.15
+NOISE = 0.1
 
 
 def clustered_embeddings(key: jax.Array) -> tuple[jax.Array, jax.Array]:
@@ -243,7 +245,7 @@ def gradient_norms(embeddings: jax.Array) -> dict[str, float]:
 """
 
 # %%
-SEMI_HARD_MARGIN = 2.0
+SEMI_HARD_MARGIN = 0.2
 
 
 def mined_triplets(embeddings: jax.Array) -> dict[str, int | bool | list[list[int]]]:
@@ -280,9 +282,9 @@ set of centroids.
 """
 
 # %%
-RANDOM_SCALE = 1.0
-LOOSE_NOISE = 0.5
-TIGHT_NOISE = 0.05
+RANDOM_SCALE = 0.15
+LOOSE_NOISE = 0.15
+TIGHT_NOISE = 0.03
 
 
 def loss_by_quality(key: jax.Array) -> dict[str, float]:
@@ -316,15 +318,17 @@ def loss_by_quality(key: jax.Array) -> dict[str, float]:
 
 ### The four losses
 
-The contrastive loss is the same at every margin, as every negative pair is already farther apart
-than the largest margin, and the triplet loss is 0 at every margin, as every triplet already
-satisfies it. The NTXent loss grows with the temperature.
+The classes sit close enough together that the margins bind: the contrastive loss grows with its
+margin as more negative pairs fall inside it, and the triplet loss grows with its margin as more
+triplets fall short of it. The NTXent loss grows with the temperature, which flattens the softmax
+over the negatives.
 
 ### Gradients, mining and quality
 
-The triplet loss's gradient is 0 for the same reason, while the other three are not, and the
-semi-hard miner finds no negative within its margin. Random embeddings score a positive triplet
-loss; the loosely and the tightly clustered ones both score 0.
+Every loss has a nonzero gradient with respect to the embeddings, so each can train them. The
+hard-negative miner finds a valid triplet for every anchor, and the semi-hard miner keeps only
+the negatives within its margin of the positive. The triplet loss falls from random to loosely to
+tightly clustered embeddings, as within-class distances shrink against between-class ones.
 """
 
 
