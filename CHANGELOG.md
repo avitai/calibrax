@@ -80,6 +80,18 @@ and uses semantic versioning while the public API stabilizes.
   QGCN), or NaN with the new static `disconnected="nan"`; a signature with no timelike
   coordinate, which has no points, or one that does not match the points' size raises
   `ValueError`. Its docstring no longer cites UltraE, which defines a different distance.
+- `grassmann_distance` read the principal angles' cosines off `U^T V` whatever the bases, which
+  holds only for orthonormal ones, so another basis of the same subspace moved the distance and
+  broke its symmetry: `d(U, 0.5 U)` was 0 and `d(0.5 U, U)` 1.481, and two random bases gave
+  1.561 and 1.658 against scipy's 1.739. It now orthonormalises each basis by QR first, as
+  Bjorck and Golub's algorithm and `scipy.linalg.subspace_angles` do, so any basis of a
+  subspace gives the same distance, with a finite gradient. **Breaking:** a basis spanning
+  fewer than `p` dimensions (by `scipy.linalg.orth`'s tolerance), such as the zero matrix,
+  which was at distance 0 from every subspace on one side and `sqrt(p) pi / 2` on the other,
+  gives NaN, or with the new static `rank_deficient="ye_lim"` Ye and Lim's distance between
+  subspaces of different dimensions (SIAM J. Matrix Anal. Appl. 2016), which counts each
+  missing direction as a right angle and accepts bases of different widths. A non-matrix input,
+  bases of different `n`, or by default of different widths raise `ValueError`.
 
 - The classification example's calibration comparison taught the reverse of its claim: its
   "overconfident" model scored a lower Brier score (0.0063 against 0.0852) and ECE (0.0750

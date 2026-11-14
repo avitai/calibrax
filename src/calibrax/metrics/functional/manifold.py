@@ -40,6 +40,11 @@ from calibrax.metrics.functional._hyperboloid import hyperboloid_haversine_dista
 # Knyazev and Argentati's switch between the sine and the cosine of a principal angle: pi/4.
 _HALF_SQRT2 = 0.5**0.5
 
+#: What ``grassmann_distance`` returns for a basis spanning fewer than its p dimensions.
+RankDeficient = Literal["nan", "ye_lim"]
+RANK_DEFICIENT_CHOICES: tuple[str, ...] = ("nan", "ye_lim")
+_MATRIX_NDIM = 2
+
 #: What ``ultrahyperbolic_distance`` returns for a pair no geodesic joins.
 Disconnected = Literal["broken_geodesic", "nan"]
 DISCONNECTED_CHOICES: tuple[str, ...] = ("broken_geodesic", "nan")
@@ -139,29 +144,134 @@ def _matrix_log_spd(m: jnp.ndarray) -> jnp.ndarray:
     return eigenvectors @ jnp.diag(log_eigenvalues) @ eigenvectors.T
 
 
-def grassmann_distance(u: ArrayLike, v: ArrayLike) -> jax.Array:
-    """Geodesic distance on the Grassmann manifold Gr(p, n): the norm of the principal angles.
+def _principal_angles(u: jax.Array, v: jax.Array) -> jax.Array:
+    """The principal angles between the column spaces of two orthonormal bases.
 
-    The principal angles between the two p-dimensional subspaces of R^n come from the
-    singular values of both ``U^T V`` (their cosines) and ``(I - U U^T) V`` (their sines),
-    as Knyazev and Argentati (2002, SIAM J. Sci. Comput. 23(6), Algorithm 3.1) compute them
-    and ``scipy.linalg.subspace_angles`` does: an angle whose sine is below 1/sqrt(2) is
-    taken from the sine, the rest from the cosine, since ``arccos`` near 1 cannot resolve a
-    small angle in float32 (it read 3.45e-4 between a subspace and itself). Only singular
-    values are differentiated, whose derivative stays finite where they repeat, and the norm
-    is zero-safe, so ``jax.grad`` is finite at identical subspaces.
-
-    Basis-independent: same subspace with different orthonormal basis gives distance 0.
-
-    Complexity: O(n*p^2) for the two SVDs.
+    Knyazev and Argentati's combination (2002, SIAM J. Sci. Comput. 23(6), Algorithm 3.1), as
+    ``scipy.linalg.subspace_angles`` computes it: the cosines are the singular values of ``U^T V``
+    and the sines those of the wider basis's component outside the narrower one; an angle whose
+    sine is below ``1/sqrt(2)`` is taken from the sine, the rest from the cosine, as ``arccos``
+    near 1 cannot resolve a small angle in float32. Only singular values are differentiated, whose
+    derivative stays finite where they repeat.
 
     Args:
-        u: First orthonormal matrix, shape (n, p).
-        v: Second orthonormal matrix, shape (n, p).
+        u: An orthonormal basis, shape ``(n, k)``.
+        v: Another, shape ``(n, l)``.
+
+    Returns:
+        The ``min(k, l)`` principal angles, the cosines' order.
+    """
+    overlap = u.T @ v
+    # Cosines in descending order pair with sines in ascending order, angle by angle.
+    cosines = jnp.clip(jnp.linalg.svd(overlap, compute_uv=False), 0.0, 1.0)
+    outside = v - u @ overlap if u.shape[1] >= v.shape[1] else u - v @ overlap.T
+    sines = jnp.clip(jnp.sort(jnp.linalg.svd(outside, compute_uv=False)), 0.0, 1.0)
+    sines = sines[: cosines.shape[0]]
+    small = sines < _HALF_SQRT2
+    # Each branch evaluated only on values where its derivative is finite (double where).
+    from_sine = jnp.arcsin(jnp.where(small, sines, 0.0))
+    from_cosine = jnp.arccos(jnp.where(small, 0.0, cosines))
+    return jnp.where(small, from_sine, from_cosine)
+
+
+def _column_rank(m: jax.Array) -> jax.Array:
+    """The numerical rank of ``m``, by ``scipy.linalg.orth``'s tolerance.
+
+    The singular values above ``max(singular values) * max(n, p) * eps`` count (scipy 1.17
+    ``_decomp_svd.py:353-356``, numpy's ``matrix_rank``); the rank is a step function, so it is
+    read under ``stop_gradient``.
+
+    Args:
+        m: A matrix, shape ``(n, p)``.
+
+    Returns:
+        The rank, an integer scalar.
+    """
+    singular = jax.lax.stop_gradient(jnp.linalg.svd(m, compute_uv=False))
+    tolerance = jnp.max(singular, initial=0.0) * max(m.shape) * jnp.finfo(m.dtype).eps
+    return jnp.sum(singular > tolerance)
+
+
+def _ye_lim_distance(u: jax.Array, v: jax.Array) -> jax.Array:
+    """Ye and Lim's Grassmann metric on subspaces of any dimension, for rank-deficient bases.
+
+    ``sqrt(abs(k - l) pi^2 / 4 + sum(theta_i^2 for i <= min(k, l)))`` with ``k``, ``l`` the
+    dimensions of the column spaces (Ye & Lim 2016, sec. 6, Table 3, Prop. 15). The column spaces
+    are read from an SVD with ``scipy.linalg.orth``'s tolerance and the angles from their cosines.
+    Under ``stop_gradient``: an orthonormal basis of a matrix's column space is not a
+    differentiable function of the matrix where its rank drops.
+
+    Args:
+        u: A basis, shape ``(n, p_u)``.
+        v: Another, shape ``(n, p_v)``.
+
+    Returns:
+        The distance.
+    """
+    u, v = jax.lax.stop_gradient(u), jax.lax.stop_gradient(v)
+    rank_u, rank_v = _column_rank(u), _column_rank(v)
+    left_u, _, _ = jnp.linalg.svd(u, full_matrices=False)
+    left_v, _, _ = jnp.linalg.svd(v, full_matrices=False)
+    # The left singular vectors past the rank span nothing of the column space: zeroed.
+    basis_u = left_u * (jnp.arange(left_u.shape[1]) < rank_u)
+    basis_v = left_v * (jnp.arange(left_v.shape[1]) < rank_v)
+    cosines = jnp.clip(jnp.linalg.svd(basis_u.T @ basis_v, compute_uv=False), 0.0, 1.0)
+    shared = jnp.arange(cosines.shape[0]) < jnp.minimum(rank_u, rank_v)
+    angles = jnp.where(shared, jnp.arccos(cosines), 0.0)
+    missing = jnp.abs(rank_u - rank_v).astype(angles.dtype)
+    return jnp.sqrt(jnp.sum(angles**2) + missing * (jnp.pi / 2) ** 2)
+
+
+def grassmann_distance(
+    u: ArrayLike,
+    v: ArrayLike,
+    *,
+    rank_deficient: RankDeficient = "nan",
+) -> jax.Array:
+    """Geodesic distance on the Grassmann manifold Gr(p, n): the norm of the principal angles.
+
+    **Any basis of each subspace.** Each input is orthonormalised by a QR decomposition first, the
+    step Bjorck and Golub's algorithm and Knyazev and Argentati's ``subspacea.m`` take (``scipy.
+    linalg.subspace_angles`` orthonormalises too): the formula reads cosines off ``U^T V`` only for
+    orthonormal bases, and a scaled or skewed basis of the same subspace gives the same distance.
+    QR rather than an SVD, as its gradient stays finite where an SVD's, with repeated singular
+    values (any scaled orthonormal basis), is NaN. The angles are then
+    Knyazev and Argentati's (:func:`_principal_angles`), and the distance their norm, zero-safe, so
+    ``jax.grad`` is finite at identical subspaces. Basis-independent: the same subspace in another
+    basis is at distance 0.
+
+    **A rank-deficient input**, whose columns span fewer than ``p`` dimensions (the rank by
+    ``scipy.linalg.orth``'s tolerance, the largest singular value times ``max(n, p)`` times
+    ``eps``), is not a point of Gr(p, n). ``rank_deficient`` says what to return:
+
+    * ``"nan"`` (default): NaN, calibrax's value for a domain error under ``jit``. Effects: a
+      degenerate basis (a truncated POD basis that lost a direction, say) cannot pass as a
+      distance. Caveat: a NaN reaching a loss poisons every parameter its gradient touches. Both
+      inputs must have the same number of columns.
+    * ``"ye_lim"``: Ye and Lim's metric on subspaces of all dimensions (SIAM J. Matrix Anal. Appl.
+      2016, Table 3), ``sqrt(abs(k - l) pi^2 / 4 + sum(theta_i^2))`` over the ``min(k, l)``
+      principal angles, each missing angle counted as a right angle, so the zero matrix is at
+      ``sqrt(p) pi / 2`` from any p-dimensional subspace and inputs may have different column
+      counts. Effects: always finite, a metric on subspaces of every dimension, equal to the
+      default on full-rank inputs of equal width. Caveats: it jumps where a column's direction
+      vanishes (an angle becomes a right angle), the rank-deficient value carries no gradient (the
+      column space is not differentiable in the matrix where the rank drops), and there its angles
+      come from cosines alone, which resolve small angles less finely.
+
+    Complexity: O(n*p^2) for the QR decompositions and SVDs.
+
+    Args:
+        u: A basis of the first subspace, shape (n, p).
+        v: A basis of the second, shape (n, p) (``(n, p')`` with ``"ye_lim"``).
+        rank_deficient: ``"nan"`` (default) or ``"ye_lim"``. Static under ``jit``.
 
     Returns:
         Grassmann distance. Lower is better. 0.0 for identical subspaces.
         Maximum pi/2 * sqrt(p) for fully orthogonal subspaces.
+
+    Raises:
+        ValueError: If ``rank_deficient`` is not a choice, an input is not a matrix, the inputs
+            differ in their number of rows, or, with ``"nan"``, in their number of columns.
 
     Examples:
         >>> import jax.numpy as jnp
@@ -169,18 +279,32 @@ def grassmann_distance(u: ArrayLike, v: ArrayLike) -> jax.Array:
         >>> grassmann_distance(u, u)
         0.0
     """
+    if rank_deficient not in RANK_DEFICIENT_CHOICES:
+        msg = f"rank_deficient must be one of {RANK_DEFICIENT_CHOICES}, got {rank_deficient!r}"
+        raise ValueError(msg)
     u = jnp.asarray(u, dtype=jnp.float32)
     v = jnp.asarray(v, dtype=jnp.float32)
+    if u.ndim != _MATRIX_NDIM or v.ndim != _MATRIX_NDIM or u.shape[0] != v.shape[0]:
+        msg = f"grassmann_distance takes two (n, p) bases of one R^n, got {u.shape} and {v.shape}"
+        raise ValueError(msg)
+    if rank_deficient == "nan" and u.shape[1] != v.shape[1]:
+        msg = (
+            f"grassmann_distance compares subspaces of one dimension; the bases have {u.shape[1]} "
+            f"and {v.shape[1]} columns (rank_deficient='ye_lim' measures different dimensions)"
+        )
+        raise ValueError(msg)
 
-    overlap = u.T @ v
-    # Cosines in descending order pair with sines in ascending order, angle by angle.
-    cosines = jnp.clip(jnp.linalg.svd(overlap, compute_uv=False), 0.0, 1.0)
-    sines = jnp.clip(jnp.sort(jnp.linalg.svd(v - u @ overlap, compute_uv=False)), 0.0, 1.0)
-    small = sines < _HALF_SQRT2
-    # Each branch evaluated only on values where its derivative is finite (double where).
-    from_sine = jnp.arcsin(jnp.where(small, sines, 0.0))
-    from_cosine = jnp.arccos(jnp.where(small, 0.0, cosines))
-    return safe_norm(jnp.where(small, from_sine, from_cosine))
+    full_rank = (_column_rank(u) == u.shape[1]) & (_column_rank(v) == v.shape[1])
+    # A rank-deficient matrix's QR divides by zero in its gradient; it reads a full-rank stand-in
+    # instead (inner where), its result discarded below.
+    basis_u, _ = jnp.linalg.qr(jnp.where(full_rank, u, jnp.eye(*u.shape, dtype=u.dtype)))
+    basis_v, _ = jnp.linalg.qr(jnp.where(full_rank, v, jnp.eye(*v.shape, dtype=v.dtype)))
+    angles = _principal_angles(basis_u, basis_v)
+    missing = abs(u.shape[1] - v.shape[1]) * (jnp.pi / 2) ** 2
+    distance = safe_root(jnp.sum(angles**2) + missing)
+    if rank_deficient == "nan":
+        return jnp.where(full_rank, distance, jnp.nan)
+    return jnp.where(full_rank, distance, _ye_lim_distance(u, v))
 
 
 def stiefel_distance(u: ArrayLike, v: ArrayLike) -> jax.Array:
