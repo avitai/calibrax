@@ -56,6 +56,10 @@ and uses semantic versioning while the public API stabilizes.
   `example-conformance` hook at v0.1.27), and CI runs the examples through substrax's reusable
   `examples` workflow: on a pull request the ones the change reaches, on a push to main and on
   macos.yml's nightly call every one.
+- The examples overview lives once, at `docs/examples.md`, first in the docs' Examples section:
+  the examples by the guide's tiers, what each covers, and how to run one. The README links to
+  it in place of its own table, whose Beginner, Intermediate and Advanced levels the guide no
+  longer uses.
 
 ### Removed
 
