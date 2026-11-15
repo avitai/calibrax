@@ -16,7 +16,9 @@ also runs the PyPI upload path.
    source activate.sh
    ```
 
-2. Bump the package version in `src/calibrax/__init__.py`.
+2. Bump `version` in `pyproject.toml`, its one source (`calibrax.__version__` reads the installed
+   metadata), then run `uv lock` so the lock records it and `uv sync --locked --inexact` so the
+   editable install reports it.
 3. Update `CHANGELOG.md` by moving unreleased entries under the new version and
    date.
 4. Run the release checks.

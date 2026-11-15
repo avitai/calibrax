@@ -54,6 +54,15 @@ def _substitute(path: Path, pattern: str, replacement: str) -> None:
     path.write_text(edited)
 
 
+def test_the_version_is_measured_from_pyproject(derive_status: ModuleType, tmp_path: Path) -> None:
+    (tmp_path / "pyproject.toml").write_text('[project]\nname = "calibrax"\nversion = "9.8.7"\n')
+    package = tmp_path / "src" / "calibrax"
+    package.mkdir(parents=True)
+    (package / "__init__.py").write_text('__version__ = "0.0.1"\n')
+
+    assert derive_status.measure_version(tmp_path, "calibrax") == "9.8.7"
+
+
 def test_the_registry_matches_the_readme(derive_status: ModuleType) -> None:
     metrics = derive_status.collect_metrics(REPO_ROOT, "calibrax")
     drifted = [
