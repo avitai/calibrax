@@ -66,9 +66,9 @@ class TraceLinker:
 
     ```python
     linker = TraceLinker()
-    with linker.trace("/tmp/my_trace") as ref:
+    with linker.trace("traces/my_trace") as ref:
         # ... run workload ...
-    print(ref.trace_dir)  # "/tmp/my_trace"
+    print(ref.trace_dir)  # "traces/my_trace"
     ```
     """
 

@@ -13,7 +13,7 @@ devices. Calibrax's `TraceLinker` wraps this with metadata linkage:
 from calibrax.profiling.tracing import TraceLinker
 
 linker = TraceLinker()
-with linker.trace("/tmp/traces/run_001", run_id="my_run") as ref:
+with linker.trace("temp/doc-examples/traces/run_001", run_id="my_run") as ref:
     # Run distributed workload with mesh annotations
     result = pjit_function(sharded_input)
 
@@ -47,7 +47,7 @@ Use Calibrax's `TraceLinker` to record trace paths alongside benchmark
 results, then view them in TensorBoard:
 
 ```bash
-tensorboard --logdir=/tmp/traces/run_001
+tensorboard --logdir=temp/doc-examples/traces/run_001
 ```
 
 The trace files contain:
@@ -71,7 +71,7 @@ Then link the merged profile path in Calibrax's Store:
 from calibrax.storage.store import Store
 from calibrax.core.models import Metric, Point, Run
 
-store = Store("/tmp/calibrax-distributed-demo")
+store = Store("temp/doc-examples/distributed-store")
 run = Run(
     points=(Point(name="distributed", scenario="train",
                   metrics={"time": Metric(value=1.5)}),),

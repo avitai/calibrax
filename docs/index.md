@@ -108,7 +108,7 @@ run = Run(
 )
 
 # Save and detect regressions against a baseline
-store = Store("/tmp/benchmarks")
+store = Store("temp/doc-examples/benchmarks")
 store.save(run)
 store.set_baseline(run.id)
 

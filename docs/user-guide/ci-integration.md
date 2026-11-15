@@ -14,7 +14,7 @@ from calibrax.storage.store import Store
 from calibrax.core.models import MetricDef, MetricDirection, Metric, Point, Run
 from calibrax.ci.guard import CIGuard
 
-store = Store("/tmp/calibrax-ci-demo")
+store = Store("temp/doc-examples/ci-store")
 run = Run(
     points=(Point(name="fwd", scenario="train",
                   metrics={"throughput": Metric(value=1200.0)}),),
