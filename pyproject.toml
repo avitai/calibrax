@@ -43,7 +43,6 @@ dependencies = [
   "substrax>=0.1.27"
 ]
 description = "JAX benchmarking, profiling and evaluation metrics for Flax NNX: a metric registry across regression, classification, calibration, uncertainty, forecasting, generative, image, text, audio, graph and fairness domains, XLA FLOP counting, roofline analysis, GPU and energy monitoring, regression detection, publication exports, W&B and MLflow"
-dynamic = ["version"]
 keywords = [
   "benchmarking",
   "jax",
@@ -56,6 +55,7 @@ license = {file = "LICENSE"}
 name = "calibrax"
 readme = "README.md"
 requires-python = ">=3.12"
+version = "0.1.17"
 
 [project.optional-dependencies]
 all = [
@@ -251,9 +251,6 @@ include = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/calibrax"]
-
-[tool.hatch.version]
-path = "src/calibrax/__init__.py"
 
 [tool.interrogate]
 exclude = ["scripts", "tests"]

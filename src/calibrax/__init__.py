@@ -1,3 +1,6 @@
 """Calibrax: Unified benchmarking framework for the JAX scientific ML ecosystem."""
 
-__version__ = "0.1.17"
+from importlib.metadata import version as _installed_version
+
+
+__version__ = _installed_version("calibrax")

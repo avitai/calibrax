@@ -27,6 +27,10 @@ and uses semantic versioning while the public API stabilizes.
   `ubuntu-latest`, whose varying CPUs made `test_spearman_unweighted_performance` read about
   66 ms or 86 ms by runner and flagged regressions and improvements no change had made. The job
   never runs for a fork's pull request, and each run records the machine it measured on.
+- The version is declared once, as `version` in `pyproject.toml`, and `calibrax.__version__`
+  reads it from the installed package's metadata. It was read from `src/calibrax/__init__.py`
+  by hatch, which uv does not watch, so an editable install could report an older version than
+  the source declared.
 - `ssim` takes `max_val` as an array as well as a float, so a dynamic range read from the data
   traces under `jax.jit`.
 - `grassmann_distance` reads each basis's rank from the singular values of its QR factor `R`

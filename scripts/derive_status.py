@@ -139,13 +139,8 @@ def _count(root: Path, pattern: str) -> int:
     return sum(1 for path in root.rglob(pattern) if not _is_vendored(path))
 
 
-def measure_version(root: Path, package: str) -> str:
-    """Read the version from ``src/<package>/__init__.py`` or ``pyproject.toml``."""
-    init = root / "src" / package / "__init__.py"
-    if init.is_file():
-        match = re.search(r'__version__\s*=\s*["\']([^"\']+)', init.read_text())
-        if match:
-            return match.group(1)
+def measure_version(root: Path, _package: str) -> str:
+    """Read the version from ``pyproject.toml``, its one source."""
     pyproject = root / "pyproject.toml"
     if pyproject.is_file():
         version = tomllib.loads(pyproject.read_text()).get("project", {}).get("version")
