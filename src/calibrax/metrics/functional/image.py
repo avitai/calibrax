@@ -82,7 +82,7 @@ def _ssim_single_channel(
     a: jax.Array,
     b: jax.Array,
     *,
-    max_val: float,
+    max_val: float | jax.Array,
     filter_size: int,
     filter_sigma: float,
     k1: float,
@@ -169,7 +169,7 @@ def ssim(
     predictions: ArrayLike,
     targets: ArrayLike,
     *,
-    max_val: float = 1.0,
+    max_val: float | jax.Array = 1.0,
     filter_size: int = 11,
     filter_sigma: float = 1.5,
     k1: float = 0.01,
@@ -183,7 +183,8 @@ def ssim(
     Args:
         predictions: Predicted image, shape (H, W) or (H, W, C).
         targets: Ground truth image, same shape.
-        max_val: Maximum pixel value.
+        max_val: Maximum pixel value, the dynamic range in the stability constants. It may be an
+            array, such as a range read from the data under ``jax.jit``.
         filter_size: Gaussian window size (should be odd).
         filter_sigma: Gaussian standard deviation.
         k1: Luminance stability constant.

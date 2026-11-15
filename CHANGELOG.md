@@ -7,8 +7,23 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+### Added
+
+- A `seismic` domain of seven misfits for full-waveform inversion, each a differentiable scalar:
+  `seismic_l2_misfit`, `seismic_l2_misfit_normalized`, `seismic_relative_model_misfit`,
+  `seismic_cross_correlation_misfit` (1 - max normalized cross-correlation, shift tolerant),
+  `seismic_velocity_ssim_misfit` (1 - SSIM at the targets' range), `seismic_wasserstein2_misfit`
+  (squared 1-D W2 on normalized envelopes, Metivier et al. 2016) and `seismic_soft_dtw_misfit`
+  (the soft-DTW divergence, Cuturi & Blondel 2017, Blondel et al. 2021). Soft-DTW sweeps the
+  table's anti-diagonals, `2 n - 1` vectorized steps where a cell-by-cell recursion takes `n^2`:
+  the jitted gradient for one 256-sample trace on one CPU took 6.9 ms, where the cell-by-cell
+  form it replaces took 1,157 ms (best of 3, compiled at that shape first). The registry holds
+  147 metrics in 21 domains.
+
 ### Changed
 
+- `ssim` takes `max_val` as an array as well as a float, so a dynamic range read from the data
+  traces under `jax.jit`.
 - calibrax requires substrax 0.1.27. The `test` extra brings `substrax[notebooks,testing]`, the
   notebook tools and shared example tests the examples use, in place of the `jupytext` and
   `ipykernel` that `dev` declared.

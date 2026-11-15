@@ -29,6 +29,6 @@ before opening a pull request that changes behavior, dependencies, or docs.
 
 ## Current Metric Architecture
 
-The registry currently contains 140 Tier 0 pure-function metrics across 20
+The registry currently contains 147 Tier 0 pure-function metrics across 21
 domains. Tier 1-3 APIs, optional plugin metrics, and metric-learning losses are
 part of the package architecture, but they are not all registry entries today.

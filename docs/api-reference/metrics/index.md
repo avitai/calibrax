@@ -48,6 +48,7 @@ results = calculate_all(predictions, targets, metrics=["mse", "mae", "r_squared"
 - [Clustering](clustering.md) -- ARI, NMI, silhouette, Davies-Bouldin
 - [Fairness](fairness.md) -- demographic parity, equalized odds, disparate impact
 - [Image](image.md) -- PSNR, SSIM, MS-SSIM, Vendi Score
+- [Seismic](seismic.md) -- L2 data misfit, relative model misfit, cross-correlation, velocity SSIM, Wasserstein-2, soft-DTW
 - [Video](video.md) -- VMAF via FFmpeg/libvmaf
 - [Text](text.md) -- BLEU, ROUGE, perplexity, distinct-N
 - [Audio](audio.md) -- SNR, spectral convergence, mel cepstral distortion

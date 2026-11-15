@@ -2,7 +2,7 @@
 
 Calibrax provides a 4-tier metric system that covers everything from stateless
 pure functions to trainable embedding losses. The current `MetricRegistry`
-contains 140 Tier 0 pure-function metrics across 20 domains. Tier 1-3 APIs,
+contains 147 Tier 0 pure-function metrics across 21 domains. Tier 1-3 APIs,
 optional plugin metrics, and metric-learning losses are part of the package
 architecture, but they are not all registry entries today.
 
@@ -195,7 +195,7 @@ assert not registry.has("weighted_mse")
 
 ## Domain Reference
 
-The registry organizes Tier 0 metrics into 20 domains. Each domain groups
+The registry organizes Tier 0 metrics into 21 domains. Each domain groups
 metrics with a shared evaluation context.
 
 | Domain | Count | Examples |
@@ -220,6 +220,7 @@ metrics with a shared evaluation context.
 | `forecasting` | 6 | Fair CRPS, energy score, spread-skill, RPS, reliability |
 | `uncertainty` | 7 | PICP, MPIW, interval score, Gaussian NLL, ANEES, NCI |
 | `generative` | 9 | Fréchet distance, inception score, manifold precision/recall, memorization |
+| `seismic` | 7 | L2 data misfit, relative model misfit, cross-correlation, velocity SSIM, Wasserstein-2, soft-DTW |
 
 !!! tip "Domain-Based Collection"
 

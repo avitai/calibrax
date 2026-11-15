@@ -157,6 +157,7 @@ FIXTURES: dict[str, Callable[[], Call]] = {
     "recall_at_k": _ranking,
     "coverage": lambda: ((jnp.asarray(_Stream.rng.integers(0, 20, 10)),), {"catalog_size": 20}),
     "ssim": lambda: ((_image(), _image()), {}),
+    "seismic_velocity_ssim_misfit": lambda: ((_image(64), _image(64)), {}),
     "ms_ssim": lambda: ((_image(96), _image(96)), {"power_factors": (0.5, 0.5)}),
     "r_squared_adjusted": lambda: (
         (_f32(_Stream.rng.normal(size=_N)), _f32(_Stream.rng.normal(size=_N))),
@@ -327,7 +328,7 @@ def _close(a: object, b: object) -> bool:
 
 
 def test_every_registered_metric_is_covered() -> None:
-    assert len(ENTRIES) == 140
+    assert len(ENTRIES) == 147
     stale = sorted(set(FIXTURES) - set(IDS))
     assert stale == [], f"fixtures for unregistered metrics: {stale}"
 

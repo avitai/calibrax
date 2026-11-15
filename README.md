@@ -31,10 +31,10 @@ in one JAX package.
 
 ## Features
 
-### Metrics (140 registered Tier 0 metrics, 20 domains, 4-tier architecture)
+### Metrics (147 registered Tier 0 metrics, 21 domains, 4-tier architecture)
 
 Calibrax provides a 4-tier metric system covering the full spectrum of ML
-evaluation. The current registry contains 140 Tier 0 pure-function metrics;
+evaluation. The current registry contains 147 Tier 0 pure-function metrics;
 Tier 1-3 APIs, optional plugins, and metric-learning losses are part of the
 package architecture but are not all registered metric entries today.
 
@@ -45,7 +45,7 @@ package architecture but are not all registered metric entries today.
 | 2 | Learned | `nnx.Module` with trainable weights | LPIPS |
 | 3 | Metric Learning | Differentiable embedding loss | Contrastive, Triplet, ArcFace |
 
-**Functional domains:** general, classification, calibration, segmentation, distance, divergence, information, ranking, statistical, clustering, fairness, forecasting, uncertainty, generative, image, text, audio, geometric, graph, manifold
+**Functional domains:** general, classification, calibration, segmentation, distance, divergence, information, ranking, statistical, clustering, fairness, forecasting, uncertainty, generative, image, text, audio, geometric, graph, manifold, seismic
 
 **Key capabilities:**
 
@@ -131,7 +131,7 @@ src/calibrax/
 ├── storage/       JSON store, baselines
 ├── exporters/     W&B, MLflow, publication-ready output
 ├── metrics/
-│   ├── functional/   140 Tier 0 pure functions across 20 domains
+│   ├── functional/   147 Tier 0 pure functions across 21 domains
 │   ├── stateful/     Tier 1-2 base classes (FrozenBackboneMetric, LearnedMetric)
 │   ├── learning/     Tier 3 metric learning losses and miners
 │   ├── plugins/      Optional-dependency metrics (FID, BERTScore, LPIPS)

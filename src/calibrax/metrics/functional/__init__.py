@@ -171,6 +171,15 @@ from calibrax.metrics.functional.segmentation import (
     iou,
     pixel_accuracy,
 )
+from calibrax.metrics.functional.seismic import (
+    seismic_cross_correlation_misfit,
+    seismic_l2_misfit,
+    seismic_l2_misfit_normalized,
+    seismic_relative_model_misfit,
+    seismic_soft_dtw_misfit,
+    seismic_velocity_ssim_misfit,
+    seismic_wasserstein2_misfit,
+)
 from calibrax.metrics.functional.statistical import (
     autocorrelation,
     concordance_correlation,
@@ -339,6 +348,13 @@ __all__ = [
     "roc_auc",
     "rouge_l",
     "rouge_n",
+    "seismic_cross_correlation_misfit",
+    "seismic_l2_misfit",
+    "seismic_l2_misfit_normalized",
+    "seismic_relative_model_misfit",
+    "seismic_soft_dtw_misfit",
+    "seismic_velocity_ssim_misfit",
+    "seismic_wasserstein2_misfit",
     "sensitivity",
     "shortest_path_distance",
     "signal_to_noise_ratio",
