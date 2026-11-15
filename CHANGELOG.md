@@ -57,6 +57,11 @@ and uses semantic versioning while the public API stabilizes.
   `example-conformance` hook at v0.1.27), and CI runs the examples through substrax's reusable
   `examples` workflow: on a pull request the ones the change reaches, on a push to main and on
   macos.yml's nightly call every one.
+- Every warning fails the test that raises it (`filterwarnings = ["error"]`). The suite ran with
+  `--disable-warnings` and six class-level ignores, among them every jax `DeprecationWarning`
+  and the warning that a GPU is present without a CUDA jaxlib, so a deprecated `Variable.value`
+  in a test, an unclosed-figure leak and a scipy 0/0 had warned on every run unseen. With those
+  fixed and sklearn's one expected warning asserted, the 3,120 tests raise none.
 - The examples overview lives once, at `docs/examples.md`, first in the docs' Examples section:
   the examples by the guide's tiers, what each covers, and how to run one. The README links to
   it in place of its own table, whose Beginner, Intermediate and Advanced levels the guide no
