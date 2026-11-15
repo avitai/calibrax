@@ -293,17 +293,13 @@ reportMissingTypeStubs = false
 typeCheckingMode = "standard"
 
 [tool.pytest.ini_options]
-addopts = "--strict-markers --strict-config --verbose --tb=short --color=yes --durations=10 --disable-warnings --cov=src/calibrax --cov-report=term-missing --cov-report=html --cov-fail-under=80 --timeout=300 --json-report --json-report-file=temp/test-results.json --json-report-indent=2 --ignore=tests/examples"
+addopts = "--strict-markers --strict-config --verbose --tb=short --color=yes --durations=10 --cov=src/calibrax --cov-report=term-missing --cov-report=html --cov-fail-under=80 --timeout=300 --json-report --json-report-file=temp/test-results.json --json-report-indent=2 --ignore=tests/examples"
 cache_dir = ".pytest_cache"
 console_output_style = "progress"
-filterwarnings = [
-  "ignore:.*CUDA-enabled jaxlib.*",
-  "ignore:.*cuSPARSE.*",
-  "ignore::DeprecationWarning:jax.*",
-  "ignore::DeprecationWarning:pkg_resources.*",
-  "ignore::UserWarning:jax._src.xla_bridge",
-  "ignore:jax.interpreters.xla.pytype_aval_mappings is deprecated:DeprecationWarning"
-]
+# Every warning fails the test that raises it: a deprecation is fixed when it appears, and a
+# warning that the environment is not what a run assumes (a GPU without a CUDA jaxlib) is read.
+# A test that expects one asserts it with pytest.warns.
+filterwarnings = ["error"]
 log_cli = true
 log_cli_level = "INFO"
 markers = [
