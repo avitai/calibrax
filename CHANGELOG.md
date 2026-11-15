@@ -22,6 +22,11 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Changed
 
+- The CodSpeed benchmarks run on one machine type, CodSpeed's `codspeed-macro-x64-ryzen-9950x`
+  runner, in walltime mode, in place of simulation on `ubuntu-latest`, whose varying CPUs made
+  `test_spearman_unweighted_performance` read about 66 ms or 86 ms by runner and flagged
+  regressions and improvements no change had made. The job never runs for a fork's pull request,
+  and each run records the machine it measured on.
 - `ssim` takes `max_val` as an array as well as a float, so a dynamic range read from the data
   traces under `jax.jit`.
 - calibrax requires substrax 0.1.27. The `test` extra brings `substrax[notebooks,testing]`, the

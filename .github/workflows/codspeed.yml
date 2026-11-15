@@ -17,7 +17,13 @@ concurrency:
 jobs:
   benchmarks:
     name: Run Benchmarks
-    runs-on: ubuntu-latest
+    # One machine type for every run: CodSpeed compares a run with its baseline only as far as
+    # both were measured on the same machine, and ubuntu-latest assigns different CPUs, which
+    # made test_spearman_unweighted_performance read about 66 ms or 86 ms by runner. The macro
+    # runner is a CodSpeed bare-metal machine measured in walltime mode.
+    runs-on: codspeed-macro-x64-ryzen-9950x-ubuntu-24-04
+    # The runner is self-hosted, so a pull request from a fork never runs on it.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     permissions:
       contents: read
       id-token: write
@@ -29,6 +35,12 @@ jobs:
       CODSPEED_OIDC_ENABLED: ${{ vars.CODSPEED_OIDC_ENABLED }}
     steps:
       - uses: actions/checkout@v7
+
+      # The machine each measurement came from, so a changed benchmark can be read against it.
+      - name: Record the machine
+        run: |
+          lscpu
+          nproc
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v10.2.0
@@ -53,7 +65,7 @@ jobs:
         if: env.HAS_CODSPEED_TOKEN == 'true'
         uses: CodSpeedHQ/action@v5
         with:
-          mode: simulation
+          mode: walltime
           token: ${{ secrets.CODSPEED_TOKEN }}
           run: uv run pytest tests/performance/ --codspeed --no-cov
 
@@ -61,7 +73,7 @@ jobs:
         if: env.HAS_CODSPEED_TOKEN != 'true' && env.CODSPEED_OIDC_ENABLED == 'true'
         uses: CodSpeedHQ/action@v5
         with:
-          mode: simulation
+          mode: walltime
           run: uv run pytest tests/performance/ --codspeed --no-cov
 
       - name: Explain skipped CodSpeed upload
