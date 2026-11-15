@@ -200,11 +200,33 @@ def safe_root(x: ArrayLike, *, order: float = 2.0) -> jax.Array:
     return jnp.where(at_the_singularity, jnp.zeros_like(x), root)
 
 
-# The rescaled norm family below (`_pow2_divisor`, `safe_norm`, `safe_hypot`, `floor_at`,
+def safe_norm(x: ArrayLike, *, axis: int | tuple[int, ...] | None = None) -> jax.Array:
+    """The Euclidean norm of ``x`` over ``axis`` (all elements when ``None``), zero-safe.
+
+    ``jnp.linalg.norm`` has a NaN gradient at the zero vector, which a distance reaches at a
+    perfect match; this is ``safe_root`` of the sum of squares, with gradient 0 there.
+
+    The radicand is ``sum(square(x))``, non-negative by construction, so the domain error
+    :func:`safe_root` reports for a negative is unreachable from here. A ``NaN`` in ``x``
+    still propagates, as it should. The sum of squares overflows float32 once ``|x|`` passes
+    about ``1.8e19``, as ``jnp.linalg.norm``'s does; an input that can reach that range by
+    construction takes :func:`scaled_norm`, which costs a rescale on every call.
+
+    Args:
+        x: Values.
+        axis: Axis or axes to reduce.
+
+    Returns:
+        The norm, reduced over ``axis``.
+    """
+    return safe_root(jnp.sum(jnp.square(x), axis=axis))
+
+
+# The rescaled norm family below (`_pow2_divisor`, `scaled_norm`, `safe_hypot`, `floor_at`,
 # `safe_asinh`) is ported from hyperbolix, `hyperbolix/utils/math_utils.py` at commit
 # 96aba0558e0b41e88a98b6670fa28928431720a7 (https://github.com/timoklein/hyperbolix), whose
-# docstrings carry the measurements behind each choice. `safe_norm` keeps calibrax's `axis`
-# argument. hyperbolix is distributed under the MIT License:
+# docstrings carry the measurements behind each choice. `scaled_norm` is hyperbolix's
+# `safe_norm`, with calibrax's `axis` argument. hyperbolix is distributed under the MIT License:
 #
 #   Copyright (c) 2026 Timo Klein, Thomas Lang
 #
@@ -247,9 +269,12 @@ def _pow2_divisor(m: jax.Array) -> jax.Array:
     return jnp.maximum(truncated, jnp.asarray(jnp.finfo(m.dtype).tiny, dtype=m.dtype))
 
 
-def safe_norm(x: ArrayLike, *, axis: int | tuple[int, ...] | None = None) -> jax.Array:
-    """The Euclidean norm of ``x`` over ``axis`` (all elements when ``None``), zero-safe.
+def scaled_norm(x: ArrayLike, *, axis: int | tuple[int, ...] | None = None) -> jax.Array:
+    """The Euclidean norm of ``x`` over ``axis``, zero-safe, with no overflow or underflow.
 
+    For an input whose squares can leave float32's range by construction, as a hyperboloid
+    point's spatial part does past geodesic radius 45 (``sinh(45) = 1.8e19``); bounded inputs
+    take :func:`safe_norm`, as hyperbolix takes its ``safe_sqrt`` wherever the input is bounded.
     The values are divided by the power of two just below their largest magnitude before they are
     squared (:func:`_pow2_divisor`), so the sum of squares sits in ``[1, 4n)`` however large or
     small they are: a float32 norm of ``1e30`` or ``5e-34`` is computed, where the plain sum of
@@ -281,7 +306,7 @@ def safe_norm(x: ArrayLike, *, axis: int | tuple[int, ...] | None = None) -> jax
 def safe_hypot(p: ArrayLike, q: ArrayLike) -> jax.Array:
     """``sqrt(p**2 + q**2)`` without intermediate overflow or underflow.
 
-    The two-argument form of :func:`safe_norm`, with the same power-of-two rescale and double
+    The two-argument form of :func:`scaled_norm`, with the same power-of-two rescale and double
     ``where``: exactly 0 with zero gradients at ``p == q == 0``, and no ``p**2`` is formed, so a
     float32 ``safe_hypot(1e30, 1.0)`` is finite.
 

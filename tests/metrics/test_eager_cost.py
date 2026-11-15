@@ -18,7 +18,6 @@ conversion is a call that can be seen.
 from __future__ import annotations
 
 from collections.abc import Callable
-from functools import partial
 
 import jax.numpy as jnp
 import numpy as np
@@ -95,43 +94,56 @@ _FIELD_P = _RNG.normal(size=(16, 8)).astype(np.float32)
 _FIELD_T = _RNG.normal(size=(16, 8)).astype(np.float32)
 _SAMPLE_KEEP = _RNG.random(16) > 0.3
 
-#: Every masked metric, its inputs bound, with the mask and the weights it is called with.
-_MASKED: list[tuple[str, Callable[..., object], np.ndarray, np.ndarray]] = [
-    ("mse", partial(mse, _P, _T), _KEEP, _W),
-    ("mae", partial(mae, _P, _T), _KEEP, _W),
-    ("huber_loss", partial(huber_loss, _P, _T), _KEEP, _W),
-    ("charbonnier_loss", partial(charbonnier_loss, _P, _T), _KEEP, _W),
-    ("r_squared", partial(r_squared, _P, _T), _KEEP, _W),
-    ("r_squared_adjusted", partial(r_squared_adjusted, _P, _T, num_predictors=2), _KEEP, _W),
-    ("pearson_correlation", partial(pearson_correlation, _P, _T), _KEEP, _W),
-    ("concordance_correlation", partial(concordance_correlation, _P, _T), _KEEP, _W),
-    ("kendall_tau", partial(kendall_tau, _P, _T), _KEEP, _W),
-    ("spearman_rank_correlation", partial(spearman_rank_correlation, _P, _T), _KEEP, _W),
+#: Every masked metric, called with a mask alone and with weights.
+_MASKED: list[tuple[str, Callable[..., object], Callable[..., object]]] = [
+    ("mse", lambda: mse(_P, _T, mask=_KEEP), lambda: mse(_P, _T, weights=_W)),
+    ("mae", lambda: mae(_P, _T, mask=_KEEP), lambda: mae(_P, _T, weights=_W)),
+    ("huber_loss", lambda: huber_loss(_P, _T, mask=_KEEP), lambda: huber_loss(_P, _T, weights=_W)),
+    (
+        "charbonnier_loss",
+        lambda: charbonnier_loss(_P, _T, mask=_KEEP),
+        lambda: charbonnier_loss(_P, _T, weights=_W),
+    ),
+    ("r_squared", lambda: r_squared(_P, _T, mask=_KEEP), lambda: r_squared(_P, _T, weights=_W)),
+    (
+        "r_squared_adjusted",
+        lambda: r_squared_adjusted(_P, _T, num_predictors=2, mask=_KEEP),
+        lambda: r_squared_adjusted(_P, _T, num_predictors=2, weights=_W),
+    ),
+    (
+        "pearson_correlation",
+        lambda: pearson_correlation(_P, _T, mask=_KEEP),
+        lambda: pearson_correlation(_P, _T, weights=_W),
+    ),
+    (
+        "concordance_correlation",
+        lambda: concordance_correlation(_P, _T, mask=_KEEP),
+        lambda: concordance_correlation(_P, _T, weights=_W),
+    ),
+    (
+        "kendall_tau",
+        lambda: kendall_tau(_P, _T, mask=_KEEP),
+        lambda: kendall_tau(_P, _T, weights=_W),
+    ),
+    (
+        "spearman_rank_correlation",
+        lambda: spearman_rank_correlation(_P, _T, mask=_KEEP),
+        lambda: spearman_rank_correlation(_P, _T, weights=_W),
+    ),
     (
         "relative_l2_error",
-        partial(relative_l2_error, _FIELD_P, _FIELD_T),
-        _SAMPLE_KEEP,
-        _SAMPLE_KEEP.astype(np.float32),
+        lambda: relative_l2_error(_FIELD_P, _FIELD_T, mask=_SAMPLE_KEEP),
+        lambda: relative_l2_error(_FIELD_P, _FIELD_T, weights=_SAMPLE_KEEP.astype(np.float32)),
     ),
 ]
 
 
-@pytest.mark.parametrize(
-    ("name", "metric", "mask", "weights"), _MASKED, ids=[m[0] for m in _MASKED]
-)
+@pytest.mark.parametrize(("name", "masked", "weighted"), _MASKED, ids=[m[0] for m in _MASKED])
 def test_a_mask_alone_runs_no_finiteness_test(
-    name: str, metric: Callable[..., object], mask: np.ndarray, weights: np.ndarray
+    name: str, masked: Callable[..., object], weighted: Callable[..., object]
 ) -> None:
-    """With no weights the mask says everything; with weights the test still runs.
-
-    Counted against the same metric called with neither: what the masking rule adds is the
-    difference, apart from any test the metric's own arithmetic runs (a norm's rescale checks its
-    scale is finite) on every call.
-    """
-    unmasked = _counts(metric, isfinite=_isfinite)["isfinite"]
-    masked = _counts(lambda: metric(mask=mask), isfinite=_isfinite)["isfinite"]
-    weighted = _counts(lambda: metric(weights=weights), isfinite=_isfinite)["isfinite"]
-    assert masked == unmasked, f"{name} with a mask alone"
-    assert weighted > unmasked, (
+    """With no weights the mask says everything; with weights the test still runs."""
+    assert _counts(masked, isfinite=_isfinite) == {"isfinite": 0}, f"{name} with a mask alone"
+    assert _counts(weighted, isfinite=_isfinite)["isfinite"] > 0, (
         f"{name} with weights no longer guards a non-finite value at a zero weight"
     )
