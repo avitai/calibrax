@@ -42,7 +42,7 @@ from calibrax.metrics._utils import (
 
 #: Default smoothing constant for :func:`charbonnier_loss`, and the loss at zero error.
 #: Named rather than inlined because the fused regression suite in
-#: ``calibrax.metrics._builtin_registrations`` recomputes this metric at its defaults, and a
+#: ``calibrax.metrics._registrations.calculate`` recomputes this metric at its defaults, and a
 #: second literal there would be a default that could drift away from this one unnoticed.
 CHARBONNIER_EPSILON: Final = 1e-3
 
@@ -68,7 +68,7 @@ def _huber_elementwise(
     ``delta * (|e| - 0.5 * delta)``.
 
     Exists so that :func:`huber_loss` and the fused regression suite in
-    ``calibrax.metrics._builtin_registrations`` share one expression. Both already compute
+    ``calibrax.metrics._registrations.calculate`` share one expression. Both already compute
     the squared and absolute residual for other metrics, so taking them as arguments costs
     the fused path nothing.
 

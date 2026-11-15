@@ -19,8 +19,8 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 
-import calibrax.metrics._builtin_registrations as registrations
-from calibrax.metrics._builtin_registrations import _calculate_regression_fused
+import calibrax.metrics._registrations.calculate as registrations
+from calibrax.metrics._registrations.calculate import _calculate_regression_fused
 from calibrax.metrics._utils import _EPSILON, coefficient_of_determination
 from calibrax.metrics.functional.regression import r_squared, r_squared_adjusted
 from tests.factories import fusion_count, WeightedSample

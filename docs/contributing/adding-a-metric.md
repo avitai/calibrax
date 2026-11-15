@@ -18,9 +18,10 @@ Tier 1-3 APIs and losses use separate patterns.
 1. Add the implementation in the existing domain module, or create a focused
    module if the domain is new.
 2. Use JAX arrays and `jax.numpy` for numeric operations.
-3. Register Tier 0 functions with `MetricEntry` metadata in
-   `src/calibrax/metrics/_builtin_registrations.py` or the local registration
-   helper already used by the domain.
+3. Register Tier 0 functions with `MetricEntry` metadata in the domain's module
+   under `src/calibrax/metrics/_registrations/` (one module per domain, as
+   `functional/` has; a new domain adds a module and its `register()` call in the
+   package's `_register_all_builtins`).
 4. Set the domain, direction, signature, required extra, and mathematical
    properties deliberately.
 5. Export the function from the relevant package `__init__.py` if neighboring
