@@ -34,7 +34,7 @@ import pytest
 from scipy.special import huber as scipy_huber
 from sklearn.metrics import mean_pinball_loss
 
-from calibrax.metrics._builtin_registrations import _calculate_regression_fused
+from calibrax.metrics._registrations.calculate import _calculate_regression_fused
 from calibrax.metrics.functional.regression import (
     CHARBONNIER_ALPHA,
     CHARBONNIER_EPSILON,

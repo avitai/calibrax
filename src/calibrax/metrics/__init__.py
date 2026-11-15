@@ -13,7 +13,7 @@ Individual metric functions live in their domain modules
 exports registry infrastructure, types, composition, and wrapper classes.
 """
 
-from calibrax.metrics._builtin_registrations import _register_all_builtins, calculate_all
+from calibrax.metrics._registrations import _register_all_builtins, calculate_all
 from calibrax.metrics._registry import MetricRegistry, register_metric
 from calibrax.metrics._types import MetricEntry, MetricProperties, MetricSignature, MetricTier
 from calibrax.metrics._utils import reduce_values

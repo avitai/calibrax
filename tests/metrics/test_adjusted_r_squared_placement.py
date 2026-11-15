@@ -30,7 +30,7 @@ from __future__ import annotations
 
 import importlib
 
-from calibrax.metrics._builtin_registrations import _FUSED_REGRESSION_NAMES
+from calibrax.metrics._registrations.calculate import _FUSED_REGRESSION_NAMES
 from calibrax.metrics._registry import MetricRegistry
 from calibrax.metrics._types import MetricSignature, MetricTier
 

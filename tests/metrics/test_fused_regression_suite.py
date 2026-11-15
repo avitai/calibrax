@@ -24,10 +24,10 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 
-import calibrax.metrics._builtin_registrations as registrations
+import calibrax.metrics._registrations.calculate as registrations
 from calibrax.core.models import MetricDirection
 from calibrax.metrics import register_metric
-from calibrax.metrics._builtin_registrations import (
+from calibrax.metrics._registrations.calculate import (
     _calculate_regression_fused,
     _FUSED_REGRESSION_NAMES,
     calculate_all,
