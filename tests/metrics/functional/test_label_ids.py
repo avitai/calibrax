@@ -203,21 +203,29 @@ class TestClassIndexMetrics:
     """Class ids are indices ``0..C-1``; a static ``num_classes`` traces."""
 
     @pytest.mark.parametrize(
-        ("name", "ours", "reference"),
+        ("name", "ours", "reference", "reference_flags_the_extra_class"),
         [
-            ("cohen_kappa", cohen_kappa, sk.cohen_kappa_score),
-            ("balanced_accuracy", balanced_accuracy, sk.balanced_accuracy_score),
+            ("cohen_kappa", cohen_kappa, sk.cohen_kappa_score, False),
+            ("balanced_accuracy", balanced_accuracy, sk.balanced_accuracy_score, True),
         ],
     )
     def test_matches_sklearn(
-        self, name: str, ours: Callable[..., jax.Array], reference: Callable[..., float]
+        self,
+        name: str,
+        ours: Callable[..., jax.Array],
+        reference: Callable[..., float],
+        reference_flags_the_extra_class: bool,
     ) -> None:
-        # Predictions include class 4, which no target has.
+        # Predictions include class 4, which no target has; sklearn's balanced accuracy says so
+        # ("y_pred contains classes not in y_true") and the two still agree.
         value = ours(_CLASS_PREDICTIONS, _CLASS_TARGETS)
 
-        assert float(value) == pytest.approx(
-            reference(_CLASS_TARGETS, _CLASS_PREDICTIONS), abs=1e-5
-        ), name
+        if reference_flags_the_extra_class:
+            with pytest.warns(UserWarning, match="y_pred contains classes not in y_true"):
+                expected = reference(_CLASS_TARGETS, _CLASS_PREDICTIONS)
+        else:
+            expected = reference(_CLASS_TARGETS, _CLASS_PREDICTIONS)
+        assert float(value) == pytest.approx(expected, abs=1e-5), name
 
     @pytest.mark.parametrize("ours", [cohen_kappa, balanced_accuracy])
     def test_traces_with_a_static_class_count(self, ours: Callable[..., jax.Array]) -> None:
