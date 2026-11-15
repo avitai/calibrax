@@ -151,6 +151,10 @@ and uses semantic versioning while the public API stabilizes.
   so every documentation test run left them in the shared `/tmp` and a reader's runs collided.
   They write under `temp/doc-examples/`, as the profiling and exporter guides already did, and
   `TraceLinker`'s docstring example traces to a relative directory.
+- `paired_significance_test` on two identical samples warned `invalid value encountered in
+  scalar divide`: with every difference zero none is left to rank, and scipy's
+  `method="auto"` divided 0 by 0 before switching to the exact distribution. It now returns
+  that exact answer, a p-value of 1 and a statistic of 0, without calling scipy.
 
 ### Security
 
