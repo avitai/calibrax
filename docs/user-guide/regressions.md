@@ -68,7 +68,7 @@ from calibrax.storage.store import Store
 from calibrax.analysis.regression import detect_regressions
 from calibrax.core.models import MetricDef, MetricDirection, Metric, Point, Run
 
-store = Store("/tmp/calibrax-regression-demo")
+store = Store("temp/doc-examples/regression-store")
 
 baseline_run = Run(
     points=(Point(name="fwd", scenario="train",

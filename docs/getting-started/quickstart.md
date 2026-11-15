@@ -40,7 +40,7 @@ run = Run(
     metric_defs={"throughput": throughput_def, "latency": latency_def},
 )
 
-store = Store(Path("/tmp/calibrax-quickstart"))
+store = Store(Path("temp/doc-examples/quickstart-store"))
 store.save(run)
 store.set_baseline(run.id)
 print(f"Saved run {run.id} as baseline")

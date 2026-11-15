@@ -25,7 +25,7 @@ from pathlib import Path
 from calibrax.storage.store import Store
 from calibrax.core.models import MetricDef, MetricDirection, Metric, Point, Run
 
-store = Store(Path("/tmp/calibrax-storage-demo"))
+store = Store(Path("temp/doc-examples/storage-store"))
 ```
 
 The store creates its directory structure automatically on first use.

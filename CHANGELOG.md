@@ -146,6 +146,11 @@ and uses semantic versioning while the public API stabilizes.
 - The geometric metrics guide's second Stiefel frame, `jnp.eye(4, 2, k=1)`, had one nonzero
   entry, so it was no orthonormal frame and its distance from the first printed `sqrt(3)`. The
   frames are now `e1, e2` and `e2, e3`, at distance 2.
+- Seven documentation examples wrote their stores and traces to absolute `/tmp` paths (the
+  getting-started guide, the docs index and the CI, distributed, regression and storage guides),
+  so every documentation test run left them in the shared `/tmp` and a reader's runs collided.
+  They write under `temp/doc-examples/`, as the profiling and exporter guides already did, and
+  `TraceLinker`'s docstring example traces to a relative directory.
 
 ### Security
 
