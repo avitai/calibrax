@@ -376,6 +376,29 @@ class TestLorentzDistance:
         )
         assert float(lorentz_distance(x, y)) == pytest.approx(expected, abs=4e-3, rel=4e-3)
 
+    def test_a_spatial_radius_past_the_float32_square_range_keeps_its_distance(self) -> None:
+        """Why the haversine rescales its norms: at geodesic radius 45 a spatial part reaches 1.8e19.
+
+        ``y``'s spatial norm is ``2 sinh(45) = 3.5e19``, whose square, 1.2e39, overflows float32
+        (max 3.4e38), while the norm itself is representable (hyperbolix's ``safe_norm``
+        docstring). A plain sum of squares gives ``inf`` there and the distance is lost; the
+        rescaled norm keeps the radial distance ``asinh(|y|) - asinh(|x|)``, about ``ln 2``. The
+        tolerance is the radial test's above, hyperbolix's float32 one.
+        """
+        direction = np.array([1.0, 2.0, -2.0], dtype=np.float64) / 3.0
+        x_s = (np.sinh(45.0) * direction).astype(np.float32)
+        y_s = (2.0 * x_s).astype(np.float32)
+        with np.errstate(over="ignore"):  # the overflow this test is about
+            assert not np.isfinite(np.sum(y_s * y_s))  # the plain sum of squares overflows here
+        x_time = np.sqrt(1.0 + x_s.astype(np.float64) @ x_s.astype(np.float64))
+        y_time = np.sqrt(1.0 + y_s.astype(np.float64) @ y_s.astype(np.float64))
+        x = jnp.asarray(np.concatenate([[x_time], x_s]).astype(np.float32))
+        y = jnp.asarray(np.concatenate([[y_time], y_s]).astype(np.float32))
+        expected = np.arcsinh(np.linalg.norm(y_s.astype(np.float64))) - np.arcsinh(
+            np.linalg.norm(x_s.astype(np.float64))
+        )
+        assert float(lorentz_distance(x, y)) == pytest.approx(expected, abs=4e-3, rel=4e-3)
+
     def test_symmetry_is_exact(self) -> None:
         a = jnp.array([jnp.sqrt(1.0 + 0.34), 0.5, 0.3])
         b = jnp.array([jnp.sqrt(1.0 + 1.01), -0.1, 1.0])

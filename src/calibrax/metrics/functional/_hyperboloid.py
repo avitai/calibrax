@@ -9,7 +9,7 @@ from __future__ import annotations
 import jax
 import jax.numpy as jnp
 
-from calibrax.metrics._utils import _MIN_NORM, floor_at, safe_asinh, safe_hypot, safe_norm
+from calibrax.metrics._utils import _MIN_NORM, floor_at, safe_asinh, safe_hypot, scaled_norm
 
 
 def hyperboloid_haversine_distance(x: jax.Array, y: jax.Array) -> jax.Array:
@@ -36,7 +36,7 @@ def hyperboloid_haversine_distance(x: jax.Array, y: jax.Array) -> jax.Array:
       exact Sterbenz difference rather than a difference of the stored ``x_0``.
     * ``sqrt(u_x)`` and ``sqrt(u_y)`` separately, and ``sqrt(r_x) sqrt(r_y) chord``, so no product
       of two large radii overflows.
-    * every norm through the rescaled :func:`~calibrax.metrics._utils.safe_norm`, so a legitimate
+    * every norm through the rescaled :func:`~calibrax.metrics._utils.scaled_norm`, so a legitimate
       ``1e-34`` chord is not flushed.
     * the radii floored at ``_MIN_NORM`` with a floor, not an exact-zero guard: at the origin the
       two floors cancel in the gradient, which is then the analytic ``-y_hat``.
@@ -50,8 +50,8 @@ def hyperboloid_haversine_distance(x: jax.Array, y: jax.Array) -> jax.Array:
     """
     x_time, y_time = x[0], y[0]
     x_spatial, y_spatial = x[1:], y[1:]
-    r_x = safe_norm(x_spatial)
-    r_y = safe_norm(y_spatial)
+    r_x = scaled_norm(x_spatial)
+    r_y = scaled_norm(y_spatial)
     r_x_pos = floor_at(r_x, _MIN_NORM)
     r_y_pos = floor_at(r_y, _MIN_NORM)
     x_hat = x_spatial / r_x_pos
@@ -68,6 +68,6 @@ def hyperboloid_haversine_distance(x: jax.Array, y: jax.Array) -> jax.Array:
         jnp.where(u_x > u_y, jnp.inf, -jnp.inf),
     )
 
-    chord = safe_norm(x_hat - y_hat)
+    chord = scaled_norm(x_hat - y_hat)
     q_angular = (0.5 * chord) * (jnp.sqrt(r_x_pos) * jnp.sqrt(r_y_pos))
     return 2.0 * safe_asinh(safe_hypot(sinh_half_gap, q_angular))

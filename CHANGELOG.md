@@ -82,16 +82,15 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Fixed
 
-- `safe_norm`, behind every Euclidean distance, error and norm-based metric, no longer overflows
-  or underflows in float32: it divides by the power of two below the largest magnitude before
-  squaring, as hyperbolix's `safe_norm` does (ported, MIT, commit 96aba05). A norm of `1e30` gave
-  `inf` and one of `5e-34` gave `0` with a zero gradient; values elsewhere are unchanged.
 - `lorentz_distance` is exactly 0 for identical points, with an exactly-zero gradient for a point
   against itself, where `arccosh(-<x, y>)` behind a `1 + 1e-8` clamp gave `1.0e-4`; and it keeps
   its accuracy far from the origin, where the arccosh form subtracted two terms of size
   `e^(a + b)` and lost every float32 digit for nearby points past radius ~10. It computes the
   cancellation-free hyperbolic-haversine distance ported from hyperbolix (MIT, commit 96aba05),
-  with its overflow-free `safe_hypot`, `floor_at` and `safe_asinh`.
+  with its overflow-free `safe_hypot`, `floor_at` and `safe_asinh`, and its norms rescaled by
+  a power of two before squaring, as a spatial part passes 1.8e19 at geodesic radius 45 and its
+  square would overflow float32. Only this distance pays that rescale; `safe_norm`, behind the
+  Euclidean metrics, keeps its plain sum of squares.
 - `poincare_distance` computed `arccosh(1 + 2t)`, which has an infinite derivative at 1 and
   rounds a close pair's `2t` into the leading 1: `d(x, x)` had a NaN gradient, a pair `1e-5`
   apart read 0 (true 2.2e-5), and two opposite points at radius 9 read 17.960 (true 18.000). It
