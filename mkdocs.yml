@@ -198,6 +198,7 @@ nav:
           - Clustering: api-reference/metrics/clustering.md
           - Fairness: api-reference/metrics/fairness.md
           - Image: api-reference/metrics/image.md
+          - Seismic: api-reference/metrics/seismic.md
           - Video: api-reference/metrics/video.md
           - Text: api-reference/metrics/text.md
           - Audio: api-reference/metrics/audio.md

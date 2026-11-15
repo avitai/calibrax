@@ -24,6 +24,7 @@ from calibrax.metrics._registrations import (
     ranking,
     regression,
     segmentation,
+    seismic,
     statistical,
     text,
     uncertainty,
@@ -56,3 +57,4 @@ def _register_all_builtins() -> None:
     forecasting.register()
     uncertainty.register()
     generative.register()
+    seismic.register()
