@@ -1,6 +1,6 @@
 # Metrics Quickstart
 
-> Ran in 1.9 s on 1 cpu (python 3.12.14, jax 0.11.1, substrax 0.1.27, calibrax 0.1.17), from [`examples/metrics/quickstart.py`](https://github.com/avitai/calibrax/blob/main/examples/metrics/quickstart.py) ([notebook](https://github.com/avitai/calibrax/blob/main/examples/metrics/quickstart.ipynb)). Run it from the repository root:
+> Ran in 2.2 s on 1 cpu (python 3.12.14, jax 0.11.1, substrax 0.1.27, calibrax 0.1.17), from [`examples/metrics/quickstart.py`](https://github.com/avitai/calibrax/blob/main/examples/metrics/quickstart.py) ([notebook](https://github.com/avitai/calibrax/blob/main/examples/metrics/quickstart.ipynb)). Run it from the repository root:
 
 ```bash
 source ./activate.sh
@@ -292,7 +292,7 @@ if __name__ == "__main__":
       rmse                      = 0.232379
       r_squared                 = 0.973000
     === Registry: all registered metric names ===
-      Total registered: 140
+      Total registered: 147
       First 10: ['accuracy', 'adaptive_calibration_error', 'adjusted_mutual_information', 'adjusted_rand_index', 'anees', 'average_precision', 'balanced_accuracy', 'bleu', 'bregman_divergence', 'brier_score']
     === Registry: metrics by domain ===
       general              (16): ['mse', 'mae', 'rmse', 'r_squared', 'r_squared_adjusted', 'mape', 'relative_error', 'relative_l2_error', 'explained_variance', 'max_error', 'huber_loss', 'charbonnier_loss', 'quantile_loss', 'log_cosh_loss', 'smape', 'crps']
@@ -300,7 +300,7 @@ if __name__ == "__main__":
       distance             (11): ['cosine_distance', 'euclidean_distance', 'manhattan_distance', 'chebyshev_distance', 'mahalanobis_distance', 'hamming_distance', 'minkowski_distance', 'jaccard_distance', 'poincare_distance', 'lorentz_distance', 'randers_distance']
       image                (4): ['psnr', 'ssim', 'ms_ssim', 'vendi_score']
     === Registry: Tier 0 pure functions ===
-      Count: 140
+      Count: 147
     === MetricEntry fields for 'mse' ===
       name:              mse
       tier:              pure_function
@@ -329,4 +329,4 @@ if __name__ == "__main__":
 - [Geometric metrics guide](../../user-guide/geometric-metrics.md): choosing the right metric for
   your task
 
-<!-- substrax-notebooks: {"page": {"body": "50a64501418e32d95b08c0098b34c80a6025b1846a3af9651d916eb5f00030af", "figures": {}, "record": "4374e0c6749c33d8a793f3d4baa82d09c9e6502e4d82b1a59eac3ca9647270ab"}, "provenance": {"device": "1 cpu", "outputs": [[], [], [], [], [], [], ["text"]], "seconds": 1.9, "sha256": "f4c7b78a30d02e2b4bc80b49324e655dec0ce0ff5e6f2f4d4c90e428dc98fa28", "source": "examples/metrics/quickstart.py", "versions": {"calibrax": "0.1.17", "jax": "0.11.1", "python": "3.12.14", "substrax": "0.1.27"}}} -->
+<!-- substrax-notebooks: {"page": {"body": "aa0e18a626dc3739fa64ef6ae6f1574afca73a0236197c588da8f9f651eebe51", "figures": {}, "record": "6d669de168b03690aa21fe0d80469312d52b46fe5b51a2c5e1684876cbb37757"}, "provenance": {"device": "1 cpu", "outputs": [[], [], [], [], [], [], ["text"]], "seconds": 2.2, "sha256": "f4c7b78a30d02e2b4bc80b49324e655dec0ce0ff5e6f2f4d4c90e428dc98fa28", "source": "examples/metrics/quickstart.py", "versions": {"calibrax": "0.1.17", "jax": "0.11.1", "python": "3.12.14", "substrax": "0.1.27"}}} -->
