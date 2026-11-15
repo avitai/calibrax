@@ -243,7 +243,15 @@ for _block in PYTHON_BLOCKS:
 # ---------------------------------------------------------------------------
 
 
+@pytest.fixture
+def closes_its_figures() -> Iterator[None]:
+    """Close every pyplot figure a documentation file opened, as a reader's session would end."""
+    yield
+    plt.close("all")
+
+
 @pytest.mark.doctest
+@pytest.mark.usefixtures("closes_its_figures")
 @pytest.mark.parametrize(
     "file_path",
     sorted(_BLOCKS_BY_FILE.keys()),
