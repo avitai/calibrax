@@ -7,6 +7,8 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+## [0.1.18] - 2026-11-15
+
 ### Added
 
 - A `seismic` domain of seven misfits for full-waveform inversion, each a differentiable scalar:
@@ -137,7 +139,6 @@ and uses semantic versioning while the public API stabilizes.
   subspaces of different dimensions (SIAM J. Matrix Anal. Appl. 2016), which counts each
   missing direction as a right angle and accepts bases of different widths. A non-matrix input,
   bases of different `n`, or by default of different widths raise `ValueError`.
-
 - The classification example's calibration comparison taught the reverse of its claim: its
   "overconfident" model scored a lower Brier score (0.0063 against 0.0852) and ECE (0.0750
   against 0.2550) than its "well-calibrated" one, whose probabilities rose with the sample's
