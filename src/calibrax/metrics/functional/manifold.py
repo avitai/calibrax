@@ -179,7 +179,10 @@ def _column_rank(m: jax.Array) -> jax.Array:
 
     The singular values above ``max(singular values) * max(n, p) * eps`` count (scipy 1.17
     ``_decomp_svd.py:353-356``, numpy's ``matrix_rank``); the rank is a step function, so it is
-    read under ``stop_gradient``.
+    read under ``stop_gradient``. They are the singular values of the QR factor ``R``: ``m = QR``
+    with ``Q``'s columns orthonormal, so ``m`` and ``R`` share them, and ``R`` is ``p x p`` where
+    ``m`` is ``n x p`` (Golub & Van Loan, *Matrix Computations*, 4th ed., sec. 5.4.1, the QR step
+    of a tall SVD).
 
     Args:
         m: A matrix, shape ``(n, p)``.
@@ -187,7 +190,8 @@ def _column_rank(m: jax.Array) -> jax.Array:
     Returns:
         The rank, an integer scalar.
     """
-    singular = jax.lax.stop_gradient(jnp.linalg.svd(m, compute_uv=False))
+    _, r = jnp.linalg.qr(jax.lax.stop_gradient(m))
+    singular = jnp.linalg.svd(r, compute_uv=False)
     tolerance = jnp.max(singular, initial=0.0) * max(m.shape) * jnp.finfo(m.dtype).eps
     return jnp.sum(singular > tolerance)
 

@@ -29,6 +29,12 @@ and uses semantic versioning while the public API stabilizes.
   never runs for a fork's pull request, and each run records the machine it measured on.
 - `ssim` takes `max_val` as an array as well as a float, so a dynamic range read from the data
   traces under `jax.jit`.
+- `grassmann_distance` reads each basis's rank from the singular values of its QR factor `R`
+  (`p x p`), which the basis shares, in place of an SVD of the `n x p` basis; the rank decision
+  is unchanged. Jitted on an RTX 4090 shared with another process, best of three interleaved
+  rounds, a (4096, 32) pair went from 3.68 ms to 2.30 ms and its gradient from 4.48 ms to
+  2.99 ms, and a (16384, 64) pair from 9.88 ms to 7.17 ms; below about (1024, 16) launch
+  overhead dominates and the two agree within noise.
 - calibrax requires substrax 0.1.27. The `test` extra brings `substrax[notebooks,testing]`, the
   notebook tools and shared example tests the examples use, in place of the `jupytext` and
   `ipykernel` that `dev` declared.
