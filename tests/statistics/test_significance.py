@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import warnings
+
 import pytest
+from scipy.stats import wilcoxon
 
 from calibrax.statistics.significance import (
     effect_size,
@@ -73,6 +76,21 @@ class TestPairedSignificanceTest:
         result = paired_significance_test(data, data)
         assert result.significant is False
         assert result.method == "wilcoxon"
+
+    def test_no_nonzero_difference_is_the_exact_null_without_a_warning(self) -> None:
+        """Every difference zero leaves no pair to rank once zeros are dropped (``"wilcox"``).
+
+        The exact null distribution of an empty sample puts all its mass on a statistic of 0, so
+        the p-value is 1, which is ``scipy.stats.wilcoxon(..., method="exact")``'s answer. Its
+        ``method="auto"`` divides 0 by 0 on the way and warns.
+        """
+        data = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            result = paired_significance_test(data, data)
+        reference = wilcoxon(data, data, zero_method="wilcox", method="exact")
+        assert result.p_value == float(reference.pvalue) == 1.0
+        assert result.statistic == float(reference.statistic) == 0.0
 
     def test_shifted_data_significant(self) -> None:
         """Clearly shifted data should be significant."""

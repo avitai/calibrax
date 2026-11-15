@@ -77,6 +77,13 @@ def paired_significance_test(
 
     es = effect_size(a, b)
 
+    if all(x == y for x, y in zip(a, b, strict=True)):
+        # "wilcox" drops every zero difference, so none is left to rank: the exact null puts all
+        # its mass on a statistic of 0 and the p-value is 1, scipy's method="exact" answer, which
+        # its method="auto" reaches only through a 0/0 that warns.
+        return SignificanceResult(
+            p_value=1.0, statistic=0.0, effect_size=es, significant=False, method="wilcoxon"
+        )
     statistic, p_value = wilcoxon(a, b, zero_method="wilcox", alternative="two-sided")
     return SignificanceResult(
         p_value=float(p_value),
