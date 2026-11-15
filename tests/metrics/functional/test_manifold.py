@@ -8,6 +8,8 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import pytest
+from jax.core import ShapedArray
+from jax.extend.core import Jaxpr, jaxprs_in_params
 from scipy.linalg import subspace_angles
 
 from calibrax.metrics.functional.distance import lorentz_distance
@@ -322,6 +324,48 @@ class TestGrassmannDistance:
         for deficient in (line, jnp.zeros((4, 2))):
             gradient = np.asarray(jax.jit(jax.grad(distance, argnums=1))(u, deficient))
             assert np.all(gradient == 0.0)
+
+    @pytest.mark.parametrize(("factor", "full_rank"), [(10.0, True), (0.1, False)])
+    def test_the_rank_follows_scipy_orths_tolerance_on_either_side_of_it(
+        self, factor: float, full_rank: bool
+    ) -> None:
+        """A second column of size ``factor`` times ``scipy.linalg.orth``'s rank tolerance.
+
+        The tolerance is ``max(singular values) * max(n, p) * eps``. A decade on either side of it
+        exceeds the float32 error of the small singular value (``eps`` times the largest), so the
+        rank is the side of the tolerance the column was built on: full (a distance) or not (NaN).
+        """
+        n, p = 6, 2
+        q = np.linalg.qr(np.random.default_rng(3).normal(size=(n, p)))[0]
+        tolerance = max(n, p) * float(jnp.finfo(jnp.float32).eps)
+        basis = jnp.asarray(q * np.array([1.0, factor * tolerance]), dtype=jnp.float32)
+        other = jnp.asarray(np.linalg.qr(np.random.default_rng(4).normal(size=(n, p)))[0])
+        assert bool(np.isfinite(float(grassmann_distance(basis, other)))) is full_rank
+
+    def test_the_rank_check_decomposes_no_n_by_p_basis(self) -> None:
+        """The rank comes from the singular values of the QR factor ``R`` (``p x p``).
+
+        ``u = QR`` with ``Q``'s columns orthonormal, so ``u`` and ``R`` share their singular
+        values; the ``n x p`` SVDs the rank once took are ``p x p`` ones. The one ``n x p`` SVD left
+        is the sines' (Knyazev and Argentati), of the component of one basis outside the other.
+        """
+        n, p = 64, 4
+        u = jnp.ones((n, p), dtype=jnp.float32)
+        jaxpr = jax.make_jaxpr(grassmann_distance)(u, u)
+
+        def svd_operands(jaxpr: Jaxpr) -> list[tuple[int, ...]]:
+            shapes = []
+            for eqn in jaxpr.eqns:
+                if eqn.primitive.name == "svd":
+                    operand = eqn.invars[0].aval
+                    assert isinstance(operand, ShapedArray)
+                    shapes.append(tuple(operand.shape))
+                for sub in jaxprs_in_params(eqn.params):
+                    shapes.extend(svd_operands(sub))
+            return shapes
+
+        tall = [shape for shape in svd_operands(jaxpr.jaxpr) if shape[0] > p]
+        assert tall == [(n, p)]
 
 
 class TestStiefelDistance:
