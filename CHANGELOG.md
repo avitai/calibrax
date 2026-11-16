@@ -9,6 +9,10 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Added
 
+- `mean_error` in `calibrax.metrics.functional.regression` (`MetricDirection.INFO`) for signed
+  prediction bias `E[predictions - targets]`, with `mask` and `weights` support, `NaN` on empty
+  selections, finite derivatives across excluded non-finite values, and inclusion in the fused
+  `calculate_all` regression suite.
 - `compare_calls` and `CallComparison` in `calibrax.profiling` for counterbalanced ABBA paired
   microbenchmarking with `jax.block_until_ready` synchronization, per-round paired differences,
   speedup ratio, and exact two-sided sign-flip randomization p-values, plus `CallTiming.from_dict`.

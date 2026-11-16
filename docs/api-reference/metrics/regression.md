@@ -1,7 +1,7 @@
 # calibrax.metrics.functional.regression
 
 Regression metrics for comparing predicted and target values. Includes
-standard error metrics (MSE, MAE, RMSE), percentage-based metrics (MAPE,
+standard error metrics (MSE, MAE, RMSE, mean error), percentage-based metrics (MAPE,
 SMAPE), robust losses (Huber, log-cosh), and goodness-of-fit measures
 (R-squared, explained variance).
 

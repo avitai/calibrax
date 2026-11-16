@@ -3,9 +3,9 @@
 Pure functions for computing standard regression metrics between predictions
 and targets. All functions accept JAX arrays and return scalar values.
 
-Includes 15 metrics: MSE, MAE, RMSE, R-squared, adjusted R-squared, MAPE,
-relative error, explained variance, max error, Huber loss, Charbonnier loss,
-quantile loss, log-cosh loss, SMAPE, and CRPS.
+Includes 16 metrics: MSE, MAE, RMSE, mean error, R-squared, adjusted R-squared,
+MAPE, relative error, explained variance, max error, Huber loss, Charbonnier
+loss, quantile loss, log-cosh loss, SMAPE, and CRPS.
 
 R-squared and its adjusted form sit together because they are one quantity: both read
 :func:`calibrax.metrics._utils.coefficient_of_determination`, and the adjusted form only
@@ -196,6 +196,49 @@ def mae(  # noqa: DOC502  # raised by _prepare_arrays
     p, t = _prepare_arrays(predictions, targets)
     diff = excluded_difference(p, t, mask=mask, weights=weights)
     return reduce_values(jnp.abs(diff), mask=mask, weights=weights, reduction=reduction, axis=axis)
+
+
+def mean_error(  # noqa: DOC502  # raised by _prepare_arrays
+    predictions: ArrayLike,
+    targets: ArrayLike,
+    *,
+    mask: ArrayLike | None = None,
+    weights: ArrayLike | None = None,
+) -> jax.Array:
+    """Mean signed prediction error (bias).
+
+    Computes the signed average residual ``mean(predictions - targets)``. Positive
+    values indicate systematic over-prediction, negative values systematic
+    under-prediction, and ``0.0`` zero net bias.
+
+    Note:
+        Direction: INFO (0.0 = unbiased; signed deviation rather than a monotone objective).
+        Range: (-inf, inf). ``NaN`` for an empty selection (zero-length inputs, an
+        all-false ``mask``, or ``weights`` summing to zero or less).
+        Not a true metric -- signed and anti-symmetric
+        (``mean_error(p, t) == -mean_error(t, p)``).
+
+    Args:
+        predictions: Predicted values.
+        targets: Ground truth values.
+        mask: Elements to keep (boolean, broadcastable), or ``None`` for all.
+        weights: Element weights (broadcastable), or ``None`` for unit weights.
+
+    Returns:
+        Mean signed error as a scalar JAX array, or ``NaN`` when no observations are selected.
+
+    Raises:
+        ValueError: If shapes do not match.
+    """
+    p, t = _prepare_arrays(predictions, targets)
+    if mask is None and weights is None:
+        return jnp.mean(p - t)
+    diff = excluded_difference(p, t, mask=mask, weights=weights)
+    w = sample_weights(mask, weights, p.shape)
+    total_weight = jnp.sum(w)
+    has_sample = total_weight > 0.0
+    safe_total = jnp.where(has_sample, total_weight, jnp.ones_like(total_weight))
+    return jnp.where(has_sample, jnp.sum(w * diff) / safe_total, jnp.nan)
 
 
 def rmse(

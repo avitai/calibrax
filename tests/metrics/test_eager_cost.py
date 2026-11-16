@@ -29,6 +29,7 @@ from calibrax.metrics.functional.regression import (
     charbonnier_loss,
     huber_loss,
     mae,
+    mean_error,
     mse,
     r_squared,
     r_squared_adjusted,
@@ -99,6 +100,7 @@ _SAMPLE_KEEP = _RNG.random(16) > 0.3
 _MASKED: list[tuple[str, Callable[..., object], Callable[..., object]]] = [
     ("mse", lambda: mse(_P, _T, mask=_KEEP), lambda: mse(_P, _T, weights=_W)),
     ("mae", lambda: mae(_P, _T, mask=_KEEP), lambda: mae(_P, _T, weights=_W)),
+    ("mean_error", lambda: mean_error(_P, _T, mask=_KEEP), lambda: mean_error(_P, _T, weights=_W)),
     ("huber_loss", lambda: huber_loss(_P, _T, mask=_KEEP), lambda: huber_loss(_P, _T, weights=_W)),
     (
         "charbonnier_loss",

@@ -219,6 +219,7 @@ class TestMetricRegistry:
         """Metrics should have correct direction metadata."""
         registry = MetricRegistry()
         assert registry.get("mse").direction == MetricDirection.LOWER
+        assert registry.get("mean_error").direction == MetricDirection.INFO
         assert registry.get("r_squared").direction == MetricDirection.HIGHER
         assert registry.get("explained_variance").direction == MetricDirection.HIGHER
         assert registry.get("huber_loss").direction == MetricDirection.LOWER
@@ -320,6 +321,7 @@ class TestCalculateAll:
             "mse",
             "mae",
             "rmse",
+            "mean_error",
             "r_squared",
             "mape",
             "relative_error",
