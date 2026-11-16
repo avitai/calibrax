@@ -7,6 +7,13 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+### Changed
+
+- `safe_root`'s order-2 square-root branch runs through an `@jax.jit(inline=True)` kernel, matching
+  upstream `jnp.sqrt`: an eager call dispatches as one compiled executable (6 Python frames against
+  186) while outer `jit`, `vmap` and `grad` inline the HLO with zero subcomputation calls and
+  unchanged fusion counts.
+
 ## [0.1.19] - 2026-11-16
 
 ### Fixed

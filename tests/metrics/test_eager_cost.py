@@ -24,6 +24,7 @@ import numpy as np
 import pytest
 from substrax.testing import by_package, counted_calls
 
+from calibrax.metrics._utils import safe_root
 from calibrax.metrics.functional.regression import (
     charbonnier_loss,
     huber_loss,
@@ -147,3 +148,19 @@ def test_a_mask_alone_runs_no_finiteness_test(
     assert _counts(weighted, isfinite=_isfinite)["isfinite"] > 0, (
         f"{name} with weights no longer guards a non-finite value at a zero weight"
     )
+
+
+def test_safe_root_square_root_matches_jnp_sqrt_dispatch_budget() -> None:
+    """Order-2 ``safe_root`` dispatches as one compiled kernel, matching ``jnp.sqrt``."""
+    scalar = jnp.asarray(4.0, dtype=jnp.float32)
+    jax_keys = by_package("jax")
+
+    jnp.sqrt(scalar)
+    safe_root(scalar)
+
+    with counted_calls(jax_keys) as sqrt_counted:
+        jnp.sqrt(scalar)
+    with counted_calls(jax_keys) as safe_counted:
+        safe_root(scalar)
+
+    assert sum(safe_counted.values()) <= sum(sqrt_counted.values()) + 2
