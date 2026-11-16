@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 import pytest
 from substrax.testing import TraceCounter
 
@@ -16,6 +17,7 @@ from calibrax.metrics.functional.regression import (
     mae,
     mape,
     max_error,
+    mean_error,
     mse,
     per_sample_relative_l2,
     quantile_loss,
@@ -591,3 +593,103 @@ class TestCharbonnierLoss:
         x = jnp.array([0.0, 0.0])
         gradient = jax.grad(lambda p: charbonnier_loss(p, x))(x)
         assert jnp.all(jnp.isfinite(gradient))
+
+
+class TestMeanError:
+    """Signed prediction bias ``E[predictions - targets]``."""
+
+    def test_signed_bias_and_antisymmetry(self) -> None:
+        predictions = jnp.array([2.5, 4.0, 5.5], dtype=jnp.float32)
+        targets = jnp.array([1.0, 4.0, 6.0], dtype=jnp.float32)
+        # (1.5 + 0.0 - 0.5) / 3 = 1/3
+        val = mean_error(predictions, targets)
+        assert isinstance(val, jax.Array)
+        assert float(val) == pytest.approx(1.0 / 3.0, abs=1e-7)
+        assert float(mean_error(targets, predictions)) == pytest.approx(-1.0 / 3.0, abs=1e-7)
+        assert float(mean_error(targets, targets)) == 0.0
+
+    def test_shape_mismatch_raises(self) -> None:
+        with pytest.raises(ValueError, match="Shape mismatch"):
+            mean_error(jnp.ones(3), jnp.ones(4))
+
+    def test_empty_selection_returns_nan(self) -> None:
+        empty = jnp.zeros(0, dtype=jnp.float32)
+        assert np.isnan(float(mean_error(empty, empty)))
+
+        p = jnp.array([1.0, 2.0, 3.0], dtype=jnp.float32)
+        t = jnp.array([0.5, 1.5, 2.5], dtype=jnp.float32)
+        no_keep = jnp.zeros_like(p, dtype=bool)
+        zero_weights = jnp.zeros_like(p)
+        assert np.isnan(float(mean_error(p, t, mask=no_keep)))
+        assert np.isnan(float(mean_error(p, t, weights=zero_weights)))
+
+    def test_masked_non_finite_excluded_from_value_and_gradients(self) -> None:
+        p = jnp.array([float("nan"), 3.0, 5.0], dtype=jnp.float32)
+        t = jnp.array([1.0, 1.0, 2.0], dtype=jnp.float32)
+        keep = jnp.array([False, True, True])
+        weights = jnp.array([2.0, 1.0, 3.0], dtype=jnp.float32)
+
+        # (1 * (3 - 1) + 3 * (5 - 2)) / (1 + 3) = 11 / 4 = 2.75
+        val = mean_error(p, t, mask=keep, weights=weights)
+        assert float(val) == pytest.approx(2.75, abs=1e-7)
+
+        grad_p = jax.grad(lambda x: mean_error(x, t, mask=keep, weights=weights))(p)
+        assert bool(jnp.all(jnp.isfinite(grad_p)))
+        np.testing.assert_allclose(np.asarray(grad_p), np.array([0.0, 0.25, 0.75]), atol=1e-7)
+
+        grad_w = jax.grad(lambda w: mean_error(p, t, mask=keep, weights=w))(weights)
+        assert bool(jnp.all(jnp.isfinite(grad_w)))
+        assert float(grad_w[0]) == 0.0
+
+    def test_zero_weight_preserves_finite_influence_and_drops_nan(self) -> None:
+        p = jnp.array([4.0, 2.0, 1.0], dtype=jnp.float32)
+        t = jnp.zeros(3, dtype=jnp.float32)
+        w = jnp.array([0.0, 1.0, 3.0], dtype=jnp.float32)
+        # Weighted mean is (0*4 + 1*2 + 3*1) / 4 = 5/4 = 1.25.
+        # d/dw_0 at w_0=0 is (diff_0 * S - sum(w * diff)) / S^2 = (4*4 - 5) / 16 = 11/16.
+        grad_w = jax.grad(lambda weights: mean_error(p, t, weights=weights))(w)
+        assert float(grad_w[0]) == pytest.approx(11.0 / 16.0, abs=1e-7)
+
+        p_nan = jnp.array([float("nan"), 2.0, 1.0], dtype=jnp.float32)
+        assert float(mean_error(p_nan, t, weights=w)) == pytest.approx(1.25, abs=1e-7)
+        grad_p_nan = jax.grad(lambda x: mean_error(x, t, weights=w))(p_nan)
+        assert bool(jnp.all(jnp.isfinite(grad_p_nan)))
+
+    def test_matches_numpy_average_within_summation_bound(self) -> None:
+        rng = np.random.default_rng(42)
+        n = 256
+        p64 = rng.normal(loc=0.3, scale=2.0, size=n)
+        t64 = rng.normal(loc=-0.1, scale=2.0, size=n)
+        w64 = rng.uniform(0.1, 3.0, size=n)
+        keep = rng.random(n) > 0.25
+
+        p = jnp.asarray(p64, dtype=jnp.float32)
+        t = jnp.asarray(t64, dtype=jnp.float32)
+        w = jnp.asarray(w64, dtype=jnp.float32)
+        m = jnp.asarray(keep)
+
+        unit_roundoff = float(np.finfo(np.float32).eps) / 2.0
+        k = n + 2
+        gamma = k * unit_roundoff / (1.0 - k * unit_roundoff)
+
+        diff32 = np.asarray(p, dtype=np.float64) - np.asarray(t, dtype=np.float64)
+        w32 = np.where(keep, np.asarray(w, dtype=np.float64), 0.0)
+        expected = float(np.average(diff32[keep], weights=w32[keep]))
+        condition_scale = float(np.sum(w32 * np.abs(diff32)) / np.sum(w32))
+
+        actual = float(mean_error(p, t, mask=m, weights=w))
+        assert actual == pytest.approx(expected, abs=gamma * condition_scale)
+
+    def test_jit_and_vmap_trace_once(self) -> None:
+        counter = TraceCounter()
+        compiled = jax.jit(counter.wrap(mean_error))
+        p = jnp.arange(12.0, dtype=jnp.float32).reshape(3, 4)
+        t = jnp.ones((3, 4), dtype=jnp.float32)
+        with counter.expect(new_traces=1):
+            compiled(p, t)
+        with counter.expect(new_traces=0):
+            compiled(p + 1.0, t)
+
+        batched = jax.vmap(mean_error)(p, t)
+        expected_rows = jnp.mean(p - t, axis=-1)
+        np.testing.assert_allclose(np.asarray(batched), np.asarray(expected_rows), atol=1e-7)

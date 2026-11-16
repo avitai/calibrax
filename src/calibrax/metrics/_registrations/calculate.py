@@ -35,6 +35,7 @@ _FUSED_REGRESSION_NAMES = frozenset(
         "mse",
         "mae",
         "rmse",
+        "mean_error",
         "r_squared",
         "mape",
         "relative_error",
@@ -54,7 +55,7 @@ def _calculate_regression_fused(
     predictions: ArrayLike,
     targets: ArrayLike,
 ) -> MetricValues:
-    """Compute all 14 same-shape regression metrics with shared subexpressions.
+    """Compute all 15 same-shape regression metrics with shared subexpressions.
 
     Avoids redundant computation by reusing intermediate values (diff, abs_diff,
     sq_diff) across metrics instead of recomputing them independently. R-squared is the
@@ -68,7 +69,7 @@ def _calculate_regression_fused(
         targets: Ground truth values.
 
     Returns:
-        Dictionary mapping the 14 same-shape regression metric names to computed values.
+        Dictionary mapping the 15 same-shape regression metric names to computed values.
     """
     p, t = _prepare_arrays(predictions, targets)
     diff = p - t
@@ -84,6 +85,7 @@ def _calculate_regression_fused(
         "mse": mse_val,
         "mae": mae_val,
         "rmse": jnp.sqrt(mse_val),
+        "mean_error": jnp.mean(diff),
         # Delegates rather than inlining a third copy of the formula. The core's
         # unweighted path is the same expression down to the spelling of the
         # residual, so the compiled suite is unchanged: 118 fusions against 118 at

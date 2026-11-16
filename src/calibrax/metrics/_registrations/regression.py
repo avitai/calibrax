@@ -15,6 +15,7 @@ from calibrax.metrics.functional.regression import (
     mae,
     mape,
     max_error,
+    mean_error,
     mse,
     quantile_loss,
     r_squared,
@@ -50,6 +51,13 @@ def register() -> None:
             "Root mean squared error",
             MetricDirection.LOWER,
             MetricProperties(is_symmetric=True, is_true_metric=True, is_differentiable=True),
+        ),
+        _BuiltinMetricSpec(
+            "mean_error",
+            mean_error,
+            "Mean signed prediction error (bias)",
+            MetricDirection.INFO,
+            MetricProperties(is_differentiable=True, is_jit_compatible=True),
         ),
         _BuiltinMetricSpec(
             "r_squared",
