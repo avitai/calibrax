@@ -7,6 +7,12 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+### Fixed
+
+- Unweighted `pearson_correlation` guards both sum-of-squares roots with `safe_root`, matching
+  `_weighted_pearson` so differentiating at a constant input returns finite values rather than
+  `NaN`, with `0` ULP forward change against unit-weighted `pearson_correlation`.
+
 ### Changed
 
 - `safe_root`'s order-2 square-root branch runs through an `@jax.jit(inline=True)` kernel, matching
