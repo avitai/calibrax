@@ -66,9 +66,10 @@ def register() -> None:
             _BuiltinMetricSpec(
                 "seismic_wasserstein2_misfit",
                 seismic_wasserstein2_misfit,
-                "Squared Wasserstein-2 misfit per trace on normalized positive envelopes",
+                "Squared Wasserstein-2 misfit per trace: exact quantile integral of the "
+                "linearly scaled traces (Engquist & Yang 2022)",
                 MetricDirection.LOWER,
-                MetricProperties(is_symmetric=True, is_differentiable=True),
+                MetricProperties(is_symmetric=False, is_differentiable=True),
                 domain="seismic",
             ),
             _BuiltinMetricSpec(

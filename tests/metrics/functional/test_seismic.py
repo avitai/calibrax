@@ -9,13 +9,17 @@ Numerical Algorithms*, 2nd ed., 2002, eq. 4.4), plus one ``eps`` for each furthe
 
 from __future__ import annotations
 
+import itertools
 from collections.abc import Callable
+from typing import TypedDict
 
 import jax
 import jax.numpy as jnp
 import numpy as np
 import pytest
+from jax.typing import ArrayLike
 
+import calibrax.metrics.functional.seismic as seismic_module
 from calibrax.metrics import MetricRegistry, MetricSignature, MetricTier
 from calibrax.metrics.functional.image import ssim
 from calibrax.metrics.functional.seismic import (
@@ -117,26 +121,83 @@ def _cross_correlation(p: np.ndarray, t: np.ndarray) -> tuple[float, float]:
     return value, (p.shape[-1] + 6) * EPS
 
 
-def _density(x: np.ndarray) -> np.ndarray:
-    total = np.abs(x).sum()
-    return np.abs(x) / total if total > 0 else np.full_like(x, 1.0 / x.size)
+def _w2_cell_masses(x: np.ndarray, normalization: str, b: float | None, c: float) -> np.ndarray:
+    """Engquist & Yang (CPAM 2022) eq. 4.1: ``(sigma(x) + c) / S`` for one trace."""
+    h = x + c if normalization == "linear" else np.logaddexp(0.0, b * x) + c
+    return h / h.sum()
 
 
-def _wasserstein2(p: np.ndarray, t: np.ndarray) -> tuple[float, float]:
-    """Mean squared gap of the sorted densities; each density entry is within ``(n + 2) eps``.
+def _w2_transport_form(f: np.ndarray, g: np.ndarray, dt: float) -> float:
+    """``int (t - G^-1(F(t)))^2 f(t) dt`` (Yang et al., Geophysics 2018, eq. 29), exactly.
 
-    With ``delta_i = (n + 2) eps (u_i + v_i)`` bounding the error of ``u_i - v_i``, the squared
-    gap moves by at most ``2 |u_i - v_i| delta_i + delta_i^2``, and the mean adds ``n eps``.
+    Each sample is the mass of its cell ``[i dt, (i + 1) dt]``, so ``F`` and ``G`` are piecewise
+    linear. Between the cell edges and the times where ``F`` reaches a knot of ``G``, both ``F``
+    and ``G^-1`` are linear, so ``t - T(t)`` is linear and the integral of its square against the
+    cell's constant density is exact. The form integrates over time, where the implementation
+    integrates the quantile gap over probability, so the two agree only if both are right.
+    """
+    edges = np.arange(f.size + 1) * dt
+    cdf_f = np.concatenate([[0.0], np.cumsum(f)])
+    cdf_g = np.concatenate([[0.0], np.cumsum(g)])
+    knots = np.unique(np.concatenate([edges, np.interp(cdf_g, cdf_f, edges)]))
+    total = 0.0
+    for lo, hi in itertools.pairwise(knots):
+        cell = min(int((lo + hi) / 2 // dt), f.size - 1)
+        if f[cell] == 0.0:
+            continue  # no mass to transport
+        # F is linear on the cell; G^-1 is linear on the segment of G holding F(mid), whose mass
+        # is positive. Both are taken from the piece itself, never from a neighbour across a jump.
+        z_lo, z_mid, z_hi = (
+            cdf_f[cell] + (x - edges[cell]) * f[cell] / dt for x in (lo, (lo + hi) / 2, hi)
+        )
+        seg = min(max(int(np.searchsorted(cdf_g, z_mid, side="right")) - 1, 0), g.size - 1)
+        gap_lo = lo - (edges[seg] + (z_lo - cdf_g[seg]) * dt / g[seg])
+        gap_hi = hi - (edges[seg] + (z_hi - cdf_g[seg]) * dt / g[seg])
+        total += (f[cell] / dt) * (hi - lo) * (gap_lo**2 + gap_lo * gap_hi + gap_hi**2) / 3.0
+    return float(total)
+
+
+def _wasserstein2(
+    p: np.ndarray,
+    t: np.ndarray,
+    normalization: str = "linear",
+    b: float | None = None,
+    c: float | None = None,
+    dt: float = 1.0,
+) -> tuple[float, float]:
+    """The mean over traces of ``W2^2`` of the normalized cell densities, and its float32 bound.
+
+    ``c`` defaults as the implementation's does: for ``"linear"`` one constant, the l1 norm of all
+    the targets; for ``"softplus"`` 0.
+
+    Rounding bound for the implementation, which carries the CDF gap ``D_k = G_k - F_k`` as a
+    cumulative sum of ``q - p`` rather than subtracting two CDFs near 1. A quantile offset
+    ``z - F_k`` is then either a difference of one CDF over ``s + 1`` of its own steps (``s`` the
+    largest displacement in cells between the two quantile functions), each step rounding by at
+    most ``eps`` of a CDF value at most 1 (Higham eq. 4.4), or such a difference plus ``D_k``, a sum
+    of ``n`` terms of ``q - p`` within ``(n + 4) eps sum |q - p|``. Divided by the cell's mass, a
+    quantile is within ``dQ = ((s + 4) + (n + 4) sum |q - p|) eps dt / p_min``, ``p_min`` the least
+    positive mass. Both quantiles enter the gap, which moves ``W2^2`` by at most
+    ``2 sqrt(W2^2) (2 dQ) + (2 dQ)^2``, and the sum over ``2 n + 1`` intervals adds ``4 n eps``
+    relative.
     """
     p2, t2 = p.reshape(-1, p.shape[-1]), t.reshape(-1, t.shape[-1])
+    if c is None:
+        c = float(np.abs(t2).sum()) if normalization == "linear" else 0.0
     values, bounds = [], []
-    for a, b in zip(p2, t2, strict=True):
-        u, v = np.sort(_density(b.astype(np.float64))), np.sort(_density(a.astype(np.float64)))
-        delta = (a.size + 2) * EPS * (u + v)
-        values.append(float(np.mean((u - v) ** 2)))
-        bounds.append(
-            float(np.mean(2 * np.abs(u - v) * delta + delta**2)) + a.size * EPS * values[-1]
-        )
+    for a, d in zip(p2, t2, strict=True):
+        f = _w2_cell_masses(a, normalization, b, c)
+        g = _w2_cell_masses(d, normalization, b, c)
+        value = _w2_transport_form(f, g, dt)
+        n = a.size
+        edges = np.arange(n + 1) * dt
+        quantile_f = np.interp(np.cumsum(g), np.cumsum(f), edges[1:])
+        displacement = int(np.ceil(np.max(np.abs(quantile_f - edges[1:])) / dt)) + 1
+        gap_mass = float(np.abs(g - f).sum())
+        p_min = min(f[f > 0].min(), g[g > 0].min())
+        d_q = ((displacement + 4) + (n + 4) * gap_mass) * EPS * dt / p_min
+        values.append(value)
+        bounds.append(2 * np.sqrt(value) * 2 * d_q + (2 * d_q) ** 2 + 4 * n * EPS * value)
     return float(np.mean(values)), float(np.mean(bounds))
 
 
@@ -204,7 +265,7 @@ def test_matches_the_float64_reference_eagerly_and_under_jit(name: str, case: st
 
 
 #: Misfits whose gradient at a perfect match is a product with an exactly-zero factor: ``p - t``,
-#: ``u - v`` of the sorted densities, or the identical-trace branch of the correlation.
+#: the quantile gap ``Q_p - Q_t``, or the identical-trace branch of the correlation.
 EXACT_ZERO_GRADIENT = [
     "seismic_l2_misfit",
     "seismic_l2_misfit_normalized",
@@ -254,10 +315,236 @@ def test_a_constant_trace_against_another_scores_the_worst_correlation() -> None
     assert float(seismic_cross_correlation_misfit(2.0 * flat, flat)) == 1.0
 
 
-def test_the_envelope_density_discards_polarity() -> None:
-    """Documented formulation: positive envelopes, so ``-d`` and ``d`` share one density."""
+def _bump(n: int = 128, start: int = 40, width: int = 32) -> np.ndarray:
+    """A raised-cosine pulse: positive inside ``(start, start + width)``, exactly 0 outside."""
+    i = np.arange(n, dtype=np.float64) - start
+    inside = (i > 0) & (i < width)
+    return np.where(inside, 1.0 - np.cos(2.0 * np.pi * i / width), 0.0).astype(np.float32)
+
+
+class W2Options(TypedDict, total=False):
+    """Keyword settings of ``seismic_wasserstein2_misfit`` and its reference."""
+
+    normalization: str
+    b: float
+    c: float
+    dt: float
+
+
+SOFTPLUS: W2Options = {"normalization": "softplus", "b": 2.0}  # ||b f||_inf = 2 at a unit peak
+
+
+@pytest.mark.parametrize("dt", [1.0, 0.004])
+@pytest.mark.parametrize("shift", [1, 10, 40])
+def test_a_shifted_non_negative_trace_scores_the_squared_shift(shift: int, dt: float) -> None:
+    """``W2^2`` of a density and its translate by ``s`` is ``s^2`` (Engquist & Froese 2014).
+
+    With ``c = 0`` a non-negative trace is its own density, so a shift by whole cells is exactly a
+    translate. The float64 reference meets ``(s dt)^2`` within its own rounding bound, the float32
+    bound scaled to float64's ``eps``, and the implementation meets the reference within its own.
+    """
+    d = _bump()
+    shifted = _shifted(d, shift)
+    expected, bound = _wasserstein2(shifted.astype(np.float64), d.astype(np.float64), c=0.0, dt=dt)
+    assert abs(expected - (shift * dt) ** 2) <= bound * float(np.finfo(np.float64).eps) / EPS
+    for got in (
+        seismic_wasserstein2_misfit(shifted, d, c=0.0, dt=dt),
+        jax.jit(lambda p, t: seismic_wasserstein2_misfit(p, t, c=0.0, dt=dt))(shifted, d),
+    ):
+        assert abs(float(got) - expected) <= bound, (shift, dt, float(got), expected, bound)
+
+
+@pytest.mark.parametrize("case", sorted(CASES))
+def test_softplus_matches_the_float64_reference(case: str) -> None:
+    predictions, targets = CASES[case]
+    expected, bound = _wasserstein2(
+        predictions.astype(np.float64), targets.astype(np.float64), **SOFTPLUS
+    )
+
+    def fn(p: ArrayLike, t: ArrayLike) -> jax.Array:
+        return seismic_wasserstein2_misfit(p, t, **SOFTPLUS)
+
+    for got in (fn(predictions, targets), jax.jit(fn)(predictions, targets)):
+        assert abs(float(got) - expected) <= bound, (case, float(got), expected, bound)
+
+
+def test_softplus_w2_grows_with_the_shift_where_l2_does_not() -> None:
+    """The cycle-skipping property W2 is used for (Engquist & Yang, CPAM 2022, Cor. 4.4).
+
+    Past the wavelet's width the L2 misfit stops growing, so a descent on it stalls; W2 under the
+    softplus scaling at ``||b f||_inf = 2``, inside the authors' range ``[0.2, 6]``, keeps growing.
+    """
+    d = _ricker(n=256, peak=64)
+    shifts = [2, 5, 10, 20, 40]
+    w2 = [float(seismic_wasserstein2_misfit(_shifted(d, s), d, **SOFTPLUS)) for s in shifts]
+    l2 = [float(seismic_l2_misfit(_shifted(d, s), d)) for s in shifts]
+    assert all(later > earlier for earlier, later in itertools.pairwise(w2))
+    assert l2[-1] < max(l2)
+
+
+def test_the_linear_normalization_keeps_polarity() -> None:
+    """A one-to-one scaling (Assumption 4.1): ``-d`` and ``d`` are different densities."""
     d = jnp.asarray(_D)
-    assert float(seismic_wasserstein2_misfit(-d, d)) == 0.0
+    assert float(seismic_wasserstein2_misfit(-d, d)) > 0.0
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "match"),
+    [
+        ({"normalization": "square"}, "normalization"),
+        ({"normalization": "softplus"}, "b"),
+        ({"normalization": "softplus", "b": 0.0}, "b"),
+        ({"b": 1.0}, "b"),
+        ({"c": -1.0}, "c"),
+        ({"dt": 0.0}, "dt"),
+    ],
+)
+def test_w2_refuses_arguments_outside_their_domain(kwargs: W2Options, match: str) -> None:
+    d = jnp.asarray(_D)
+    with pytest.raises(ValueError, match=match):
+        seismic_wasserstein2_misfit(d, d, **kwargs)
+
+
+def test_a_linear_density_that_goes_negative_is_nan() -> None:
+    """Outside eq. 4.1's domain, ``sigma(f) + c >= 0``, a trace has no density."""
+    d = jnp.asarray(_D)
+    below = d - 2.0 * float(jnp.sum(jnp.abs(d)))
+    assert np.isnan(float(seismic_wasserstein2_misfit(below, d)))
+
+
+def test_all_zero_targets_under_the_linear_default_are_nan() -> None:
+    """``c`` is the targets' l1 norm, so zero targets leave ``c = 0``, outside eq. 4.1's ``c > 0``."""
+    assert np.isnan(float(seismic_wasserstein2_misfit(jnp.ones(64), jnp.zeros(64))))
+
+
+@pytest.mark.parametrize("kwargs", [{}, SOFTPLUS], ids=["linear", "softplus"])
+def test_a_silent_trace_in_a_gather_is_uniform_with_a_finite_gradient(
+    kwargs: W2Options,
+) -> None:
+    """Eq. 4.1's buffer (or softplus's floor) makes a silent trace uniform, not 0/0."""
+    targets = np.stack([_D, np.zeros_like(_D)])
+    predictions = targets + 0.05 * np.sin(np.linspace(0, 20, _D.size)).astype(np.float32)
+    expected, bound = _wasserstein2(
+        predictions.astype(np.float64), targets.astype(np.float64), **kwargs
+    )
+    value, gradient = jax.value_and_grad(
+        lambda p: seismic_wasserstein2_misfit(p, jnp.asarray(targets), **kwargs)
+    )(jnp.asarray(predictions))
+    assert abs(float(value) - expected) <= bound
+    assert np.all(np.isfinite(np.asarray(gradient)))
+
+
+def _reference_gradient(
+    p: np.ndarray, t: np.ndarray, kwargs: W2Options, step: float = 1e-6
+) -> np.ndarray:
+    """``d/dp`` of the float64 reference by central differences, one sample at a time."""
+    gradient = np.empty(p.size)
+    for i in range(p.size):
+        up, down = p.copy(), p.copy()
+        up.flat[i] += step
+        down.flat[i] -= step
+        gradient[i] = (_wasserstein2(up, t, **kwargs)[0] - _wasserstein2(down, t, **kwargs)[0]) / (
+            2.0 * step
+        )
+    return gradient.reshape(p.shape)
+
+
+@pytest.mark.parametrize("kwargs", [{}, SOFTPLUS], ids=["linear", "softplus"])
+def test_the_gradient_matches_a_central_difference_of_the_reference(
+    kwargs: W2Options,
+) -> None:
+    """The autodiff gradient is the gradient of the computed objective, held to the reference's.
+
+    Every entry of the gradient is a sum of the same quantile gaps the value is, scaled by cell
+    masses, so it carries the value's relative rounding, ``bound / value``, at the gradient's
+    scale. A float64 central difference at step ``1e-6`` is exact to about ``1e-10`` relative.
+    """
+    targets = _noise(5, 24)
+    predictions = targets + 0.3 * _noise(6, 24)
+    p64, t64 = predictions.astype(np.float64), targets.astype(np.float64)
+    value, bound = _wasserstein2(p64, t64, **kwargs)
+    expected = _reference_gradient(p64, t64, kwargs)
+    got = np.asarray(
+        jax.grad(lambda p: seismic_wasserstein2_misfit(p, jnp.asarray(targets), **kwargs))(
+            jnp.asarray(predictions)
+        )
+    )
+    tolerance = (bound / value) * float(np.abs(expected).max())
+    assert float(np.abs(got - expected).max()) <= tolerance
+
+
+def test_the_softplus_difference_keeps_the_digits_subtraction_loses() -> None:
+    """``log1p(sigmoid(b) expm1(a - b))`` against ``softplus(a) - softplus(b)`` for close arguments.
+
+    With ``a`` and ``b`` within a factor of 2, ``a - b`` is exact (Sterbenz), and the rest is
+    ``expm1``, the three operations of ``sigmoid``, a product and ``log1p``, each within one
+    rounding and each well conditioned near 0: 8 ``eps`` relative to the difference. Subtracting
+    two softplus values of order 1 errs by ``eps`` of them, which over a difference of ``1e-4``
+    is about ``1e4 eps``, so the control below must fail the same bound.
+    """
+    a = np.linspace(0.5, 3.0, 101, dtype=np.float32)
+    b = (a + np.float32(1e-4)).astype(np.float32)
+    exact = np.logaddexp(0.0, a.astype(np.float64)) - np.logaddexp(0.0, b.astype(np.float64))
+    stable = np.asarray(seismic_module._softplus_difference(jnp.asarray(a), jnp.asarray(b)))
+    subtracted = np.asarray(jax.nn.softplus(jnp.asarray(a)) - jax.nn.softplus(jnp.asarray(b)))
+    assert float(np.max(np.abs(stable - exact) / np.abs(exact))) <= 8 * EPS
+    assert float(np.max(np.abs(subtracted - exact) / np.abs(exact))) > 8 * EPS
+
+
+def test_the_linear_mass_gap_is_carried_not_subtracted() -> None:
+    """``q - p`` from ``t - y``, where both masses sit near ``1 / n`` under a large buffer.
+
+    ``(h_t - h_p - p sum(h_t - h_p)) / S_t``: one rounding of ``t - y``, an ``n``-term sum within
+    ``(n - 1) eps`` of its terms' magnitudes (Higham eq. 4.4), and three more roundings, so each
+    entry is within ``(n + 4) eps (|t_i - y_i| + p_i sum|t - y|) / S_t``. Subtracting the two
+    masses errs by ``eps`` of a mass, ``1 / n``, which against a gap ``c`` times smaller is far
+    outside that, so the control must fail it.
+    """
+    targets = _noise(8, 128)[None, :]
+    predictions = (targets + 0.05 * _noise(9, 128)).astype(np.float32)
+    buffer = 1e3
+    p, q, gap, valid = seismic_module._w2_cell_masses(
+        jnp.asarray(predictions), jnp.asarray(targets), None, buffer
+    )
+    t64, y64 = targets.astype(np.float64), predictions.astype(np.float64)
+    exact = (t64 + buffer) / (t64 + buffer).sum() - (y64 + buffer) / (y64 + buffer).sum()
+    rise = np.abs(t64 - y64)
+    n = targets.shape[-1]
+    bound = (n + 4) * EPS * (rise + np.asarray(p) * rise.sum()) / (t64 + buffer).sum()
+    assert bool(valid[0])
+    assert np.all(np.abs(np.asarray(gap) - exact) <= bound)
+    assert not np.all(np.abs(np.asarray(q - p) - exact) <= bound)
+
+
+def test_w2_composes_with_jax_transformations() -> None:
+    """vmap, grad, jvp, jacfwd and jit of grad all go through it; the two modes agree.
+
+    ``jvp`` and ``grad . v`` are the same linearization summed in different orders, so they agree
+    within a sum of ``2 n`` products, ``2 n eps sum |g_i v_i|`` (Higham eq. 4.4).
+    """
+    targets = jnp.asarray(np.stack([_D, np.roll(_D, 3)]))
+    predictions = targets + 0.05 * jnp.sin(jnp.linspace(0, 20, _D.size))
+    direction = jnp.asarray(_noise(7, targets.size).reshape(targets.shape))
+
+    def fn(p: jax.Array) -> jax.Array:
+        return seismic_wasserstein2_misfit(p, targets, **SOFTPLUS)
+
+    gradient = jax.grad(fn)(predictions)
+    _, tangent = jax.jvp(fn, (predictions,), (direction,))
+    products = float(jnp.sum(jnp.abs(gradient * direction)))
+    assert abs(float(tangent) - float(jnp.vdot(gradient, direction))) <= (
+        2 * targets.size * EPS * products
+    )
+    forward = jax.jacfwd(fn)(predictions)
+    assert float(jnp.max(jnp.abs(forward - gradient))) <= (
+        2 * targets.size * EPS * float(jnp.max(jnp.abs(gradient)))
+    )
+    assert np.isfinite(float(jax.jit(jax.grad(fn))(predictions).sum()))
+    batched = jax.vmap(lambda p: seismic_wasserstein2_misfit(p, targets))(
+        jnp.stack([predictions, targets])
+    )
+    assert batched.shape == (2,)
+    assert float(batched[1]) == 0.0
 
 
 def test_the_velocity_ssim_misfit_is_one_minus_ssim_at_the_targets_range() -> None:
