@@ -17,6 +17,8 @@ from unittest.mock import MagicMock, patch
 import jax
 import jax.numpy as jnp
 import pytest
+from flax import nnx
+from substrax.testing import TraceCounter
 
 import calibrax.profiling.compilation as compilation_mod
 from calibrax.profiling.compilation import (
@@ -648,3 +650,100 @@ class TestCompilationProfilerAdditionalBranches:
                 sys.modules.pop(spec.name, None)
 
         assert probe_module._JAX_RUNTIME_ERROR is RuntimeError
+
+
+class _StatefulBlock(nnx.Module):
+    """Stateful NNX module mutating BatchStat and RngCount on every forward call."""
+
+    def __init__(self, features: int, *, rngs: nnx.Rngs) -> None:
+        self.linear = nnx.Linear(features, features, rngs=rngs)
+        self.bn = nnx.BatchNorm(features, use_running_average=False, rngs=rngs)
+        self.dropout = nnx.Dropout(0.1, deterministic=False, rngs=rngs)
+
+    def __call__(self, x: jax.Array) -> jax.Array:
+        return self.dropout(self.bn(self.linear(x)))
+
+
+class TestCompilationProfilerPyTreeAndNNX:
+    """PyTree leaf signatures, keyword arrays, static arguments, and stateful NNX modules."""
+
+    def test_pytree_leaf_shape_change_records_cache_miss_matching_trace_count(self) -> None:
+        profiler = CompilationProfiler()
+        counter = TraceCounter()
+        fn = profiler.profile_jit_compilation(counter.wrap(lambda batch: batch["x"] + 1.0))
+
+        fn({"x": jnp.ones((4,))})
+        fn({"x": jnp.ones((8,))})
+        fn({"x": jnp.ones((8,))})
+
+        result = profiler.get_result()
+        assert (result.cache_misses, result.cache_hits) == (2, 1)
+        assert counter.count == 2
+
+    def test_keyword_array_shape_change_records_cache_miss(self) -> None:
+        profiler = CompilationProfiler()
+        counter = TraceCounter()
+        fn = profiler.profile_jit_compilation(
+            counter.wrap(lambda x, *, mask: jnp.where(mask, x, 0.0))
+        )
+
+        fn(jnp.ones((4,)), mask=jnp.array(True))
+        fn(jnp.ones((4,)), mask=jnp.ones((4,), dtype=bool))
+
+        result = profiler.get_result()
+        assert (result.cache_misses, result.cache_hits) == (2, 0)
+        assert counter.count == 2
+
+    def test_static_argnums_and_static_argnames_supported(self) -> None:
+        profiler = CompilationProfiler()
+
+        def reduce_op(x: jax.Array, power: int, *, mode: str = "sum") -> jax.Array:
+            powered = x**power
+            return jnp.sum(powered) if mode == "sum" else jnp.mean(powered)
+
+        wrapped = profiler.profile_jit_compilation(
+            reduce_op, static_argnums=(1,), static_argnames=("mode",)
+        )
+        assert float(wrapped(jnp.ones((4,)), 2, mode="sum")) == 4.0
+        assert float(wrapped(jnp.ones((4,)), 2, mode="sum")) == 4.0
+        assert float(wrapped(jnp.ones((4,)), 2, mode="mean")) == 1.0
+        assert (profiler.get_result().cache_misses, profiler.get_result().cache_hits) == (2, 1)
+
+        xla = profiler.estimate_xla_optimization(
+            reduce_op,
+            jnp.ones((16,)),
+            2,
+            mode="sum",
+            static_argnums=(1,),
+            static_argnames=("mode",),
+        )
+        assert xla.total_kernels > 0
+        assert xla.fused_kernels >= 0
+        restored = XLAOptimizationResult.from_dict(xla.to_dict())
+        assert restored.total_kernels == xla.total_kernels
+        assert restored.fused_kernels == xla.fused_kernels
+        assert restored.fusion_ratio == xla.fusion_ratio
+        assert restored.optimization_score == xla.optimization_score
+        assert restored.recommendations == xla.recommendations
+
+    def test_stateful_nnx_module_profiles_and_estimates_xla_cleanly(self) -> None:
+        block = _StatefulBlock(8, rngs=nnx.Rngs(0))
+        assert block.dropout.rngs is not None
+        bn_before = jnp.array(block.bn.mean[...])
+        rng_before = int(block.dropout.rngs.count[...])
+
+        profiler = CompilationProfiler()
+        xla = profiler.estimate_xla_optimization(block, jnp.ones((4, 8)))
+        assert xla.total_kernels > 0
+        # Static XLA analysis must not mutate live module state.
+        assert bool(jnp.array_equal(bn_before, block.bn.mean[...]))
+        assert int(block.dropout.rngs.count[...]) == rng_before
+
+        wrapped = profiler.profile_jit_compilation(block)
+        out1 = wrapped(jnp.ones((4, 8)))
+        out2 = wrapped(jnp.ones((4, 8)))
+        out3 = wrapped(jnp.ones((8, 8)))
+        assert out1.shape == (4, 8)
+        assert out2.shape == (4, 8)
+        assert out3.shape == (8, 8)
+        assert (profiler.get_result().cache_misses, profiler.get_result().cache_hits) == (2, 1)

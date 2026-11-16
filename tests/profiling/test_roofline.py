@@ -12,6 +12,7 @@ from typing import Any
 import jax
 import jax.numpy as jnp
 import pytest
+from flax import nnx
 
 from calibrax.profiling.flops import cost_mapping, FlopsCounter, FlopsUnavailableError
 from calibrax.profiling.hardware import detect_hardware_specs, HardwareSpec
@@ -238,6 +239,27 @@ class TestRooflineAnalyzer:
         # 16 input bytes; outputs 16 + 8 + 8 bytes.
         assert analyzer._estimate_memory_traffic(split, [x]) == 16 + 16 + 8 + 8
         assert calls == [1]  # traced once by eval_shape, never executed eagerly
+
+    def test_pytree_inputs_and_stateful_nnx_module_supported(self) -> None:
+        class StatefulOp(nnx.Module):
+            def __init__(self, features: int, *, rngs: nnx.Rngs) -> None:
+                self.linear = nnx.Linear(features, features, rngs=rngs)
+                self.bn = nnx.BatchNorm(features, use_running_average=False, rngs=rngs)
+
+            def __call__(self, batch: dict[str, jax.Array]) -> jax.Array:
+                return self.bn(self.linear(batch["x"] + batch["y"]))
+
+        op = StatefulOp(7, rngs=nnx.Rngs(0))
+        bn_before = jnp.array(op.bn.mean[...])
+        batch = {"x": jnp.ones((4, 7), jnp.float32), "y": jnp.ones((4, 7), jnp.float32)}
+        analyzer = RooflineAnalyzer(hardware_specs=SPEC)
+
+        traffic = analyzer._estimate_memory_traffic(op, [batch])
+        assert traffic >= 3 * 4 * 7 * 4
+        result = analyzer.analyze_operation(op, [batch])
+        assert result.execution_time_ms > 0
+        assert any("Poor tensor alignment" in rec for rec in result.recommendations)
+        assert bool(jnp.array_equal(bn_before, op.bn.mean[...]))
 
     def test_a_zero_flop_override_is_used(self) -> None:
         analyzer = RooflineAnalyzer(hardware_specs=SPEC)

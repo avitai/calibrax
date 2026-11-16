@@ -13,6 +13,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import pytest
+from flax import nnx
 
 from calibrax.profiling.timing import compare_calls, time_calls, TimingCollector
 from calibrax.profiling.timing_records import CallComparison, CallTiming, TimingSample
@@ -458,6 +459,28 @@ class TestCompilationTime:
         mock_jitted.lower.assert_called_once_with("dummy_arg")
         mock_lowered.compile.assert_called_once()
         assert comp_time >= 0
+
+    def test_measure_compilation_time_supports_static_args_kwargs_and_stateful_nnx(self) -> None:
+        class StatefulBlock(nnx.Module):
+            def __init__(self, features: int, *, rngs: nnx.Rngs) -> None:
+                self.linear = nnx.Linear(features, features, rngs=rngs)
+                self.bn = nnx.BatchNorm(features, use_running_average=False, rngs=rngs)
+
+            def __call__(self, x: jax.Array, *, mode: str = "id") -> jax.Array:
+                out = self.bn(self.linear(x))
+                return out if mode == "id" else out * 2.0
+
+        block = StatefulBlock(4, rngs=nnx.Rngs(0))
+        bn_before = jnp.array(block.bn.mean[...])
+        collector = TimingCollector()
+        comp_sec = collector.measure_compilation_time(
+            block,
+            jnp.ones((2, 4)),
+            mode="scale",
+            static_argnames=("mode",),
+        )
+        assert comp_sec > 0.0
+        assert bool(jnp.array_equal(bn_before, block.bn.mean[...]))
 
 
 class TestTimeCalls:

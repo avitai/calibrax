@@ -11,13 +11,14 @@ Supports warm-up iteration exclusion and JIT compilation time measurement.
 from __future__ import annotations
 
 import time
-from collections.abc import Callable, Iterator, Sequence
+from collections.abc import Callable, Iterable, Iterator, Sequence
 
 import numpy as np
 from jax import block_until_ready, jit
 from scipy.stats import wilcoxon
 from substrax.typing import PyTree
 
+from calibrax.profiling._jax_staging import lower_staged
 from calibrax.profiling.timing_records import CallComparison, CallTiming, TimingSample
 
 
@@ -143,21 +144,35 @@ class TimingCollector:
         self,
         fn: Callable[..., PyTree],
         *args: PyTree,
+        static_argnums: int | Iterable[int] = (),
+        static_argnames: str | Iterable[str] = (),
+        **kwargs: PyTree,
     ) -> float:
-        """Measure JIT compilation time for a JAX function.
+        """Measure JIT compilation time for a JAX function or ``nnx.Module``.
 
-        Calls ``jax.jit(fn).lower(*args).compile()`` and times it.
-        This measures the XLA compilation step only, not execution.
+        Lowers and compiles ``fn`` without executing eager mutations on live ``nnx.Module``
+        state, timing the lowering and XLA compilation step only.
 
         Args:
-            fn: JAX function to compile.
-            *args: Example arguments for lowering.
+            fn: JAX function, ``nnx.Module``, or bound ``nnx.Module`` method to compile.
+            *args: Example positional arguments for lowering.
+            static_argnums: Positional argument indices treated as static at trace time.
+            static_argnames: Keyword argument names treated as static at trace time.
+            **kwargs: Example keyword arguments for lowering.
 
         Returns:
             Compilation time in seconds.
         """
         start = time.perf_counter()
-        jit(fn).lower(*args).compile()
+        lowered, _ = lower_staged(
+            fn,
+            args,
+            kwargs,
+            static_argnums=static_argnums,
+            static_argnames=static_argnames,
+            jit_fn=jit,
+        )
+        lowered.compile()
         end = time.perf_counter()
         return end - start
 

@@ -6,17 +6,26 @@ effectiveness, and provides recommendations for compilation optimization.
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import re
 import time
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
+from typing import Any
 
 import jax
-import numpy as np
 from substrax.records import read_record
 from substrax.typing import JsonValue, PyTree
+
+from calibrax.profiling._jax_staging import (
+    call_signature_digest,
+    compile_callable,
+    contains_nnx_graph_node,
+    lower_staged,
+    normalize_static_argnames,
+    normalize_static_argnums,
+    unbind_nnx_call,
+)
 
 
 # Thresholds behind the recommendations and the health level.
@@ -44,8 +53,16 @@ try:
 except AttributeError:
     _JAX_RUNTIME_ERROR = RuntimeError
 
+try:
+    import flax.errors as _flax_errors
+
+    _FLAX_TRACE_ERROR: type[BaseException] = _flax_errors.TraceContextError
+except Exception:  # pragma: no cover - defensive import fallback
+    _FLAX_TRACE_ERROR = RuntimeError
+
 _RECOVERABLE_COMPILATION_ERRORS = (
     _JAX_RUNTIME_ERROR,
+    _FLAX_TRACE_ERROR,
     AttributeError,
     OSError,
     RuntimeError,
@@ -174,6 +191,7 @@ class XLAOptimizationResult:
         arithmetic_ratio: Fraction of arithmetic operations.
         memory_ratio: Fraction of memory operations.
         total_kernels: Total number of HLO kernels.
+        fused_kernels: Number of fused HLO kernels.
         recommendations: Optimization recommendations.
     """
 
@@ -182,6 +200,7 @@ class XLAOptimizationResult:
     arithmetic_ratio: float
     memory_ratio: float
     total_kernels: int
+    fused_kernels: int = 0
     recommendations: tuple[str, ...] = ()
 
     def to_dict(self) -> dict[str, JsonValue]:
@@ -192,6 +211,7 @@ class XLAOptimizationResult:
             "arithmetic_ratio": float(self.arithmetic_ratio),
             "memory_ratio": float(self.memory_ratio),
             "total_kernels": int(self.total_kernels),
+            "fused_kernels": int(self.fused_kernels),
             "recommendations": list(self.recommendations),
         }
 
@@ -233,47 +253,71 @@ class CompilationProfiler:
         self._generation = 0
         self._wrapper_count = 0
 
-    def profile_jit_compilation[**P, R](self, func: Callable[P, R]) -> Callable[P, R]:
+    def profile_jit_compilation[**P, R](
+        self,
+        func: Callable[P, R],
+        *,
+        static_argnums: int | Iterable[int] = (),
+        static_argnames: str | Iterable[str] = (),
+    ) -> Callable[P, R]:
         """Create an instrumented wrapper that profiles JIT compilation.
 
-        The returned callable jits ``func`` once per input signature (shapes, dtypes and static
-        keywords), counts cache hits and misses and compilation times, and waits for every
-        result. Each wrapper keeps its own compiled functions, so two functions never share
-        one, whatever they are named.
+        The returned callable jits ``func`` once per input signature (PyTree structure, leaf
+        shapes/dtypes, and static positional/keyword arguments), counts cache hits and misses
+        and compilation times, and waits for every result. Supports pure JAX callables as well
+        as stateful ``flax.nnx.Module`` instances and bound methods.
 
         Args:
-            func: JAX function to instrument.
+            func: JAX function, ``nnx.Module``, or bound ``nnx.Module`` method to instrument.
+            static_argnums: Positional argument indices treated as static at trace time.
+            static_argnames: Keyword argument names treated as static at trace time.
 
         Returns:
             Instrumented function with the same signature.
         """
         wrapper_id = self._wrapper_count
         self._wrapper_count += 1
-        compiled: dict[str, tuple[int, Callable[P, R]]] = {}
+        norm_nums = normalize_static_argnums(static_argnums)
+        norm_names = normalize_static_argnames(static_argnames)
+        compiled: dict[str, tuple[int, Callable[..., Any]]] = {}
 
         def instrumented_func(*args: P.args, **kwargs: P.kwargs) -> R:
-            signature = f"{wrapper_id}:{_input_signature(args, kwargs)}"
+            target, full_args, full_kwargs, shifted_nums, was_unbound = unbind_nnx_call(
+                func, args, kwargs, norm_nums
+            )
+            use_nnx = was_unbound or contains_nnx_graph_node((full_args, full_kwargs))
+            signature = (
+                f"{wrapper_id}:"
+                f"{_input_signature(full_args, full_kwargs, static_argnums=shifted_nums, static_argnames=norm_names)}"
+            )
             cached = compiled.get(signature)
             if cached is not None and cached[0] == self._generation:
                 self._cache_hit_count += 1
-                result = cached[1](*args, **kwargs)
-            else:
-                compilation_start = time.perf_counter()
-                jitted: Callable[P, R] = jax.jit(func)
-                try:
-                    result = jax.block_until_ready(jitted(*args, **kwargs))
-                except _RECOVERABLE_COMPILATION_ERRORS:
-                    logger.warning(
-                        "Compilation failed after %.3fs for signature %s",
-                        time.perf_counter() - compilation_start,
-                        signature[:16],
-                    )
-                    raise
-                self._compilation_times.append(time.perf_counter() - compilation_start)
-                self._cache_miss_count += 1
-                self._signatures.add(signature)
-                compiled[signature] = (self._generation, jitted)
-            return jax.block_until_ready(result)
+                result = cached[1](*full_args, **full_kwargs)
+                return jax.block_until_ready(result)
+
+            compilation_start = time.perf_counter()
+            jitted = compile_callable(
+                target,
+                use_nnx=use_nnx,
+                static_argnums=shifted_nums,
+                static_argnames=norm_names,
+                jit_fn=jax.jit,
+            )
+            try:
+                result = jax.block_until_ready(jitted(*full_args, **full_kwargs))
+            except _RECOVERABLE_COMPILATION_ERRORS:
+                logger.warning(
+                    "Compilation failed after %.3fs for signature %s",
+                    time.perf_counter() - compilation_start,
+                    signature[:16],
+                )
+                raise
+            self._compilation_times.append(time.perf_counter() - compilation_start)
+            self._cache_miss_count += 1
+            self._signatures.add(signature)
+            compiled[signature] = (self._generation, jitted)
+            return result
 
         return instrumented_func
 
@@ -312,20 +356,34 @@ class CompilationProfiler:
         )
 
     def estimate_xla_optimization(
-        self, func: Callable[..., PyTree], *sample_args: PyTree
+        self,
+        func: Callable[..., PyTree],
+        *sample_args: PyTree,
+        static_argnums: int | Iterable[int] = (),
+        static_argnames: str | Iterable[str] = (),
+        **sample_kwargs: PyTree,
     ) -> XLAOptimizationResult:
         """Estimate XLA optimization effectiveness by analyzing HLO text.
 
         Args:
-            func: JAX function to analyze.
-            *sample_args: Example arguments for lowering/compiling.
+            func: JAX function, ``nnx.Module``, or bound ``nnx.Module`` method to analyze.
+            *sample_args: Example positional arguments for lowering/compiling.
+            static_argnums: Positional argument indices treated as static at trace time.
+            static_argnames: Keyword argument names treated as static at trace time.
+            **sample_kwargs: Example keyword arguments for lowering/compiling.
 
         Returns:
             XLAOptimizationResult with HLO analysis metrics.
         """
         try:
-            jit_func = jax.jit(func)
-            lowered = jit_func.lower(*sample_args)
+            lowered, _ = lower_staged(
+                func,
+                sample_args,
+                sample_kwargs,
+                static_argnums=static_argnums,
+                static_argnames=static_argnames,
+                jit_fn=jax.jit,
+            )
             hlo_text = lowered.compile().as_text() or ""
             return self._analyze_hlo(hlo_text)
         except _RECOVERABLE_COMPILATION_ERRORS as e:
@@ -336,6 +394,7 @@ class CompilationProfiler:
                 arithmetic_ratio=0.0,
                 memory_ratio=0.0,
                 total_kernels=0,
+                fused_kernels=0,
                 recommendations=("Unable to analyze XLA optimizations.",),
             )
 
@@ -457,6 +516,7 @@ class CompilationProfiler:
             arithmetic_ratio=arithmetic_ratio,
             memory_ratio=memory_ratio,
             total_kernels=total_kernels,
+            fused_kernels=fused_kernels,
             recommendations=tuple(recommendations),
         )
 
@@ -524,26 +584,27 @@ class CompilationProfiler:
         return recommendations
 
 
-def _input_signature(args: tuple[object, ...], kwargs: Mapping[str, object]) -> str:
-    """A digest of the call's input shapes, dtypes and static keywords.
-
-    Array arguments contribute their shape and dtype; other positional arguments their type;
-    keyword arguments that are not arrays their value, since ``jax.jit`` retraces on them.
+def _input_signature(
+    args: tuple[object, ...],
+    kwargs: Mapping[str, object],
+    *,
+    static_argnums: tuple[int, ...] = (),
+    static_argnames: tuple[str, ...] = (),
+) -> str:
+    """A digest of the call's PyTree structure, leaf shapes/dtypes, and static arguments.
 
     Args:
         args: Positional arguments.
         kwargs: Keyword arguments.
+        static_argnums: Static positional argument indices.
+        static_argnames: Static keyword argument names.
 
     Returns:
         MD5 hex digest of the signature.
     """
-    parts = [
-        f"{arg.shape}:{arg.dtype}"
-        if isinstance(arg, jax.Array | np.ndarray)
-        else type(arg).__name__
-        for arg in args
-    ]
-    static_kwargs = {k: v for k, v in kwargs.items() if not isinstance(v, jax.Array | np.ndarray)}
-    return hashlib.md5(
-        f"({','.join(parts)}){static_kwargs}".encode(), usedforsecurity=False
-    ).hexdigest()
+    return call_signature_digest(
+        args,
+        kwargs,
+        static_argnums=static_argnums,
+        static_argnames=static_argnames,
+    )

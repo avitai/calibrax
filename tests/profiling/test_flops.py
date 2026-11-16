@@ -47,6 +47,16 @@ class TestFlopsResult:
         with pytest.raises(dataclasses.FrozenInstanceError):
             result.total_flops = 1  # type: ignore[misc]
 
+    def test_to_dict_from_dict_round_trip(self) -> None:
+        original = FlopsResult(
+            total_flops=256, transcendentals=16, bytes_accessed=1024, function_name="kernel"
+        )
+        restored = FlopsResult.from_dict(original.to_dict())
+        assert restored.total_flops == original.total_flops
+        assert restored.transcendentals == original.transcendentals
+        assert restored.bytes_accessed == original.bytes_accessed
+        assert restored.function_name == original.function_name
+
 
 class TestIdentities:
     """Counts follow the arithmetic identities of XLA's cost analysis."""
@@ -193,6 +203,56 @@ class TestNesting:
         result = FlopsCounter().count(step, state, jnp.ones((8, 16)), jax.random.key(0))
         assert result.total_flops > 2 * 8 * 16 * 32
         assert result.transcendentals > 0
+
+    def test_keyword_arguments_and_static_argnames(self) -> None:
+        def weighted(x: jax.Array, *, weights: jax.Array, mode: str = "sum") -> jax.Array:
+            prod = x * weights
+            return jnp.sum(prod) if mode == "sum" else prod
+
+        summed = FlopsCounter().count(
+            weighted,
+            jnp.ones((6,)),
+            weights=jnp.ones((6,)),
+            mode="sum",
+            static_argnames=("mode",),
+        )
+        unreduced = FlopsCounter().count(
+            weighted,
+            jnp.ones((6,)),
+            weights=jnp.ones((6,)),
+            mode="none",
+            static_argnames=("mode",),
+        )
+        assert unreduced.total_flops == 6
+        assert summed.total_flops == 6 + 5
+
+    def test_stateful_nnx_module_and_bound_method_without_mutating_state(self) -> None:
+        class StatefulBlock(nnx.Module):
+            def __init__(self, features: int, *, rngs: nnx.Rngs) -> None:
+                self.linear = nnx.Linear(features, features, rngs=rngs)
+                self.bn = nnx.BatchNorm(features, use_running_average=False, rngs=rngs)
+                self.dropout = nnx.Dropout(0.1, deterministic=False, rngs=rngs)
+
+            def __call__(self, x: jax.Array) -> jax.Array:
+                return self.dropout(self.bn(self.linear(x)))
+
+            def project(self, x: jax.Array, *, scale: float = 1.0) -> jax.Array:
+                return self.bn(self.linear(x)) * scale
+
+        block = StatefulBlock(8, rngs=nnx.Rngs(0))
+        assert block.dropout.rngs is not None
+        bn_before = jnp.array(block.bn.mean[...])
+        rng_before = int(block.dropout.rngs.count[...])
+
+        mod_res = FlopsCounter().count(block, jnp.ones((4, 8)))
+        meth_res = FlopsCounter().count(block.project, jnp.ones((4, 8)), scale=2.0)
+
+        assert mod_res.total_flops >= 2 * 4 * 8 * 8
+        assert mod_res.function_name == "StatefulBlock"
+        assert meth_res.total_flops >= 2 * 4 * 8 * 8
+        assert meth_res.function_name == "project"
+        assert bool(jnp.array_equal(bn_before, block.bn.mean[...]))
+        assert int(block.dropout.rngs.count[...]) == rng_before
 
 
 class TestUnavailable:

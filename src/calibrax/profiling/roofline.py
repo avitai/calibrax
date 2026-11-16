@@ -7,8 +7,7 @@ and generates optimization recommendations.
 
 from __future__ import annotations
 
-import math
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 
 import jax
@@ -16,6 +15,16 @@ from substrax.devices import detect_devices
 from substrax.records import read_record
 from substrax.typing import JsonValue, PyTree
 
+from calibrax.profiling._jax_staging import (
+    contains_nnx_graph_node,
+    lower_staged,
+    normalize_static_argnames,
+    normalize_static_argnums,
+    prepare_kernel_invocation,
+    Shaped,
+    shaped_nbytes,
+    unbind_nnx_call,
+)
 from calibrax.profiling.flops import FlopsCounter
 from calibrax.profiling.hardware import detect_hardware_specs, HardwareSpec, UnknownHardwareError
 from calibrax.profiling.timing import time_calls
@@ -100,16 +109,22 @@ class RooflineAnalyzer:
     def analyze_operation(  # noqa: DOC503  # FlopsUnavailableError is raised by FlopsCounter
         self,
         func: Callable[..., PyTree],
-        inputs: Sequence[jax.Array],
+        inputs: Sequence[PyTree],
         *,
         flops_override: int | None = None,
+        static_argnums: int | Iterable[int] = (),
+        static_argnames: str | Iterable[str] = (),
+        **kwargs: PyTree,
     ) -> RooflineResult:
-        """Perform roofline analysis on a JAX operation.
+        """Perform roofline analysis on a JAX operation or ``flax.nnx.Module``.
 
         Args:
-            func: JAX function to analyze.
-            inputs: Input arrays for the function.
+            func: JAX function, ``nnx.Module``, or bound ``nnx.Module`` method to analyze.
+            inputs: Positional input arrays or PyTrees for the function.
             flops_override: The operation's FLOP count, used in place of XLA's estimate.
+            static_argnums: Positional argument indices treated as static at trace time.
+            static_argnames: Keyword argument names treated as static at trace time.
+            **kwargs: Keyword arguments forwarded to ``func``.
 
         Returns:
             RooflineResult with bottleneck classification and recommendations.
@@ -128,11 +143,35 @@ class RooflineAnalyzer:
                 "its ceilings, or a HardwareSpec with its peak FLOP/s and memory bandwidth"
             )
             raise UnknownHardwareError(msg)
-        compiled = jax.jit(func)
-        execution_time = time_calls(lambda: compiled(*inputs)).median_sec
-        counted = FlopsCounter().count(func, *inputs, optimized=True)
+
+        norm_nums = normalize_static_argnums(static_argnums)
+        norm_names = normalize_static_argnames(static_argnames)
+        pos_args = tuple(inputs)
+        invoke_kernel = prepare_kernel_invocation(
+            func,
+            pos_args,
+            kwargs,
+            static_argnums=norm_nums,
+            static_argnames=norm_names,
+            jit_fn=jax.jit,
+        )
+        execution_time = time_calls(invoke_kernel).median_sec
+        counted = FlopsCounter().count(
+            func,
+            *pos_args,
+            static_argnums=norm_nums,
+            static_argnames=norm_names,
+            optimized=True,
+            **kwargs,
+        )
         theoretical_flops = flops_override if flops_override is not None else counted.total_flops
-        memory_traffic = counted.bytes_accessed or self._estimate_memory_traffic(func, inputs)
+        memory_traffic = counted.bytes_accessed or self._estimate_memory_traffic(
+            func,
+            inputs,
+            static_argnums=norm_nums,
+            static_argnames=norm_names,
+            **kwargs,
+        )
 
         achieved_flops = theoretical_flops / execution_time if execution_time > 0 else 0.0
         memory_bw = memory_traffic / execution_time if execution_time > 0 else 0.0
@@ -168,25 +207,61 @@ class RooflineAnalyzer:
         )
 
     def _estimate_memory_traffic(
-        self, func: Callable[..., PyTree], inputs: Sequence[jax.Array]
+        self,
+        func: Callable[..., PyTree],
+        inputs: Sequence[PyTree],
+        *,
+        static_argnums: int | Iterable[int] = (),
+        static_argnames: str | Iterable[str] = (),
+        **kwargs: PyTree,
     ) -> int:
-        """The bytes read and written, when XLA reports none: inputs and outputs once.
+        """The bytes read and written, when XLA reports none: input and output leaves once.
 
         XLA's ``bytes accessed`` is what ``analyze_operation`` uses; it counts the
-        intermediates materialised between kernels, which this lower bound does not. The
-        outputs' shapes come from ``jax.eval_shape``, which traces the function without
-        running it.
+        intermediates materialised between kernels, which this lower bound does not.
 
         Args:
-            func: JAX function.
-            inputs: Input arrays.
+            func: JAX function or ``nnx.Module``.
+            inputs: Positional input arrays or PyTrees.
+            static_argnums: Positional argument indices treated as static at trace time.
+            static_argnames: Keyword argument names treated as static at trace time.
+            **kwargs: Keyword arguments forwarded to ``func``.
 
         Returns:
-            Input bytes plus output bytes.
+            Input bytes plus output bytes across all shaped leaves.
         """
-        outputs = jax.tree.leaves(jax.eval_shape(func, *inputs))
-        output_bytes = sum(math.prod(leaf.shape) * leaf.dtype.itemsize for leaf in outputs)
-        return sum(x.nbytes for x in inputs) + output_bytes
+        pos_args = tuple(inputs)
+        _, _, _, _, was_unbound = unbind_nnx_call(func, pos_args, kwargs)
+        if not was_unbound and not contains_nnx_graph_node((pos_args, kwargs)) and not kwargs:
+            norm_nums = normalize_static_argnums(static_argnums)
+            norm_names = normalize_static_argnames(static_argnames)
+            if not norm_nums and not norm_names:
+                out_info: object = jax.eval_shape(func, *pos_args)
+            else:
+                _, out_info = lower_staged(
+                    func,
+                    pos_args,
+                    kwargs,
+                    static_argnums=norm_nums,
+                    static_argnames=norm_names,
+                    abstract_inputs=True,
+                )
+        else:
+            _, out_info = lower_staged(
+                func,
+                pos_args,
+                kwargs,
+                static_argnums=static_argnums,
+                static_argnames=static_argnames,
+                abstract_inputs=True,
+            )
+        outputs = [leaf for leaf in jax.tree.leaves(out_info) if isinstance(leaf, Shaped)]
+        output_bytes = sum(shaped_nbytes(leaf) for leaf in outputs)
+        input_leaves = [
+            leaf for leaf in jax.tree.leaves((pos_args, kwargs)) if isinstance(leaf, Shaped)
+        ]
+        input_bytes = sum(shaped_nbytes(leaf) for leaf in input_leaves)
+        return input_bytes + output_bytes
 
 
 def _recommendations(
@@ -194,7 +269,7 @@ def _recommendations(
     arithmetic_intensity: float,
     efficiency: float,
     bottleneck: str,
-    inputs: Sequence[jax.Array],
+    inputs: Sequence[PyTree],
     achieved_flops: float,
 ) -> list[str]:
     """Generate optimization recommendations based on roofline analysis.
@@ -204,7 +279,7 @@ def _recommendations(
         arithmetic_intensity: Achieved FLOPs per byte.
         efficiency: Utilization of the binding resource.
         bottleneck: "memory_bandwidth" or "compute".
-        inputs: Input arrays.
+        inputs: Input arrays or PyTrees.
         achieved_flops: Achieved FLOP/s.
 
     Returns:
@@ -258,8 +333,9 @@ def _recommendations(
             ]
         )
 
-    if inputs:
-        alignment_score = _calculate_alignment_score(inputs[0].shape)
+    shaped_inputs = [leaf for leaf in jax.tree.leaves(inputs) if isinstance(leaf, Shaped)]
+    if shaped_inputs:
+        alignment_score = _calculate_alignment_score(shaped_inputs[0].shape)
         if alignment_score < 1.0:
             recommendations.append(
                 f"Poor tensor alignment (score: {alignment_score:.2f}). "

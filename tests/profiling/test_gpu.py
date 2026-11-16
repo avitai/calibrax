@@ -7,6 +7,8 @@ import dataclasses
 from collections.abc import Mapping
 from unittest.mock import MagicMock, patch
 
+import jax
+import jax.numpy as jnp
 import pytest
 
 from calibrax.profiling.gpu import (
@@ -161,6 +163,18 @@ class TestMemoryOptimizer:
             sample_data=None,
         )
         assert isinstance(result, MemoryAnalysis)
+
+    def test_analyze_pipeline_waits_for_jax_output_before_reading_peak(self) -> None:
+        optimizer = MemoryOptimizer()
+        with patch(
+            "calibrax.profiling.gpu.jax.block_until_ready", wraps=jax.block_until_ready
+        ) as wait:
+            analysis = optimizer.analyze_pipeline_memory(
+                lambda x: x + 1.0,
+                sample_data=jnp.ones((16,)),
+            )
+        assert isinstance(analysis, MemoryAnalysis)
+        assert wait.call_count == 1
 
     def test_analyze_pipeline_exception_returns_error(self) -> None:
         optimizer = MemoryOptimizer()

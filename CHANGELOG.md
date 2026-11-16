@@ -12,8 +12,23 @@ and uses semantic versioning while the public API stabilizes.
 - `compare_calls` and `CallComparison` in `calibrax.profiling` for counterbalanced ABBA paired
   microbenchmarking with `jax.block_until_ready` synchronization, per-round paired differences,
   speedup ratio, and exact two-sided sign-flip randomization p-values, plus `CallTiming.from_dict`.
+- `FlopsResult.to_dict` and `FlopsResult.from_dict`, `XLAOptimizationResult.fused_kernels`, and
+  `static_argnums`, `static_argnames`, and keyword-argument support across `FlopsCounter.count`,
+  `CompilationProfiler`, `RooflineAnalyzer.analyze_operation`, and
+  `TimingCollector.measure_compilation_time`.
 
 ### Fixed
+
+- `CompilationProfiler._input_signature` hashes full PyTree structure and dynamic leaf `(shape,
+  dtype)` across positional and keyword arguments (plus NNX graph state), fixing false cache-hit
+  counts when PyTree leaves or keyword arrays change shape or dtype.
+- `FlopsCounter`, `CompilationProfiler`, `RooflineAnalyzer`, and
+  `TimingCollector.measure_compilation_time` stage stateful `flax.nnx.Module` instances and bound
+  methods without raising `TraceContextError` or mutating live module variables during static
+  lowering, and `RooflineAnalyzer` traverses nested PyTree inputs cleanly.
+- `MemoryOptimizer.analyze_pipeline_memory` waits for asynchronous JAX outputs with
+  `jax.block_until_ready` before sampling peak RSS and releases the result before post-GC
+  measurement.
 
 - Unweighted `pearson_correlation` guards both sum-of-squares roots with `safe_root`, matching
   `_weighted_pearson` so differentiating at a constant input returns finite values rather than
