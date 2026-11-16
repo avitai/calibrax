@@ -59,13 +59,13 @@ version = "0.1.19"
 
 [project.optional-dependencies]
 all = [
-  "calibrax[changepoint,codecarbon,cuda12,dev,docs,image,mlflow,performance,publication,scientific,test,text,wandb]"
+  "calibrax[changepoint,codecarbon,cuda12,dev,docs,image,mlflow,performance,publication,test,text,wandb]"
 ]
 all-cpu = [
-  "calibrax[changepoint,codecarbon,dev,docs,image,mlflow,performance,publication,scientific,test,text,wandb]"
+  "calibrax[changepoint,codecarbon,dev,docs,image,mlflow,performance,publication,test,text,wandb]"
 ]
 all-macos = [
-  "calibrax[changepoint,codecarbon,dev,docs,image,metal,mlflow,performance,publication,scientific,test,text,wandb]"
+  "calibrax[changepoint,codecarbon,dev,docs,image,metal,mlflow,performance,publication,test,text,wandb]"
 ]
 changepoint = [
   "ruptures>=1.1"
@@ -154,8 +154,6 @@ performance = [
 ]
 publication = [
   "matplotlib>=3.8"
-]
-scientific = [
 ]
 test = [
   "beartype>=0.14.1",

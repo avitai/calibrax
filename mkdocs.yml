@@ -209,7 +209,6 @@ nav:
           - Wrappers: api-reference/metrics/wrappers.md
           - Stateful: api-reference/metrics/stateful.md
           - Learning: api-reference/metrics/learning.md
-          - Scientific: api-reference/metrics/scientific.md
       - CI: api-reference/ci.md
   - Examples:
       - Overview: examples.md

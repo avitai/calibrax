@@ -695,9 +695,9 @@ requires-dist = [
     { name = "bandit", extras = ["toml"], marker = "extra == 'dev'", specifier = ">=1.8.6" },
     { name = "beartype", marker = "extra == 'test'", specifier = ">=0.14.1" },
     { name = "build", marker = "extra == 'dev'", specifier = ">=1.0.3" },
-    { name = "calibrax", extras = ["changepoint", "codecarbon", "cuda12", "dev", "docs", "image", "mlflow", "performance", "publication", "scientific", "test", "text", "wandb"], marker = "extra == 'all'" },
-    { name = "calibrax", extras = ["changepoint", "codecarbon", "dev", "docs", "image", "metal", "mlflow", "performance", "publication", "scientific", "test", "text", "wandb"], marker = "extra == 'all-macos'" },
-    { name = "calibrax", extras = ["changepoint", "codecarbon", "dev", "docs", "image", "mlflow", "performance", "publication", "scientific", "test", "text", "wandb"], marker = "extra == 'all-cpu'" },
+    { name = "calibrax", extras = ["changepoint", "codecarbon", "cuda12", "dev", "docs", "image", "mlflow", "performance", "publication", "test", "text", "wandb"], marker = "extra == 'all'" },
+    { name = "calibrax", extras = ["changepoint", "codecarbon", "dev", "docs", "image", "metal", "mlflow", "performance", "publication", "test", "text", "wandb"], marker = "extra == 'all-macos'" },
+    { name = "calibrax", extras = ["changepoint", "codecarbon", "dev", "docs", "image", "mlflow", "performance", "publication", "test", "text", "wandb"], marker = "extra == 'all-cpu'" },
     { name = "calibrax", extras = ["cuda12", "dev"], marker = "extra == 'cuda-dev'" },
     { name = "click", specifier = ">=8.0" },
     { name = "codecarbon", marker = "extra == 'codecarbon'", specifier = ">=2.0" },
@@ -781,7 +781,7 @@ requires-dist = [
     { name = "wandb", marker = "extra == 'test'", specifier = ">=0.18" },
     { name = "wandb", marker = "extra == 'wandb'", specifier = ">=0.18" },
 ]
-provides-extras = ["all", "all-cpu", "all-macos", "changepoint", "codecarbon", "cuda-dev", "cuda12", "dev", "docs", "image", "metal", "mlflow", "performance", "publication", "scientific", "test", "text", "wandb"]
+provides-extras = ["all", "all-cpu", "all-macos", "changepoint", "codecarbon", "cuda-dev", "cuda12", "dev", "docs", "image", "metal", "mlflow", "performance", "publication", "test", "text", "wandb"]
 
 [[package]]
 name = "cbor2"
