@@ -11,8 +11,8 @@ warm-up iteration exclusion and JIT compilation time measurement.
 
 ## calibrax.profiling.timing_records
 
-`TimingSample` and `CallTiming`, the records the collector and `time_calls` return. They
-import without JAX, so reading a stored result does not load it.
+`TimingSample`, `CallTiming`, and `CallComparison`, the records the collector, `time_calls`,
+and `compare_calls` return. They import without JAX, so reading a stored result does not load it.
 
 ::: calibrax.profiling.timing_records
     options:

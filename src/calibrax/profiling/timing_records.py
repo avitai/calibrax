@@ -1,4 +1,4 @@
-"""Timing records: what ``TimingCollector`` and ``time_calls`` measure.
+"""Timing records: what ``TimingCollector``, ``time_calls`` and ``compare_calls`` measure.
 
 The records import without JAX, so reading a stored result does not load it.
 """
@@ -91,3 +91,88 @@ class CallTiming:
             "percentiles_sec": {str(k): float(v) for k, v in self.percentiles_sec.items()},
             "warmup": int(self.warmup),
         }
+
+    @classmethod
+    def from_dict(  # noqa: DOC502  # raised by read_record
+        cls, data: Mapping[str, JsonValue]
+    ) -> CallTiming:
+        """Read the record from the JSON object ``to_dict`` writes.
+
+        Args:
+            data: The JSON object.
+
+        Returns:
+            The record.
+
+        Raises:
+            pydantic.ValidationError: If a field is missing or holds a value its annotation
+                does not admit.
+        """
+        return read_record(cls, data)
+
+
+@dataclass(frozen=True, kw_only=True, slots=True)
+class CallComparison:
+    """Counterbalanced ABBA paired comparison of two callables.
+
+    Attributes:
+        baseline_samples_sec: Per-round median seconds of ``baseline``, length ``rounds``.
+        candidate_samples_sec: Per-round median seconds of ``candidate``, length ``rounds``.
+        differences_sec: Paired per-round differences ``candidate - baseline`` in seconds;
+            negative values mean ``candidate`` ran faster than ``baseline``.
+        baseline_median_sec: Median of ``baseline_samples_sec``.
+        candidate_median_sec: Median of ``candidate_samples_sec``.
+        median_difference_sec: Median of ``differences_sec`` (``candidate - baseline``).
+        speedup_ratio: ``baseline_median_sec / candidate_median_sec`` (``> 1.0`` when
+            ``candidate`` is faster).
+        p_value: Two-sided paired randomization p-value testing exchangeability of the two arms.
+        rounds: Counterbalanced rounds measured (even, alternating ``AB`` and ``BA``).
+        calls_per_arm: Synchronized calls executed per arm inside each round.
+        warmup: Alternating warm-up pairs executed and discarded before timing.
+    """
+
+    baseline_samples_sec: tuple[float, ...]
+    candidate_samples_sec: tuple[float, ...]
+    differences_sec: tuple[float, ...]
+    baseline_median_sec: float
+    candidate_median_sec: float
+    median_difference_sec: float
+    speedup_ratio: float
+    p_value: float
+    rounds: int
+    calls_per_arm: int
+    warmup: int
+
+    def to_dict(self) -> dict[str, JsonValue]:
+        """Serialize to a JSON-compatible dictionary."""
+        return {
+            "baseline_samples_sec": [float(v) for v in self.baseline_samples_sec],
+            "candidate_samples_sec": [float(v) for v in self.candidate_samples_sec],
+            "differences_sec": [float(v) for v in self.differences_sec],
+            "baseline_median_sec": float(self.baseline_median_sec),
+            "candidate_median_sec": float(self.candidate_median_sec),
+            "median_difference_sec": float(self.median_difference_sec),
+            "speedup_ratio": float(self.speedup_ratio),
+            "p_value": float(self.p_value),
+            "rounds": int(self.rounds),
+            "calls_per_arm": int(self.calls_per_arm),
+            "warmup": int(self.warmup),
+        }
+
+    @classmethod
+    def from_dict(  # noqa: DOC502  # raised by read_record
+        cls, data: Mapping[str, JsonValue]
+    ) -> CallComparison:
+        """Read the record from the JSON object ``to_dict`` writes.
+
+        Args:
+            data: The JSON object.
+
+        Returns:
+            The record.
+
+        Raises:
+            pydantic.ValidationError: If a field is missing or holds a value its annotation
+                does not admit.
+        """
+        return read_record(cls, data)

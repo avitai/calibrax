@@ -59,6 +59,24 @@ comp_time = collector.measure_compilation_time(
 print(f"Compilation: {comp_time:.3f}s")
 ```
 
+### Counterbalanced Paired Call Comparison
+
+Compare two implementations in one process without sequential thermal or position drift
+using `compare_calls`, which alternates `(baseline, candidate)` and `(candidate, baseline)`
+across paired rounds:
+
+```python
+import jax
+import jax.numpy as jnp
+from calibrax.profiling import compare_calls
+
+x = jnp.ones((256, 256))
+eager_fn = lambda: x + x
+jitted_fn = jax.jit(lambda a: a + a)
+comparison = compare_calls(eager_fn, lambda: jitted_fn(x), warmup=2, rounds=6, calls_per_arm=3)
+print(f"Speedup: {comparison.speedup_ratio:.2f}x (p={comparison.p_value:.3f})")
+```
+
 ### Serialization
 
 `TimingSample` supports `to_dict()` and `from_dict()` for JSON-compatible

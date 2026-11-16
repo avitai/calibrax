@@ -7,6 +7,12 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+### Added
+
+- `compare_calls` and `CallComparison` in `calibrax.profiling` for counterbalanced ABBA paired
+  microbenchmarking with `jax.block_until_ready` synchronization, per-round paired differences,
+  speedup ratio, and exact two-sided sign-flip randomization p-values, plus `CallTiming.from_dict`.
+
 ### Fixed
 
 - Unweighted `pearson_correlation` guards both sum-of-squares roots with `safe_root`, matching

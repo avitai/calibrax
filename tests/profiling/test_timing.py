@@ -6,6 +6,7 @@ warm-up exclusion, compilation time measurement, and edge cases.
 """
 
 import dataclasses
+from collections.abc import Callable
 from unittest.mock import MagicMock, patch
 
 import jax
@@ -13,8 +14,8 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 
-from calibrax.profiling.timing import time_calls, TimingCollector
-from calibrax.profiling.timing_records import CallTiming, TimingSample
+from calibrax.profiling.timing import compare_calls, time_calls, TimingCollector
+from calibrax.profiling.timing_records import CallComparison, CallTiming, TimingSample
 from tests.factories import make_default_timing_sample
 
 
@@ -535,6 +536,171 @@ class TestTimeCalls:
         assert isinstance(percentiles, dict)
         assert all(isinstance(v, float) for v in samples)
         assert all(isinstance(k, str) for k in percentiles)
+
+    def test_to_dict_from_dict_round_trip(self) -> None:
+        timing = time_calls(lambda: jnp.ones((1,)), warmup=1, iterations=3)
+        restored = CallTiming.from_dict(timing.to_dict())
+        assert restored.samples_sec == timing.samples_sec
+        assert restored.median_sec == timing.median_sec
+        assert restored.percentiles_sec == timing.percentiles_sec
+        assert restored.warmup == timing.warmup
+
+
+class TestCompareCalls:
+    """Counterbalanced ABBA paired comparison of two zero-argument callables."""
+
+    def test_executes_warmup_and_counterbalanced_abba_order(self) -> None:
+        events: list[str] = []
+
+        def baseline() -> jax.Array:
+            events.append("A")
+            return jnp.ones((2,))
+
+        def candidate() -> jax.Array:
+            events.append("B")
+            return jnp.ones((2,))
+
+        result = compare_calls(baseline, candidate, warmup=2, rounds=4, calls_per_arm=2)
+
+        assert isinstance(result, CallComparison)
+        expected_warmup = ["A", "B", "A", "B"]
+        expected_rounds = [
+            "A",
+            "A",
+            "B",
+            "B",  # round 0: A then B
+            "B",
+            "B",
+            "A",
+            "A",  # round 1: B then A
+            "A",
+            "A",
+            "B",
+            "B",  # round 2: A then B
+            "B",
+            "B",
+            "A",
+            "A",  # round 3: B then A
+        ]
+        assert events == expected_warmup + expected_rounds
+
+    def test_cancels_second_slot_position_penalty_on_identical_arms(self) -> None:
+        """A pure position effect (+2 ms on the second arm of every pair) cancels to 0."""
+        clock = 0.0
+        timed_call_index = 0
+
+        def fake_perf_counter() -> float:
+            return clock
+
+        def advance(duration: float) -> jax.Array:
+            nonlocal clock, timed_call_index
+            # Pair structure when warmup=0, calls_per_arm=1: (0,1), (2,3), (4,5), (6,7)
+            second_in_pair = (timed_call_index % 2) == 1
+            clock += duration + (0.002 if second_in_pair else 0.0)
+            timed_call_index += 1
+            return jnp.ones(())
+
+        with patch("calibrax.profiling.timing.time.perf_counter", side_effect=fake_perf_counter):
+            comp = compare_calls(
+                lambda: advance(0.010),
+                lambda: advance(0.010),
+                warmup=0,
+                rounds=4,
+                calls_per_arm=1,
+            )
+
+        assert comp.differences_sec == pytest.approx((0.002, -0.002, 0.002, -0.002))
+        assert comp.median_difference_sec == pytest.approx(0.0, abs=1e-12)
+        assert comp.speedup_ratio == pytest.approx(1.0, abs=1e-12)
+        assert comp.p_value == pytest.approx(1.0, abs=1e-12)
+
+    def test_detects_true_speedup_with_exact_sign_flip_p_value(self) -> None:
+        clock = 0.0
+
+        def fake_perf_counter() -> float:
+            return clock
+
+        def make_arm(duration: float) -> Callable[[], jax.Array]:
+            def arm() -> jax.Array:
+                nonlocal clock
+                clock += duration
+                return jnp.ones(())
+
+            return arm
+
+        with patch("calibrax.profiling.timing.time.perf_counter", side_effect=fake_perf_counter):
+            comp = compare_calls(
+                make_arm(0.010),
+                make_arm(0.005),
+                warmup=1,
+                rounds=8,
+                calls_per_arm=3,
+            )
+
+        assert comp.baseline_median_sec == pytest.approx(0.010)
+        assert comp.candidate_median_sec == pytest.approx(0.005)
+        assert comp.median_difference_sec == pytest.approx(-0.005)
+        assert comp.speedup_ratio == pytest.approx(2.0)
+        # Exact two-sided randomization over 2^8 = 256 sign flips: 2 / 256 = 1 / 128.
+        assert comp.p_value == pytest.approx(1.0 / 128.0)
+
+    def test_supports_large_round_counts_and_serialization_round_trip(self) -> None:
+        clock = 0.0
+
+        def fake_perf_counter() -> float:
+            return clock
+
+        def step(dt: float) -> jax.Array:
+            nonlocal clock
+            clock += dt
+            return jnp.ones(())
+
+        with patch("calibrax.profiling.timing.time.perf_counter", side_effect=fake_perf_counter):
+            comp = compare_calls(
+                lambda: step(0.008),
+                lambda: step(0.004),
+                warmup=0,
+                rounds=20,
+                calls_per_arm=1,
+            )
+
+        assert comp.rounds == 20
+        assert comp.p_value < 1e-4
+        restored = CallComparison.from_dict(comp.to_dict())
+        assert restored.baseline_median_sec == comp.baseline_median_sec
+        assert restored.candidate_median_sec == comp.candidate_median_sec
+        assert restored.median_difference_sec == comp.median_difference_sec
+        assert restored.speedup_ratio == comp.speedup_ratio
+        assert restored.p_value == comp.p_value
+        assert restored.rounds == comp.rounds
+        assert restored.calls_per_arm == comp.calls_per_arm
+        assert restored.warmup == comp.warmup
+
+    def test_syncs_every_call_with_block_until_ready_by_default(self) -> None:
+        with patch("calibrax.profiling.timing.block_until_ready") as sync:
+            compare_calls(
+                lambda: jnp.ones((2,)),
+                lambda: jnp.zeros((2,)),
+                warmup=1,
+                rounds=2,
+                calls_per_arm=2,
+            )
+
+        # 2*(warmup=1) + 2*(rounds=2)*(calls_per_arm=2) = 2 + 8 = 10
+        assert sync.call_count == 10
+
+    @pytest.mark.parametrize(
+        ("kwargs", "message"),
+        [
+            ({"rounds": 0}, "rounds"),
+            ({"rounds": 3}, "even"),
+            ({"calls_per_arm": 0}, "calls_per_arm"),
+            ({"warmup": -1}, "warmup"),
+        ],
+    )
+    def test_rejects_invalid_options(self, kwargs: dict, message: str) -> None:
+        with pytest.raises(ValueError, match=message):
+            compare_calls(lambda: jnp.ones(()), lambda: jnp.ones(()), **kwargs)
 
 
 class TestTimingCollectorDefaultSync:
