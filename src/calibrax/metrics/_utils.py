@@ -111,6 +111,21 @@ def safe_divide(
     return jnp.asarray(numerator) / (jnp.asarray(denominator) + eps)
 
 
+@jax.jit(inline=True)
+def _safe_sqrt(x: jax.Array) -> jax.Array:
+    """Square root of ``x`` with derivative ``0`` at ``±0.0`` and ``jnp.sqrt`` values elsewhere.
+
+    Args:
+        x: Array of radicands.
+
+    Returns:
+        ``jnp.sqrt(x)`` with ``+0.0`` and zero derivative at ``±0.0``.
+    """
+    at_the_singularity = x == 0.0
+    safe = jnp.where(at_the_singularity, 1.0, x)
+    return jnp.where(at_the_singularity, 0.0, jnp.sqrt(safe))
+
+
 def safe_root(x: ArrayLike, *, order: float = 2.0) -> jax.Array:
     """The ``order``-th root of non-negative ``x``, with derivative 0 where ``x`` is 0.
 
@@ -188,16 +203,16 @@ def safe_root(x: ArrayLike, *, order: float = 2.0) -> jax.Array:
         ``x ** (1 / order)`` element-wise; ``NaN`` where ``x`` is ``NaN`` or negative, and
         ``+0.0`` at either signed zero, where the guard overrides the root's own sign.
     """
-    x = jnp.asarray(x)
-    at_the_singularity = x == 0.0
-    safe = jnp.where(at_the_singularity, jnp.ones_like(x), x)
+    arr = x if isinstance(x, jax.Array) else jnp.asarray(x)
     # `order` is a Python float by contract, but `minkowski_distance` and
     # `sliced_wasserstein` forward a caller's `p`, which `jit` over that argument turns into
     # a tracer. `isinstance` decides the branch from the static value alone, so a traced
     # order takes the general power path rather than raising on a Python `if`.
-    takes_the_square_root = isinstance(order, (int, float)) and order == _SQUARE_ROOT_ORDER
-    root = jnp.sqrt(safe) if takes_the_square_root else safe ** (1.0 / order)
-    return jnp.where(at_the_singularity, jnp.zeros_like(x), root)
+    if isinstance(order, (int, float)) and order == _SQUARE_ROOT_ORDER:
+        return _safe_sqrt(arr)
+    at_the_singularity = arr == 0.0
+    safe = jnp.where(at_the_singularity, 1.0, arr)
+    return jnp.where(at_the_singularity, 0.0, safe ** (1.0 / order))
 
 
 def safe_norm(x: ArrayLike, *, axis: int | tuple[int, ...] | None = None) -> jax.Array:
