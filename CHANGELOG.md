@@ -7,6 +7,8 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+## [0.1.19] - 2026-11-16
+
 ### Fixed
 
 - **Breaking:** `seismic_wasserstein2_misfit` sorted each trace's envelope density by value and
