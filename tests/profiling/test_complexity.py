@@ -198,3 +198,56 @@ class TestAnalyzeComplexity:
         # Same model, so same parameter count
         assert result_b1.total_parameters == result_b4.total_parameters
         assert result_b4.input_shape == (4, 4)
+        assert result_b4.total_estimated_operations == 4 * result_b1.total_estimated_operations
+
+    def test_operations_scale_with_model_width_and_depth(self) -> None:
+        small = nnx.Linear(8, 2, rngs=nnx.Rngs(0))
+        large = nnx.Sequential(
+            nnx.Linear(8, 64, rngs=nnx.Rngs(0)),
+            nnx.Linear(64, 64, rngs=nnx.Rngs(1)),
+        )
+        res_small = analyze_complexity(small, (4, 8))
+        res_large = analyze_complexity(large, (4, 8))
+        assert res_small.total_estimated_operations >= 2 * 4 * 8 * 2
+        assert res_large.total_estimated_operations > 50 * res_small.total_estimated_operations
+
+    def test_dominant_complexity_reflects_actual_lowered_hlo_ops(self) -> None:
+        linear = nnx.Linear(8, 16, rngs=nnx.Rngs(0))
+        conv = nnx.Conv(2, 4, kernel_size=(3, 3), rngs=nnx.Rngs(0))
+
+        class SpectralLayer(nnx.Module):
+            def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
+                return jnp.real(jnp.fft.fft2(x))
+
+        assert analyze_complexity(linear, (2, 8)).dominant_complexity == "linear_operations"
+        assert (
+            analyze_complexity(conv, (2, 8, 8, 2)).dominant_complexity == "convolution_operations"
+        )
+        assert (
+            analyze_complexity(SpectralLayer(), (2, 8, 8)).dominant_complexity == "fft_operations"
+        )
+
+    def test_stateful_module_is_not_mutated_during_analysis(self) -> None:
+        class StatefulBlock(nnx.Module):
+            def __init__(self, features: int, *, rngs: nnx.Rngs) -> None:
+                self.linear = nnx.Linear(features, features, rngs=rngs)
+                self.bn = nnx.BatchNorm(features, use_running_average=False, rngs=rngs)
+                self.dropout = nnx.Dropout(0.1, deterministic=False, rngs=rngs)
+
+            def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
+                return self.dropout(self.bn(self.linear(x)))
+
+        block = StatefulBlock(8, rngs=nnx.Rngs(0))
+        assert block.dropout.rngs is not None
+        bn_before = jnp.array(block.bn.mean[...])
+        rng_before = int(block.dropout.rngs.count[...])
+
+        res = analyze_complexity(block, (4, 8))
+        assert res.total_estimated_operations >= 2 * 4 * 8 * 8
+        assert bool(jnp.array_equal(bn_before, block.bn.mean[...]))
+        assert int(block.dropout.rngs.count[...]) == rng_before
+
+    def test_incompatible_input_shape_raises(self) -> None:
+        model = nnx.Linear(8, 4, rngs=nnx.Rngs(0))
+        with pytest.raises((TypeError, ValueError)):
+            analyze_complexity(model, (4, 128))

@@ -29,6 +29,10 @@ and uses semantic versioning while the public API stabilizes.
 - `MemoryOptimizer.analyze_pipeline_memory` waits for asynchronous JAX outputs with
   `jax.block_until_ready` before sampling peak RSS and releases the result before post-GC
   measurement.
+- `analyze_complexity` lowers Flax NNX modules on abstract `ShapeDtypeStruct` inputs via
+  `FlopsCounter` and lowered HLO inspection instead of running an eager forward pass or estimating
+  operations from `input_shape` alone, preserving stateful `BatchNorm` and `Rngs` variables and
+  surfacing incompatible input shapes immediately.
 
 - Unweighted `pearson_correlation` guards both sum-of-squares roots with `safe_root`, matching
   `_weighted_pearson` so differentiating at a constant input returns finite values rather than
