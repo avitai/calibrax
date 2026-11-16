@@ -327,14 +327,16 @@ print(f"Optimization score: {xla_result.optimization_score:.2f}")
 ## Complexity Analysis
 
 `analyze_complexity()` examines parameter counts, memory requirements, and
-computational cost for Flax NNX modules:
+XLA-lowered computational cost for Flax NNX modules without mutating module state:
 
 ```python
+from flax import nnx
 from calibrax.profiling.complexity import analyze_complexity
 
-result = analyze_complexity(model, (4, 128))  # input_shape tuple, not data
+linear_model = nnx.Linear(128, 64, rngs=nnx.Rngs(0))
+result = analyze_complexity(linear_model, (4, 128))  # input_shape tuple, not data
 print(f"Total parameters: {result.total_parameters:,}")
-print(f"Memory (MB): {result.parameter_memory_mb:.1f}")
+print(f"Memory (MB): {result.parameter_memory_mb:.4f}")
 print(f"Estimated operations: {result.total_estimated_operations:,}")
 ```
 
