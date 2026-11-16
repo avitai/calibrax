@@ -59,7 +59,6 @@ results = calculate_all(predictions, targets, metrics=["mse", "mae", "r_squared"
 - [Wrappers](wrappers.md) -- BootstrapMetric, ClasswiseWrapper, MetricTracker
 - [Stateful](stateful.md) -- FrozenBackboneMetric, LearnedMetric base classes
 - [Learning](learning.md) -- contrastive, triplet, ArcFace, proxy losses
-- [Scientific](scientific.md) -- chemical validity, binding affinity, conformational
 
 ::: calibrax.metrics
     options:

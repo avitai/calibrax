@@ -35,7 +35,6 @@ Install only the extras relevant to your workflow:
 | `publication` | matplotlib | Publication-ready plots and figures |
 | `image` | *(none — works with pre-extracted features)* | Image quality metrics (FID, Inception Score, LPIPS) |
 | `text` | *(none — works with pre-computed embeddings)* | Text quality metrics (BERTScore) |
-| `scientific` | *(none — pure JAX)* | Scientific domain metrics (molecular, protein) |
 | `codecarbon` | codecarbon | Carbon emissions and energy tracking |
 | `changepoint` | ruptures | Change point detection in benchmark trends |
 | `cuda12` | JAX's CUDA 12 wheels, nvidia-ml-py | NVIDIA GPU backend, GPU clock and power monitoring |

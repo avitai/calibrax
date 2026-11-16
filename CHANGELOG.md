@@ -20,6 +20,12 @@ and uses semantic versioning while the public API stabilizes.
   186) while outer `jit`, `vmap` and `grad` inline the HLO with zero subcomputation calls and
   unchanged fusion counts.
 
+### Removed
+
+- **Breaking:** Removed `calibrax.metrics.plugins.scientific` (`chemical_validity`,
+  `binding_affinity_metrics`, `conformational_diversity`) and the empty `calibrax[scientific]`
+  extra so chemistry and structural-biology domain metrics live in domain packages rather than L0.
+
 ## [0.1.19] - 2026-11-16
 
 ### Fixed
