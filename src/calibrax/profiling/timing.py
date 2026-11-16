@@ -1,8 +1,9 @@
 """Framework-agnostic timing with configurable result synchronization.
 
 Provides TimingCollector for measuring iteration throughput with per-batch timing breakdown,
-and ``time_calls`` for the median and percentiles of repeated calls; their records,
-``TimingSample`` and ``CallTiming``, live in ``calibrax.profiling.timing_records``.
+``time_calls`` for the median and percentiles of repeated calls, and ``compare_calls`` for
+counterbalanced ABBA paired A/B comparisons; their records, ``TimingSample``, ``CallTiming``
+and ``CallComparison``, live in ``calibrax.profiling.timing_records``.
 Uses time.perf_counter() exclusively for accurate benchmarking.
 Supports warm-up iteration exclusion and JIT compilation time measurement.
 """
@@ -14,9 +15,10 @@ from collections.abc import Callable, Iterator, Sequence
 
 import numpy as np
 from jax import block_until_ready, jit
+from scipy.stats import wilcoxon
 from substrax.typing import PyTree
 
-from calibrax.profiling.timing_records import CallTiming, TimingSample
+from calibrax.profiling.timing_records import CallComparison, CallTiming, TimingSample
 
 
 class TimingCollector:
@@ -224,5 +226,129 @@ def time_calls(
         samples_sec=tuple(samples),
         median_sec=float(np.median(values)),
         percentiles_sec={int(p): float(np.percentile(values, p)) for p in percentiles},
+        warmup=warmup,
+    )
+
+
+_EXACT_SIGN_FLIP_MAX_ROUNDS = 16
+_MIN_COMPARISON_ROUNDS = 2
+
+
+def _time_arm_median(
+    call: Callable[[], PyTree],
+    wait: Callable[[PyTree], object],
+    calls_per_arm: int,
+) -> float:
+    """Run ``calls_per_arm`` synchronized calls and return their median duration."""
+    durations: list[float] = []
+    for _ in range(calls_per_arm):
+        start = time.perf_counter()
+        wait(call())
+        durations.append(time.perf_counter() - start)
+    return float(np.median(np.asarray(durations, dtype=np.float64)))
+
+
+def _paired_p_value(differences: np.ndarray) -> float:
+    """Two-sided paired p-value: exact sign-flip up to 16 rounds, Wilcoxon above."""
+    if bool(np.all(differences == 0.0)):
+        return 1.0
+    n = int(differences.size)
+    if n <= _EXACT_SIGN_FLIP_MAX_ROUNDS:
+        indices = np.arange(1 << n, dtype=np.uint32)[:, None]
+        shifts = np.arange(n, dtype=np.uint32)
+        signs = 2.0 * ((indices >> shifts) & 1).astype(np.float64) - 1.0
+        totals = np.abs(signs @ differences)
+        observed = abs(float(np.sum(differences)))
+        tol = n * float(np.finfo(np.float64).eps) * float(np.sum(np.abs(differences)))
+        return float(np.mean(totals >= observed - tol))
+    _, p_val = wilcoxon(differences, zero_method="wilcox", alternative="two-sided")
+    return float(p_val)
+
+
+def compare_calls(
+    baseline: Callable[[], PyTree],
+    candidate: Callable[[], PyTree],
+    *,
+    rounds: int = 8,
+    calls_per_arm: int = 3,
+    warmup: int = 3,
+    sync: Callable[[PyTree], object] | None = None,
+) -> CallComparison:
+    """Compare ``baseline()`` and ``candidate()`` with counterbalanced ABBA pairing.
+
+    Running all ``baseline`` iterations before ``candidate`` -- or repeating ``(A, B)`` in one
+    fixed order -- confounds a code change with thermal state, frequency scaling, and page-cache
+    position effects. ``compare_calls`` warms both arms in alternating pairs, then alternates
+    round order between ``(baseline, candidate)`` on even rounds and ``(candidate, baseline)``
+    on odd rounds so first-in-pair and second-in-pair positions balance exactly.
+
+    Args:
+        baseline: Zero-argument reference callable (arm A).
+        candidate: Zero-argument callable under evaluation (arm B).
+        rounds: Even number of paired rounds (at least 2) so ``AB`` and ``BA`` balance.
+        calls_per_arm: Synchronized calls per arm in each round; summarized by their median.
+        warmup: Alternating ``(baseline, candidate)`` warm-up pairs discarded before timing.
+        sync: Called with each result before stopping the clock; ``None`` waits for the whole
+            result pytree with ``jax.block_until_ready``.
+
+    Returns:
+        ``CallComparison`` with per-round arm medians, paired differences, speedup ratio, and
+        two-sided paired randomization p-value.
+
+    Raises:
+        ValueError: If ``rounds < 2``, ``rounds`` is odd, ``calls_per_arm < 1``, or
+            ``warmup < 0``.
+    """
+    if rounds < _MIN_COMPARISON_ROUNDS:
+        raise ValueError(f"rounds must be at least {_MIN_COMPARISON_ROUNDS}, got {rounds}")
+    if rounds % 2 != 0:
+        raise ValueError(f"rounds must be even so AB and BA pairs balance, got {rounds}")
+    if calls_per_arm < 1:
+        raise ValueError(f"calls_per_arm must be at least 1, got {calls_per_arm}")
+    if warmup < 0:
+        raise ValueError(f"warmup must be >= 0, got {warmup}")
+
+    wait = _wait_for_result if sync is None else sync
+    for _ in range(warmup):
+        wait(baseline())
+        wait(candidate())
+
+    base_samples: list[float] = []
+    cand_samples: list[float] = []
+    for round_idx in range(rounds):
+        if round_idx % 2 == 0:
+            t_base = _time_arm_median(baseline, wait, calls_per_arm)
+            t_cand = _time_arm_median(candidate, wait, calls_per_arm)
+        else:
+            t_cand = _time_arm_median(candidate, wait, calls_per_arm)
+            t_base = _time_arm_median(baseline, wait, calls_per_arm)
+        base_samples.append(t_base)
+        cand_samples.append(t_cand)
+
+    base_arr = np.asarray(base_samples, dtype=np.float64)
+    cand_arr = np.asarray(cand_samples, dtype=np.float64)
+    diff_arr = cand_arr - base_arr
+
+    base_med = float(np.median(base_arr))
+    cand_med = float(np.median(cand_arr))
+    diff_med = float(np.median(diff_arr))
+    if cand_med == 0.0 and base_med == 0.0:
+        speedup = 1.0
+    elif cand_med == 0.0:
+        speedup = float("inf")
+    else:
+        speedup = base_med / cand_med
+
+    return CallComparison(
+        baseline_samples_sec=tuple(base_samples),
+        candidate_samples_sec=tuple(cand_samples),
+        differences_sec=tuple(float(d) for d in diff_arr),
+        baseline_median_sec=base_med,
+        candidate_median_sec=cand_med,
+        median_difference_sec=diff_med,
+        speedup_ratio=speedup,
+        p_value=_paired_p_value(diff_arr),
+        rounds=rounds,
+        calls_per_arm=calls_per_arm,
         warmup=warmup,
     )

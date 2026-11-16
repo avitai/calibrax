@@ -48,10 +48,12 @@ from .roofline import (
     RooflineResult as RooflineResult,
 )
 from .timing import (
+    compare_calls as compare_calls,
     time_calls as time_calls,
     TimingCollector as TimingCollector,
 )
 from .timing_records import (
+    CallComparison as CallComparison,
     CallTiming as CallTiming,
     TimingSample as TimingSample,
 )

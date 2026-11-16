@@ -7,7 +7,7 @@ states the boundary so that the sibling packages do not grow copies.
 
 | Concern | Module | Notes |
 | --- | --- | --- |
-| Wall-clock timing with device synchronisation and warm-up | `timing`, `timing_records` | `TimingCollector`, `time_calls`, `TimingSample`, `CallTiming` |
+| Wall-clock timing with device synchronisation and warm-up | `timing`, `timing_records` | `TimingCollector`, `time_calls`, `compare_calls`, `TimingSample`, `CallTiming`, `CallComparison` |
 | Host and GPU resource sampling | `resources`, `gpu`, `nvml` | `ResourceMonitor`, `GPUMemoryProfiler`, `NvmlDevice`, `MemoryOptimizer` |
 | Energy and carbon | `energy`, `carbon` | GPU power source and RAPL sampling; CodeCarbon-backed emissions |
 | FLOP counting | `flops` | XLA's cost analysis of the lowered function, the same estimate `flax.nnx.tabulate` reports |
