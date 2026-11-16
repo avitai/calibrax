@@ -7,6 +7,7 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 from scipy import stats
+from substrax.testing import TraceCounter
 
 from calibrax.core.models import MetricDirection
 from calibrax.metrics import MetricRegistry
@@ -42,6 +43,62 @@ class TestPearsonCorrelation:
         a = jnp.array([1.0, 2.0, 3.0])
         result = pearson_correlation(a, a)
         assert isinstance(result, jax.Array)
+
+    def test_constant_input_gradients_are_finite(self) -> None:
+        b = jnp.linspace(-1.0, 2.0, 8, dtype=jnp.float32)
+        constant = jnp.full(8, 2.0, dtype=jnp.float32)
+
+        grad_wrt_const_a = jax.grad(lambda x: pearson_correlation(x, b))(constant)
+        grad_wrt_const_b = jax.grad(lambda x: pearson_correlation(b, x))(constant)
+        grad_wrt_b_when_a_const = jax.grad(lambda y: pearson_correlation(constant, y))(b)
+        grad_both_const = jax.grad(lambda x: pearson_correlation(x, constant))(constant)
+
+        assert bool(jnp.all(jnp.isfinite(grad_wrt_const_a)))
+        assert bool(jnp.all(jnp.isfinite(grad_wrt_const_b)))
+        np.testing.assert_array_equal(
+            np.asarray(grad_wrt_b_when_a_const), np.zeros(8, dtype=np.float32)
+        )
+        np.testing.assert_array_equal(np.asarray(grad_both_const), np.zeros(8, dtype=np.float32))
+
+    def test_jit_and_vmap_match_scipy_within_summation_bound(self) -> None:
+        rng = np.random.default_rng(42)
+        a_batch = rng.normal(size=(6, 32)).astype(np.float32)
+        b_batch = (0.6 * a_batch + rng.normal(scale=0.8, size=(6, 32))).astype(np.float32)
+
+        counter = TraceCounter()
+        compiled_single = jax.jit(counter.wrap(pearson_correlation))
+        with counter.expect(new_traces=1):
+            first = compiled_single(jnp.asarray(a_batch[0]), jnp.asarray(b_batch[0]))
+        with counter.expect(new_traces=0):
+            second = compiled_single(jnp.asarray(a_batch[1]), jnp.asarray(b_batch[1]))
+
+        unit_roundoff = float(np.finfo(np.float32).eps) / 2.0
+        k = 4 * a_batch.shape[1] + 6
+        bound = k * unit_roundoff / (1.0 - k * unit_roundoff)
+
+        assert float(first) == pytest.approx(
+            float(stats.pearsonr(a_batch[0], b_batch[0]).statistic), abs=bound
+        )
+        assert float(second) == pytest.approx(
+            float(stats.pearsonr(a_batch[1], b_batch[1]).statistic), abs=bound
+        )
+
+        batched = jax.jit(jax.vmap(counter.wrap(pearson_correlation)))
+        with counter.expect(new_traces=1):
+            r_vals = batched(jnp.asarray(a_batch), jnp.asarray(b_batch))
+        with counter.expect(new_traces=0):
+            _ = batched(jnp.asarray(a_batch) * 1.5, jnp.asarray(b_batch))
+
+        expected = np.array(
+            [
+                stats.pearsonr(a_row, b_row).statistic
+                for a_row, b_row in zip(a_batch, b_batch, strict=True)
+            ],
+            dtype=np.float64,
+        )
+        np.testing.assert_allclose(
+            np.asarray(r_vals, dtype=np.float64), expected, rtol=0.0, atol=bound
+        )
 
 
 class TestSpearmanRankCorrelation:

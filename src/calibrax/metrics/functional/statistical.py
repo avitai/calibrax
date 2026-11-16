@@ -88,7 +88,7 @@ def pearson_correlation(
         b_centered = b_arr - jnp.mean(b_arr)
         cov = jnp.sum(a_centered * b_centered)
         return cov / (
-            jnp.sqrt(jnp.sum(a_centered**2)) * jnp.sqrt(jnp.sum(b_centered**2)) + _EPSILON
+            safe_root(jnp.sum(a_centered**2)) * safe_root(jnp.sum(b_centered**2)) + _EPSILON
         )
 
     # Fold the mask and weights at the input's own shape, then flatten alongside the data.
