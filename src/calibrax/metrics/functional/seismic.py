@@ -231,74 +231,236 @@ def seismic_velocity_ssim_misfit(
     return 1.0 - ssim(pred, target, max_val=max_val)
 
 
-def _envelope_density(trace: jax.Array) -> jax.Array:
-    """A trace's normalized positive envelope ``|t| / sum|t|``, uniform for a silent trace.
+#: The normalizations ``seismic_wasserstein2_misfit`` turns a signed trace into a density with.
+_W2_NORMALIZATIONS = ("linear", "softplus")
+
+
+def _softplus_difference(a: jax.Array, b: jax.Array) -> jax.Array:
+    """``softplus(a) - softplus(b)``, computed from ``a - b`` rather than as a difference.
+
+    ``(1 + e^a) / (1 + e^b) = 1 + sigmoid(b) expm1(a - b)``, so the difference is
+    ``log1p(sigmoid(b) expm1(a - b))``: no cancellation when ``a`` and ``b`` are close. The branch
+    taken keeps the ``expm1`` argument non-positive, so it never overflows, and the argument is
+    clamped inside each branch so the one not taken has a finite gradient too.
 
     Args:
-        trace: One trace.
+        a: First argument.
+        b: Second argument, the same shape.
 
     Returns:
-        A probability density over the trace's samples.
+        ``softplus(a) - softplus(b)``, elementwise.
     """
-    env = jnp.abs(trace)
-    total = jnp.sum(env)
-    silent = total <= _EPSILON
-    # A silent trace divides by a stand-in (inner where), so its gradient stays finite.
-    density = env / jnp.where(silent, 1.0, total)
-    return jnp.where(silent, jnp.full_like(env, 1.0 / env.shape[0]), density)
+    delta = a - b
+    below = jnp.log1p(jax.nn.sigmoid(b) * jnp.expm1(jnp.minimum(delta, 0.0)))
+    above = -jnp.log1p(jax.nn.sigmoid(a) * jnp.expm1(jnp.minimum(-delta, 0.0)))
+    return jnp.where(delta <= 0.0, below, above)
 
 
-def _wasserstein2_squared_trace(target: jax.Array, prediction: jax.Array) -> jax.Array:
-    """The exact 1-D ``W2^2`` of two traces' envelope densities, by the quantile formula.
+def _w2_cell_masses(
+    pred: jax.Array,
+    target: jax.Array,
+    scale: float | None,
+    c: float | jax.Array,
+) -> tuple[jax.Array, jax.Array, jax.Array, jax.Array]:
+    """Each trace's cell masses under Engquist & Yang's eq. 4.1, and their difference.
+
+    ``(sigma(f) + c) / S`` with ``sigma`` the identity or ``softplus(scale .)``. The difference
+    ``q - p`` is carried from ``sigma(t) - sigma(y)``, not taken between two masses: under the
+    linear scaling ``c`` dominates every sample, both densities sit near uniform, and subtracting
+    them would leave only rounding.
 
     Args:
-        target: An observed trace.
-        prediction: A predicted trace of the same length.
+        pred: Predicted traces, ``(n_traces, n_time)``.
+        target: Observed traces, the same shape.
+        scale: The softplus scale ``b``, or None for the linear scaling.
+        c: The buffer, at least 0.
 
     Returns:
-        The mean squared gap of the sorted densities.
+        The predicted masses ``p``, the observed masses ``q``, ``q - p``, and for each trace
+        whether both are densities (non-negative with a positive total).
     """
-    u = jnp.sort(_envelope_density(target))
-    v = jnp.sort(_envelope_density(prediction))
-    return jnp.mean(jnp.square(u - v))
+    if scale is None:
+        h_pred, h_target = pred + c, target + c
+        rise = target - pred
+    else:
+        h_pred = jax.nn.softplus(scale * pred) + c
+        h_target = jax.nn.softplus(scale * target) + c
+        rise = _softplus_difference(scale * target, scale * pred)
+    total_pred = jnp.sum(h_pred, axis=-1, keepdims=True)
+    total_target = jnp.sum(h_target, axis=-1, keepdims=True)
+    valid = (
+        jnp.all(h_pred >= 0.0, axis=-1)
+        & jnp.all(h_target >= 0.0, axis=-1)
+        & (total_pred[:, 0] > 0.0)
+        & (total_target[:, 0] > 0.0)
+    )
+    # A trace outside the domain divides by a stand-in (inner where); its misfit is NaN below.
+    safe_pred = jnp.where(total_pred > 0.0, total_pred, 1.0)
+    safe_target = jnp.where(total_target > 0.0, total_target, 1.0)
+    p, q = h_pred / safe_pred, h_target / safe_target
+    # q - p = (h_t - h_p) / S_t + p (S_p - S_t) / S_t, with S_p - S_t = -sum(h_t - h_p).
+    gap = (rise - p * jnp.sum(rise, axis=-1, keepdims=True)) / safe_target
+    return p, q, gap, valid
 
 
-def seismic_wasserstein2_misfit(predictions: ArrayLike, targets: ArrayLike) -> jax.Array:  # noqa: DOC502  # raised by _prepare_arrays
-    """Squared Wasserstein-2 misfit for each trace on normalized positive envelopes, then the mean.
+def _wasserstein2_squared_trace(p: jax.Array, q: jax.Array, gap: jax.Array, dt: float) -> jax.Array:
+    """``int_0^1 (F^-1 - G^-1)^2 dz`` for one trace's cell masses, exactly.
 
-    Each trace becomes a probability density through its normalized positive envelope (Metivier
-    et al., Geophys. J. Int. 2016), and the 1-D ``W2^2`` is the mean squared difference of the
-    sorted quantile functions, exactly. ``jnp.sort`` carries gradients through the permutation.
+    Each sample is the mass of its cell ``[i dt, (i + 1) dt]``, so the CDFs ``F`` and ``G`` are
+    piecewise linear and so are their inverses: the inverse CDF interpolated linearly between
+    samples (Yang et al., Geophysics 2018, p. R49). Between consecutive knots of the two CDFs
+    merged (the structure of POT's ``ot.lp.wasserstein_1d``), both quantile functions are linear,
+    so the squared gap is a quadratic and ``dz (d0^2 + d0 d1 + d1^2) / 3`` integrates it exactly.
 
-    Positive envelopes discard polarity: two traces whose envelopes agree but whose signs differ
-    are at distance 0. Keeping polarity needs transport between signed measures.
+    Each interval's two segments are the ones after the last knot of each CDF in the merged
+    order; a zero-mass cell, a jump of the inverse, only ever bounds an interval of zero width.
+    A quantile ``e_k + (z - F_k) dt / p_k`` needs ``z - F_k``, which
+    as a difference of two CDF values near 1 over a mass near ``1 / n`` would lose all float32
+    digits; it is instead a difference of one CDF over the few cells between the two segments,
+    plus the carried CDF gap ``D_k = G_k - F_k``.
 
-    The *squared* W2 is returned: it is smooth at a perfect match, where W2 itself, like any
-    norm, has a singular gradient.
+    Args:
+        p: Predicted cell masses, summing to 1.
+        q: Observed cell masses, summing to 1.
+        gap: ``q - p``, computed without cancellation.
+        dt: The sample spacing.
+
+    Returns:
+        ``W2^2`` in the units of ``dt`` squared.
+    """
+    n = p.shape[0]
+    zero = jnp.zeros((1,), dtype=p.dtype)
+    cdf_p = jnp.concatenate([zero, jnp.cumsum(p)])
+    cdf_q = jnp.concatenate([zero, jnp.cumsum(q)])
+    cdf_gap = jnp.concatenate([zero, jnp.cumsum(gap)])  # G_k - F_k
+    knots = jnp.concatenate([cdf_p, cdf_q])
+    from_p = jnp.arange(2 * (n + 1)) < n + 1
+    index = jnp.concatenate([jnp.arange(n + 1), jnp.arange(n + 1)])
+    order = jnp.argsort(knots, stable=True)
+    from_p, index = from_p[order], index[order]
+    # The interval after merged knot j lies in the segment of F after the last F knot so far,
+    # and likewise for G: a running count, read off the order without comparing floats.
+    k = jnp.clip(jnp.cumsum(from_p)[:-1] - 1, 0, n - 1)
+    m = jnp.clip(jnp.cumsum(~from_p)[:-1] - 1, 0, n - 1)
+
+    def offsets(i: jax.Array, own: jax.Array) -> tuple[jax.Array, jax.Array]:
+        """``z - F_k`` and ``z - G_m`` at the knots ``i``, ``own`` marking knots of ``F``."""
+        to_p = jnp.where(own, cdf_p[i] - cdf_p[k], (cdf_q[i] - cdf_q[k]) + cdf_gap[k])
+        to_q = jnp.where(own, (cdf_p[i] - cdf_p[m]) - cdf_gap[m], cdf_q[i] - cdf_q[m])
+        return to_p, to_q
+
+    lo_p, lo_q = offsets(index[:-1], from_p[:-1])
+    hi_p, hi_q = offsets(index[1:], from_p[1:])
+    # Each segment's mass is its CDF's own step, so a whole step over its mass is exactly 1 and
+    # equal CDFs give an exactly-zero gap, value and gradient. A zero-mass segment bounds only
+    # zero-width intervals; the stand-in keeps them finite.
+    step_p = cdf_p[k + 1] - cdf_p[k]
+    step_q = cdf_q[m + 1] - cdf_q[m]
+    mass_p = jnp.where(step_p > 0.0, step_p, 1.0)
+    mass_q = jnp.where(step_q > 0.0, step_q, 1.0)
+    cells = (k - m).astype(p.dtype)
+    d0 = (cells + lo_p / mass_p - lo_q / mass_q) * dt
+    d1 = (cells + hi_p / mass_p - hi_q / mass_q) * dt
+    return jnp.sum((hi_p - lo_p) * (d0 * d0 + d0 * d1 + d1 * d1)) / 3.0
+
+
+def seismic_wasserstein2_misfit(
+    predictions: ArrayLike,
+    targets: ArrayLike,
+    *,
+    normalization: str = "linear",
+    b: float | None = None,
+    c: float | None = None,
+    dt: float = 1.0,
+) -> jax.Array:
+    """Squared quadratic Wasserstein misfit for each trace, then the mean over traces.
+
+    For each trace, the 1-D ``W2^2(f, g) = int_0^1 |F^-1(z) - G^-1(z)|^2 dz`` (Engquist, Froese
+    & Yang, Commun. Math. Sci. 2016, eq. 13; Yang et al., Geophysics 2018, eqs. 9 and 28-29)
+    between the predicted and observed traces turned into densities. A pure time shift by ``s``
+    scores ``s^2``, so unlike L2 the misfit keeps growing once two wavelets no longer overlap:
+    the cycle-skipping defense W2 is used for in full-waveform inversion.
+
+    **Discretization.** Each sample is the mass of its cell, so the CDFs are piecewise linear and
+    their inverses interpolate linearly between samples (Yang et al. 2018, p. R49); the integral
+    of the squared quantile gap is then exact. It converges at second order in ``dt``, sub-sample
+    shifts included, where W2 between the samples as point masses does not converge below one
+    sample. The gradient is JAX's own derivative of that exact integral (no custom rule), so
+    ``jax.grad``, ``jax.jvp``, ``jax.jacfwd``, ``jax.vmap`` and ``jax.jit`` all apply; in the
+    continuum the first variation of ``W2^2`` is the Kantorovich potential (Santambrogio 2015,
+    Prop. 7.17).
+
+    **Normalization** (Engquist & Yang, Commun. Pure Appl. Math. 2022, eq. 4.1):
+    ``(sigma(f) + c) / S``, with ``S`` each trace's total.
+
+    - ``"linear"`` (default): ``sigma(f) = f``, eq. 1.2. ``c`` defaults to one constant, the l1
+      norm of all the targets, as the authors set it for their Marmousi inversions, and is held
+      fixed (no gradient), as "fixed in inversion" requires (Yang et al. 2018, p. R48). It keeps
+      polarity, since the scaling is one-to-one, but is not strictly convex in a shift (Yang et
+      al. 2018, Fig. 3a). A prediction below ``-c`` has no density and scores NaN, as do all-zero
+      targets, which leave ``c = 0``.
+    - ``"softplus"``: ``sigma(f) = log(1 + e^(b f))``, eq. 1.4, convex in a shift for a proper
+      ``b`` (Corollary 4.4); the authors choose ``b`` with ``0.2 <= ||b f||_inf <= 6``. ``b`` has no
+      default. ``c`` defaults to 0, since softplus is already positive. It suppresses the negative
+      half of a trace; the authors note that adding the same misfit on ``-f`` avoids that bias.
+
+    Squared, magnitude-only densities (``|f|``, ``f^2``, envelopes) are not offered: the same
+    authors reject them for FWI as not one-to-one (Yang et al. 2018, p. R48; Engquist & Yang 2022,
+    Section 4). The *squared* W2 is returned, smooth at a perfect match. The mean over traces is
+    calibrax's reduction; Yang et al. 2018 eq. 28 sums.
 
     Note:
         Direction: LOWER (0.0 = perfect).
-        Range: [0, inf).
-        Symmetric. Differentiable.
+        Range: [0, inf), in units of ``dt`` squared.
+        Not symmetric under the linear default, whose ``c`` comes from the targets alone.
+        Differentiable. Each trace sorts ``2 n_time + 2`` CDF knots.
 
     Args:
         predictions: Predicted traces, shape ``(..., n_time)``.
         targets: Observed traces, the same shape.
+        normalization: ``"linear"`` or ``"softplus"``. Static under ``jax.jit``.
+        b: The softplus scale, positive; required for ``"softplus"``, refused otherwise.
+        c: The buffer, at least 0. None means the l1 norm of the targets for ``"linear"`` and 0
+            for ``"softplus"``.
+        dt: The sample spacing, positive; the misfit is in its units squared.
 
     Returns:
-        The mean squared W2 over traces, a scalar. 0.0 for identical inputs.
+        The mean ``W2^2`` over traces, a scalar. 0.0 for identical inputs.
 
     Raises:
-        ValueError: If the shapes differ.
+        ValueError: If the shapes differ, ``normalization`` is unknown, ``b`` is missing, not
+            positive or given for ``"linear"``, ``c`` is negative, or ``dt`` is not positive.
 
     Examples:
         >>> import jax.numpy as jnp
-        >>> d = jnp.sin(jnp.linspace(0, 10, 256)) ** 2 + 0.1
+        >>> d = jnp.sin(jnp.linspace(0, 10, 256))
         >>> float(seismic_wasserstein2_misfit(d, d))
         0.0
     """
+    if normalization not in _W2_NORMALIZATIONS:
+        msg = f"normalization must be one of {_W2_NORMALIZATIONS}, got {normalization!r}"
+        raise ValueError(msg)
+    if normalization == "softplus" and (b is None or not b > 0):
+        msg = f"the softplus normalization needs a positive scale b, got {b!r}"
+        raise ValueError(msg)
+    if normalization == "linear" and b is not None:
+        msg = f"b scales the softplus normalization only; the linear one takes c, got b={b!r}"
+        raise ValueError(msg)
+    if c is not None and not c >= 0:
+        msg = f"the buffer c must be at least 0, got {c!r}"
+        raise ValueError(msg)
+    if not dt > 0:
+        msg = f"the sample spacing dt must be positive, got {dt!r}"
+        raise ValueError(msg)
     pred, target = _traces(predictions, targets)
-    return jnp.mean(jax.vmap(_wasserstein2_squared_trace)(target, pred))
+    if c is None:
+        buffer = lax.stop_gradient(jnp.sum(jnp.abs(target))) if normalization == "linear" else 0.0
+    else:
+        buffer = c
+    scale = b if normalization == "softplus" else None
+    p, q, gap, valid = _w2_cell_masses(pred, target, scale, buffer)
+    per_trace = jax.vmap(_wasserstein2_squared_trace, in_axes=(0, 0, 0, None))(p, q, gap, dt)
+    return jnp.mean(jnp.where(valid, per_trace, jnp.nan))
 
 
 def _soft_dtw(x: jax.Array, y: jax.Array, gamma: float) -> jax.Array:

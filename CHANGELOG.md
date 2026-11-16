@@ -7,6 +7,27 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Breaking:** `seismic_wasserstein2_misfit` sorted each trace's envelope density by value and
+  compared the sorted values, which discards where the energy arrives: a trace shifted by any
+  number of samples scored 0 (a 10-sample shift of a Ricker trace read 0 where W2^2 is 100
+  samples^2). It now computes, for each trace, the quadratic Wasserstein distance of Engquist,
+  Froese & Yang (2016, eq. 13) and Yang et al. (2018, eqs. 28-29),
+  `int_0^1 |F^-1 - G^-1|^2 dz`, exactly: each sample is the mass of its cell, the inverse CDFs
+  interpolate linearly between samples (Yang et al. 2018, p. R49), and the squared quantile gap
+  is integrated between the two CDFs' merged knots, as POT's `wasserstein_1d` merges them. A shift
+  by `s` samples scores `s^2`, and sub-sample shifts converge at second order in `dt`. The
+  gradient is JAX's own, so `jax.jvp` and `jax.jacfwd` apply as well as `jax.grad`. The CDF gap
+  is carried as a cumulative sum of the mass difference rather than taken between two CDFs near
+  1, which in float32 lost about 2,600 ulp where the result now holds within 41. The density
+  follows Engquist & Yang (2022, eq. 4.1), `(sigma(f) + c) / S`, chosen by the new keyword-only
+  `normalization`: `"linear"` (the default; `c` the l1 norm of all the targets, held fixed, as
+  the authors set it) or `"softplus"` (`b` required, no default), with `c` and `dt` keyword-only
+  too. A linear density that goes negative, and all-zero targets, score NaN. The misfit is no
+  longer registered symmetric, since its `c` comes from the targets, and the docstring no longer
+  cites Metivier et al. (2016), whose misfit is W1.
+
 ## [0.1.18] - 2026-11-15
 
 ### Added
