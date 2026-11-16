@@ -22,13 +22,14 @@ the compiled executable's analysis is used, as ``nnx.tabulate`` does.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
-from typing import Protocol, runtime_checkable
 
 import jax
-from jax.stages import Wrapped
-from substrax.typing import PyTree
+from substrax.records import read_record
+from substrax.typing import JsonValue, PyTree
+
+from calibrax.profiling._jax_staging import lower_staged
 
 
 class FlopsUnavailableError(ValueError):
@@ -58,23 +59,32 @@ class FlopsResult:
     bytes_accessed: int
     function_name: str
 
+    def to_dict(self) -> dict[str, JsonValue]:
+        """Serialize to a JSON-compatible dictionary."""
+        return {
+            "total_flops": int(self.total_flops),
+            "transcendentals": int(self.transcendentals),
+            "bytes_accessed": int(self.bytes_accessed),
+            "function_name": self.function_name,
+        }
 
-@runtime_checkable
-class _Shaped(Protocol):
-    """An array-like leaf: anything with a shape and a dtype."""
+    @classmethod
+    def from_dict(  # noqa: DOC502  # raised by read_record
+        cls, data: Mapping[str, JsonValue]
+    ) -> FlopsResult:
+        """Read the record from the JSON object ``to_dict`` writes.
 
-    @property
-    def shape(self) -> tuple[int, ...]: ...
+        Args:
+            data: The JSON object.
 
-    @property
-    def dtype(self) -> jax.typing.DTypeLike: ...
+        Returns:
+            The record.
 
-
-def _abstract(leaf: object) -> object:
-    """Replace an array-like leaf by its shape and dtype; leave other leaves as they are."""
-    if isinstance(leaf, _Shaped):
-        return jax.ShapeDtypeStruct(leaf.shape, leaf.dtype)
-    return leaf
+        Raises:
+            pydantic.ValidationError: If a field is missing or holds a value its annotation
+                does not admit.
+        """
+        return read_record(cls, data)
 
 
 def cost_mapping(cost: object) -> Mapping[str, float] | None:
@@ -109,9 +119,15 @@ def _cost_field(cost: Mapping[str, float], key: str) -> int:
 
 
 def _analyse(
-    jitted: Wrapped, spec: tuple[PyTree, ...], *, optimized: bool = False
+    fn: Callable[..., PyTree],
+    args: tuple[PyTree, ...],
+    kwargs: Mapping[str, PyTree],
+    *,
+    static_argnums: int | Iterable[int] = (),
+    static_argnames: str | Iterable[str] = (),
+    optimized: bool = False,
 ) -> Mapping[str, float]:
-    """Return XLA's cost analysis for ``jitted`` applied to ``spec``.
+    """Return XLA's cost analysis for ``fn`` lowered on abstract ``(args, kwargs)``.
 
     Prefers the analysis of the HLO lowered for the CPU backend. Without a CPU
     backend, or when that lowering carries no analysis, falls back to the default
@@ -119,8 +135,11 @@ def _analyse(
     executable instead: the HLO that runs, whose fusions decide how many bytes move.
 
     Args:
-        jitted: The ``jax.jit``-wrapped function.
-        spec: Abstract (or static) arguments to lower it with.
+        fn: Callable or ``nnx.Module`` to analyze.
+        args: Positional example arguments.
+        kwargs: Keyword example arguments.
+        static_argnums: Static positional argument indices.
+        static_argnames: Static keyword argument names.
         optimized: Read the compiled executable's analysis.
 
     Returns:
@@ -135,13 +154,27 @@ def _analyse(
         cpu = None
     if cpu is not None:
         with jax.default_device(cpu):
-            lowering = jitted.lower(*spec)
+            lowering, _ = lower_staged(
+                fn,
+                args,
+                kwargs,
+                static_argnums=static_argnums,
+                static_argnames=static_argnames,
+                abstract_inputs=True,
+            )
             cost = cost_mapping(
                 lowering.compile().cost_analysis() if optimized else lowering.cost_analysis()
             )
         if cost is not None:
             return cost
-    lowered = jitted.lower(*spec)
+    lowered, _ = lower_staged(
+        fn,
+        args,
+        kwargs,
+        static_argnums=static_argnums,
+        static_argnames=static_argnames,
+        abstract_inputs=True,
+    )
     cost = cost_mapping(lowered.cost_analysis())
     if cost is None:
         cost = cost_mapping(lowered.compile().cost_analysis())
@@ -155,27 +188,30 @@ def _analyse(
 class FlopsCounter:
     """Count the FLOPs of a JAX function from XLA's cost analysis of its lowering.
 
-    Works for pure JAX functions and for functions that close over or take Flax NNX
-    state; nothing is executed, so stochastic modules are fine as long as their keys
-    are arguments or captured state.
+    Works for pure JAX functions, PyTree arguments, keyword arguments, and stateful or
+    stateless Flax NNX modules and bound methods without mutating live module state.
     """
 
     def count(
         self,
         fn: Callable[..., PyTree],
         *args: PyTree,
-        static_argnums: tuple[int, ...] = (),
+        static_argnums: int | Iterable[int] = (),
+        static_argnames: str | Iterable[str] = (),
         optimized: bool = False,
+        **kwargs: PyTree,
     ) -> FlopsResult:
-        """Count FLOPs for a function with given example arguments.
+        """Count FLOPs for a function or ``nnx.Module`` with given example arguments.
 
         Args:
-            fn: JAX function to analyze.
-            *args: Example arguments; only their shapes and dtypes are used, except
-                for the static ones.
-            static_argnums: Argument indices ``jax.jit`` treats as static.
+            fn: JAX function, ``nnx.Module``, or bound ``nnx.Module`` method to analyze.
+            *args: Example positional arguments; only their shapes and dtypes are used,
+                except for static ones.
+            static_argnums: Positional argument indices treated as static at trace time.
+            static_argnames: Keyword argument names treated as static at trace time.
             optimized: Analyse the compiled executable, whose fusions decide how many bytes
                 move, instead of the unoptimised HLO.
+            **kwargs: Example keyword arguments passed to ``fn``.
 
         Returns:
             FlopsResult with the FLOP, transcendental and byte counts.
@@ -184,11 +220,14 @@ class FlopsCounter:
             FlopsUnavailableError: If XLA cannot estimate the cost, typically because
                 the function contains a custom call it has no model for.
         """
-        spec = tuple(
-            arg if index in static_argnums else jax.tree.map(_abstract, arg)
-            for index, arg in enumerate(args)
+        cost = _analyse(
+            fn,
+            args,
+            kwargs,
+            static_argnums=static_argnums,
+            static_argnames=static_argnames,
+            optimized=optimized,
         )
-        cost = _analyse(jax.jit(fn, static_argnums=static_argnums), spec, optimized=optimized)
         name = getattr(fn, "__name__", type(fn).__name__)
         total_flops = _cost_field(cost, "flops")
         transcendentals = _cost_field(cost, "transcendentals")

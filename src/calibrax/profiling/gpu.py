@@ -167,12 +167,13 @@ class MemoryOptimizer:
         gc.collect()
 
         try:
-            pipeline_fn(sample_data)
+            result = jax.block_until_ready(pipeline_fn(sample_data))
         except (OSError, RuntimeError, TypeError, ValueError):
             logger.warning("Pipeline function raised during memory analysis")
             return None
 
         peak = self._get_rss_mb()
+        del result
         gc.collect()
         post_gc = self._get_rss_mb()
 
