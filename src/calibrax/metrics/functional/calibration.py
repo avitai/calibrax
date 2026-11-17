@@ -5,9 +5,10 @@ observed frequencies. Calibration metrics differ from classification
 metrics: classification asks "which class?" while calibration asks
 "how reliable is the stated confidence?"
 
-Includes 7 functions: brier_score, expected_calibration_error,
+Includes 10 functions: brier_score, expected_calibration_error,
 maximum_calibration_error, reliability_diagram_bins,
-brier_decomposition, adaptive_calibration_error, classwise_ece.
+brier_decomposition, adaptive_calibration_error, classwise_ece,
+conformal_fdr_selection, false_discovery_proportion, empirical_power.
 """
 
 from __future__ import annotations
@@ -18,6 +19,7 @@ import numpy as np
 from jax.typing import ArrayLike
 
 from calibrax.metrics._utils import _EPSILON, _prepare_arrays, safe_divide
+from calibrax.statistics.significance import benjamini_hochberg_adjust
 
 
 def _bin_predictions(
@@ -306,3 +308,148 @@ def classwise_ece(
     class_indices = jnp.arange(num_classes)
     per_class_ece = jax.vmap(_ece_for_class)(class_indices)
     return jnp.mean(per_class_ece)
+
+
+def conformal_fdr_selection(
+    cal_scores: ArrayLike,
+    test_scores: ArrayLike,
+    *,
+    q: ArrayLike = 0.1,
+    cal_null_mask: ArrayLike | None = None,
+) -> jax.Array:
+    """Selective-conformal test-set discovery mask with finite-sample FDR control.
+
+    Computes conformal p-values ``p_j = (1 + #{i in cal_null : S_i >= S_test_j}) / (1 + n_cal)``
+    via ``O((n + m) log n)`` binary search and applies Benjamini-Hochberg step-up selection
+    at level ``q`` (Jin and Candes, Biometrika 2023; Bates et al., Ann. Stat. 2023). Larger
+    scores indicate stronger evidence against the null hypothesis.
+
+    Note:
+        Returns a boolean selection array rather than a scalar; not registered in
+        ``MetricRegistry``.
+
+    Args:
+        cal_scores: Calibration scores of shape ``(n_cal,)``.
+        test_scores: Candidate test scores of arbitrary shape.
+        q: Target false discovery rate level in ``(0, 1)`` (defaults to ``0.1``).
+        cal_null_mask: Optional boolean mask of shape ``(n_cal,)`` marking calibration
+            observations that satisfy the null hypothesis. When ``None``, all entries
+            of ``cal_scores`` are treated as null calibration scores.
+
+    Returns:
+        Boolean JAX array with the same shape as ``test_scores`` marking selected discoveries.
+
+    Raises:
+        ValueError: If eager ``q`` lies outside ``(0, 1)`` or ``cal_null_mask`` differs
+            in length from ``cal_scores``.
+    """
+    if isinstance(q, int | float) and not isinstance(q, jax.Array) and not (0.0 < q < 1.0):
+        raise ValueError(f"q must be in (0, 1), got {q}")
+
+    cal = jnp.asarray(cal_scores, dtype=jnp.float32).ravel()
+    test = jnp.asarray(test_scores, dtype=jnp.float32)
+    test_flat = test.ravel()
+
+    if cal_null_mask is not None:
+        null_mask = jnp.asarray(cal_null_mask).ravel().astype(bool)
+        if null_mask.size != cal.size:
+            raise ValueError(
+                f"Shape mismatch: cal_scores has {cal.size} elements, "
+                f"cal_null_mask has {null_mask.size}"
+            )
+    else:
+        null_mask = None
+
+    if cal.size == 0 or test_flat.size == 0:
+        return jnp.zeros(test.shape, dtype=bool)
+
+    order = jnp.argsort(cal)
+    cal_sorted = cal[order]
+    pos = jnp.searchsorted(cal_sorted, test_flat, side="left")
+    if null_mask is None:
+        ge_count = cal.size - pos
+    else:
+        null_sorted = null_mask[order].astype(jnp.int32)
+        suffix_null = jnp.concatenate(
+            [jnp.cumsum(null_sorted[::-1])[::-1], jnp.zeros(1, dtype=jnp.int32)]
+        )
+        ge_count = suffix_null[pos]
+
+    p_vals = (1.0 + ge_count.astype(jnp.float32)) / (1.0 + float(cal.size))
+    q_vals = benjamini_hochberg_adjust(p_vals)
+    q_arr = jnp.asarray(q, dtype=jnp.float32)
+    valid_q = (q_arr > 0.0) & (q_arr < 1.0)
+    return (valid_q & (q_vals <= q_arr)).reshape(test.shape)
+
+
+def false_discovery_proportion(selected: ArrayLike, is_null: ArrayLike) -> jax.Array:
+    """Realized false discovery proportion ``V / max(R, 1)`` (Benjamini and Hochberg 1995).
+
+    Evaluates the fraction of selected discoveries that belong to the null hypothesis.
+    Making zero selections (``R == 0``) on a non-empty test set incurs zero false
+    discoveries and returns ``0.0``; an empty test set returns ``NaN``.
+
+    Note:
+        Direction: LOWER (0.0 = zero false discoveries).
+        Range: [0, 1]. ``NaN`` when ``selected`` is empty.
+
+    Args:
+        selected: Boolean or binary selection indicator (nonzero = selected).
+        is_null: Boolean or binary null-hypothesis indicator (nonzero = true null).
+
+    Returns:
+        False discovery proportion as a scalar JAX array, or ``NaN`` on empty inputs.
+
+    Raises:
+        ValueError: If ``selected`` and ``is_null`` differ in size.
+    """
+    sel_raw = jnp.asarray(selected).ravel()
+    null_raw = jnp.asarray(is_null).ravel()
+    if sel_raw.size != null_raw.size:
+        raise ValueError(
+            f"Shape mismatch: selected has {sel_raw.size} elements, is_null has {null_raw.size}"
+        )
+    if sel_raw.size == 0:
+        return jnp.array(jnp.nan, dtype=jnp.float32)
+
+    sel = sel_raw > 0
+    null = null_raw > 0
+    n_sel = jnp.sum(sel.astype(jnp.float32))
+    n_false = jnp.sum((sel & null).astype(jnp.float32))
+    return jnp.where(n_sel > 0.0, n_false / jnp.maximum(n_sel, 1.0), 0.0)
+
+
+def empirical_power(selected: ArrayLike, is_alternative: ArrayLike) -> jax.Array:
+    """Realized discovery power (true positive selection rate among true alternatives).
+
+    Note:
+        Direction: HIGHER (1.0 = all true alternatives selected).
+        Range: [0, 1]. ``NaN`` when ``selected`` is empty or zero true alternatives exist.
+
+    Args:
+        selected: Boolean or binary selection indicator (nonzero = selected).
+        is_alternative: Boolean or binary alternative indicator (nonzero = true non-null).
+
+    Returns:
+        Empirical power as a scalar JAX array, or ``NaN`` when undefined.
+
+    Raises:
+        ValueError: If ``selected`` and ``is_alternative`` differ in size.
+    """
+    sel_raw = jnp.asarray(selected).ravel()
+    alt_raw = jnp.asarray(is_alternative).ravel()
+    if sel_raw.size != alt_raw.size:
+        raise ValueError(
+            f"Shape mismatch: selected has {sel_raw.size} elements, "
+            f"is_alternative has {alt_raw.size}"
+        )
+    if sel_raw.size == 0:
+        return jnp.array(jnp.nan, dtype=jnp.float32)
+
+    sel = sel_raw > 0
+    alt = alt_raw > 0
+    n_alt = jnp.sum(alt.astype(jnp.float32))
+    n_true_disc = jnp.sum((sel & alt).astype(jnp.float32))
+    has_alt = n_alt > 0.0
+    safe_alt = jnp.where(has_alt, n_alt, 1.0)
+    return jnp.where(has_alt, n_true_disc / safe_alt, jnp.nan)

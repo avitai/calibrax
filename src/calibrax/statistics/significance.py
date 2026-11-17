@@ -1,22 +1,45 @@
-"""Statistical significance tests for benchmark comparisons.
+"""Statistical significance, multiple testing, and power analysis for benchmark comparisons.
 
-Provides Welch's t-test, Mann-Whitney U, the paired Wilcoxon signed-rank test, and Cohen's d
-effect size. The tests are SciPy's, which calibrax has through JAX.
-
-These run on the host and return Python numbers: SciPy computes the exact p-values that JAX has
-no equivalent of, so a significance test cannot be traced. The statistics that can be are
-:func:`calibrax.statistics.summarize`, :func:`calibrax.statistics.outlier_mask` and
-:func:`calibrax.statistics.bootstrap_interval`.
+Provides host-side classical significance tests (Welch's t-test, Mann-Whitney U, paired Wilcoxon
+signed-rank, Cohen's d, exact non-central Student-t power and minimum detectable effect) alongside
+JAX-traceable multiple-hypothesis control (:func:`benjamini_hochberg_adjust` and Foster-Stine
+sequential :func:`alpha_investing`).
 """
 
 from __future__ import annotations
 
 import math
 from collections.abc import Sequence
+from dataclasses import dataclass
+from typing import Literal
 
-from scipy.stats import mannwhitneyu, ttest_ind, wilcoxon
+import jax
+import jax.numpy as jnp
+from jax import lax
+from jax.typing import ArrayLike
+from scipy.optimize import brentq
+from scipy.stats import mannwhitneyu, nct, norm, t as student_t, ttest_ind, wilcoxon
 
 from calibrax.core.models import SignificanceResult
+
+
+_MIN_SAMPLE_SIZE = 2
+
+
+@jax.tree_util.register_dataclass
+@dataclass(frozen=True, slots=True, kw_only=True)
+class AlphaInvestingResult:
+    """Sequential Foster-Stine alpha-investing decisions and wealth trajectory.
+
+    Attributes:
+        rejected: Boolean array of shape ``(m,)`` marking rejected null hypotheses.
+        thresholds: Per-step test levels ``alpha_t`` of shape ``(m,)``.
+        wealth: Post-step alpha-wealth ``W_t`` of shape ``(m,)``.
+    """
+
+    rejected: jax.Array
+    thresholds: jax.Array
+    wealth: jax.Array
 
 
 def welch_t_test(a: Sequence[float], b: Sequence[float]) -> tuple[float, float]:
@@ -112,3 +135,227 @@ def effect_size(a: Sequence[float], b: Sequence[float]) -> float:
     var_b = sum((x - mean_b) ** 2 for x in b) / max(n_b - 1, 1)
     pooled_std = math.sqrt((var_a + var_b) / 2) if (var_a + var_b) > 0 else 0.0
     return abs(mean_a - mean_b) / pooled_std if pooled_std > 0 else 0.0
+
+
+def benjamini_hochberg_adjust(p_values: ArrayLike) -> jax.Array:
+    """Step-up Benjamini-Hochberg FDR-adjusted p-values (q-values).
+
+    Computes ``q_(k) = min(1, min_{r >= k} (m / r) * p_(r))`` on sorted p-values
+    (Benjamini and Hochberg, JRSS-B 1995), matching
+    ``scipy.stats.false_discovery_control(..., method="bh")`` while remaining
+    compatible with ``jax.jit`` and ``jax.vmap``. Out-of-range entries outside
+    ``[0, 1]`` or ``NaN`` propagate ``NaN`` across the returned vector.
+
+    Args:
+        p_values: Unadjusted p-values in ``[0, 1]``.
+
+    Returns:
+        Adjusted q-values with the same shape as ``p_values``.
+    """
+    p = jnp.asarray(p_values, dtype=jnp.float32)
+    flat = p.ravel()
+    m = flat.size
+    if m == 0:
+        return jnp.zeros(p.shape, dtype=jnp.float32)
+
+    invalid = jnp.any(jnp.isnan(flat) | (flat < 0.0) | (flat > 1.0))
+    safe_flat = jnp.where(jnp.isnan(flat), 1.0, jnp.clip(flat, 0.0, 1.0))
+    order = jnp.argsort(safe_flat)
+    sorted_p = safe_flat[order]
+    ranks = jnp.arange(1, m + 1, dtype=jnp.float32)
+    scaled = sorted_p * (float(m) / ranks)
+    monotone = jnp.minimum(lax.cummin(scaled, axis=0, reverse=True), 1.0)
+    adjusted = jnp.zeros_like(safe_flat).at[order].set(monotone)
+    return jnp.where(invalid, jnp.full_like(adjusted, jnp.nan), adjusted).reshape(p.shape)
+
+
+def alpha_investing(
+    p_values: ArrayLike,
+    *,
+    wealth: ArrayLike = 0.05,
+    pay_out: ArrayLike = 0.05,
+    invest_fraction: ArrayLike = 0.5,
+) -> AlphaInvestingResult:
+    """Sequential online mFDR control via Foster-Stine alpha-investing (JRSS-B 2008).
+
+    Tests a sequential stream of hypotheses ``p_1, ..., p_m`` without knowing future
+    p-values in advance. At step ``t``, invests fraction ``gamma = invest_fraction`` of
+    current wealth ``W_{t-1}`` by setting ``alpha_t = (gamma * W_{t-1}) / (1 + gamma * W_{t-1})``.
+    Rejections earn ``pay_out``, while non-rejections spend ``alpha_t / (1 - alpha_t) =
+    gamma * W_{t-1}``, keeping wealth strictly non-negative.
+
+    Args:
+        p_values: Sequential p-values in ``[0, 1]``.
+        wealth: Initial alpha-wealth ``W_0 > 0`` (defaults to ``0.05``).
+        pay_out: Wealth earned upon each rejection ``omega > 0`` (defaults to ``0.05``).
+        invest_fraction: Fraction of remaining wealth risked per step in ``(0, 1)``
+            (defaults to ``0.5``).
+
+    Returns:
+        :class:`AlphaInvestingResult` containing ``rejected``, ``thresholds``, and ``wealth``.
+
+    Raises:
+        ValueError: If eager ``wealth <= 0``, ``pay_out <= 0``, or ``invest_fraction``
+            lies outside ``(0, 1)``.
+    """
+    if isinstance(wealth, int | float) and not isinstance(wealth, jax.Array) and wealth <= 0.0:
+        raise ValueError(f"wealth must be positive, got {wealth}")
+    if isinstance(pay_out, int | float) and not isinstance(pay_out, jax.Array) and pay_out <= 0.0:
+        raise ValueError(f"pay_out must be positive, got {pay_out}")
+    if (
+        isinstance(invest_fraction, int | float)
+        and not isinstance(invest_fraction, jax.Array)
+        and not (0.0 < invest_fraction < 1.0)
+    ):
+        raise ValueError(f"invest_fraction must be in (0, 1), got {invest_fraction}")
+
+    p = jnp.asarray(p_values, dtype=jnp.float32).ravel()
+    if p.size == 0:
+        empty_f = jnp.zeros((0,), dtype=jnp.float32)
+        return AlphaInvestingResult(
+            rejected=jnp.zeros((0,), dtype=bool),
+            thresholds=empty_f,
+            wealth=empty_f,
+        )
+
+    w0 = jnp.asarray(wealth, dtype=jnp.float32)
+    reward = jnp.asarray(pay_out, dtype=jnp.float32)
+    gamma = jnp.asarray(invest_fraction, dtype=jnp.float32)
+
+    def _step(
+        cur_wealth: jax.Array, p_t: jax.Array
+    ) -> tuple[jax.Array, tuple[jax.Array, jax.Array, jax.Array]]:
+        bet = gamma * cur_wealth
+        alpha_t = bet / (1.0 + bet)
+        rej = p_t <= alpha_t
+        next_wealth = jnp.where(rej, cur_wealth + reward, cur_wealth - bet)
+        return next_wealth, (rej, alpha_t, next_wealth)
+
+    _, (rejected, thresholds, wealth_hist) = lax.scan(_step, w0, p)
+    return AlphaInvestingResult(rejected=rejected, thresholds=thresholds, wealth=wealth_hist)
+
+
+def _design_df_and_eff_n(n: int, *, paired: bool, n_b: int | None) -> tuple[int, float]:
+    """Degrees of freedom and effective sample size for paired or two-sample t-tests."""
+    if n < _MIN_SAMPLE_SIZE:
+        raise ValueError(f"n must be at least 2, got {n}")
+    if paired:
+        return n - 1, float(n)
+    nb = n if n_b is None else n_b
+    if nb < _MIN_SAMPLE_SIZE:
+        raise ValueError(f"n_b must be at least 2, got {nb}")
+    return n + nb - 2, (float(n) * float(nb)) / float(n + nb)
+
+
+def statistical_power(
+    effect_size: float,
+    n: int,
+    *,
+    alpha: float = 0.05,
+    paired: bool = False,
+    n_b: int | None = None,
+    alternative: Literal["two-sided", "greater", "less"] = "two-sided",
+) -> float:
+    """Exact Student-t statistical power via the non-central t distribution.
+
+    Args:
+        effect_size: Standardized effect size (Cohen's ``d``).
+        n: Sample size (number of pairs when ``paired=True``, or first-group size).
+        alpha: Type-I error rate in ``(0, 1)``.
+        paired: If ``True``, use paired/one-sample ``t`` with ``df = n - 1``; otherwise
+            two-sample ``t`` with ``df = n + n_b - 2``.
+        n_b: Optional second-group size when ``paired=False`` (defaults to ``n``).
+        alternative: Alternative hypothesis (``"two-sided"``, ``"greater"``, or ``"less"``).
+
+    Returns:
+        Exact statistical power in ``[0, 1]``.
+
+    Raises:
+        ValueError: If ``n < 2``, ``n_b < 2``, ``alpha`` is outside ``(0, 1)``, or
+            ``alternative`` is unrecognized.
+    """
+    if not (0.0 < alpha < 1.0):
+        raise ValueError(f"alpha must be in (0, 1), got {alpha}")
+    df, n_eff = _design_df_and_eff_n(n, paired=paired, n_b=n_b)
+    root_n = math.sqrt(n_eff)
+
+    if alternative == "two-sided":
+        ncp = abs(effect_size) * root_n
+        t_crit = float(student_t.ppf(1.0 - alpha / 2.0, df))
+        return float(nct.sf(t_crit, df, ncp) + nct.cdf(-t_crit, df, ncp))
+    if alternative == "greater":
+        ncp = effect_size * root_n
+        t_crit = float(student_t.ppf(1.0 - alpha, df))
+        return float(nct.sf(t_crit, df, ncp))
+    if alternative == "less":
+        ncp = effect_size * root_n
+        t_crit = float(student_t.ppf(alpha, df))
+        return float(nct.cdf(t_crit, df, ncp))
+    raise ValueError(f"Unsupported alternative: {alternative!r}")
+
+
+def minimum_detectable_effect(
+    n: int,
+    *,
+    alpha: float = 0.05,
+    power: float = 0.80,
+    paired: bool = False,
+    n_b: int | None = None,
+    alternative: Literal["two-sided", "greater", "less"] = "two-sided",
+    std: float = 1.0,
+) -> float:
+    """Minimum detectable effect size (MDE) inverting :func:`statistical_power`.
+
+    Solves for the non-negative effect magnitude whose exact non-central ``t`` power
+    equals ``power``, scaled by ``std`` (returning Cohen's ``d`` when ``std=1.0``).
+
+    Args:
+        n: Sample size (number of pairs when ``paired=True``, or first-group size).
+        alpha: Type-I error rate in ``(0, 1)``.
+        power: Target statistical power in ``(alpha, 1)``.
+        paired: Whether the design is paired/one-sample.
+        n_b: Optional second-group size when ``paired=False``.
+        alternative: Alternative hypothesis (``"two-sided"``, ``"greater"``, or ``"less"``).
+        std: Outcome standard deviation scaling standardized MDE into raw units.
+
+    Returns:
+        Positive minimum detectable effect ``d * std``.
+
+    Raises:
+        ValueError: If sample sizes, ``alpha``, ``power``, ``std``, or ``alternative``
+            are out of range.
+    """
+    if not (0.0 < alpha < 1.0):
+        raise ValueError(f"alpha must be in (0, 1), got {alpha}")
+    if not (alpha < power < 1.0):
+        raise ValueError(f"power must be strictly in (alpha, 1), got {power} for alpha={alpha}")
+    if std <= 0.0:
+        raise ValueError(f"std must be positive, got {std}")
+    if alternative not in ("two-sided", "greater", "less"):
+        raise ValueError(f"Unsupported alternative: {alternative!r}")
+
+    _, n_eff = _design_df_and_eff_n(n, paired=paired, n_b=n_b)
+    # By symmetry of Student-t, magnitude for "less" equals magnitude for "greater".
+    solve_alt: Literal["two-sided", "greater"] = (
+        "two-sided" if alternative == "two-sided" else "greater"
+    )
+    alpha_tail = alpha / 2.0 if solve_alt == "two-sided" else alpha
+    z_guess = float(norm.ppf(1.0 - alpha_tail) + norm.ppf(power)) / math.sqrt(n_eff)
+    hi = max(z_guess * 1.5, 1e-3)
+    while (
+        statistical_power(hi, n, alpha=alpha, paired=paired, n_b=n_b, alternative=solve_alt) < power
+    ):
+        hi *= 2.0
+
+    d_star = float(
+        brentq(
+            lambda d: (
+                statistical_power(d, n, alpha=alpha, paired=paired, n_b=n_b, alternative=solve_alt)
+                - power
+            ),
+            0.0,
+            hi,
+            xtol=1e-12,
+        )
+    )
+    return d_star * std

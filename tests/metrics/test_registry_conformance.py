@@ -287,6 +287,8 @@ FIXTURES: dict[str, Callable[[], Call]] = {
         ),
         {},
     ),
+    "false_discovery_proportion": lambda: ((_binary(_N), _binary(_N)), {}),
+    "empirical_power": lambda: ((_binary(_N), _binary(_N)), {}),
 }
 
 
@@ -344,7 +346,7 @@ def _close(a: object, b: object) -> bool:
 
 
 def test_every_registered_metric_is_covered() -> None:
-    assert len(ENTRIES) == 154
+    assert len(ENTRIES) == 156
     stale = sorted(set(FIXTURES) - set(IDS))
     assert stale == [], f"fixtures for unregistered metrics: {stale}"
 

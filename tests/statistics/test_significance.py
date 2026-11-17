@@ -4,9 +4,20 @@ from __future__ import annotations
 
 import warnings
 
+import jax
+import jax.numpy as jnp
+import numpy as np
 import pytest
-from scipy.stats import wilcoxon
+from scipy.stats import false_discovery_control, nct, t as student_t, wilcoxon
+from substrax.testing import TraceCounter
 
+from calibrax.statistics import (
+    alpha_investing,
+    AlphaInvestingResult,
+    benjamini_hochberg_adjust,
+    minimum_detectable_effect,
+    statistical_power,
+)
 from calibrax.statistics.significance import (
     effect_size,
     mann_whitney_u,
@@ -166,3 +177,156 @@ class TestEffectSize:
         b = [1.0, 2.0, 3.0]
         assert effect_size(a, b) >= 0.0
         assert effect_size(b, a) >= 0.0
+
+
+class TestBenjaminiHochbergAdjust:
+    """Step-up Benjamini-Hochberg q-values (JRSS-B 1995)."""
+
+    def test_matches_scipy_false_discovery_control_with_and_without_ties(self) -> None:
+        rng = np.random.default_rng(11)
+        for p_np in [
+            np.array([0.005, 0.011, 0.04, 0.04, 0.20, 0.85], dtype=np.float32),
+            rng.uniform(0.0, 1.0, size=64).astype(np.float32),
+            np.array([1.0, 1.0, 0.5], dtype=np.float32),
+        ]:
+            expected = false_discovery_control(p_np.astype(np.float64), method="bh")
+            actual = np.asarray(benjamini_hochberg_adjust(jnp.asarray(p_np)))
+            np.testing.assert_allclose(actual, expected, rtol=0.0, atol=1e-6)
+
+    def test_empty_out_of_bounds_and_jit_vmap(self) -> None:
+        empty = benjamini_hochberg_adjust(jnp.zeros(0, dtype=jnp.float32))
+        assert empty.shape == (0,)
+
+        bad = benjamini_hochberg_adjust(jnp.array([0.1, -0.2, 0.5], dtype=jnp.float32))
+        assert bool(jnp.all(jnp.isnan(bad)))
+
+        counter = TraceCounter()
+        compiled = jax.jit(counter.wrap(benjamini_hochberg_adjust))
+        batch = jnp.array([[0.01, 0.04, 0.2], [0.5, 0.02, 0.9]], dtype=jnp.float32)
+        with counter.expect(new_traces=1):
+            compiled(batch[0])
+        with counter.expect(new_traces=0):
+            compiled(batch[1])
+        vmapped = jax.vmap(benjamini_hochberg_adjust)(batch)
+        for row_idx in range(2):
+            expected_row = false_discovery_control(np.asarray(batch[row_idx], dtype=np.float64))
+            np.testing.assert_allclose(np.asarray(vmapped[row_idx]), expected_row, atol=1e-6)
+
+
+class TestAlphaInvesting:
+    """Foster and Stine (JRSS-B 2008) sequential mFDR control."""
+
+    def test_exact_wealth_recursion_and_non_negativity(self) -> None:
+        # w_0 = 0.05, gamma = 0.5, payout = 0.05:
+        # Step 0: alpha_0 = 0.025 / 1.025 = 1/41 ~ 0.02439024. p_0 = 0.01 <= alpha_0 -> REJECT!
+        #         w_1 = 0.05 + 0.05 = 0.10.
+        # Step 1: alpha_1 = 0.05 / 1.05 = 1/21 ~ 0.04761905. p_1 = 0.20 > alpha_1 -> ACCEPT!
+        #         w_2 = 0.10 - 0.05 = 0.05.
+        # Step 2: alpha_2 = 0.025 / 1.025 = 1/41. p_2 = 0.50 > alpha_2 -> ACCEPT!
+        #         w_3 = 0.025.
+        p_vals = jnp.array([0.01, 0.20, 0.50], dtype=jnp.float32)
+        res = alpha_investing(p_vals, wealth=0.05, pay_out=0.05, invest_fraction=0.5)
+        assert isinstance(res, AlphaInvestingResult)
+        assert res.rejected.tolist() == [True, False, False]
+        np.testing.assert_allclose(
+            np.asarray(res.thresholds),
+            np.array([1.0 / 41.0, 1.0 / 21.0, 1.0 / 41.0]),
+            atol=1e-7,
+        )
+        np.testing.assert_allclose(
+            np.asarray(res.wealth),
+            np.array([0.10, 0.05, 0.025]),
+            atol=1e-7,
+        )
+        assert bool(jnp.all(res.wealth >= 0.0))
+
+    def test_validation_empty_and_jit_pytree_registration(self) -> None:
+        empty_res = alpha_investing(jnp.zeros(0, dtype=jnp.float32))
+        assert empty_res.rejected.shape == (0,)
+        assert empty_res.thresholds.shape == (0,)
+        assert empty_res.wealth.shape == (0,)
+
+        with pytest.raises(ValueError, match="wealth"):
+            alpha_investing(jnp.array([0.01]), wealth=0.0)
+        with pytest.raises(ValueError, match="pay_out"):
+            alpha_investing(jnp.array([0.01]), pay_out=-0.01)
+        with pytest.raises(ValueError, match="invest_fraction"):
+            alpha_investing(jnp.array([0.01]), invest_fraction=1.0)
+
+        counter = TraceCounter()
+        compiled = jax.jit(counter.wrap(alpha_investing))
+        with counter.expect(new_traces=1):
+            out = compiled(jnp.array([0.001, 0.5, 0.002, 0.8], dtype=jnp.float32))
+        with counter.expect(new_traces=0):
+            compiled(jnp.array([0.4, 0.3, 0.2, 0.1], dtype=jnp.float32))
+        assert out.rejected.tolist() == [True, False, True, False]
+
+
+class TestPowerAndMDE:
+    """Exact non-central Student-t statistical power and minimum detectable effect."""
+
+    def test_statistical_power_matches_scipy_nct_two_sample_and_paired(self) -> None:
+        # Independent two-sample: n=30 per group -> df=58, ncp = d * sqrt(15).
+        d = 0.65
+        n = 30
+        alpha = 0.05
+        df_ind = 2 * n - 2
+        ncp_ind = d * np.sqrt(n / 2.0)
+        t_crit_ind = float(student_t.ppf(1.0 - alpha / 2.0, df_ind))
+        expected_ind = float(
+            nct.sf(t_crit_ind, df_ind, ncp_ind) + nct.cdf(-t_crit_ind, df_ind, ncp_ind)
+        )
+        assert statistical_power(d, n, alpha=alpha, paired=False) == pytest.approx(
+            expected_ind, abs=1e-12
+        )
+
+        # Paired: n=25 pairs -> df=24, ncp = d * sqrt(25).
+        n_pair = 25
+        df_pair = n_pair - 1
+        ncp_pair = d * np.sqrt(n_pair)
+        t_crit_pair = float(student_t.ppf(1.0 - alpha / 2.0, df_pair))
+        expected_pair = float(
+            nct.sf(t_crit_pair, df_pair, ncp_pair) + nct.cdf(-t_crit_pair, df_pair, ncp_pair)
+        )
+        assert statistical_power(d, n_pair, alpha=alpha, paired=True) == pytest.approx(
+            expected_pair, abs=1e-12
+        )
+
+    @pytest.mark.parametrize("paired", [False, True])
+    @pytest.mark.parametrize("alternative", ["two-sided", "greater"])
+    def test_minimum_detectable_effect_inverts_statistical_power(
+        self, paired: bool, alternative: str
+    ) -> None:
+        mde = minimum_detectable_effect(
+            40,
+            alpha=0.05,
+            power=0.80,
+            paired=paired,
+            alternative=alternative,  # type: ignore[arg-type]
+        )
+        recovered = statistical_power(
+            mde,
+            40,
+            alpha=0.05,
+            paired=paired,
+            alternative=alternative,  # type: ignore[arg-type]
+        )
+        assert recovered == pytest.approx(0.80, abs=1e-10)
+        assert minimum_detectable_effect(
+            40,
+            alpha=0.05,
+            power=0.80,
+            paired=paired,
+            alternative=alternative,  # type: ignore[arg-type]
+            std=2.5,
+        ) == pytest.approx(2.5 * mde, abs=1e-11)
+
+    def test_invalid_power_parameters_raise(self) -> None:
+        with pytest.raises(ValueError, match="n must be at least 2"):
+            statistical_power(0.5, 1)
+        with pytest.raises(ValueError, match="alpha"):
+            statistical_power(0.5, 20, alpha=1.0)
+        with pytest.raises(ValueError, match="power"):
+            minimum_detectable_effect(20, alpha=0.05, power=0.04)
+        with pytest.raises(ValueError, match="std"):
+            minimum_detectable_effect(20, std=0.0)
