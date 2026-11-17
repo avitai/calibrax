@@ -1,6 +1,6 @@
 # Metrics Quickstart
 
-> Ran in 2.2 s on 1 cpu (python 3.12.14, jax 0.11.1, substrax 0.1.27, calibrax 0.1.17), from [`examples/metrics/quickstart.py`](https://github.com/avitai/calibrax/blob/main/examples/metrics/quickstart.py) ([notebook](https://github.com/avitai/calibrax/blob/main/examples/metrics/quickstart.ipynb)). Run it from the repository root:
+> Ran in 2.7 s on 1 cpu (python 3.12.14, jax 0.11.1, substrax 0.1.27, calibrax 0.1.19), from [`examples/metrics/quickstart.py`](https://github.com/avitai/calibrax/blob/main/examples/metrics/quickstart.py) ([notebook](https://github.com/avitai/calibrax/blob/main/examples/metrics/quickstart.ipynb)). Run it from the repository root:
 
 ```bash
 source ./activate.sh
@@ -75,6 +75,9 @@ def individual_metrics(predictions: jax.Array, targets: jax.Array) -> dict[str, 
         "r_squared": float(r_squared(predictions, targets)),
     }
 ```
+
+    An NVIDIA GPU may be present on this machine, but a CUDA-enabled jaxlib is not installed. Falling back to cpu.
+
 
 ### Step 2: Evaluate every general metric at once
 
@@ -279,6 +282,7 @@ if __name__ == "__main__":
       mae                       = 0.220000
       mape                      = 0.085333
       max_error                 = 0.300000
+      mean_error                = 0.020000
       mse                       = 0.054000
       quantile_loss             = 0.110000
       r_squared                 = 0.973000
@@ -292,15 +296,15 @@ if __name__ == "__main__":
       rmse                      = 0.232379
       r_squared                 = 0.973000
     === Registry: all registered metric names ===
-      Total registered: 147
-      First 10: ['accuracy', 'adaptive_calibration_error', 'adjusted_mutual_information', 'adjusted_rand_index', 'anees', 'average_precision', 'balanced_accuracy', 'bleu', 'bregman_divergence', 'brier_score']
+      Total registered: 156
+      First 10: ['accuracy', 'adaptive_calibration_error', 'adjusted_mutual_information', 'adjusted_rand_index', 'anees', 'average_precision', 'balanced_accuracy', 'bedroc', 'bleu', 'bregman_divergence']
     === Registry: metrics by domain ===
-      general              (16): ['mse', 'mae', 'rmse', 'r_squared', 'r_squared_adjusted', 'mape', 'relative_error', 'relative_l2_error', 'explained_variance', 'max_error', 'huber_loss', 'charbonnier_loss', 'quantile_loss', 'log_cosh_loss', 'smape', 'crps']
+      general              (17): ['mse', 'mae', 'rmse', 'mean_error', 'r_squared', 'r_squared_adjusted', 'mape', 'relative_error', 'relative_l2_error', 'explained_variance', 'max_error', 'huber_loss', 'charbonnier_loss', 'quantile_loss', 'log_cosh_loss', 'smape', 'crps']
       classification       (13): ['accuracy', 'precision', 'recall', 'f1_score', 'roc_auc', 'average_precision', 'log_loss', 'matthews_corrcoef', 'cohen_kappa', 'balanced_accuracy', 'specificity', 'sensitivity', 'softmax_cross_entropy']
       distance             (11): ['cosine_distance', 'euclidean_distance', 'manhattan_distance', 'chebyshev_distance', 'mahalanobis_distance', 'hamming_distance', 'minkowski_distance', 'jaccard_distance', 'poincare_distance', 'lorentz_distance', 'randers_distance']
       image                (4): ['psnr', 'ssim', 'ms_ssim', 'vendi_score']
     === Registry: Tier 0 pure functions ===
-      Count: 147
+      Count: 156
     === MetricEntry fields for 'mse' ===
       name:              mse
       tier:              pure_function
@@ -329,4 +333,4 @@ if __name__ == "__main__":
 - [Geometric metrics guide](../../user-guide/geometric-metrics.md): choosing the right metric for
   your task
 
-<!-- substrax-notebooks: {"page": {"body": "aa0e18a626dc3739fa64ef6ae6f1574afca73a0236197c588da8f9f651eebe51", "figures": {}, "record": "6d669de168b03690aa21fe0d80469312d52b46fe5b51a2c5e1684876cbb37757"}, "provenance": {"device": "1 cpu", "outputs": [[], [], [], [], [], [], ["text"]], "seconds": 2.2, "sha256": "f4c7b78a30d02e2b4bc80b49324e655dec0ce0ff5e6f2f4d4c90e428dc98fa28", "source": "examples/metrics/quickstart.py", "versions": {"calibrax": "0.1.17", "jax": "0.11.1", "python": "3.12.14", "substrax": "0.1.27"}}} -->
+<!-- substrax-notebooks: {"page": {"body": "49da4fbcd955c4e71ee39dd9564e089586f9a8cd86663df7f85839dd9e2b1c51", "figures": {}, "record": "4553716bc6ca9af0eb819aeac6ee933e4e9703ce84744b2ad386c4abc62279ed"}, "provenance": {"device": "1 cpu", "outputs": [[], [], [], [], [], [], ["text"]], "seconds": 2.7, "sha256": "f4c7b78a30d02e2b4bc80b49324e655dec0ce0ff5e6f2f4d4c90e428dc98fa28", "source": "examples/metrics/quickstart.py", "versions": {"calibrax": "0.1.19", "jax": "0.11.1", "python": "3.12.14", "substrax": "0.1.27"}}} -->

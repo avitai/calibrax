@@ -35,7 +35,7 @@ results = calculate_all(predictions, targets, metrics=["mse", "mae", "r_squared"
 - [Registry](registry.md) -- MetricRegistry, MetricEntry, MetricTier, MetricSignature
 - [Regression](regression.md) -- MSE, MAE, RMSE, R-squared, Huber, quantile loss
 - [Classification](classification.md) -- accuracy, precision, recall, F1, ROC-AUC
-- [Calibration](calibration.md) -- Brier score, ECE, MCE, adaptive ECE
+- [Calibration](calibration.md) -- Brier score, ECE, MCE, adaptive ECE, conformal FDR selection, FDP, empirical power
 - [Segmentation](segmentation.md) -- IoU, Dice, pixel accuracy
 - [Distance](distance.md) -- Euclidean, cosine, Mahalanobis, Poincare, Lorentz
 - [Divergence](divergence.md) -- KL, JS, Wasserstein, KS, Sinkhorn, MMD

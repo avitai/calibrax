@@ -74,7 +74,7 @@ topic relevant to your task.
 
     ---
 
-    147 registered Tier 0 metrics across 21 domains, geometric distances, composition, stateful APIs, and metric learning losses
+    156 registered Tier 0 metrics across 22 domains, geometric distances, composition, stateful APIs, and metric learning losses
 
     [:octicons-arrow-right-24: Metrics](metrics-overview.md)
 

@@ -2,7 +2,7 @@
 
 Calibrax provides a 4-tier metric system that covers everything from stateless
 pure functions to trainable embedding losses. The current `MetricRegistry`
-contains 147 Tier 0 pure-function metrics across 21 domains. Tier 1-3 APIs,
+contains 156 Tier 0 pure-function metrics across 22 domains. Tier 1-3 APIs,
 optional plugin metrics, and metric-learning losses are part of the package
 architecture, but they are not all registry entries today.
 
@@ -195,20 +195,21 @@ assert not registry.has("weighted_mse")
 
 ## Domain Reference
 
-The registry organizes Tier 0 metrics into 21 domains. Each domain groups
+The registry organizes Tier 0 metrics into 22 domains. Each domain groups
 metrics with a shared evaluation context.
 
 | Domain | Count | Examples |
 |--------|-------|---------|
-| `general` | 16 | MSE, MAE, RMSE, R-squared, adjusted R-squared, Huber, Charbonnier, SMAPE, relative L2 |
+| `general` | 17 | MSE, MAE, RMSE, mean error, R-squared, adjusted R-squared, Huber, Charbonnier, SMAPE, relative L2 |
 | `classification` | 13 | Accuracy, F1, ROC-AUC, Matthews correlation, softmax cross-entropy |
-| `calibration` | 5 | Brier score, ECE, MCE, adaptive ECE |
+| `calibration` | 7 | Brier score, ECE, MCE, adaptive ECE, false discovery proportion, empirical power |
 | `segmentation` | 3 | IoU, Dice coefficient, pixel accuracy |
 | `distance` | 11 | Euclidean, cosine, Poincare, Lorentz, Mahalanobis |
 | `divergence` | 15 | KL, JS, Wasserstein, KS, MMD, unbiased MMD², Sinkhorn, Bregman |
 | `information` | 5 | Entropy, cross-entropy, mutual information |
-| `ranking` | 8 | NDCG, MAP, MRR, precision@k, recall@k |
+| `ranking` | 12 | NDCG, MAP, MRR, precision@k, recall@k, BEDROC, enrichment factor, sequential discovery nAUC |
 | `statistical` | 5 | Pearson, Spearman, Kendall, concordance, skewness |
+| `survival` | 2 | Harrell concordance index, Uno IPCW concordance index |
 | `clustering` | 7 | Adjusted Rand, silhouette, Davies-Bouldin |
 | `fairness` | 4 | Demographic parity, equalized odds, disparate impact |
 | `image` | 4 | PSNR, SSIM, MS-SSIM, Vendi score |

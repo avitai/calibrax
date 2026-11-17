@@ -2,8 +2,10 @@
 
 Statistical analysis tools for benchmark measurements. Provides summary
 statistics, MAD-based outlier detection, percentile bootstrap confidence
-intervals, significance tests (Welch's t, Mann-Whitney U, Wilcoxon), and
-Cohen's d effect size.
+intervals, classical significance tests (Welch's t, Mann-Whitney U, Wilcoxon),
+Cohen's d effect size, Benjamini-Hochberg and Foster-Stine sequential
+alpha-investing FDR control, and exact non-central Student-t power and minimum
+detectable effect calculations.
 
 ## Summary
 

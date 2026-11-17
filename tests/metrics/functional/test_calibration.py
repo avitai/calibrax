@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 import pytest
 
 from calibrax.core.models import MetricDirection
@@ -13,7 +14,10 @@ from calibrax.metrics.functional.calibration import (
     brier_decomposition,
     brier_score,
     classwise_ece,
+    conformal_fdr_selection,
+    empirical_power,
     expected_calibration_error,
+    false_discovery_proportion,
     maximum_calibration_error,
     reliability_diagram_bins,
 )
@@ -330,6 +334,8 @@ class TestCalibrationMetricRegistration:
             "maximum_calibration_error",
             "adaptive_calibration_error",
             "classwise_ece",
+            "false_discovery_proportion",
+            "empirical_power",
         ]
         for name in expected:
             assert registry.has(name), f"Metric '{name}' not registered"
@@ -337,18 +343,120 @@ class TestCalibrationMetricRegistration:
     def test_calibration_domain(self) -> None:
         registry = MetricRegistry()
         calibration_metrics = registry.list_by_domain("calibration")
-        assert len(calibration_metrics) == 5
+        assert len(calibration_metrics) == 7
         names = {m.name for m in calibration_metrics}
         assert "brier_score" in names
         assert "expected_calibration_error" in names
+        assert "false_discovery_proportion" in names
+        assert "empirical_power" in names
 
     def test_brier_score_is_proper(self) -> None:
         registry = MetricRegistry()
         entry = registry.get("brier_score")
         assert entry.properties.is_proper is True
 
-    def test_calibration_metrics_direction_lower(self) -> None:
+    def test_calibration_metrics_directions(self) -> None:
         registry = MetricRegistry()
-        calibration_metrics = registry.list_by_domain("calibration")
-        for m in calibration_metrics:
-            assert m.direction == MetricDirection.LOWER
+        for m in registry.list_by_domain("calibration"):
+            expected = (
+                MetricDirection.HIGHER if m.name == "empirical_power" else MetricDirection.LOWER
+            )
+            assert m.direction == expected
+
+
+def _stratcp_get_sel_single_reference(
+    cal_scores: np.ndarray,
+    cal_null_mask: np.ndarray,
+    test_scores: np.ndarray,
+    q: float,
+) -> np.ndarray:
+    """Exact Jin & Candes (Biometrika 2023) / StratCP get_sel_single selection mask."""
+    n = cal_scores.size
+    m = test_scores.size
+    mu = np.concatenate([cal_scores, test_scores])
+    is_cal_null = np.concatenate([cal_null_mask.astype(np.float64), np.zeros(m)])
+    is_test = np.concatenate([np.zeros(n), np.ones(m)])
+    # Break ties between calibration and test conservatively (cal nulls before test)
+    order = np.lexsort((is_test, -mu))
+    rr = (
+        (1.0 + np.cumsum(is_cal_null[order]))
+        / np.maximum(1.0, np.cumsum(is_test[order]))
+        * (m / (1.0 + n))
+    )
+    ok = np.flatnonzero((rr <= q) & (is_test[order] == 1.0))
+    if ok.size == 0:
+        return np.zeros(m, dtype=bool)
+    tau_hat = float(np.min(mu[order][ok]))
+    return test_scores >= tau_hat
+
+
+class TestSelectiveConformalFDR:
+    """Selective-conformal FDR selection (Jin & Candes 2023; StratCP) and FDP/power metrics."""
+
+    def test_matches_stratcp_reference_and_controls_fdr(self) -> None:
+        rng = np.random.default_rng(123)
+        for _ in range(25):
+            n_cal, n_test = 80, 40
+            cal_labels = rng.binomial(1, 0.35, size=n_cal)
+            cal_scores = (rng.normal(loc=2.2 * cal_labels, scale=1.0, size=n_cal)).astype(
+                np.float32
+            )
+            test_labels = rng.binomial(1, 0.35, size=n_test)
+            test_scores = (rng.normal(loc=2.2 * test_labels, scale=1.0, size=n_test)).astype(
+                np.float32
+            )
+            null_mask = cal_labels == 0
+
+            expected = _stratcp_get_sel_single_reference(cal_scores, null_mask, test_scores, q=0.15)
+            actual = np.asarray(
+                conformal_fdr_selection(cal_scores, test_scores, q=0.15, cal_null_mask=null_mask)
+            )
+            np.testing.assert_array_equal(actual, expected)
+
+            # Passing null-only calibration scores matches Bates et al. (2023) null-pool selection.
+            null_only = cal_scores[null_mask]
+            expected_null_pool = _stratcp_get_sel_single_reference(
+                null_only, np.ones(null_only.size, dtype=bool), test_scores, q=0.15
+            )
+            actual_null_pool = np.asarray(conformal_fdr_selection(null_only, test_scores, q=0.15))
+            np.testing.assert_array_equal(actual_null_pool, expected_null_pool)
+
+    def test_false_discovery_proportion_and_empirical_power_identities(self) -> None:
+        selected = jnp.array([True, True, False, True, False])
+        is_null = jnp.array([False, True, True, False, False])
+        is_alt = ~is_null
+
+        # 3 selected, 1 is null -> FDP = 1/3; 3 true alternatives, 2 selected -> power = 2/3.
+        assert float(false_discovery_proportion(selected, is_null)) == pytest.approx(
+            1.0 / 3.0, abs=1e-7
+        )
+        assert float(empirical_power(selected, is_alt)) == pytest.approx(2.0 / 3.0, abs=1e-7)
+
+        # Zero selections on non-empty test set -> FDP == 0.0 (BH 1995 definition), power == 0.0.
+        none_sel = jnp.zeros(5, dtype=bool)
+        assert float(false_discovery_proportion(none_sel, is_null)) == 0.0
+        assert float(empirical_power(none_sel, is_alt)) == 0.0
+
+        # Zero true alternatives -> empirical_power is undefined (NaN).
+        assert np.isnan(float(empirical_power(selected, jnp.zeros(5, dtype=bool))))
+
+        # Empty test set -> both return NaN.
+        empty = jnp.zeros(0, dtype=bool)
+        assert np.isnan(float(false_discovery_proportion(empty, empty)))
+        assert np.isnan(float(empirical_power(empty, empty)))
+
+    def test_validation_and_jit_vmap_compatibility(self) -> None:
+        with pytest.raises(ValueError, match="q must be in"):
+            conformal_fdr_selection(jnp.ones(4), jnp.ones(3), q=0.0)
+        with pytest.raises(ValueError, match="Shape mismatch"):
+            conformal_fdr_selection(jnp.ones(4), jnp.ones(3), cal_null_mask=jnp.ones(2, dtype=bool))
+        with pytest.raises(ValueError, match="Shape mismatch"):
+            false_discovery_proportion(jnp.ones(2, dtype=bool), jnp.ones(3, dtype=bool))
+        with pytest.raises(ValueError, match="Shape mismatch"):
+            empirical_power(jnp.ones(2, dtype=bool), jnp.ones(3, dtype=bool))
+
+        cal = jnp.linspace(-2.0, 1.0, 32, dtype=jnp.float32)
+        test_batch = jnp.array([[2.0, 2.5, -1.0, 0.0], [-1.5, -0.5, 0.2, 3.0]], dtype=jnp.float32)
+        vmapped = jax.jit(jax.vmap(lambda ts: conformal_fdr_selection(cal, ts, q=0.2)))(test_batch)
+        assert vmapped.shape == (2, 4)
+        assert vmapped.dtype == jnp.bool_

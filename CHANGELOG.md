@@ -9,6 +9,11 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Added
 
+- `benjamini_hochberg_adjust`, `alpha_investing` (`AlphaInvestingResult`), `statistical_power`,
+  and `minimum_detectable_effect` in `calibrax.statistics`, plus `conformal_fdr_selection`,
+  `false_discovery_proportion`, and `empirical_power` in `calibrax.metrics.functional.calibration`
+  for finite-sample selective-conformal FDR control (Jin and Candes 2023), online sequential mFDR
+  control (Foster and Stine 2008), and exact non-central Student-t power/MDE calculations.
 - `harrell_c_index`, `uno_c_index`, and `censored_coverage_bounds` in
   `calibrax.metrics.functional.survival` (`survival` domain) for interval/right/left-censored
   concordance, simultaneous risk-set Kaplan-Meier IPCW concordance (Uno et al. 2011), and
