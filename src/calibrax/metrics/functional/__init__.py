@@ -194,6 +194,11 @@ from calibrax.metrics.functional.statistical import (
     skewness,
     spearman_rank_correlation,
 )
+from calibrax.metrics.functional.survival import (
+    censored_coverage_bounds,
+    harrell_c_index,
+    uno_c_index,
+)
 from calibrax.metrics.functional.text import (
     bleu,
     distinct_n,
@@ -231,6 +236,7 @@ __all__ = [
     "brier_decomposition",
     "brier_score",
     "calinski_harabasz_score",
+    "censored_coverage_bounds",
     "chamfer_distance",
     "chebyshev_distance",
     "chi2_confidence_interval",
@@ -278,6 +284,7 @@ __all__ = [
     "grassmann_distance",
     "group_metric_breakdown",
     "hamming_distance",
+    "harrell_c_index",
     "hausdorff_distance",
     "hellinger_distance",
     "hit_rate",
@@ -385,6 +392,7 @@ __all__ = [
     "stiefel_distance",
     "total_variation",
     "ultrahyperbolic_distance",
+    "uno_c_index",
     "v_measure",
     "vendi_score",
     "wasserstein_1d",

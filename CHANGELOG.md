@@ -9,6 +9,10 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Added
 
+- `harrell_c_index`, `uno_c_index`, and `censored_coverage_bounds` in
+  `calibrax.metrics.functional.survival` (`survival` domain) for interval/right/left-censored
+  concordance, simultaneous risk-set Kaplan-Meier IPCW concordance (Uno et al. 2011), and
+  observable lower/upper one-sided coverage bounds.
 - `bedroc`, `enrichment_factor`, `sequential_discovery_nauc`, and `sequential_shortfall` in
   `calibrax.metrics.functional.ranking` for tie-averaged Boltzmann early recognition (Truchon and
   Bayly 2007), cutoff enrichment factor, and oracle-normalized sequential discovery trajectories.

@@ -42,6 +42,7 @@ results = calculate_all(predictions, targets, metrics=["mse", "mae", "r_squared"
 - [Information](information.md) -- entropy, cross-entropy, mutual information
 - [Ranking](ranking.md) -- NDCG, MAP, MRR, precision/recall at k, BEDROC, enrichment factor, sequential discovery nAUC/shortfall
 - [Statistical](statistical.md) -- Pearson, Spearman, Kendall, concordance
+- [Survival](survival.md) -- Harrell and Uno IPCW concordance indices, censored coverage bounds
 - [Forecasting](forecasting.md) -- fair CRPS, energy score, rank/PIT histograms, RPS, reliability
 - [Uncertainty](uncertainty.md) -- PICP, MPIW, interval score, Gaussian NLL, ANEES, NCI
 - [Generative](generative.md) -- manifold precision/recall, closest-record distance, memorization
