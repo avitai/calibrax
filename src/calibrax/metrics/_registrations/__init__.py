@@ -26,6 +26,7 @@ from calibrax.metrics._registrations import (
     segmentation,
     seismic,
     statistical,
+    survival,
     text,
     uncertainty,
 )
@@ -58,3 +59,4 @@ def _register_all_builtins() -> None:
     uncertainty.register()
     generative.register()
     seismic.register()
+    survival.register()
