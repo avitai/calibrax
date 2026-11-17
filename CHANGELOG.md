@@ -7,6 +7,8 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+## [0.1.20] - 2026-11-16
+
 ### Added
 
 - `benjamini_hochberg_adjust`, `alpha_investing` (`AlphaInvestingResult`), `statistical_power`,
@@ -49,7 +51,6 @@ and uses semantic versioning while the public API stabilizes.
   `FlopsCounter` and lowered HLO inspection instead of running an eager forward pass or estimating
   operations from `input_shape` alone, preserving stateful `BatchNorm` and `Rngs` variables and
   surfacing incompatible input shapes immediately.
-
 - Unweighted `pearson_correlation` guards both sum-of-squares roots with `safe_root`, matching
   `_weighted_pearson` so differentiating at a constant input returns finite values rather than
   `NaN`, with `0` ULP forward change against unit-weighted `pearson_correlation`.
