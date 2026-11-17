@@ -13,7 +13,9 @@ from calibrax.metrics._types import (
     MetricTier,
 )
 from calibrax.metrics.functional.ranking import (
+    bedroc,
     coverage,
+    enrichment_factor,
     hit_rate,
     mean_average_precision,
     mean_reciprocal_rank,
@@ -21,6 +23,8 @@ from calibrax.metrics.functional.ranking import (
     ndcg_at_k,
     precision_at_k,
     recall_at_k,
+    sequential_discovery_nauc,
+    sequential_shortfall,
 )
 
 
@@ -52,6 +56,18 @@ def register() -> None:
             MetricSignature.PREDICTIONS_TARGETS,
         ),
         ("hit_rate", hit_rate, "Hit rate at k", MetricSignature.CUSTOM),
+        (
+            "bedroc",
+            bedroc,
+            "Boltzmann-Enhanced Discrimination of ROC",
+            MetricSignature.PREDICTIONS_TARGETS,
+        ),
+        (
+            "enrichment_factor",
+            enrichment_factor,
+            "Early enrichment factor at screening fraction",
+            MetricSignature.PREDICTIONS_TARGETS,
+        ),
     ]
     _register_specs(
         registry,
@@ -60,6 +76,26 @@ def register() -> None:
                 name, fn, desc, MetricDirection.HIGHER, ranked, signature=sig, domain="ranking"
             )
             for name, fn, desc, sig in at_k
+        ]
+        + [
+            _BuiltinMetricSpec(
+                "sequential_discovery_nauc",
+                sequential_discovery_nauc,
+                "Oracle-normalized area under sequential discovery curve",
+                MetricDirection.HIGHER,
+                MetricProperties(is_differentiable=True, is_jit_compatible=True),
+                signature=MetricSignature.CUSTOM,
+                domain="ranking",
+            ),
+            _BuiltinMetricSpec(
+                "sequential_shortfall",
+                sequential_shortfall,
+                "Relative sequential discovery shortfall against oracle curve",
+                MetricDirection.LOWER,
+                MetricProperties(is_differentiable=True, is_jit_compatible=True),
+                signature=MetricSignature.CUSTOM,
+                domain="ranking",
+            ),
         ],
     )
     if not registry.has("coverage"):

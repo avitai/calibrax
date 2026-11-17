@@ -4,8 +4,9 @@ Pure functions for evaluating the quality of ranked lists and
 information retrieval systems. Functions accept predicted scores
 and ground truth relevance labels.
 
-Includes 8 functions: ndcg, ndcg_at_k, mean_average_precision,
-precision_at_k, recall_at_k, mean_reciprocal_rank, hit_rate, coverage.
+Includes 12 functions: ndcg, ndcg_at_k, mean_average_precision,
+precision_at_k, recall_at_k, mean_reciprocal_rank, hit_rate, coverage,
+bedroc, enrichment_factor, sequential_discovery_nauc, sequential_shortfall.
 """
 
 from __future__ import annotations
@@ -328,3 +329,216 @@ def coverage(items: ArrayLike, *, catalog_size: int) -> jax.Array:
         jnp.where(in_catalog, ids, 0), weights=in_catalog.astype(jnp.int32), length=catalog_size
     )
     return jnp.count_nonzero(counts) / catalog_size
+
+
+def bedroc(
+    scores: ArrayLike,
+    relevance: ArrayLike,
+    *,
+    alpha: ArrayLike = 20.0,
+) -> jax.Array:
+    """Boltzmann-Enhanced Discrimination of ROC (Truchon and Bayly, JCIM 2007).
+
+    Evaluates early recognition of active items using exponential rank weights
+    ``exp(-alpha * rank / N)`` normalized to ``[0, 1]`` via the exact discrete geometric
+    extrema (Truchon and Bayly 2007, Eqs. 26 and 36). Tied score groups receive the exact
+    group-mean Boltzmann weight across all within-group permutations (McSherry and Najork
+    2008), and factoring out ``exp(-alpha / N)`` avoids positive-exponent overflow in
+    ``float32`` at large ``alpha``.
+
+    Note:
+        Direction: HIGHER (1.0 = all active items ranked ahead of all inactive items).
+        Range: [0, 1]. ``NaN`` when the list is empty or contains only actives or only
+        inactives (where ``RIE_max == RIE_min``).
+
+    Args:
+        scores: Predicted ranking scores (higher ranks earlier).
+        relevance: Binary ground-truth activity indicators (0 or 1).
+        alpha: Exponential early-recognition decay parameter (must be positive).
+
+    Returns:
+        BEDROC score as a scalar JAX array, or ``NaN`` when undefined.
+
+    Raises:
+        ValueError: If ``scores`` and ``relevance`` differ in size or eager ``alpha <= 0``.
+    """
+    if isinstance(alpha, int | float) and not isinstance(alpha, jax.Array) and alpha <= 0.0:
+        raise ValueError(f"alpha must be positive, got {alpha}")
+    s = jnp.asarray(scores).ravel()
+    r = jnp.asarray(relevance).ravel()
+    if s.size != r.size:
+        raise ValueError(f"Shape mismatch: scores has {s.size} elements, relevance has {r.size}")
+    if s.size == 0:
+        return jnp.array(jnp.nan, dtype=jnp.float32)
+
+    ranking = _tied_ranking(s, r)
+    n_items = float(s.size)
+    n_actives = jnp.sum(ranking.relevance)
+    alpha_arr = jnp.asarray(alpha, dtype=jnp.float32)
+    valid = (n_actives > 0.0) & (n_actives < n_items) & (alpha_arr > 0.0)
+
+    safe_alpha = jnp.where(valid, alpha_arr, 1.0)
+    safe_actives = jnp.where(valid, n_actives, 1.0)
+    step = safe_alpha / n_items
+
+    weights = jnp.exp(-step * ranking.position.astype(jnp.float32))
+    weighted_sum = jnp.sum(_expected_relevance(ranking) * weights)
+
+    denom_step = -jnp.expm1(-step)
+    safe_denom = jnp.where(denom_step > 0.0, denom_step, 1.0)
+    s_max = -jnp.expm1(-safe_actives * step) / safe_denom
+    s_min = jnp.exp(-step * (n_items - safe_actives)) * s_max
+    span = s_max - s_min
+    safe_span = jnp.where(span > 0.0, span, 1.0)
+    return jnp.where(valid & (span > 0.0), (weighted_sum - s_min) / safe_span, jnp.nan)
+
+
+def enrichment_factor(
+    scores: ArrayLike,
+    relevance: ArrayLike,
+    *,
+    fraction: ArrayLike = 0.01,
+) -> jax.Array:
+    """Early enrichment factor at screening cutoff ``fraction``.
+
+    Ratio of tie-averaged precision among the top ``k = max(1, floor(fraction * N))``
+    ranked items to the library base rate ``n_actives / N``.
+
+    Note:
+        Direction: HIGHER (values above 1.0 outperform random selection).
+        Range: ``[0, N / n_actives]``. ``NaN`` when the list is empty or has zero actives.
+
+    Args:
+        scores: Predicted ranking scores (higher ranks earlier).
+        relevance: Binary ground-truth activity indicators (0 or 1).
+        fraction: Screening fraction in ``(0, 1]`` (defaults to ``0.01``).
+
+    Returns:
+        Enrichment factor as a scalar JAX array, or ``NaN`` when undefined.
+
+    Raises:
+        ValueError: If ``scores`` and ``relevance`` differ in size or eager ``fraction``
+            lies outside ``(0, 1]``.
+    """
+    if (
+        isinstance(fraction, int | float)
+        and not isinstance(fraction, jax.Array)
+        and not (0.0 < fraction <= 1.0)
+    ):
+        raise ValueError(f"fraction must be in (0, 1], got {fraction}")
+    s = jnp.asarray(scores).ravel()
+    r = jnp.asarray(relevance).ravel()
+    if s.size != r.size:
+        raise ValueError(f"Shape mismatch: scores has {s.size} elements, relevance has {r.size}")
+    if s.size == 0:
+        return jnp.array(jnp.nan, dtype=jnp.float32)
+
+    ranking = _tied_ranking(s, r)
+    n_items = float(s.size)
+    frac = jnp.asarray(fraction, dtype=jnp.float32)
+    valid_frac = (frac > 0.0) & (frac <= 1.0)
+    k = jnp.clip(jnp.floor(jnp.where(valid_frac, frac, 1.0) * n_items), 1.0, n_items)
+    hits = jnp.sum(
+        jnp.where(ranking.position.astype(jnp.float32) < k, _expected_relevance(ranking), 0.0)
+    )
+    precision = hits / k
+    n_actives = jnp.sum(ranking.relevance)
+    valid = valid_frac & (n_actives > 0.0)
+    safe_base_rate = jnp.where(valid, n_actives / n_items, 1.0)
+    return jnp.where(valid, precision / safe_base_rate, jnp.nan)
+
+
+def _normalized_discovery_areas(
+    cumulative_hits: jax.Array,
+    oracle_cumulative_hits: jax.Array,
+) -> tuple[jax.Array, jax.Array, jax.Array]:
+    """Trapezoidal areas under policy and oracle cumulative-hit curves anchored at ``(0, 0)``."""
+    zero = jnp.zeros(1, dtype=cumulative_hits.dtype)
+    policy_curve = jnp.concatenate([zero, cumulative_hits])
+    oracle_curve = jnp.concatenate([zero, oracle_cumulative_hits])
+    policy_area = jnp.trapezoid(policy_curve)
+    oracle_area = jnp.trapezoid(oracle_curve)
+    valid = oracle_area > 0.0
+    safe_oracle = jnp.where(valid, oracle_area, jnp.ones_like(oracle_area))
+    return policy_area, safe_oracle, valid
+
+
+def sequential_discovery_nauc(
+    cumulative_hits: ArrayLike,
+    *,
+    total_actives: ArrayLike,
+    budget: int | None = None,
+) -> jax.Array:
+    """Oracle-normalized area under the sequential hit-recovery curve (AssayBench protocol).
+
+    Integrates ``cumulative_hits`` anchored at ``(0, 0)`` with the trapezoidal rule and
+    divides by the ideal oracle trajectory ``min(step, total_actives)`` evaluated on the
+    same discrete step grid.
+
+    Note:
+        Direction: HIGHER (1.0 = ideal oracle recovery trajectory).
+        Range: [0, 1]. ``NaN`` when ``cumulative_hits`` is empty or ``total_actives <= 0``.
+
+    Args:
+        cumulative_hits: Cumulative active discoveries after each acquisition step.
+        total_actives: Total number of discoverable active items in the pool.
+        budget: Optional positive step horizon truncating ``cumulative_hits``.
+
+    Returns:
+        Normalized discovery AUC as a scalar JAX array, or ``NaN`` when undefined.
+
+    Raises:
+        ValueError: If ``budget`` is provided and is not positive.
+    """
+    hits = jnp.asarray(cumulative_hits, dtype=jnp.float32).ravel()
+    if budget is not None:
+        if budget <= 0:
+            raise ValueError(f"budget must be positive, got {budget}")
+        hits = hits[:budget]
+    if hits.size == 0:
+        return jnp.array(jnp.nan, dtype=jnp.float32)
+
+    actives = jnp.asarray(total_actives, dtype=hits.dtype)
+    steps = jnp.arange(1, hits.size + 1, dtype=hits.dtype)
+    oracle = jnp.minimum(steps, jnp.maximum(actives, 0.0))
+    policy_area, safe_oracle, valid = _normalized_discovery_areas(hits, oracle)
+    return jnp.where(valid & (actives > 0.0), policy_area / safe_oracle, jnp.nan)
+
+
+def sequential_shortfall(
+    cumulative_hits: ArrayLike,
+    *,
+    oracle_cumulative_hits: ArrayLike,
+) -> jax.Array:
+    """Relative sequential discovery shortfall ``1 - AUC(policy) / AUC(oracle)``.
+
+    Measures the normalized area gap between an ideal ``oracle_cumulative_hits`` curve
+    and the realized ``cumulative_hits`` trajectory anchored at ``(0, 0)``.
+
+    Note:
+        Direction: LOWER (0.0 = matches the oracle trajectory).
+        Range: [0, 1] when ``0 <= cumulative_hits <= oracle_cumulative_hits``.
+        ``NaN`` when ``cumulative_hits`` is empty or the oracle area is non-positive.
+
+    Args:
+        cumulative_hits: Realized cumulative discoveries at each step.
+        oracle_cumulative_hits: Oracle cumulative discoveries on the same step grid.
+
+    Returns:
+        Normalized discovery shortfall as a scalar JAX array, or ``NaN`` when undefined.
+
+    Raises:
+        ValueError: If ``cumulative_hits`` and ``oracle_cumulative_hits`` differ in length.
+    """
+    hits = jnp.asarray(cumulative_hits, dtype=jnp.float32).ravel()
+    oracle = jnp.asarray(oracle_cumulative_hits, dtype=hits.dtype).ravel()
+    if hits.size != oracle.size:
+        raise ValueError(
+            f"Shape mismatch: cumulative_hits has {hits.size} steps, "
+            f"oracle_cumulative_hits has {oracle.size}"
+        )
+    if hits.size == 0:
+        return jnp.array(jnp.nan, dtype=jnp.float32)
+
+    policy_area, safe_oracle, valid = _normalized_discovery_areas(hits, oracle)
+    return jnp.where(valid, (safe_oracle - policy_area) / safe_oracle, jnp.nan)

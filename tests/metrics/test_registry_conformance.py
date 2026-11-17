@@ -271,6 +271,14 @@ FIXTURES: dict[str, Callable[[], Call]] = {
         (_probabilities(), _binary(), _labels(3)),
         {"num_groups": 3},
     ),
+    "sequential_discovery_nauc": lambda: (
+        (jnp.cumsum(_binary(16)),),
+        {"total_actives": 8},
+    ),
+    "sequential_shortfall": lambda: (
+        (jnp.cumsum(_binary(16)),),
+        {"oracle_cumulative_hits": jnp.minimum(jnp.arange(1, 17, dtype=jnp.float32), 8.0)},
+    ),
 }
 
 
@@ -328,7 +336,7 @@ def _close(a: object, b: object) -> bool:
 
 
 def test_every_registered_metric_is_covered() -> None:
-    assert len(ENTRIES) == 148
+    assert len(ENTRIES) == 152
     stale = sorted(set(FIXTURES) - set(IDS))
     assert stale == [], f"fixtures for unregistered metrics: {stale}"
 

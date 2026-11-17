@@ -15,7 +15,9 @@ from calibrax.core.models import MetricDirection
 from calibrax.metrics import MetricRegistry
 from calibrax.metrics._types import MetricSignature
 from calibrax.metrics.functional.ranking import (
+    bedroc,
     coverage,
+    enrichment_factor,
     hit_rate,
     mean_average_precision,
     mean_reciprocal_rank,
@@ -23,6 +25,8 @@ from calibrax.metrics.functional.ranking import (
     ndcg_at_k,
     precision_at_k,
     recall_at_k,
+    sequential_discovery_nauc,
+    sequential_shortfall,
 )
 
 
@@ -242,6 +246,10 @@ class TestRankingMetricRegistration:
             "mean_reciprocal_rank",
             "hit_rate",
             "coverage",
+            "bedroc",
+            "enrichment_factor",
+            "sequential_discovery_nauc",
+            "sequential_shortfall",
         ]
         for name in expected:
             assert registry.has(name), f"Metric '{name}' not registered"
@@ -249,12 +257,17 @@ class TestRankingMetricRegistration:
     def test_ranking_domain(self) -> None:
         registry = MetricRegistry()
         ranking_metrics = registry.list_by_domain("ranking")
-        assert len(ranking_metrics) == 8
+        assert len(ranking_metrics) == 12
 
-    def test_all_direction_higher(self) -> None:
+    def test_ranking_directions(self) -> None:
         registry = MetricRegistry()
         for m in registry.list_by_domain("ranking"):
-            assert m.direction == MetricDirection.HIGHER
+            expected = (
+                MetricDirection.LOWER
+                if m.name == "sequential_shortfall"
+                else MetricDirection.HIGHER
+            )
+            assert m.direction == expected
 
 
 # --- Tied scores -------------------------------------------------------------------------------
@@ -416,3 +429,162 @@ class TestTiedScores:
         compiled = np.asarray(jax.jit(jax.vmap(lambda s, r: metric(s, r, 3)))(scores, relevance))
         expected = np.array([_tie_averaged(name, s, r, 3) for s, r in fixtures])
         np.testing.assert_allclose(compiled, expected, rtol=0, atol=_ranking_bound(scores.shape[1]))
+
+
+def _truchon_bayly_bedroc_f64(ranks_1based: np.ndarray, n_items: int, alpha: float) -> float:
+    """Truchon & Bayly (JCIM 2007, Eqs. 26 & 36) textbook RIE normalization in extended precision."""
+    n_actives = ranks_1based.size
+    a = np.longdouble(alpha)
+    n = np.longdouble(n_items)
+    ra = np.longdouble(n_actives) / n
+    ranks = ranks_1based.astype(np.longdouble)
+    rie_num = np.sum(np.exp(-a * ranks / n)) / np.longdouble(n_actives)
+    rie_den = (1 - np.exp(-a)) / (n * (np.exp(a / n) - 1))
+    rie = rie_num / rie_den
+    rie_min = (1 - np.exp(a * ra)) / (ra * (1 - np.exp(a)))
+    rie_max = (1 - np.exp(-a * ra)) / (ra * (1 - np.exp(-a)))
+    return float((rie - rie_min) / (rie_max - rie_min))
+
+
+class TestBEDROC:
+    """Boltzmann-Enhanced Discrimination of ROC (Truchon & Bayly, JCIM 2007)."""
+
+    def test_perfect_and_worst_rankings_hit_unit_bounds(self) -> None:
+        scores_top = jnp.array([10.0, 9.0, 4.0, 3.0, 2.0, 1.0], dtype=jnp.float32)
+        scores_bot = jnp.array([1.0, 2.0, 9.0, 8.0, 7.0, 6.0], dtype=jnp.float32)
+        relevance = jnp.array([1, 1, 0, 0, 0, 0], dtype=jnp.float32)
+        assert float(bedroc(scores_top, relevance, alpha=20.0)) == pytest.approx(1.0, abs=1e-6)
+        assert float(bedroc(scores_bot, relevance, alpha=20.0)) == pytest.approx(0.0, abs=1e-6)
+
+    @pytest.mark.parametrize("alpha", [0.5, 5.0, 20.0, 80.5, 200.0])
+    def test_matches_truchon_bayly_eq26_across_alphas_without_overflow(self, alpha: float) -> None:
+        rng = np.random.default_rng(17)
+        n_items = 64
+        scores = rng.permutation(n_items).astype(np.float32)
+        relevance = (rng.random(n_items) < 0.15).astype(np.float32)
+        relevance[:2] = [1.0, 0.0]
+
+        order = np.argsort(-scores)
+        active_ranks = np.flatnonzero(relevance[order] > 0) + 1
+        expected = _truchon_bayly_bedroc_f64(active_ranks, n_items, alpha)
+        actual = float(bedroc(jnp.asarray(scores), jnp.asarray(relevance), alpha=alpha))
+        assert np.isfinite(actual)
+        assert actual == pytest.approx(expected, abs=_ranking_bound(n_items))
+
+    def test_tied_scores_are_permutation_invariant_and_match_bruteforce_mean(self) -> None:
+        rng = np.random.default_rng(23)
+        for scores, relevance in TIED_BINARY:
+            if relevance.sum() in (0, scores.size):
+                continue
+            groups = [relevance[scores == v] for v in sorted(set(scores.tolist()), reverse=True)]
+            per_group = [list(itertools.permutations(g)) for g in groups]
+            brute = [
+                _truchon_bayly_bedroc_f64(
+                    np.flatnonzero(np.concatenate([np.asarray(o, float) for o in combo]) > 0) + 1,
+                    scores.size,
+                    20.0,
+                )
+                for combo in itertools.product(*per_group)
+            ]
+            val = float(bedroc(scores, relevance, alpha=20.0))
+            assert val == pytest.approx(float(np.mean(brute)), abs=_ranking_bound(scores.size))
+            perm = rng.permutation(scores.size)
+            assert float(bedroc(scores[perm], relevance[perm], alpha=20.0)) == pytest.approx(
+                val, abs=_ranking_bound(scores.size)
+            )
+
+    def test_empty_or_single_class_returns_nan_and_nonpositive_alpha_raises(self) -> None:
+        empty = jnp.zeros(0, dtype=jnp.float32)
+        assert np.isnan(float(bedroc(empty, empty)))
+        scores = jnp.array([3.0, 2.0, 1.0], dtype=jnp.float32)
+        assert np.isnan(float(bedroc(scores, jnp.zeros(3, dtype=jnp.float32))))
+        assert np.isnan(float(bedroc(scores, jnp.ones(3, dtype=jnp.float32))))
+        with pytest.raises(ValueError, match="alpha"):
+            bedroc(scores, jnp.array([1.0, 0.0, 0.0]), alpha=0.0)
+        with pytest.raises(ValueError, match="alpha"):
+            bedroc(scores, jnp.array([1.0, 0.0, 0.0]), alpha=-5.0)
+
+    def test_jit_and_vmap_trace_once(self) -> None:
+        counter = TraceCounter()
+        compiled = jax.jit(counter.wrap(lambda s, r: bedroc(s, r, alpha=20.0)))
+        s = jnp.arange(24.0, dtype=jnp.float32).reshape(3, 8)
+        r = jnp.array(
+            [[0, 0, 0, 0, 0, 0, 1, 1], [1, 1, 0, 0, 0, 0, 0, 0], [0, 1, 0, 1, 0, 0, 0, 0]],
+            dtype=jnp.float32,
+        )
+        with counter.expect(new_traces=1):
+            compiled(s[0], r[0])
+        with counter.expect(new_traces=0):
+            compiled(s[1], r[1])
+        batched = jax.vmap(lambda x, y: bedroc(x, y, alpha=20.0))(s, r)
+        assert batched.shape == (3,)
+        assert float(batched[0]) == pytest.approx(1.0, abs=1e-6)
+        assert float(batched[1]) == pytest.approx(0.0, abs=1e-6)
+
+
+class TestEnrichmentFactor:
+    """Early enrichment factor EF_f at screening fraction ``fraction``."""
+
+    def test_known_enrichment_and_tie_averaging(self) -> None:
+        # N=10, n=2 (base rate 0.2). Top 20% -> k=2. Both actives in top 2 -> precision=1.0 -> EF=5.0.
+        scores = jnp.arange(10.0, 0.0, -1.0, dtype=jnp.float32)
+        relevance = jnp.array([1, 1, 0, 0, 0, 0, 0, 0, 0, 0], dtype=jnp.float32)
+        assert float(enrichment_factor(scores, relevance, fraction=0.2)) == pytest.approx(5.0)
+
+        # All tied scores -> expected precision equals base rate -> EF == 1.0.
+        tied = jnp.ones(10, dtype=jnp.float32)
+        assert float(enrichment_factor(tied, relevance, fraction=0.2)) == pytest.approx(1.0)
+
+    def test_empty_or_zero_actives_returns_nan_and_invalid_fraction_raises(self) -> None:
+        empty = jnp.zeros(0, dtype=jnp.float32)
+        assert np.isnan(float(enrichment_factor(empty, empty)))
+        scores = jnp.array([3.0, 2.0, 1.0], dtype=jnp.float32)
+        assert np.isnan(float(enrichment_factor(scores, jnp.zeros(3, dtype=jnp.float32))))
+        with pytest.raises(ValueError, match="fraction"):
+            enrichment_factor(scores, jnp.array([1.0, 0.0, 0.0]), fraction=0.0)
+        with pytest.raises(ValueError, match="fraction"):
+            enrichment_factor(scores, jnp.array([1.0, 0.0, 0.0]), fraction=1.5)
+
+
+class TestSequentialDiscoveryMetrics:
+    """Oracle-normalized sequential discovery AUC and shortfall (AssayBench protocol)."""
+
+    def test_oracle_and_zero_trajectories_and_complementarity(self) -> None:
+        # Total actives = 3 over 5 steps: oracle cumulative hits are [1, 2, 3, 3, 3].
+        oracle = jnp.array([1.0, 2.0, 3.0, 3.0, 3.0], dtype=jnp.float32)
+        policy = jnp.array([0.0, 1.0, 1.0, 2.0, 3.0], dtype=jnp.float32)
+        zeros = jnp.zeros(5, dtype=jnp.float32)
+
+        assert float(sequential_discovery_nauc(oracle, total_actives=3)) == pytest.approx(1.0)
+        assert float(sequential_shortfall(oracle, oracle_cumulative_hits=oracle)) == pytest.approx(
+            0.0
+        )
+        assert float(sequential_discovery_nauc(zeros, total_actives=3)) == pytest.approx(0.0)
+        assert float(sequential_shortfall(zeros, oracle_cumulative_hits=oracle)) == pytest.approx(
+            1.0
+        )
+
+        nauc_val = float(sequential_discovery_nauc(policy, total_actives=3))
+        sf_val = float(sequential_shortfall(policy, oracle_cumulative_hits=oracle))
+        # Oracle trapezoid on [0, 1, 2, 3, 3, 3] = 0.5 + 1.5 + 2.5 + 3.0 + 3.0 = 10.5.
+        # Policy trapezoid on [0, 0, 1, 1, 2, 3] = 0.0 + 0.5 + 1.0 + 1.5 + 2.5 = 5.5.
+        assert nauc_val == pytest.approx(5.5 / 10.5, abs=1e-6)
+        assert sf_val == pytest.approx(1.0 - 5.5 / 10.5, abs=1e-6)
+
+    def test_budget_truncation_empty_and_differentiability(self) -> None:
+        policy = jnp.array([1.0, 1.0, 2.0, 3.0], dtype=jnp.float32)
+        # Truncated to budget=2: oracle [0, 1, 2] area = 0.5 + 1.5 = 2.0; policy [0, 1, 1] area = 1.5.
+        assert float(sequential_discovery_nauc(policy, total_actives=3, budget=2)) == pytest.approx(
+            0.75
+        )
+        with pytest.raises(ValueError, match="budget"):
+            sequential_discovery_nauc(policy, total_actives=3, budget=0)
+
+        empty = jnp.zeros(0, dtype=jnp.float32)
+        assert np.isnan(float(sequential_discovery_nauc(empty, total_actives=3)))
+        assert np.isnan(float(sequential_discovery_nauc(policy, total_actives=0)))
+        assert np.isnan(float(sequential_shortfall(policy, oracle_cumulative_hits=jnp.zeros(4))))
+
+        grad = jax.grad(lambda h: sequential_discovery_nauc(h, total_actives=3))(policy)
+        assert bool(jnp.all(jnp.isfinite(grad)))
+        assert bool(jnp.all(grad > 0))

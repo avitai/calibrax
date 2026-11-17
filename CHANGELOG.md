@@ -9,6 +9,9 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Added
 
+- `bedroc`, `enrichment_factor`, `sequential_discovery_nauc`, and `sequential_shortfall` in
+  `calibrax.metrics.functional.ranking` for tie-averaged Boltzmann early recognition (Truchon and
+  Bayly 2007), cutoff enrichment factor, and oracle-normalized sequential discovery trajectories.
 - `mean_error` in `calibrax.metrics.functional.regression` (`MetricDirection.INFO`) for signed
   prediction bias `E[predictions - targets]`, with `mask` and `weights` support, `NaN` on empty
   selections, finite derivatives across excluded non-finite values, and inclusion in the fused
