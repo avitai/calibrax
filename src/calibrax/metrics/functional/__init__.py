@@ -138,7 +138,9 @@ from calibrax.metrics.functional.manifold import (
     ultrahyperbolic_distance,
 )
 from calibrax.metrics.functional.ranking import (
+    bedroc,
     coverage,
+    enrichment_factor,
     hit_rate,
     mean_average_precision,
     mean_reciprocal_rank,
@@ -146,6 +148,8 @@ from calibrax.metrics.functional.ranking import (
     ndcg_at_k,
     precision_at_k,
     recall_at_k,
+    sequential_discovery_nauc,
+    sequential_shortfall,
 )
 from calibrax.metrics.functional.regression import (
     charbonnier_loss,
@@ -221,6 +225,7 @@ __all__ = [
     "autocorrelation",
     "average_precision",
     "balanced_accuracy",
+    "bedroc",
     "bleu",
     "bregman_divergence",
     "brier_decomposition",
@@ -251,6 +256,7 @@ __all__ = [
     "distinct_n",
     "earth_movers_distance_1d",
     "energy_score",
+    "enrichment_factor",
     "ensemble_mutual_information",
     "ensemble_ranked_probability_score",
     "entropy",
@@ -358,6 +364,8 @@ __all__ = [
     "seismic_velocity_ssim_misfit",
     "seismic_wasserstein2_misfit",
     "sensitivity",
+    "sequential_discovery_nauc",
+    "sequential_shortfall",
     "shortest_path_distance",
     "signal_to_noise_ratio",
     "silhouette_score",

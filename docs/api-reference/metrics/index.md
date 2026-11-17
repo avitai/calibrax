@@ -40,7 +40,7 @@ results = calculate_all(predictions, targets, metrics=["mse", "mae", "r_squared"
 - [Distance](distance.md) -- Euclidean, cosine, Mahalanobis, Poincare, Lorentz
 - [Divergence](divergence.md) -- KL, JS, Wasserstein, KS, Sinkhorn, MMD
 - [Information](information.md) -- entropy, cross-entropy, mutual information
-- [Ranking](ranking.md) -- NDCG, MAP, MRR, precision/recall at k
+- [Ranking](ranking.md) -- NDCG, MAP, MRR, precision/recall at k, BEDROC, enrichment factor, sequential discovery nAUC/shortfall
 - [Statistical](statistical.md) -- Pearson, Spearman, Kendall, concordance
 - [Forecasting](forecasting.md) -- fair CRPS, energy score, rank/PIT histograms, RPS, reliability
 - [Uncertainty](uncertainty.md) -- PICP, MPIW, interval score, Gaussian NLL, ANEES, NCI
