@@ -138,38 +138,36 @@ def register() -> None:
         ),
     ]
     for name, fn, desc, direction, is_sym, is_proper_flag, is_diff in builtins:
-        if not registry.has(name):
-            entry = MetricEntry(
-                name=name,
-                fn=fn,
-                tier=MetricTier.PURE_FUNCTION,
-                domain="classification",
-                direction=direction,
-                description=desc,
-                signature=MetricSignature.PREDICTIONS_TARGETS,
-                properties=MetricProperties(
-                    is_symmetric=is_sym,
-                    is_proper=is_proper_flag,
-                    is_differentiable=is_diff,
-                ),
-            )
-            registry.register(name, entry)
+        entry = MetricEntry(
+            name=name,
+            fn=fn,
+            tier=MetricTier.PURE_FUNCTION,
+            domain="classification",
+            direction=direction,
+            description=desc,
+            signature=MetricSignature.PREDICTIONS_TARGETS,
+            properties=MetricProperties(
+                is_symmetric=is_sym,
+                is_proper=is_proper_flag,
+                is_differentiable=is_diff,
+            ),
+        )
+        registry.register(name, entry)
 
     # Logits and labels, not (predictions, targets): registered with its own signature so a
     # registry-driven collection computed on class indices leaves it out.
-    if not registry.has("softmax_cross_entropy"):
-        registry.register(
-            "softmax_cross_entropy",
-            MetricEntry(
-                name="softmax_cross_entropy",
-                fn=softmax_cross_entropy,
-                tier=MetricTier.PURE_FUNCTION,
-                domain="classification",
-                direction=MetricDirection.LOWER,
-                description="Cross-entropy of integer labels under softmax logits",
-                signature=MetricSignature.CUSTOM,
-                properties=MetricProperties(
-                    is_proper=True, is_differentiable=True, is_jit_compatible=True
-                ),
+    registry.register(
+        "softmax_cross_entropy",
+        MetricEntry(
+            name="softmax_cross_entropy",
+            fn=softmax_cross_entropy,
+            tier=MetricTier.PURE_FUNCTION,
+            domain="classification",
+            direction=MetricDirection.LOWER,
+            description="Cross-entropy of integer labels under softmax logits",
+            signature=MetricSignature.CUSTOM,
+            properties=MetricProperties(
+                is_proper=True, is_differentiable=True, is_jit_compatible=True
             ),
-        )
+        ),
+    )

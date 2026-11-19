@@ -24,16 +24,15 @@ def register() -> None:
         ("pixel_accuracy", pixel_accuracy, "Fraction of correctly classified pixels"),
     ]
     for name, fn, desc in builtins:
-        if not registry.has(name):
-            entry = MetricEntry(
-                name=name,
-                fn=fn,
-                tier=MetricTier.PURE_FUNCTION,
-                domain="segmentation",
-                direction=MetricDirection.HIGHER,
-                description=desc,
-                signature=MetricSignature.PREDICTIONS_TARGETS,
-                # Integer masks: no gradient reaches the predictions.
-                properties=MetricProperties(is_symmetric=True, is_differentiable=False),
-            )
-            registry.register(name, entry)
+        entry = MetricEntry(
+            name=name,
+            fn=fn,
+            tier=MetricTier.PURE_FUNCTION,
+            domain="segmentation",
+            direction=MetricDirection.HIGHER,
+            description=desc,
+            signature=MetricSignature.PREDICTIONS_TARGETS,
+            # Integer masks: no gradient reaches the predictions.
+            properties=MetricProperties(is_symmetric=True, is_differentiable=False),
+        )
+        registry.register(name, entry)

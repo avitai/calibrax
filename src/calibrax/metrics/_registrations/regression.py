@@ -159,15 +159,14 @@ def register() -> None:
         ),
     ]
     for spec in builtins:
-        if not registry.has(spec.name):
-            entry = MetricEntry(
-                name=spec.name,
-                fn=spec.fn,
-                tier=MetricTier.PURE_FUNCTION,
-                domain=spec.domain,
-                direction=spec.direction,
-                description=spec.description,
-                signature=spec.signature,
-                properties=spec.properties,
-            )
-            registry.register(spec.name, entry)
+        entry = MetricEntry(
+            name=spec.name,
+            fn=spec.fn,
+            tier=MetricTier.PURE_FUNCTION,
+            domain=spec.domain,
+            direction=spec.direction,
+            description=spec.description,
+            signature=spec.signature,
+            properties=spec.properties,
+        )
+        registry.register(spec.name, entry)

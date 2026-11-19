@@ -32,18 +32,17 @@ def register() -> None:
         ("distinct_n", distinct_n, "Distinct-N lexical diversity", MetricDirection.HIGHER, False),
     ]
     for name, fn, desc, direction, jit_compat in builtins:
-        if not registry.has(name):
-            entry = MetricEntry(
-                name=name,
-                fn=fn,
-                tier=MetricTier.PURE_FUNCTION,
-                domain="text",
-                direction=direction,
-                description=desc,
-                signature=MetricSignature.CUSTOM,
-                properties=MetricProperties(
-                    is_jit_compatible=jit_compat,
-                    is_differentiable=jit_compat,
-                ),
-            )
-            registry.register(name, entry)
+        entry = MetricEntry(
+            name=name,
+            fn=fn,
+            tier=MetricTier.PURE_FUNCTION,
+            domain="text",
+            direction=direction,
+            description=desc,
+            signature=MetricSignature.CUSTOM,
+            properties=MetricProperties(
+                is_jit_compatible=jit_compat,
+                is_differentiable=jit_compat,
+            ),
+        )
+        registry.register(name, entry)

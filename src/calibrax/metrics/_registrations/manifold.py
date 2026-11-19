@@ -57,24 +57,23 @@ def register() -> None:
         ),
     ]
     for name, fn, desc, is_true, invs in builtins:
-        if not registry.has(name):
-            registry.register(
-                name,
-                MetricEntry(
-                    name=name,
-                    fn=fn,
-                    tier=MetricTier.PURE_FUNCTION,
-                    domain="manifold",
-                    direction=MetricDirection.LOWER,
-                    description=desc,
-                    signature=MetricSignature.SAMPLES,
-                    properties=MetricProperties(
-                        is_true_metric=is_true,
-                        is_symmetric=True,
-                        invariances=invs,
-                    ),
+        registry.register(
+            name,
+            MetricEntry(
+                name=name,
+                fn=fn,
+                tier=MetricTier.PURE_FUNCTION,
+                domain="manifold",
+                direction=MetricDirection.LOWER,
+                description=desc,
+                signature=MetricSignature.SAMPLES,
+                properties=MetricProperties(
+                    is_true_metric=is_true,
+                    is_symmetric=True,
+                    invariances=invs,
                 ),
-            )
+            ),
+        )
     # The signature (p, q) is a required keyword: fn(a, b) cannot call it.
     _register_specs(
         registry,

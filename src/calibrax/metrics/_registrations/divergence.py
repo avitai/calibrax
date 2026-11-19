@@ -172,19 +172,18 @@ def register() -> None:
         ),
     ]
     for name, fn, desc, is_true, is_sym, is_diff, sig in builtins:
-        if not registry.has(name):
-            entry = MetricEntry(
-                name=name,
-                fn=fn,
-                tier=MetricTier.PURE_FUNCTION,
-                domain="divergence",
-                direction=MetricDirection.LOWER,
-                description=desc,
-                signature=sig,
-                properties=MetricProperties(
-                    is_true_metric=is_true,
-                    is_symmetric=is_sym,
-                    is_differentiable=is_diff,
-                ),
-            )
-            registry.register(name, entry)
+        entry = MetricEntry(
+            name=name,
+            fn=fn,
+            tier=MetricTier.PURE_FUNCTION,
+            domain="divergence",
+            direction=MetricDirection.LOWER,
+            description=desc,
+            signature=sig,
+            properties=MetricProperties(
+                is_true_metric=is_true,
+                is_symmetric=is_sym,
+                is_differentiable=is_diff,
+            ),
+        )
+        registry.register(name, entry)

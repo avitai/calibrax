@@ -24,18 +24,17 @@ def register() -> None:
         ("ms_ssim", ms_ssim, "Multi-Scale Structural Similarity"),
     ]
     for name, fn, desc in builtins:
-        if not registry.has(name):
-            entry = MetricEntry(
-                name=name,
-                fn=fn,
-                tier=MetricTier.PURE_FUNCTION,
-                domain="image",
-                direction=MetricDirection.HIGHER,
-                description=desc,
-                signature=MetricSignature.PREDICTIONS_TARGETS,
-                properties=MetricProperties(is_symmetric=True),
-            )
-            registry.register(name, entry)
+        entry = MetricEntry(
+            name=name,
+            fn=fn,
+            tier=MetricTier.PURE_FUNCTION,
+            domain="image",
+            direction=MetricDirection.HIGHER,
+            description=desc,
+            signature=MetricSignature.PREDICTIONS_TARGETS,
+            properties=MetricProperties(is_symmetric=True),
+        )
+        registry.register(name, entry)
     # One similarity matrix in, a diversity out.
     _register_specs(
         registry,
