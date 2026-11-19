@@ -42,6 +42,7 @@ from .record_values import (
 )
 from .registry import (
     BenchmarkRegistry as BenchmarkRegistry,
+    DuplicateRegistrationError as DuplicateRegistrationError,
     get_benchmark as get_benchmark,
     list_benchmarks as list_benchmarks,
     register_benchmark as register_benchmark,
@@ -91,6 +92,7 @@ __all__ = [
     "StatefulMetricProtocol",
     # registry
     "BenchmarkRegistry",
+    "DuplicateRegistrationError",
     "Registry",
     "SingletonRegistry",
     "get_benchmark",

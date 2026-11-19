@@ -15,6 +15,10 @@ from typing import Self, TypeVar
 _C = TypeVar("_C", bound=type)
 
 
+class DuplicateRegistrationError(ValueError):
+    """A name is registered again in a registry that already holds it."""
+
+
 class Registry[T]:
     """Generic type-safe registry for named items.
 
@@ -27,12 +31,25 @@ class Registry[T]:
         self._items: dict[str, T] = {}
 
     def register(self, name: str, item: T) -> None:
-        """Register an item under the given name.
+        """Register an item under a name the registry does not hold yet.
+
+        A taken name is refused whatever the item, an equal one included, and the item
+        registered first stays. To replace an item, ``remove`` its name, then register the
+        new one.
 
         Args:
             name: Unique name for the item.
             item: The item to register.
+
+        Raises:
+            DuplicateRegistrationError: If ``name`` is already registered.
         """
+        if name in self._items:
+            msg = (
+                f"'{name}' is already registered in {type(self).__name__}; "
+                "remove it first to replace it."
+            )
+            raise DuplicateRegistrationError(msg)
         self._items[name] = item
 
     def get(self, name: str) -> T:
