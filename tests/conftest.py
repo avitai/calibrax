@@ -6,7 +6,7 @@ from collections.abc import Iterator
 
 import pytest
 
-from calibrax.metrics._registry import MetricRegistry
+from tests.metric_registry_state import restored_metric_registry
 
 
 @pytest.fixture(autouse=True)
@@ -34,11 +34,5 @@ def _restore_the_metric_registry() -> Iterator[None]:
     Yields:
         Nothing; the snapshot is taken on entry and restored on exit.
     """
-    registry = MetricRegistry()
-    # The singleton exposes no snapshot API, so its backing dict is copied directly.
-    snapshot = dict(registry._items)
-    try:
+    with restored_metric_registry():
         yield
-    finally:
-        registry._items.clear()
-        registry._items.update(snapshot)
