@@ -50,18 +50,17 @@ def register() -> None:
         ),
     ]
     for name, fn, desc, is_true, is_sym in builtins:
-        if not registry.has(name):
-            entry = MetricEntry(
-                name=name,
-                fn=fn,
-                tier=MetricTier.PURE_FUNCTION,
-                domain="geometric",
-                direction=MetricDirection.LOWER,
-                description=desc,
-                signature=MetricSignature.SAMPLES,
-                properties=MetricProperties(
-                    is_true_metric=is_true,
-                    is_symmetric=is_sym,
-                ),
-            )
-            registry.register(name, entry)
+        entry = MetricEntry(
+            name=name,
+            fn=fn,
+            tier=MetricTier.PURE_FUNCTION,
+            domain="geometric",
+            direction=MetricDirection.LOWER,
+            description=desc,
+            signature=MetricSignature.SAMPLES,
+            properties=MetricProperties(
+                is_true_metric=is_true,
+                is_symmetric=is_sym,
+            ),
+        )
+        registry.register(name, entry)

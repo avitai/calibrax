@@ -50,16 +50,15 @@ def register() -> None:
         ),
     ]
     for name, fn, desc, direction in builtins:
-        if not registry.has(name):
-            entry = MetricEntry(
-                name=name,
-                fn=fn,
-                tier=MetricTier.PURE_FUNCTION,
-                domain="fairness",
-                direction=direction,
-                description=desc,
-                signature=MetricSignature.CUSTOM,
-                # Predictions are thresholded: no gradient reaches them.
-                properties=MetricProperties(is_differentiable=False),
-            )
-            registry.register(name, entry)
+        entry = MetricEntry(
+            name=name,
+            fn=fn,
+            tier=MetricTier.PURE_FUNCTION,
+            domain="fairness",
+            direction=direction,
+            description=desc,
+            signature=MetricSignature.CUSTOM,
+            # Predictions are thresholded: no gradient reaches them.
+            properties=MetricProperties(is_differentiable=False),
+        )
+        registry.register(name, entry)

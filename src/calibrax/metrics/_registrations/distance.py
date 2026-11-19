@@ -124,23 +124,22 @@ def register() -> None:
         ),
     ]
     for name, fn, desc, is_true, is_sym, is_diff, invs in builtins:
-        if not registry.has(name):
-            entry = MetricEntry(
-                name=name,
-                fn=fn,
-                tier=MetricTier.PURE_FUNCTION,
-                domain="distance",
-                direction=MetricDirection.LOWER,
-                description=desc,
-                signature=MetricSignature.PREDICTIONS_TARGETS,
-                properties=MetricProperties(
-                    is_true_metric=is_true,
-                    is_symmetric=is_sym,
-                    is_differentiable=is_diff,
-                    invariances=invs,
-                ),
-            )
-            registry.register(name, entry)
+        entry = MetricEntry(
+            name=name,
+            fn=fn,
+            tier=MetricTier.PURE_FUNCTION,
+            domain="distance",
+            direction=MetricDirection.LOWER,
+            description=desc,
+            signature=MetricSignature.PREDICTIONS_TARGETS,
+            properties=MetricProperties(
+                is_true_metric=is_true,
+                is_symmetric=is_sym,
+                is_differentiable=is_diff,
+                invariances=invs,
+            ),
+        )
+        registry.register(name, entry)
     # A direction and a magnitude are required keywords: fn(predictions, targets) cannot call it.
     _register_specs(
         registry,

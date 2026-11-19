@@ -43,25 +43,24 @@ def register() -> None:
         ),
     ]
     for name, fn, desc, is_true, is_sym, is_diff in between_graph:
-        if not registry.has(name):
-            registry.register(
-                name,
-                MetricEntry(
-                    name=name,
-                    fn=fn,
-                    tier=MetricTier.PURE_FUNCTION,
-                    domain="graph",
-                    direction=MetricDirection.LOWER,
-                    description=desc,
-                    signature=MetricSignature.SAMPLES,
-                    properties=MetricProperties(
-                        is_true_metric=is_true,
-                        is_symmetric=is_sym,
-                        is_differentiable=is_diff,
-                        invariances=("permutation",),
-                    ),
+        registry.register(
+            name,
+            MetricEntry(
+                name=name,
+                fn=fn,
+                tier=MetricTier.PURE_FUNCTION,
+                domain="graph",
+                direction=MetricDirection.LOWER,
+                description=desc,
+                signature=MetricSignature.SAMPLES,
+                properties=MetricProperties(
+                    is_true_metric=is_true,
+                    is_symmetric=is_sym,
+                    is_differentiable=is_diff,
+                    invariances=("permutation",),
                 ),
-            )
+            ),
+        )
 
     # Within-graph metrics (single adjacency matrix)
     within_graph: list[tuple[str, MetricFn, str, bool]] = [
@@ -79,21 +78,20 @@ def register() -> None:
         ),
     ]
     for name, fn, desc, is_diff in within_graph:
-        if not registry.has(name):
-            registry.register(
-                name,
-                MetricEntry(
-                    name=name,
-                    fn=fn,
-                    tier=MetricTier.PURE_FUNCTION,
-                    domain="graph",
-                    direction=MetricDirection.LOWER,
-                    description=desc,
-                    signature=MetricSignature.SINGLE_INPUT,
-                    properties=MetricProperties(
-                        is_true_metric=True,
-                        is_symmetric=True,
-                        is_differentiable=is_diff,
-                    ),
+        registry.register(
+            name,
+            MetricEntry(
+                name=name,
+                fn=fn,
+                tier=MetricTier.PURE_FUNCTION,
+                domain="graph",
+                direction=MetricDirection.LOWER,
+                description=desc,
+                signature=MetricSignature.SINGLE_INPUT,
+                properties=MetricProperties(
+                    is_true_metric=True,
+                    is_symmetric=True,
+                    is_differentiable=is_diff,
                 ),
-            )
+            ),
+        )

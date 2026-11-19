@@ -90,18 +90,17 @@ def register() -> None:
         ),
     ]
     for name, fn, desc, direction, is_proper_flag, is_diff_flag in builtins:
-        if not registry.has(name):
-            entry = MetricEntry(
-                name=name,
-                fn=fn,
-                tier=MetricTier.PURE_FUNCTION,
-                domain="calibration",
-                direction=direction,
-                description=desc,
-                signature=MetricSignature.PREDICTIONS_TARGETS,
-                properties=MetricProperties(
-                    is_proper=is_proper_flag,
-                    is_differentiable=is_diff_flag,
-                ),
-            )
-            registry.register(name, entry)
+        entry = MetricEntry(
+            name=name,
+            fn=fn,
+            tier=MetricTier.PURE_FUNCTION,
+            domain="calibration",
+            direction=direction,
+            description=desc,
+            signature=MetricSignature.PREDICTIONS_TARGETS,
+            properties=MetricProperties(
+                is_proper=is_proper_flag,
+                is_differentiable=is_diff_flag,
+            ),
+        )
+        registry.register(name, entry)

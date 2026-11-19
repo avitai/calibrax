@@ -98,18 +98,17 @@ def register() -> None:
             ),
         ],
     )
-    if not registry.has("coverage"):
-        # One input and a required catalog size: a suite cannot call it as fn(predictions, targets).
-        registry.register(
-            "coverage",
-            MetricEntry(
-                name="coverage",
-                fn=coverage,
-                tier=MetricTier.PURE_FUNCTION,
-                domain="ranking",
-                direction=MetricDirection.HIGHER,
-                description="Catalog coverage",
-                signature=MetricSignature.CUSTOM,
-                properties=MetricProperties(is_differentiable=False),
-            ),
-        )
+    # One input and a required catalog size: a suite cannot call it as fn(predictions, targets).
+    registry.register(
+        "coverage",
+        MetricEntry(
+            name="coverage",
+            fn=coverage,
+            tier=MetricTier.PURE_FUNCTION,
+            domain="ranking",
+            direction=MetricDirection.HIGHER,
+            description="Catalog coverage",
+            signature=MetricSignature.CUSTOM,
+            properties=MetricProperties(is_differentiable=False),
+        ),
+    )

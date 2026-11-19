@@ -59,14 +59,13 @@ def register() -> None:
         ),
     ]
     for name, fn, desc, direction, sig in builtins:
-        if not registry.has(name):
-            entry = MetricEntry(
-                name=name,
-                fn=fn,
-                tier=MetricTier.PURE_FUNCTION,
-                domain="information",
-                direction=direction,
-                description=desc,
-                signature=sig,
-            )
-            registry.register(name, entry)
+        entry = MetricEntry(
+            name=name,
+            fn=fn,
+            tier=MetricTier.PURE_FUNCTION,
+            domain="information",
+            direction=direction,
+            description=desc,
+            signature=sig,
+        )
+        registry.register(name, entry)

@@ -30,19 +30,18 @@ class _BuiltinMetricSpec:
 
 
 def _register_specs(registry: MetricRegistry, specs: Sequence[_BuiltinMetricSpec]) -> None:
-    """Register every spec that is not already in the registry."""
+    """Register every spec; the registry refuses a name it already holds."""
     for spec in specs:
-        if not registry.has(spec.name):
-            registry.register(
-                spec.name,
-                MetricEntry(
-                    name=spec.name,
-                    fn=spec.fn,
-                    tier=MetricTier.PURE_FUNCTION,
-                    domain=spec.domain,
-                    direction=spec.direction,
-                    description=spec.description,
-                    signature=spec.signature,
-                    properties=spec.properties,
-                ),
-            )
+        registry.register(
+            spec.name,
+            MetricEntry(
+                name=spec.name,
+                fn=spec.fn,
+                tier=MetricTier.PURE_FUNCTION,
+                domain=spec.domain,
+                direction=spec.direction,
+                description=spec.description,
+                signature=spec.signature,
+                properties=spec.properties,
+            ),
+        )
