@@ -7,6 +7,15 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking:** `Registry.register` refuses a name the registry already holds with
+  `DuplicateRegistrationError` (a `ValueError`, exported from `calibrax.core`), keeping the item
+  registered first; it overwrote silently before, although its docstring called the name unique.
+  The refusal covers every registry built on it: `SingletonRegistry`, `BenchmarkRegistry`,
+  `MetricRegistry`, `register_benchmark` and `register_metric`, built-in metric names included.
+  To replace an item, `remove` its name, then register the new one.
+
 ## [0.1.20] - 2026-11-16
 
 ### Added

@@ -6,13 +6,17 @@ convenience functions/decorators for benchmark registration.
 
 import pytest
 
+from calibrax.core import DuplicateRegistrationError as ExportedDuplicateRegistrationError
 from calibrax.core.registry import (
     BenchmarkRegistry,
+    DuplicateRegistrationError,
     get_benchmark,
     list_benchmarks,
     register_benchmark,
     Registry,
 )
+from calibrax.metrics import MetricRegistry, register_metric
+from calibrax.metrics.functional.regression import mae, rmse
 
 
 class TestRegistry:
@@ -143,3 +147,84 @@ class TestConvenienceFunctions:
 
     def test_list_benchmarks_empty(self) -> None:
         assert list_benchmarks() == []
+
+
+class TestDuplicateRegistration:
+    """A taken name is refused; replacing an item is ``remove`` then ``register``."""
+
+    def setup_method(self) -> None:
+        BenchmarkRegistry.reset()
+
+    def test_a_taken_name_is_refused_and_the_first_item_stays(self) -> None:
+        reg: Registry[str] = Registry()
+        reg.register("a", "first")
+        with pytest.raises(DuplicateRegistrationError):
+            reg.register("a", "second")
+        assert reg.get("a") == "first"
+        assert len(reg) == 1
+
+    def test_the_refusal_names_the_name_the_registry_type_and_the_replacement(self) -> None:
+        reg: Registry[str] = Registry()
+        reg.register("a", "first")
+        with pytest.raises(
+            DuplicateRegistrationError,
+            match=r"^'a' is already registered in Registry; remove it first to replace it\.$",
+        ):
+            reg.register("a", "second")
+
+    def test_the_refusal_is_a_value_error(self) -> None:
+        assert issubclass(DuplicateRegistrationError, ValueError)
+
+    def test_an_equal_item_registered_again_is_refused(self) -> None:
+        reg: Registry[str] = Registry()
+        reg.register("a", "same")
+        with pytest.raises(DuplicateRegistrationError):
+            reg.register("a", "same")
+
+    def test_remove_then_register_replaces(self) -> None:
+        reg: Registry[str] = Registry()
+        reg.register("a", "first")
+        reg.remove("a")
+        reg.register("a", "second")
+        assert reg.get("a") == "second"
+
+    def test_a_singleton_registry_names_its_own_type(self) -> None:
+        reg = BenchmarkRegistry()
+        reg.register("bench", "first")
+        with pytest.raises(DuplicateRegistrationError, match="in BenchmarkRegistry;"):
+            reg.register("bench", "second")
+        assert reg.get("bench") == "first"
+
+    def test_reset_then_register_succeeds(self) -> None:
+        BenchmarkRegistry().register("bench", "first")
+        BenchmarkRegistry.reset()
+        BenchmarkRegistry().register("bench", "second")
+        assert get_benchmark("bench") == "second"
+
+    def test_register_benchmark_twice_is_refused(self) -> None:
+        @register_benchmark("twice")
+        class First:
+            pass
+
+        with pytest.raises(DuplicateRegistrationError, match="'twice'"):
+
+            @register_benchmark("twice")
+            class Second:
+                pass
+
+        assert get_benchmark("twice") is First
+
+    def test_register_metric_with_a_built_in_name_is_refused(self) -> None:
+        built_in = MetricRegistry().get("mse")
+        with pytest.raises(DuplicateRegistrationError, match="'mse' is already registered in"):
+            register_metric("mse")(mae)
+        assert MetricRegistry().get("mse") is built_in
+
+    def test_register_metric_twice_is_refused(self) -> None:
+        register_metric("planted_metric")(mae)
+        with pytest.raises(DuplicateRegistrationError, match="in MetricRegistry;"):
+            register_metric("planted_metric")(rmse)
+        assert MetricRegistry().get("planted_metric").fn is mae
+
+    def test_the_error_is_exported_from_calibrax_core(self) -> None:
+        assert ExportedDuplicateRegistrationError is DuplicateRegistrationError

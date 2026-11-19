@@ -193,6 +193,11 @@ registry.remove("weighted_mse_custom")
 assert not registry.has("weighted_mse")
 ```
 
+Registering a name the registry already holds raises `DuplicateRegistrationError`
+(a `ValueError`, exported from `calibrax.core`) and keeps the first entry. That holds
+for a built-in name such as `"mse"` and for a notebook cell run a second time. To
+replace a metric, remove its name first, then register the new function.
+
 ## Domain Reference
 
 The registry organizes Tier 0 metrics into 22 domains. Each domain groups
