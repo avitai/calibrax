@@ -7,6 +7,26 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+### Changed
+
+- Raise the minimum supported Flax version from `flax>=0.12.9` to `flax>=0.12.10`.
+- **Breaking:** `enrichment_factor` defines the top-fraction cutoff as
+  `k = min(N, max(1, ceil(N * fraction)))` (Riniker and Landrum, *J. Cheminf.* 2013), computed
+  with exact rational arithmetic for Python scalar `fraction` arguments so binary floating-point
+  representation noise (`0.07 * 100`, `0.29 * 100`) never shifts the integer cutoff.
+
+### Fixed
+
+- `harrell_c_index`, `uno_c_index`, and `censored_coverage_bounds` propagate `NaN` inputs and
+  reject non-binary `event_indicator` values outside `{0, 1}` as `NaN` (returning `(NaN, NaN)` in
+  `censored_coverage_bounds` rather than `(0.0, 1.0)`), preserve floating-point input precision,
+  and evaluate `_kaplan_meier_censoring_survival` as the strictly left-continuous estimator
+  `G_hat(t-)` in log-space with observed events preceding tied censorings.
+- Unweighted `pearson_correlation`, `spearman_rank_correlation`, `kendall_tau`, and
+  `concordance_correlation` return `NaN` on empty `(0,)` inputs, matching their weighted paths.
+- `classwise_ece` accepts arbitrary leading batch dimensions `(..., n_classes)` matched against
+  `targets` of shape `(...,)` and infers `num_classes` from the trailing axis.
+
 ## [0.1.21] - 2026-11-19
 
 ### Changed
