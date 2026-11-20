@@ -55,7 +55,7 @@ license = {file = "LICENSE"}
 name = "calibrax"
 readme = "README.md"
 requires-python = ">=3.12"
-version = "0.1.20"
+version = "0.1.21"
 
 [project.optional-dependencies]
 all = [

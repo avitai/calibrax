@@ -7,6 +7,8 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+## [0.1.21] - 2026-11-19
+
 ### Changed
 
 - **Breaking:** `Registry.register` refuses a name the registry already holds with
