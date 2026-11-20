@@ -6,6 +6,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import pytest
+from substrax.testing import TraceCounter
 
 from calibrax.core.models import MetricDirection
 from calibrax.metrics import MetricRegistry
@@ -322,6 +323,32 @@ class TestClasswiseECE:
         result = classwise_ece(predictions, targets, num_bins=3)
         assert isinstance(result, jax.Array)
 
+    def test_rank3_batch_and_jit_vmap_parity(self) -> None:
+        rng = np.random.default_rng(77)
+        logits = rng.normal(size=(7, 5, 3)).astype(np.float32)
+        probs = jax.nn.softmax(jnp.asarray(logits), axis=-1)
+        targets = jnp.asarray(rng.integers(0, 3, size=(7, 5)), dtype=jnp.int32)
+
+        direct = classwise_ece(probs, targets, num_bins=5)
+        pooled = classwise_ece(probs.reshape(35, 3), targets.reshape(35), num_bins=5)
+        assert float(direct) == pytest.approx(float(pooled), abs=1e-7)
+
+        counter = TraceCounter()
+        compiled = jax.jit(counter.wrap(lambda p, t: classwise_ece(p, t, num_bins=5)))
+        with counter.expect(new_traces=1):
+            compiled(probs, targets)
+        with counter.expect(new_traces=0):
+            compiled(probs, (targets + 1) % 3)
+
+        vmapped = jax.jit(jax.vmap(lambda p, t: classwise_ece(p, t, num_bins=5)))(probs, targets)
+        assert vmapped.shape == (7,)
+        for row in range(7):
+            expected_row = float(classwise_ece(probs[row], targets[row], num_bins=5))
+            assert float(vmapped[row]) == pytest.approx(expected_row, abs=1e-7)
+
+        with pytest.raises(ValueError, match="Shape mismatch"):
+            classwise_ece(probs, jnp.zeros((7, 4), dtype=jnp.int32))
+
 
 class TestCalibrationMetricRegistration:
     """Tests for calibration metric registration in MetricRegistry."""
@@ -460,3 +487,51 @@ class TestSelectiveConformalFDR:
         vmapped = jax.jit(jax.vmap(lambda ts: conformal_fdr_selection(cal, ts, q=0.2)))(test_batch)
         assert vmapped.shape == (2, 4)
         assert vmapped.dtype == jnp.bool_
+
+    def test_rank3_nested_vmap_parity(self) -> None:
+        rng = np.random.default_rng(2026)
+        cal_np = rng.normal(size=(7, 5, 16)).astype(np.float32)
+        null_mask_np = rng.random(size=(7, 5, 16)) > 0.25
+        null_mask_np[:, :, 0] = True
+        is_null_np = rng.random(size=(7, 5, 3)) > 0.45
+        # Ensure one cell has all true nulls (zero alternatives -> NaN empirical_power).
+        is_null_np[0, 0, :] = True
+        is_alt_np = ~is_null_np
+        test_np = (rng.normal(size=(7, 5, 3)) + 2.5 * is_alt_np.astype(np.float32)).astype(
+            np.float32
+        )
+
+        cal_j = jnp.asarray(cal_np)
+        null_mask_j = jnp.asarray(null_mask_np)
+        test_j = jnp.asarray(test_np)
+        is_null_j = jnp.asarray(is_null_np)
+        is_alt_j = jnp.asarray(is_alt_np)
+
+        nested_sel = jax.jit(
+            jax.vmap(
+                jax.vmap(
+                    lambda cs, nm, ts: conformal_fdr_selection(cs, ts, q=0.2, cal_null_mask=nm)
+                )
+            )
+        )(cal_j, null_mask_j, test_j)
+        nested_fdp = jax.jit(jax.vmap(jax.vmap(false_discovery_proportion)))(nested_sel, is_null_j)
+        nested_pow = jax.jit(jax.vmap(jax.vmap(empirical_power)))(nested_sel, is_alt_j)
+
+        assert nested_sel.shape == (7, 5, 3)
+        assert nested_sel.dtype == jnp.bool_
+        assert nested_fdp.shape == (7, 5)
+        assert nested_pow.shape == (7, 5)
+
+        for i in range(7):
+            for j in range(5):
+                ref_sel = _stratcp_get_sel_single_reference(
+                    cal_np[i, j], null_mask_np[i, j], test_np[i, j], q=0.2
+                )
+                np.testing.assert_array_equal(np.asarray(nested_sel[i, j]), ref_sel)
+                eager_fdp = float(false_discovery_proportion(nested_sel[i, j], is_null_j[i, j]))
+                assert float(nested_fdp[i, j]) == pytest.approx(eager_fdp, abs=1e-7)
+                eager_pow = float(empirical_power(nested_sel[i, j], is_alt_j[i, j]))
+                if np.isnan(eager_pow):
+                    assert np.isnan(float(nested_pow[i, j]))
+                else:
+                    assert float(nested_pow[i, j]) == pytest.approx(eager_pow, abs=1e-7)

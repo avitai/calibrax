@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import jax
 import jax.numpy as jnp
 import numpy as np
 import pytest
 from flax import nnx
-from scipy import stats
+from scipy import special, stats
 from substrax.testing import TraceCounter
 
 from calibrax.statistics import bootstrap_interval, BootstrapInterval
@@ -239,10 +241,9 @@ def test_batching_the_resamples_stays_within_rounding(batch_size: int) -> None:
 def test_the_rounding_bound_could_have_failed() -> None:
     """A positive control: a different key moves the samples far beyond the bound above."""
     data = np.random.default_rng(3).normal(size=400).astype(np.float32)
-    shared = {"num_resamples": 32}
 
-    one = bootstrap_interval(_mean, data, key=jax.random.key(11), **shared)
-    other = bootstrap_interval(_mean, data, key=jax.random.key(12), **shared, batch_size=4)
+    one = bootstrap_interval(_mean, data, key=jax.random.key(11), num_resamples=32)
+    other = bootstrap_interval(_mean, data, key=jax.random.key(12), num_resamples=32, batch_size=4)
 
     scale = np.float32(np.max(np.abs(np.asarray(one.samples))))
     worst = float(np.max(np.abs(np.asarray(one.samples) - np.asarray(other.samples))))
@@ -283,3 +284,173 @@ def test_a_batch_size_below_one_is_refused(batch_size: int) -> None:
     """Zero would divide the resamples into no groups and evaluate nothing."""
     with pytest.raises(ValueError, match="batch_size must be at least 1"):
         bootstrap_interval(_mean, jnp.arange(8.0), key=jax.random.key(0), batch_size=batch_size)
+
+
+def _efron_bca_reference_f64(
+    data: np.ndarray,
+    stat_fn: Callable[[np.ndarray], float],
+    theta_boot: np.ndarray,
+    confidence: float,
+) -> tuple[float, float]:
+    """Float64 textbook Efron & Tibshirani (1993, sec. 14.3) BCa bounds on fixed resamples."""
+    theta_hat = stat_fn(data)
+    b_count = theta_boot.size
+    pct = (np.count_nonzero(theta_boot < theta_hat) + np.count_nonzero(theta_boot <= theta_hat)) / (
+        2.0 * b_count
+    )
+    z0 = float(special.ndtri(pct))
+    n = data.shape[0]
+    jack = np.array([stat_fn(np.delete(data, i)) for i in range(n)], dtype=np.float64)
+    u = (n - 1) * (np.mean(jack) - jack)
+    a_hat = float(np.sum(u**3) / (6.0 * np.sum(u**2) ** 1.5))
+    z_alpha = float(special.ndtri((1.0 - confidence) / 2.0))
+    num1, num2 = z0 + z_alpha, z0 - z_alpha
+    a1 = float(special.ndtr(z0 + num1 / (1.0 - a_hat * num1)))
+    a2 = float(special.ndtr(z0 + num2 / (1.0 - a_hat * num2)))
+    return float(np.percentile(theta_boot, 100.0 * a1)), float(
+        np.percentile(theta_boot, 100.0 * a2)
+    )
+
+
+def test_bca_matches_scipy_bca_interval_on_skewed_lognormal_and_paired_samples() -> None:
+    """BCa adjusts for bias and skewness, matching Efron's equations and scipy.stats.bootstrap."""
+    rng = np.random.default_rng(17)
+    skewed = rng.lognormal(mean=0.0, sigma=1.1, size=80).astype(np.float32)
+
+    for stat_jax, stat_np in (
+        (_mean, lambda x: float(np.mean(x))),
+        (jnp.var, lambda x: float(np.var(x))),
+    ):
+        ours = bootstrap_interval(
+            stat_jax,
+            skewed,
+            key=jax.random.key(29),
+            num_resamples=2000,
+            confidence=0.95,
+            method="bca",
+        )
+        expected_lo, expected_hi = _efron_bca_reference_f64(
+            skewed.astype(np.float64),
+            stat_np,
+            np.asarray(ours.samples, dtype=np.float64),
+            0.95,
+        )
+        width = expected_hi - expected_lo
+        assert float(ours.lower) == pytest.approx(expected_lo, abs=2e-3 * width + 1e-5)
+        assert float(ours.upper) == pytest.approx(expected_hi, abs=2e-3 * width + 1e-5)
+
+    # End-to-end Monte Carlo comparison against public scipy.stats.bootstrap(..., method="BCa").
+    ours_mc = bootstrap_interval(
+        _mean, skewed, key=jax.random.key(7), num_resamples=9999, confidence=0.95, method="bca"
+    )
+    scipy_mc = stats.bootstrap(
+        (skewed.astype(np.float64),),
+        np.mean,
+        n_resamples=9999,
+        confidence_level=0.95,
+        method="BCa",
+        rng=np.random.default_rng(7),
+    ).confidence_interval
+    mc_width = scipy_mc.high - scipy_mc.low
+    assert float(ours_mc.lower) == pytest.approx(scipy_mc.low, abs=0.06 * mc_width)
+    assert float(ours_mc.upper) == pytest.approx(scipy_mc.high, abs=0.06 * mc_width)
+
+    # Paired BCa bootstrap parity.
+    y_paired = (0.7 * skewed + rng.normal(scale=0.3, size=80)).astype(np.float32)
+    ours_paired = bootstrap_interval(
+        lambda a, b: jnp.mean(a - b),
+        skewed,
+        y_paired,
+        key=jax.random.key(13),
+        num_resamples=4000,
+        method="bca",
+    )
+    scipy_paired = stats.bootstrap(
+        (skewed.astype(np.float64), y_paired.astype(np.float64)),
+        lambda a, b, axis=-1: np.mean(a - b, axis=axis),
+        paired=True,
+        n_resamples=4000,
+        method="BCa",
+        rng=np.random.default_rng(13),
+    ).confidence_interval
+    p_width = scipy_paired.high - scipy_paired.low
+    assert float(ours_paired.lower) == pytest.approx(scipy_paired.low, abs=0.06 * p_width)
+    assert float(ours_paired.upper) == pytest.approx(scipy_paired.high, abs=0.06 * p_width)
+
+
+def test_bca_jit_traces_once_batches_cleanly_and_handles_degenerate_inputs() -> None:
+    """BCa compiles under jax.jit without Python int()/if on traced quantiles."""
+    counter = TraceCounter()
+    counted_mean = counter.wrap(_mean)
+    compiled = jax.jit(
+        bootstrap_interval,
+        static_argnames=("statistic", "num_resamples", "confidence", "batch_size", "method"),
+    )
+    data = jnp.asarray(np.random.default_rng(2).lognormal(0.0, 0.8, size=32).astype(np.float32))
+    # Point estimate + vmapped resamples + vmapped jackknife = 3 traces on initial compilation.
+    with counter.expect(new_traces=3):
+        first = compiled(
+            counted_mean,
+            data,
+            key=jax.random.key(0),
+            num_resamples=64,
+            confidence=0.90,
+            batch_size=None,
+            method="bca",
+        )
+    with counter.expect(new_traces=0):
+        second = compiled(
+            counted_mean,
+            data * 1.5,
+            key=jax.random.key(1),
+            num_resamples=64,
+            confidence=0.90,
+            batch_size=None,
+            method="bca",
+        )
+    assert np.isfinite(float(first.lower))
+    assert np.isfinite(float(first.upper))
+    assert float(second.lower) == pytest.approx(
+        1.5
+        * float(
+            compiled(
+                counted_mean,
+                data,
+                key=jax.random.key(1),
+                num_resamples=64,
+                confidence=0.90,
+                batch_size=None,
+                method="bca",
+            ).lower
+        ),
+        rel=1e-5,
+    )
+
+    # Batched BCa matches unbatched BCa within rounding.
+    batched = bootstrap_interval(
+        _mean,
+        data,
+        key=jax.random.key(0),
+        num_resamples=64,
+        confidence=0.90,
+        batch_size=8,
+        method="bca",
+    )
+    assert float(batched.lower) == pytest.approx(float(first.lower), rel=1e-5)
+    assert float(batched.upper) == pytest.approx(float(first.upper), rel=1e-5)
+
+    # Constant sample has zero jackknife variance -> returns (NaN, NaN) without warning, matching SciPy.
+    const_bca = bootstrap_interval(
+        _mean,
+        jnp.full(8, 3.0, dtype=jnp.float32),
+        key=jax.random.key(0),
+        num_resamples=32,
+        method="bca",
+    )
+    assert np.isnan(float(const_bca.lower))
+    assert np.isnan(float(const_bca.upper))
+
+    with pytest.raises(ValueError, match="at least 2"):
+        bootstrap_interval(_mean, jnp.array([1.0]), key=jax.random.key(0), method="bca")
+    with pytest.raises(ValueError, match="method"):
+        bootstrap_interval(_mean, data, key=jax.random.key(0), method="unknown")  # type: ignore[arg-type]

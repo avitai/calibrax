@@ -11,7 +11,9 @@ bedroc, enrichment_factor, sequential_discovery_nauc, sequential_shortfall.
 
 from __future__ import annotations
 
+import fractions
 import functools
+import math
 from typing import NamedTuple
 
 import jax
@@ -58,8 +60,11 @@ def _tied_ranking(scores: ArrayLike, relevance: ArrayLike) -> _TiedRanking:
     Returns:
         The ranking with each item's group size, offset, relevance total and the relevance above it.
     """
-    keys, ranked = lax.sort_key_val(-jnp.asarray(scores).ravel(), jnp.asarray(relevance).ravel())
-    ranked = ranked.astype(jnp.float32)
+    s_arr = jnp.asarray(scores).ravel()
+    r_arr = jnp.asarray(relevance).ravel()
+    out_dtype = jnp.result_type(s_arr.dtype, r_arr.dtype, jnp.float32)
+    keys, ranked = lax.sort_key_val(-s_arr, r_arr)
+    ranked = ranked.astype(out_dtype)
     size = keys.size
     position = jnp.arange(size)
     starts = jnp.concatenate([jnp.ones(min(size, 1), dtype=bool), keys[1:] != keys[:-1]])
@@ -70,7 +75,7 @@ def _tied_ranking(scores: ArrayLike, relevance: ArrayLike) -> _TiedRanking:
     return _TiedRanking(
         relevance=ranked,
         position=position,
-        size=group_total(jnp.ones(size, jnp.float32))[group],
+        size=group_total(jnp.ones(size, out_dtype))[group],
         offset=position - start,
         group_relevance=group_total(ranked)[group],
         before=above,
@@ -401,8 +406,9 @@ def enrichment_factor(
 ) -> jax.Array:
     """Early enrichment factor at screening cutoff ``fraction``.
 
-    Ratio of tie-averaged precision among the top ``k = max(1, floor(fraction * N))``
-    ranked items to the library base rate ``n_actives / N``.
+    Ratio of tie-averaged precision among the top ``k = max(1, ceil(fraction * N))``
+    ranked items (Riniker and Landrum, J. Cheminf. 2013; McSherry and Najork, ECIR 2008)
+    to the library base rate ``n_actives / N``.
 
     Note:
         Direction: HIGHER (values above 1.0 outperform random selection).
@@ -430,22 +436,38 @@ def enrichment_factor(
     r = jnp.asarray(relevance).ravel()
     if s.size != r.size:
         raise ValueError(f"Shape mismatch: scores has {s.size} elements, relevance has {r.size}")
+    is_python_frac = isinstance(fraction, int | float) and not isinstance(fraction, jax.Array)
+    out_dtype = (
+        jnp.result_type(s.dtype, r.dtype, jnp.float32)
+        if is_python_frac
+        else jnp.result_type(s.dtype, r.dtype, fraction, jnp.float32)
+    )
     if s.size == 0:
-        return jnp.array(jnp.nan, dtype=jnp.float32)
+        return jnp.array(jnp.nan, dtype=out_dtype)
 
     ranking = _tied_ranking(s, r)
-    n_items = float(s.size)
-    frac = jnp.asarray(fraction, dtype=jnp.float32)
-    valid_frac = (frac > 0.0) & (frac <= 1.0)
-    k = jnp.clip(jnp.floor(jnp.where(valid_frac, frac, 1.0) * n_items), 1.0, n_items)
+    n_items = jnp.asarray(float(s.size), dtype=out_dtype)
+    if is_python_frac:
+        k_int = min(s.size, max(1, math.ceil(fractions.Fraction(str(fraction)) * s.size)))
+        k = jnp.asarray(float(k_int), dtype=out_dtype)
+        valid_frac = jnp.array(True)
+    else:
+        frac = jnp.asarray(fraction, dtype=out_dtype)
+        valid_frac = (frac > 0.0) & (frac <= 1.0)
+        prod = jnp.where(valid_frac, frac, jnp.ones_like(frac)) * n_items
+        k = jnp.clip(
+            jnp.ceil(prod - 4.0 * jnp.finfo(out_dtype).eps * prod),
+            jnp.asarray(1.0, dtype=out_dtype),
+            n_items,
+        )
     hits = jnp.sum(
-        jnp.where(ranking.position.astype(jnp.float32) < k, _expected_relevance(ranking), 0.0)
+        jnp.where(ranking.position.astype(out_dtype) < k, _expected_relevance(ranking), 0.0)
     )
     precision = hits / k
-    n_actives = jnp.sum(ranking.relevance)
+    n_actives = jnp.sum(ranking.relevance).astype(out_dtype)
     valid = valid_frac & (n_actives > 0.0)
-    safe_base_rate = jnp.where(valid, n_actives / n_items, 1.0)
-    return jnp.where(valid, precision / safe_base_rate, jnp.nan)
+    safe_base_rate = jnp.where(valid, n_actives / n_items, jnp.asarray(1.0, dtype=out_dtype))
+    return jnp.where(valid, precision / safe_base_rate, jnp.asarray(jnp.nan, dtype=out_dtype))
 
 
 def _normalized_discovery_areas(

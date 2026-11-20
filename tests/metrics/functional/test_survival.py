@@ -76,6 +76,54 @@ class TestHarrellCIndex:
             )
         )
 
+    def test_nan_and_non_binary_event_indicator_propagate_nan(self) -> None:
+        times = jnp.array([1.0, 2.0, 3.0, 4.0], dtype=jnp.float32)
+        preds = jnp.array([10.0, 20.0, 30.0, 40.0], dtype=jnp.float32)
+        events_i32 = jnp.array([1, 0, 1, 1], dtype=jnp.int32)
+        events_bool = jnp.array([True, False, True, True])
+        events_f32 = jnp.array([1.0, 0.0, 1.0, 1.0], dtype=jnp.float32)
+
+        assert float(harrell_c_index(preds, times, event_indicator=events_bool)) == pytest.approx(
+            1.0
+        )
+        assert float(harrell_c_index(preds, times, event_indicator=events_f32)) == pytest.approx(
+            1.0
+        )
+
+        nan_preds = preds.at[0].set(jnp.nan)
+        nan_times = times.at[1].set(jnp.nan)
+        nan_upper = jnp.array([1.0, jnp.nan, 3.0, 4.0], dtype=jnp.float32)
+        nan_ev = events_f32.at[1].set(jnp.nan)
+
+        for call in (
+            lambda: harrell_c_index(nan_preds, times, event_indicator=events_i32),
+            lambda: harrell_c_index(preds, nan_times, event_indicator=events_i32),
+            lambda: harrell_c_index(preds, times, nan_upper),
+            lambda: harrell_c_index(preds, times, event_indicator=nan_ev),
+            lambda: harrell_c_index(preds, times, event_indicator=jnp.array([1, 2, 1, 0])),
+            lambda: harrell_c_index(preds, times, event_indicator=jnp.array([-1, 0, 1, 1])),
+            lambda: harrell_c_index(preds, times, event_indicator=jnp.array([1.0, 0.5, 1.0, 0.0])),
+        ):
+            assert np.isnan(float(call()))
+            assert np.isnan(float(jax.jit(call)()))
+
+        batch_preds = jnp.stack([preds, nan_preds])
+        batch_times = jnp.stack([times, times])
+        batch_ev = jnp.stack([events_i32, events_i32])
+        counter = TraceCounter()
+        compiled_harrell = jax.jit(
+            counter.wrap(lambda p, t, e: harrell_c_index(p, t, event_indicator=e))
+        )
+        with counter.expect(new_traces=1):
+            compiled_harrell(preds, times, events_i32)
+        with counter.expect(new_traces=0):
+            compiled_harrell(nan_preds, times, events_i32)
+        vmapped = jax.vmap(lambda p, t, e: harrell_c_index(p, t, event_indicator=e))(
+            batch_preds, batch_times, batch_ev
+        )
+        assert float(vmapped[0]) == pytest.approx(1.0)
+        assert np.isnan(float(vmapped[1]))
+
 
 class TestUnoCIndex:
     """IPCW concordance index (Uno et al., Stat. Med. 2011, Eqs. 2-5)."""
@@ -142,6 +190,56 @@ class TestUnoCIndex:
         vmapped = jax.vmap(uno_c_index)(batch_s, batch_t, batch_e)
         np.testing.assert_allclose(np.asarray(vmapped), np.array([1.0, 0.0]), atol=1e-7)
 
+    def test_tied_event_and_censoring_uses_left_continuous_kaplan_meier(self) -> None:
+        # At t=2.0, one event (i=1) and one censoring (i=2) tie with 3 subjects at risk.
+        # Zero censorings occurred strictly before t=2.0, so G_hat(2.0-) = 1.0 (weight 1.0),
+        # whereas right-continuous G_hat(2.0) = 2/3 would inflate weight to 9/4 and yield 4/7.
+        times = jnp.array([1.0, 2.0, 2.0, 3.0], dtype=jnp.float32)
+        events = jnp.array([1, 1, 0, 1], dtype=jnp.int32)
+        scores = jnp.array([10.0, 40.0, 50.0, 30.0], dtype=jnp.float32)
+        assert float(uno_c_index(scores, times, events)) == pytest.approx(0.75, abs=1e-7)
+
+        # Tie at t=1.0 (1 event, 1 censoring among 4 at risk): observed event precedes censoring,
+        # so censoring hazard at t=1.0 is 1 / (4 - 1) = 1/3 -> factor = 2/3. Left-continuous
+        # G_hat(1.0-) = 1.0 (w=1.0) for the 2 concordant pairs at t=1.0, while G_hat(2.0-) = 2/3
+        # (w=9/4) for the 1 discordant pair at t=2.0 -> 2 / (2 + 9/4) = 8/17.
+        times_early_tie = jnp.array([1.0, 1.0, 2.0, 3.0], dtype=jnp.float32)
+        events_early_tie = jnp.array([1, 0, 1, 1], dtype=jnp.int32)
+        assert float(uno_c_index(scores, times_early_tie, events_early_tie)) == pytest.approx(
+            8.0 / 17.0, abs=4 * float(jnp.finfo(jnp.float32).eps)
+        )
+
+        # Tied event and censoring at t_max=2.0 where right-continuous G_hat(2.0) would vanish to 0:
+        # G_hat(1.0-) = 1.0 and G_hat(2.0-) = 1.0 remain strictly positive.
+        times_tmax = jnp.array([1.0, 2.0, 2.0], dtype=jnp.float32)
+        events_tmax = jnp.array([1, 1, 0], dtype=jnp.int32)
+        scores_tmax = jnp.array([10.0, 30.0, 20.0], dtype=jnp.float32)
+        assert float(uno_c_index(scores_tmax, times_tmax, events_tmax)) == pytest.approx(
+            1.0, abs=float(jnp.finfo(jnp.float32).eps)
+        )
+
+    def test_nan_and_non_binary_event_indicator_propagate_nan(self) -> None:
+        times = jnp.array([1.0, 2.0, 3.0, 4.0], dtype=jnp.float32)
+        scores = jnp.array([10.0, 20.0, 30.0, 40.0], dtype=jnp.float32)
+        events_i32 = jnp.array([1, 0, 1, 1], dtype=jnp.int32)
+        events_bool = jnp.array([True, False, True, True])
+        events_f32 = jnp.array([1.0, 0.0, 1.0, 1.0], dtype=jnp.float32)
+
+        assert float(uno_c_index(scores, times, events_bool)) == pytest.approx(1.0)
+        assert float(uno_c_index(scores, times, events_f32)) == pytest.approx(1.0)
+
+        for call in (
+            lambda: uno_c_index(scores.at[0].set(jnp.nan), times, events_i32),
+            lambda: uno_c_index(scores, times.at[1].set(jnp.nan), events_i32),
+            lambda: uno_c_index(scores, times, events_f32.at[1].set(jnp.nan)),
+            lambda: uno_c_index(scores, times, jnp.array([1, 2, 1, 0])),
+            lambda: uno_c_index(scores, times, jnp.array([1.0, 0.5, 1.0, 0.0])),
+            lambda: uno_c_index(scores, times, events_i32, horizon=jnp.array(jnp.nan)),
+            lambda: uno_c_index(scores, times, events_i32, horizon=float("nan")),
+        ):
+            assert np.isnan(float(call()))
+            assert np.isnan(float(jax.jit(call)()))
+
 
 class TestCensoredCoverageBounds:
     """Observable lower/upper bounds on P(L <= T*) under right-censoring."""
@@ -185,6 +283,36 @@ class TestCensoredCoverageBounds:
         assert np.isnan(float(ub))
         with pytest.raises(ValueError, match="Shape mismatch"):
             censored_coverage_bounds(jnp.ones(2), jnp.ones(3), jnp.ones(3))
+
+    def test_nan_and_non_binary_event_indicator_return_nan_bounds(self) -> None:
+        lower_pred = jnp.array([2.0, 5.0, 5.0, 1.0], dtype=jnp.float32)
+        obs_time = jnp.array([3.0, 4.0, 3.0, 2.0], dtype=jnp.float32)
+        ev_bool = jnp.array([False, True, False, True])
+        ev_f32 = jnp.array([0.0, 1.0, 0.0, 1.0], dtype=jnp.float32)
+
+        lb_b, ub_b = censored_coverage_bounds(lower_pred, obs_time, ev_bool)
+        assert (float(lb_b), float(ub_b)) == (pytest.approx(0.5), pytest.approx(0.75))
+
+        for call in (
+            lambda: censored_coverage_bounds(lower_pred.at[0].set(jnp.nan), obs_time, ev_f32),
+            lambda: censored_coverage_bounds(lower_pred, obs_time.at[1].set(jnp.nan), ev_f32),
+            lambda: censored_coverage_bounds(lower_pred, obs_time, ev_f32.at[2].set(jnp.nan)),
+            lambda: censored_coverage_bounds(lower_pred, obs_time, jnp.array([0, 2, 0, 1])),
+            lambda: censored_coverage_bounds(lower_pred, obs_time, jnp.array([0.0, 0.5, 0.0, 1.0])),
+        ):
+            lb, ub = call()
+            assert np.isnan(float(lb))
+            assert np.isnan(float(ub))
+            lb_j, ub_j = jax.jit(call)()
+            assert np.isnan(float(lb_j))
+            assert np.isnan(float(ub_j))
+
+        counter = TraceCounter()
+        compiled_bounds = jax.jit(counter.wrap(censored_coverage_bounds))
+        with counter.expect(new_traces=1):
+            compiled_bounds(lower_pred, obs_time, ev_bool)
+        with counter.expect(new_traces=0):
+            compiled_bounds(lower_pred + 1.0, obs_time, ev_bool)
 
 
 class TestSurvivalRegistration:
