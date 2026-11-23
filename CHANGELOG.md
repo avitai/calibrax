@@ -7,11 +7,43 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+### Added
+
+- `null_proportion_regime` (`"marginal_null"` default, `"joint_iid"` opt-in) on
+  `conformal_fdr_selection` in `calibrax.metrics.functional.calibration`.
+
 ### Changed
 
 - Raise the minimum supported dependency floors to `flax>=0.12.10` and `substrax>=0.1.34`,
   adding source-level contract checks over Flax NNX rules, installed framework premises, and
   import-time side effects.
+- **Breaking:** `enrichment_factor` defines the top-fraction cutoff as
+  `k = min(N, max(1, ceil(N * fraction)))` (Riniker and Landrum, *J. Cheminf.* 2013) through one
+  ULP-guarded floating-point ceiling shared by eager calls and `jax.jit`, avoiding binary
+  representation overshoot on exact multiples (`0.07 * 100`, `0.29 * 100`, `0.1 + 0.2`), and
+  validates NumPy scalar `fraction` bounds consistently with Python scalars.
+- **Breaking:** `conformal_fdr_selection` normalizes conformal p-values by `1 + n_cal_null` when
+  `cal_null_mask` is supplied (`null_proportion_regime="marginal_null"`, Bates et al.,
+  *Ann. Stat.* 2023), preserving finite-sample outlier validity under test-set null-proportion
+  shift and returning all-`False` when zero calibration nulls exist; Jin and Candes (*Biometrika*
+  2023) joint-exchangeable `1 + n_cal` scaling remains available via
+  `null_proportion_regime="joint_iid"`.
+
+### Fixed
+
+- `enrichment_factor` and `bedroc` propagate `NaN` scores, relevance labels, and parameters to
+  `NaN` and preserve floating-point input precision.
+- `harrell_c_index`, `uno_c_index`, and `censored_coverage_bounds` propagate `NaN` inputs and
+  reject non-binary `event_indicator` values outside `{0, 1}` as `NaN` (returning `(NaN, NaN)` in
+  `censored_coverage_bounds`), score tied `+inf` or `-inf` predictions as `0.5`, preserve
+  floating-point input precision, and evaluate `_kaplan_meier_censoring_survival` as the strictly
+  left-continuous estimator `G_hat(t-)` in log-space with observed events preceding tied
+  censorings.
+- Unweighted `pearson_correlation`, `spearman_rank_correlation`, `kendall_tau`, and
+  `concordance_correlation` return `NaN` on empty `(0,)` inputs, matching their weighted paths.
+- `classwise_ece` accepts arbitrary leading batch dimensions `(..., n_classes)` matched against
+  `targets` of shape `(...,)`, infers `num_classes` from the trailing axis when omitted, and
+  raises `ValueError` when an explicit `num_classes` disagrees with `predictions.shape[-1]`.
 
 ## [0.1.21] - 2026-11-19
 

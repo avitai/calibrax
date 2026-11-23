@@ -6,6 +6,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import pytest
+from substrax.testing import TraceCounter
 
 from calibrax.core.models import MetricDirection
 from calibrax.metrics import MetricRegistry
@@ -322,6 +323,37 @@ class TestClasswiseECE:
         result = classwise_ece(predictions, targets, num_bins=3)
         assert isinstance(result, jax.Array)
 
+    def test_rank3_batch_and_jit_vmap_parity(self) -> None:
+        rng = np.random.default_rng(77)
+        logits = rng.normal(size=(7, 5, 3)).astype(np.float32)
+        probs = jax.nn.softmax(jnp.asarray(logits), axis=-1)
+        targets = jnp.asarray(rng.integers(0, 3, size=(7, 5)), dtype=jnp.int32)
+
+        direct = classwise_ece(probs, targets, num_bins=5)
+        pooled = classwise_ece(probs.reshape(35, 3), targets.reshape(35), num_bins=5)
+        assert float(direct) == pytest.approx(float(pooled), abs=1e-7)
+
+        counter = TraceCounter()
+        compiled = jax.jit(counter.wrap(lambda p, t: classwise_ece(p, t, num_bins=5)))
+        with counter.expect(new_traces=1):
+            compiled(probs, targets)
+        with counter.expect(new_traces=0):
+            compiled(probs, (targets + 1) % 3)
+
+        vmapped = jax.jit(jax.vmap(lambda p, t: classwise_ece(p, t, num_bins=5)))(probs, targets)
+        assert vmapped.shape == (7,)
+        for row in range(7):
+            expected_row = float(classwise_ece(probs[row], targets[row], num_bins=5))
+            assert float(vmapped[row]) == pytest.approx(expected_row, abs=1e-7)
+
+        with pytest.raises(ValueError, match="Shape mismatch"):
+            classwise_ece(probs, jnp.zeros((7, 4), dtype=jnp.int32))
+        assert float(classwise_ece(probs, targets, num_bins=5, num_classes=3)) == pytest.approx(
+            float(direct), abs=1e-7
+        )
+        with pytest.raises(ValueError, match="num_classes"):
+            classwise_ece(probs, targets, num_bins=5, num_classes=5)
+
 
 class TestCalibrationMetricRegistration:
     """Tests for calibration metric registration in MetricRegistry."""
@@ -391,7 +423,7 @@ def _stratcp_get_sel_single_reference(
 
 
 class TestSelectiveConformalFDR:
-    """Selective-conformal FDR selection (Jin & Candes 2023; StratCP) and FDP/power metrics."""
+    """Selective-conformal FDR selection (Bates et al. 2023; Jin & Candes 2023) and FDP/power."""
 
     def test_matches_stratcp_reference_and_controls_fdr(self) -> None:
         rng = np.random.default_rng(123)
@@ -407,19 +439,79 @@ class TestSelectiveConformalFDR:
             )
             null_mask = cal_labels == 0
 
-            expected = _stratcp_get_sel_single_reference(cal_scores, null_mask, test_scores, q=0.15)
-            actual = np.asarray(
-                conformal_fdr_selection(cal_scores, test_scores, q=0.15, cal_null_mask=null_mask)
-            )
-            np.testing.assert_array_equal(actual, expected)
-
-            # Passing null-only calibration scores matches Bates et al. (2023) null-pool selection.
+            # Default marginal_null regime matches Bates et al. (2023) null-pool selection.
             null_only = cal_scores[null_mask]
-            expected_null_pool = _stratcp_get_sel_single_reference(
+            expected_marginal = _stratcp_get_sel_single_reference(
                 null_only, np.ones(null_only.size, dtype=bool), test_scores, q=0.15
             )
+            actual_marginal = np.asarray(
+                conformal_fdr_selection(cal_scores, test_scores, q=0.15, cal_null_mask=null_mask)
+            )
             actual_null_pool = np.asarray(conformal_fdr_selection(null_only, test_scores, q=0.15))
-            np.testing.assert_array_equal(actual_null_pool, expected_null_pool)
+            np.testing.assert_array_equal(actual_marginal, expected_marginal)
+            np.testing.assert_array_equal(actual_null_pool, expected_marginal)
+
+            # Opt-in joint_iid regime matches Jin & Candes (2023) / StratCP get_sel_single.
+            expected_joint = _stratcp_get_sel_single_reference(
+                cal_scores, null_mask, test_scores, q=0.15
+            )
+            actual_joint = np.asarray(
+                conformal_fdr_selection(
+                    cal_scores,
+                    test_scores,
+                    q=0.15,
+                    cal_null_mask=null_mask,
+                    null_proportion_regime="joint_iid",
+                )
+            )
+            np.testing.assert_array_equal(actual_joint, expected_joint)
+
+    def test_marginal_null_rejects_decoys_under_null_proportion_shift(self) -> None:
+        cal_s = jnp.linspace(0.0, 1.0, 100, dtype=jnp.float32)
+        null_m = jnp.arange(100) < 10
+        sel_decoy = conformal_fdr_selection(
+            cal_s, jnp.array([-10.0], dtype=jnp.float32), q=0.2, cal_null_mask=null_m
+        )
+        assert sel_decoy.tolist() == [False]
+        assert jax.jit(lambda ts: conformal_fdr_selection(cal_s, ts, q=0.2, cal_null_mask=null_m))(
+            jnp.array([-10.0], dtype=jnp.float32)
+        ).tolist() == [False]
+
+        # Zero calibration nulls cannot form conformal p-values < 1 under marginal_null.
+        no_nulls = jnp.zeros(20, dtype=bool)
+        assert not bool(
+            jnp.any(
+                conformal_fdr_selection(
+                    jnp.linspace(0.0, 1.0, 20),
+                    jnp.array([10.0, 20.0]),
+                    q=0.5,
+                    cal_null_mask=no_nulls,
+                )
+            )
+        )
+
+        # NaN in test or calibration scores yields no selection.
+        assert not bool(jnp.any(conformal_fdr_selection(cal_s, jnp.array([jnp.nan, 5.0]), q=0.2)))
+        assert not bool(
+            jnp.any(conformal_fdr_selection(cal_s.at[0].set(jnp.nan), jnp.array([5.0]), q=0.2))
+        )
+
+        # Severe label shift: 15% null calibration set vs 95% null test set controls empirical FDR.
+        rng = np.random.default_rng(909)
+        fdps = []
+        for _ in range(80):
+            cal_is_null = rng.random(120) < 0.15
+            cal_is_null[:2] = True
+            cal_draw = np.where(
+                cal_is_null, rng.normal(0.0, 1.0, 120), rng.normal(3.0, 1.0, 120)
+            ).astype(np.float32)
+            test_is_null = rng.random(200) < 0.95
+            test_draw = np.where(
+                test_is_null, rng.normal(0.0, 1.0, 200), rng.normal(3.0, 1.0, 200)
+            ).astype(np.float32)
+            sel = conformal_fdr_selection(cal_draw, test_draw, q=0.2, cal_null_mask=cal_is_null)
+            fdps.append(float(false_discovery_proportion(sel, test_is_null)))
+        assert float(np.mean(fdps)) <= 0.22
 
     def test_false_discovery_proportion_and_empirical_power_identities(self) -> None:
         selected = jnp.array([True, True, False, True, False])
@@ -448,6 +540,14 @@ class TestSelectiveConformalFDR:
     def test_validation_and_jit_vmap_compatibility(self) -> None:
         with pytest.raises(ValueError, match="q must be in"):
             conformal_fdr_selection(jnp.ones(4), jnp.ones(3), q=0.0)
+        with pytest.raises(ValueError, match="q must be in"):
+            conformal_fdr_selection(jnp.ones(4), jnp.ones(3), q=np.float32(1.0))
+        with pytest.raises(ValueError, match="null_proportion_regime"):
+            conformal_fdr_selection(
+                jnp.ones(4),
+                jnp.ones(3),
+                null_proportion_regime="unknown",  # type: ignore[arg-type]
+            )
         with pytest.raises(ValueError, match="Shape mismatch"):
             conformal_fdr_selection(jnp.ones(4), jnp.ones(3), cal_null_mask=jnp.ones(2, dtype=bool))
         with pytest.raises(ValueError, match="Shape mismatch"):
@@ -460,3 +560,69 @@ class TestSelectiveConformalFDR:
         vmapped = jax.jit(jax.vmap(lambda ts: conformal_fdr_selection(cal, ts, q=0.2)))(test_batch)
         assert vmapped.shape == (2, 4)
         assert vmapped.dtype == jnp.bool_
+
+    def test_rank3_nested_vmap_parity(self) -> None:
+        rng = np.random.default_rng(2026)
+        cal_np = rng.normal(size=(7, 5, 16)).astype(np.float32)
+        null_mask_np = rng.random(size=(7, 5, 16)) > 0.25
+        null_mask_np[:, :, 0] = True
+        is_null_np = rng.random(size=(7, 5, 3)) > 0.45
+        # Ensure one cell has all true nulls (zero alternatives -> NaN empirical_power).
+        is_null_np[0, 0, :] = True
+        is_alt_np = ~is_null_np
+        test_np = (rng.normal(size=(7, 5, 3)) + 2.5 * is_alt_np.astype(np.float32)).astype(
+            np.float32
+        )
+
+        cal_j = jnp.asarray(cal_np)
+        null_mask_j = jnp.asarray(null_mask_np)
+        test_j = jnp.asarray(test_np)
+        is_null_j = jnp.asarray(is_null_np)
+        is_alt_j = jnp.asarray(is_alt_np)
+
+        nested_sel = jax.jit(
+            jax.vmap(
+                jax.vmap(
+                    lambda cs, nm, ts: conformal_fdr_selection(cs, ts, q=0.2, cal_null_mask=nm)
+                )
+            )
+        )(cal_j, null_mask_j, test_j)
+        nested_joint = jax.jit(
+            jax.vmap(
+                jax.vmap(
+                    lambda cs, nm, ts: conformal_fdr_selection(
+                        cs,
+                        ts,
+                        q=0.2,
+                        cal_null_mask=nm,
+                        null_proportion_regime="joint_iid",
+                    )
+                )
+            )
+        )(cal_j, null_mask_j, test_j)
+        nested_fdp = jax.jit(jax.vmap(jax.vmap(false_discovery_proportion)))(nested_sel, is_null_j)
+        nested_pow = jax.jit(jax.vmap(jax.vmap(empirical_power)))(nested_sel, is_alt_j)
+
+        assert nested_sel.shape == (7, 5, 3)
+        assert nested_sel.dtype == jnp.bool_
+        assert nested_fdp.shape == (7, 5)
+        assert nested_pow.shape == (7, 5)
+
+        for i in range(7):
+            for j in range(5):
+                null_sub = cal_np[i, j][null_mask_np[i, j]]
+                ref_marginal = _stratcp_get_sel_single_reference(
+                    null_sub, np.ones(null_sub.size, dtype=bool), test_np[i, j], q=0.2
+                )
+                np.testing.assert_array_equal(np.asarray(nested_sel[i, j]), ref_marginal)
+                ref_joint = _stratcp_get_sel_single_reference(
+                    cal_np[i, j], null_mask_np[i, j], test_np[i, j], q=0.2
+                )
+                np.testing.assert_array_equal(np.asarray(nested_joint[i, j]), ref_joint)
+                eager_fdp = float(false_discovery_proportion(nested_sel[i, j], is_null_j[i, j]))
+                assert float(nested_fdp[i, j]) == pytest.approx(eager_fdp, abs=1e-7)
+                eager_pow = float(empirical_power(nested_sel[i, j], is_alt_j[i, j]))
+                if np.isnan(eager_pow):
+                    assert np.isnan(float(nested_pow[i, j]))
+                else:
+                    assert float(nested_pow[i, j]) == pytest.approx(eager_pow, abs=1e-7)

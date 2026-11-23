@@ -16,6 +16,7 @@ from typing import NamedTuple
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 from jax import lax
 from jax.typing import ArrayLike
 
@@ -58,8 +59,11 @@ def _tied_ranking(scores: ArrayLike, relevance: ArrayLike) -> _TiedRanking:
     Returns:
         The ranking with each item's group size, offset, relevance total and the relevance above it.
     """
-    keys, ranked = lax.sort_key_val(-jnp.asarray(scores).ravel(), jnp.asarray(relevance).ravel())
-    ranked = ranked.astype(jnp.float32)
+    s_arr = jnp.asarray(scores).ravel()
+    r_arr = jnp.asarray(relevance).ravel()
+    out_dtype = jnp.result_type(s_arr.dtype, r_arr.dtype, jnp.float32)
+    keys, ranked = lax.sort_key_val(-s_arr, r_arr)
+    ranked = ranked.astype(out_dtype)
     size = keys.size
     position = jnp.arange(size)
     starts = jnp.concatenate([jnp.ones(min(size, 1), dtype=bool), keys[1:] != keys[:-1]])
@@ -70,7 +74,7 @@ def _tied_ranking(scores: ArrayLike, relevance: ArrayLike) -> _TiedRanking:
     return _TiedRanking(
         relevance=ranked,
         position=position,
-        size=group_total(jnp.ones(size, jnp.float32))[group],
+        size=group_total(jnp.ones(size, out_dtype))[group],
         offset=position - start,
         group_relevance=group_total(ranked)[group],
         before=above,
@@ -331,6 +335,17 @@ def coverage(items: ArrayLike, *, catalog_size: int) -> jax.Array:
     return jnp.count_nonzero(counts) / catalog_size
 
 
+def _eager_scalar_float(value: ArrayLike) -> float | None:
+    """Extract a Python float from an eager Python/NumPy scalar or 0-D NumPy array."""
+    if isinstance(value, jax.Array):
+        return None
+    if isinstance(value, int | float | np.number):
+        return float(value)
+    if isinstance(value, np.ndarray) and value.ndim == 0:
+        return float(value.item())
+    return None
+
+
 def bedroc(
     scores: ArrayLike,
     relevance: ArrayLike,
@@ -348,8 +363,8 @@ def bedroc(
 
     Note:
         Direction: HIGHER (1.0 = all active items ranked ahead of all inactive items).
-        Range: [0, 1]. ``NaN`` when the list is empty or contains only actives or only
-        inactives (where ``RIE_max == RIE_min``).
+        Range: [0, 1]. ``NaN`` when the list is empty, contains ``NaN`` values, or
+        contains only actives or only inactives (where ``RIE_max == RIE_min``).
 
     Args:
         scores: Predicted ranking scores (higher ranks earlier).
@@ -362,35 +377,43 @@ def bedroc(
     Raises:
         ValueError: If ``scores`` and ``relevance`` differ in size or eager ``alpha <= 0``.
     """
-    if isinstance(alpha, int | float) and not isinstance(alpha, jax.Array) and alpha <= 0.0:
+    eager_alpha = _eager_scalar_float(alpha)
+    if eager_alpha is not None and eager_alpha <= 0.0:
         raise ValueError(f"alpha must be positive, got {alpha}")
     s = jnp.asarray(scores).ravel()
     r = jnp.asarray(relevance).ravel()
     if s.size != r.size:
         raise ValueError(f"Shape mismatch: scores has {s.size} elements, relevance has {r.size}")
+    out_dtype = jnp.result_type(s.dtype, r.dtype, alpha, jnp.float32)
     if s.size == 0:
-        return jnp.array(jnp.nan, dtype=jnp.float32)
+        return jnp.array(jnp.nan, dtype=out_dtype)
 
     ranking = _tied_ranking(s, r)
-    n_items = float(s.size)
-    n_actives = jnp.sum(ranking.relevance)
-    alpha_arr = jnp.asarray(alpha, dtype=jnp.float32)
-    valid = (n_actives > 0.0) & (n_actives < n_items) & (alpha_arr > 0.0)
+    n_items = jnp.asarray(float(s.size), dtype=out_dtype)
+    n_actives = jnp.sum(ranking.relevance).astype(out_dtype)
+    alpha_arr = jnp.asarray(alpha, dtype=out_dtype)
+    has_nan = jnp.any(jnp.isnan(s)) | jnp.any(jnp.isnan(r)) | jnp.any(jnp.isnan(alpha_arr))
+    valid = (~has_nan) & (n_actives > 0.0) & (n_actives < n_items) & (alpha_arr > 0.0)
 
-    safe_alpha = jnp.where(valid, alpha_arr, 1.0)
-    safe_actives = jnp.where(valid, n_actives, 1.0)
+    one = jnp.asarray(1.0, dtype=out_dtype)
+    safe_alpha = jnp.where(valid, alpha_arr, one)
+    safe_actives = jnp.where(valid, n_actives, one)
     step = safe_alpha / n_items
 
-    weights = jnp.exp(-step * ranking.position.astype(jnp.float32))
+    weights = jnp.exp(-step * ranking.position.astype(out_dtype))
     weighted_sum = jnp.sum(_expected_relevance(ranking) * weights)
 
     denom_step = -jnp.expm1(-step)
-    safe_denom = jnp.where(denom_step > 0.0, denom_step, 1.0)
+    safe_denom = jnp.where(denom_step > 0.0, denom_step, one)
     s_max = -jnp.expm1(-safe_actives * step) / safe_denom
     s_min = jnp.exp(-step * (n_items - safe_actives)) * s_max
     span = s_max - s_min
-    safe_span = jnp.where(span > 0.0, span, 1.0)
-    return jnp.where(valid & (span > 0.0), (weighted_sum - s_min) / safe_span, jnp.nan)
+    safe_span = jnp.where(span > 0.0, span, one)
+    return jnp.where(
+        valid & (span > 0.0),
+        (weighted_sum - s_min) / safe_span,
+        jnp.asarray(jnp.nan, dtype=out_dtype),
+    )
 
 
 def enrichment_factor(
@@ -401,12 +424,16 @@ def enrichment_factor(
 ) -> jax.Array:
     """Early enrichment factor at screening cutoff ``fraction``.
 
-    Ratio of tie-averaged precision among the top ``k = max(1, floor(fraction * N))``
-    ranked items to the library base rate ``n_actives / N``.
+    Ratio of tie-averaged precision among the top ``k = min(N, max(1, ceil(fraction * N)))``
+    ranked items (Riniker and Landrum, J. Cheminf. 2013; McSherry and Najork, ECIR 2008)
+    to the library base rate ``n_actives / N``. Evaluates the ULP-guarded ceiling on the
+    resolved floating-point product so eager calls and ``jax.jit`` share one exact cutoff
+    identity without binary representation overshoot at exact multiples such as ``0.07 * 100``.
 
     Note:
         Direction: HIGHER (values above 1.0 outperform random selection).
-        Range: ``[0, N / n_actives]``. ``NaN`` when the list is empty or has zero actives.
+        Range: ``[0, N / n_actives]``. ``NaN`` when the list is empty, contains ``NaN``
+        values, or has zero actives.
 
     Args:
         scores: Predicted ranking scores (higher ranks earlier).
@@ -420,32 +447,32 @@ def enrichment_factor(
         ValueError: If ``scores`` and ``relevance`` differ in size or eager ``fraction``
             lies outside ``(0, 1]``.
     """
-    if (
-        isinstance(fraction, int | float)
-        and not isinstance(fraction, jax.Array)
-        and not (0.0 < fraction <= 1.0)
-    ):
+    eager_frac = _eager_scalar_float(fraction)
+    if eager_frac is not None and (eager_frac <= 0.0 or eager_frac > 1.0):
         raise ValueError(f"fraction must be in (0, 1], got {fraction}")
     s = jnp.asarray(scores).ravel()
     r = jnp.asarray(relevance).ravel()
     if s.size != r.size:
         raise ValueError(f"Shape mismatch: scores has {s.size} elements, relevance has {r.size}")
+    out_dtype = jnp.result_type(s.dtype, r.dtype, fraction, jnp.float32)
     if s.size == 0:
-        return jnp.array(jnp.nan, dtype=jnp.float32)
+        return jnp.array(jnp.nan, dtype=out_dtype)
 
     ranking = _tied_ranking(s, r)
-    n_items = float(s.size)
-    frac = jnp.asarray(fraction, dtype=jnp.float32)
+    n_items = jnp.asarray(float(s.size), dtype=out_dtype)
+    frac = jnp.asarray(fraction, dtype=out_dtype)
     valid_frac = (frac > 0.0) & (frac <= 1.0)
-    k = jnp.clip(jnp.floor(jnp.where(valid_frac, frac, 1.0) * n_items), 1.0, n_items)
+    one = jnp.asarray(1.0, dtype=out_dtype)
+    prod = jnp.where(valid_frac, frac, one) * n_items
+    k = jnp.clip(jnp.ceil(prod - 4.0 * jnp.finfo(out_dtype).eps * prod), one, n_items)
     hits = jnp.sum(
-        jnp.where(ranking.position.astype(jnp.float32) < k, _expected_relevance(ranking), 0.0)
+        jnp.where(ranking.position.astype(out_dtype) < k, _expected_relevance(ranking), 0.0)
     )
-    precision = hits / k
-    n_actives = jnp.sum(ranking.relevance)
-    valid = valid_frac & (n_actives > 0.0)
-    safe_base_rate = jnp.where(valid, n_actives / n_items, 1.0)
-    return jnp.where(valid, precision / safe_base_rate, jnp.nan)
+    n_actives = jnp.sum(ranking.relevance).astype(out_dtype)
+    has_nan = jnp.any(jnp.isnan(s)) | jnp.any(jnp.isnan(r))
+    valid = (~has_nan) & valid_frac & (n_actives > 0.0)
+    safe_denom = jnp.where(valid, k * n_actives, one)
+    return jnp.where(valid, (hits * n_items) / safe_denom, jnp.asarray(jnp.nan, dtype=out_dtype))
 
 
 def _normalized_discovery_areas(
