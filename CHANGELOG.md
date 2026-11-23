@@ -7,6 +7,12 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+### Changed
+
+- Raise the minimum supported dependency floors to `flax>=0.12.10` and `substrax>=0.1.34`,
+  adding source-level contract checks over Flax NNX rules, installed framework premises, and
+  import-time side effects.
+
 ## [0.1.21] - 2026-11-19
 
 ### Changed
