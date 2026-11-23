@@ -25,9 +25,8 @@ classifiers = [
 ]
 dependencies = [
   "click>=8.0",
-  # 0.12.1 is where nnx Variable gained set_value / get_value; 0.12.0 is the only
-  # release in the supported range that the jax-ml stack cannot run against.
-  "flax>=0.12.9",
+  # 0.12.10 is the minimum release compatible with JAX 0.12+.
+  "flax>=0.12.10",
   "jax>=0.11.1",
   "jaxlib>=0.11.1",
   "jaxtyping>=0.2.20",
@@ -40,7 +39,7 @@ dependencies = [
   "pydantic>=2.10",
   # Significance tests and the chi-squared interval use SciPy, which JAX itself requires.
   "scipy>=1.15",
-  "substrax>=0.1.27"
+  "substrax>=0.1.34"
 ]
 description = "JAX benchmarking, profiling and evaluation metrics for Flax NNX: a metric registry across regression, classification, calibration, uncertainty, forecasting, generative, image, text, audio, graph and fairness domains, XLA FLOP counting, roofline analysis, GPU and energy monitoring, regression detection, publication exports, W&B and MLflow"
 keywords = [
@@ -127,7 +126,7 @@ dev = [
   # Types for scipy.stats; follows the locked scipy minor.
   "scipy-stubs>=1.17,<1.18",
   # `substrax-compute` runs the examples on a GPU; the Modal backend needs Modal
-  "substrax[modal]>=0.1.27",
+  "substrax[modal]>=0.1.34",
   "twine>=4.0.2"
 ]
 docs = [
@@ -174,7 +173,7 @@ test = [
   "scikit-learn>=1.4",
   # The shared example tests and the notebook tools: `substrax-notebooks` converts, checks,
   # pages and tests the examples.
-  "substrax[notebooks,testing]>=0.1.27",
+  "substrax[notebooks,testing]>=0.1.34",
   "wandb>=0.18"
 ]
 text = [
