@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -208,6 +210,32 @@ class TestConcordanceCorrelation:
         a = jnp.array([1.0, 2.0])
         result = concordance_correlation(a, a)
         assert isinstance(result, jax.Array)
+
+
+class TestUnweightedEmptyCorrelationInputs:
+    """Unweighted correlation and agreement metrics return float32 NaN on empty inputs."""
+
+    @pytest.mark.parametrize(
+        "metric",
+        [
+            pearson_correlation,
+            spearman_rank_correlation,
+            kendall_tau,
+            concordance_correlation,
+        ],
+    )
+    def test_empty_1d_and_2d_unweighted_inputs_return_float32_nan(
+        self, metric: Callable[[jax.Array, jax.Array], jax.Array]
+    ) -> None:
+        for shape in ((0,), (0, 3)):
+            empty = jnp.zeros(shape, dtype=jnp.float32)
+            eager = metric(empty, empty)
+            jitted = jax.jit(metric)(empty, empty)
+            for out in (eager, jitted):
+                assert isinstance(out, jax.Array)
+                assert out.shape == ()
+                assert out.dtype == jnp.float32
+                assert np.isnan(float(out))
 
 
 class TestStatisticalMetricRegistration:

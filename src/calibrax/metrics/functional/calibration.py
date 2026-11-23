@@ -13,10 +13,12 @@ conformal_fdr_selection, false_discovery_proportion, empirical_power.
 
 from __future__ import annotations
 
+from typing import Literal
+
 import jax
 import jax.numpy as jnp
 import numpy as np
-from jax.typing import ArrayLike
+from jax.typing import ArrayLike, DTypeLike
 
 from calibrax.metrics._utils import _EPSILON, _prepare_arrays, safe_divide
 from calibrax.statistics.significance import benjamini_hochberg_adjust
@@ -39,26 +41,28 @@ def _bin_predictions(
         as JAX arrays.
     """
     p, t = _prepare_arrays(predictions, targets)
-    p, t = p.ravel(), t.ravel()
-    bin_edges = jnp.linspace(0.0, 1.0, num_bins + 1)
+    out_dtype = jnp.result_type(p.dtype, t.dtype, jnp.float32)
+    p, t = p.ravel().astype(out_dtype), t.ravel().astype(out_dtype)
+    bin_edges = jnp.linspace(0.0, 1.0, num_bins + 1, dtype=out_dtype)
 
     # Assign each prediction to a bin (0-indexed)
     bin_indices = jnp.digitize(p, bin_edges[1:-1])
     bin_indices = jnp.clip(bin_indices, 0, num_bins - 1)
 
     # One-hot encode bin membership: shape (n, num_bins)
-    one_hot = jnp.eye(num_bins)[bin_indices]
+    one_hot = jnp.eye(num_bins, dtype=out_dtype)[bin_indices]
 
     bin_counts = jnp.sum(one_hot, axis=0)
+    zero = jnp.asarray(0.0, dtype=out_dtype)
     bin_accuracies = jnp.where(
         bin_counts > 0,
         jnp.sum(one_hot * t[:, None], axis=0) / (bin_counts + _EPSILON),
-        0.0,
+        zero,
     )
     bin_confidences = jnp.where(
         bin_counts > 0,
         jnp.sum(one_hot * p[:, None], axis=0) / (bin_counts + _EPSILON),
-        0.0,
+        zero,
     )
 
     return bin_accuracies, bin_confidences, bin_counts, bin_edges
@@ -278,36 +282,76 @@ def classwise_ece(
         NOT a proper scoring rule.
 
     Args:
-        predictions: Predicted probability matrix of shape
-            (n_samples, n_classes).
-        targets: Ground truth class indices.
+        predictions: Predicted probability array of shape ``(..., n_classes)``
+            with at least two dimensions.
+        targets: Ground truth class indices of shape ``predictions.shape[:-1]``.
         num_bins: Number of bins for per-class ECE.
-        num_classes: Number of classes. Inferred from predictions if None.
+        num_classes: Number of classes. Inferred from ``predictions.shape[-1]`` if None.
 
     Returns:
         Mean classwise ECE as a scalar value.
 
     Raises:
-        ValueError: If ``predictions`` is not two-dimensional.
+        ValueError: If ``predictions`` has fewer than two dimensions, leading
+            dimensions do not match ``targets``, or ``num_classes`` does not
+            match ``predictions.shape[-1]``.
     """
     p = jnp.asarray(predictions)
     t = jnp.asarray(targets).astype(jnp.int32)
 
-    if p.ndim == 1:
-        msg = "classwise_ece requires 2D predictions (n_samples, n_classes)"
+    if p.ndim < 2:  # noqa: PLR2004
+        msg = "classwise_ece requires at least 2D predictions (..., n_classes)"
+        raise ValueError(msg)
+    if p.shape[:-1] != t.shape:
+        msg = f"Shape mismatch: predictions leading shape {p.shape[:-1]} vs targets {t.shape}"
         raise ValueError(msg)
 
     if num_classes is None:
-        num_classes = p.shape[1]
+        num_classes = p.shape[-1]
+    elif num_classes != p.shape[-1]:
+        msg = f"num_classes ({num_classes}) must match predictions.shape[-1] ({p.shape[-1]})"
+        raise ValueError(msg)
+
+    out_dtype = jnp.result_type(p.dtype, jnp.float32)
+    p_flat = p.astype(out_dtype).reshape(-1, p.shape[-1])
+    t_flat = t.reshape(-1)
 
     def _ece_for_class(class_idx: jax.Array) -> jax.Array:
-        class_probs = p[:, class_idx]
-        class_targets = (t == class_idx).astype(jnp.float32)
+        class_probs = p_flat[:, class_idx]
+        class_targets = (t_flat == class_idx).astype(out_dtype)
         return expected_calibration_error(class_probs, class_targets, num_bins=num_bins)
 
     class_indices = jnp.arange(num_classes)
     per_class_ece = jax.vmap(_ece_for_class)(class_indices)
     return jnp.mean(per_class_ece)
+
+
+def _conformal_null_counts(
+    cal_sorted: jax.Array,
+    order: jax.Array,
+    test_flat: jax.Array,
+    null_mask: jax.Array | None,
+    *,
+    regime: Literal["marginal_null", "joint_iid"],
+    p_dtype: DTypeLike,
+) -> tuple[jax.Array, jax.Array, jax.Array]:
+    """Compute ``(ge_count, denominator, has_nulls)`` for conformal p-values."""
+    pos = jnp.searchsorted(cal_sorted, test_flat, side="left")
+    full_denom = jnp.asarray(1.0 + float(cal_sorted.size), dtype=p_dtype)
+    if null_mask is None:
+        return cal_sorted.size - pos, full_denom, jnp.array(True)
+
+    null_sorted = null_mask[order].astype(jnp.int32)
+    suffix_null = jnp.concatenate(
+        [jnp.cumsum(null_sorted[::-1])[::-1], jnp.zeros(1, dtype=jnp.int32)]
+    )
+    ge_count = suffix_null[pos]
+    if regime == "joint_iid":
+        return ge_count, full_denom, jnp.array(True)
+
+    n_cal_null = suffix_null[0]
+    denom = jnp.asarray(1.0, dtype=p_dtype) + n_cal_null.astype(p_dtype)
+    return ge_count, denom, n_cal_null > 0
 
 
 def conformal_fdr_selection(
@@ -316,13 +360,22 @@ def conformal_fdr_selection(
     *,
     q: ArrayLike = 0.1,
     cal_null_mask: ArrayLike | None = None,
+    null_proportion_regime: Literal["marginal_null", "joint_iid"] = "marginal_null",
 ) -> jax.Array:
     """Selective-conformal test-set discovery mask with finite-sample FDR control.
 
-    Computes conformal p-values ``p_j = (1 + #{i in cal_null : S_i >= S_test_j}) / (1 + n_cal)``
-    via ``O((n + m) log n)`` binary search and applies Benjamini-Hochberg step-up selection
-    at level ``q`` (Jin and Candes, Biometrika 2023; Bates et al., Ann. Stat. 2023). Larger
-    scores indicate stronger evidence against the null hypothesis.
+    Computes conformal p-values via ``O((n + m) log n)`` binary search and applies
+    Benjamini-Hochberg step-up selection at level ``q`` (Bates et al., Ann. Stat. 2023;
+    Jin and Candes, Biometrika 2023). Larger scores indicate stronger evidence against
+    the null hypothesis.
+
+    Under ``null_proportion_regime="marginal_null"`` (default), p-values normalize by
+    ``1 + n_cal_null`` (Bates et al., Ann. Stat. 2023), remaining valid under arbitrary
+    test-set null prevalence (for example when screening a prospective library with higher
+    inactive prevalence than an enriched calibration set) and returning all-``False`` when
+    zero calibration nulls are present. Under ``null_proportion_regime="joint_iid"``,
+    p-values normalize by ``1 + n_cal`` assuming calibration and test pairs are jointly
+    exchangeable from the same mixture distribution (Jin and Candes, Biometrika 2023).
 
     Note:
         Returns a boolean selection array rather than a scalar; not registered in
@@ -335,19 +388,33 @@ def conformal_fdr_selection(
         cal_null_mask: Optional boolean mask of shape ``(n_cal,)`` marking calibration
             observations that satisfy the null hypothesis. When ``None``, all entries
             of ``cal_scores`` are treated as null calibration scores.
+        null_proportion_regime: Conformal p-value normalization when ``cal_null_mask``
+            is supplied: ``"marginal_null"`` (default, ``1 + n_cal_null``) or
+            ``"joint_iid"`` (``1 + n_cal``).
 
     Returns:
         Boolean JAX array with the same shape as ``test_scores`` marking selected discoveries.
 
     Raises:
-        ValueError: If eager ``q`` lies outside ``(0, 1)`` or ``cal_null_mask`` differs
-            in length from ``cal_scores``.
+        ValueError: If eager ``q`` lies outside ``(0, 1)``, ``cal_null_mask`` differs
+            in length from ``cal_scores``, or ``null_proportion_regime`` is unrecognized.
     """
-    if isinstance(q, int | float) and not isinstance(q, jax.Array) and not (0.0 < q < 1.0):
+    if (
+        isinstance(q, int | float | np.number)
+        and not isinstance(q, jax.Array)
+        and not (0.0 < float(q) < 1.0)
+    ):
         raise ValueError(f"q must be in (0, 1), got {q}")
+    if null_proportion_regime not in ("marginal_null", "joint_iid"):
+        raise ValueError(
+            "null_proportion_regime must be 'marginal_null' or 'joint_iid', "
+            f"got {null_proportion_regime!r}"
+        )
 
-    cal = jnp.asarray(cal_scores, dtype=jnp.float32).ravel()
-    test = jnp.asarray(test_scores, dtype=jnp.float32)
+    score_dtype = jnp.result_type(cal_scores, test_scores, jnp.float32)
+    p_dtype = jnp.result_type(score_dtype, q, jnp.float32)
+    cal = jnp.asarray(cal_scores, dtype=score_dtype).ravel()
+    test = jnp.asarray(test_scores, dtype=score_dtype)
     test_flat = test.ravel()
 
     if cal_null_mask is not None:
@@ -365,21 +432,24 @@ def conformal_fdr_selection(
 
     order = jnp.argsort(cal)
     cal_sorted = cal[order]
-    pos = jnp.searchsorted(cal_sorted, test_flat, side="left")
-    if null_mask is None:
-        ge_count = cal.size - pos
-    else:
-        null_sorted = null_mask[order].astype(jnp.int32)
-        suffix_null = jnp.concatenate(
-            [jnp.cumsum(null_sorted[::-1])[::-1], jnp.zeros(1, dtype=jnp.int32)]
-        )
-        ge_count = suffix_null[pos]
+    ge_count, denom, has_nulls = _conformal_null_counts(
+        cal_sorted,
+        order,
+        test_flat,
+        null_mask,
+        regime=null_proportion_regime,
+        p_dtype=p_dtype,
+    )
 
-    p_vals = (1.0 + ge_count.astype(jnp.float32)) / (1.0 + float(cal.size))
+    one = jnp.asarray(1.0, dtype=p_dtype)
+    raw_p = (one + ge_count.astype(p_dtype)) / denom
+    has_nan = jnp.isnan(test_flat) | jnp.any(jnp.isnan(cal))
+    p_vals = jnp.where(has_nan, jnp.asarray(jnp.nan, dtype=p_dtype), raw_p)
     q_vals = benjamini_hochberg_adjust(p_vals)
-    q_arr = jnp.asarray(q, dtype=jnp.float32)
-    valid_q = (q_arr > 0.0) & (q_arr < 1.0)
-    return (valid_q & (q_vals <= q_arr)).reshape(test.shape)
+    q_arr = jnp.asarray(q, dtype=p_dtype)
+    valid_q = (q_arr > 0.0) & (q_arr < 1.0) & has_nulls
+    q_bound = q_arr + 4.0 * jnp.finfo(p_dtype).eps * q_arr
+    return (valid_q & (q_vals <= q_bound)).reshape(test.shape)
 
 
 def false_discovery_proportion(selected: ArrayLike, is_null: ArrayLike) -> jax.Array:
@@ -409,14 +479,20 @@ def false_discovery_proportion(selected: ArrayLike, is_null: ArrayLike) -> jax.A
         raise ValueError(
             f"Shape mismatch: selected has {sel_raw.size} elements, is_null has {null_raw.size}"
         )
+    out_dtype = jnp.result_type(
+        *(x.dtype for x in (sel_raw, null_raw) if jnp.issubdtype(x.dtype, jnp.floating)),
+        jnp.float32,
+    )
     if sel_raw.size == 0:
-        return jnp.array(jnp.nan, dtype=jnp.float32)
+        return jnp.array(jnp.nan, dtype=out_dtype)
 
     sel = sel_raw > 0
     null = null_raw > 0
-    n_sel = jnp.sum(sel.astype(jnp.float32))
-    n_false = jnp.sum((sel & null).astype(jnp.float32))
-    return jnp.where(n_sel > 0.0, n_false / jnp.maximum(n_sel, 1.0), 0.0)
+    n_sel = jnp.sum(sel.astype(out_dtype))
+    n_false = jnp.sum((sel & null).astype(out_dtype))
+    one = jnp.asarray(1.0, dtype=out_dtype)
+    zero = jnp.asarray(0.0, dtype=out_dtype)
+    return jnp.where(n_sel > zero, n_false / jnp.maximum(n_sel, one), zero)
 
 
 def empirical_power(selected: ArrayLike, is_alternative: ArrayLike) -> jax.Array:
@@ -443,13 +519,17 @@ def empirical_power(selected: ArrayLike, is_alternative: ArrayLike) -> jax.Array
             f"Shape mismatch: selected has {sel_raw.size} elements, "
             f"is_alternative has {alt_raw.size}"
         )
+    out_dtype = jnp.result_type(
+        *(x.dtype for x in (sel_raw, alt_raw) if jnp.issubdtype(x.dtype, jnp.floating)),
+        jnp.float32,
+    )
     if sel_raw.size == 0:
-        return jnp.array(jnp.nan, dtype=jnp.float32)
+        return jnp.array(jnp.nan, dtype=out_dtype)
 
     sel = sel_raw > 0
     alt = alt_raw > 0
-    n_alt = jnp.sum(alt.astype(jnp.float32))
-    n_true_disc = jnp.sum((sel & alt).astype(jnp.float32))
+    n_alt = jnp.sum(alt.astype(out_dtype))
+    n_true_disc = jnp.sum((sel & alt).astype(out_dtype))
     has_alt = n_alt > 0.0
-    safe_alt = jnp.where(has_alt, n_alt, 1.0)
-    return jnp.where(has_alt, n_true_disc / safe_alt, jnp.nan)
+    safe_alt = jnp.where(has_alt, n_alt, jnp.asarray(1.0, dtype=out_dtype))
+    return jnp.where(has_alt, n_true_disc / safe_alt, jnp.asarray(jnp.nan, dtype=out_dtype))

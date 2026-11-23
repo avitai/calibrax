@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import fractions
 import itertools
+import math
 
 import jax
 import jax.numpy as jnp
@@ -499,10 +501,25 @@ class TestBEDROC:
         scores = jnp.array([3.0, 2.0, 1.0], dtype=jnp.float32)
         assert np.isnan(float(bedroc(scores, jnp.zeros(3, dtype=jnp.float32))))
         assert np.isnan(float(bedroc(scores, jnp.ones(3, dtype=jnp.float32))))
+        nan_scores = jnp.array([jnp.nan, 3.0, 2.0, 1.0], dtype=jnp.float32)
+        nan_rel = jnp.array([0.0, 1.0, 0.0, 0.0], dtype=jnp.float32)
+        assert np.isnan(float(bedroc(nan_scores, nan_rel)))
+        assert np.isnan(float(jax.jit(bedroc)(nan_scores, nan_rel)))
+        assert np.isnan(
+            float(
+                bedroc(
+                    jnp.array([4.0, 3.0, 2.0, 1.0], dtype=jnp.float32),
+                    jnp.array([jnp.nan, 1.0, 0.0, 0.0], dtype=jnp.float32),
+                )
+            )
+        )
+        assert np.isnan(float(bedroc(scores, jnp.array([1.0, 0.0, 0.0]), alpha=float("nan"))))
         with pytest.raises(ValueError, match="alpha"):
             bedroc(scores, jnp.array([1.0, 0.0, 0.0]), alpha=0.0)
         with pytest.raises(ValueError, match="alpha"):
             bedroc(scores, jnp.array([1.0, 0.0, 0.0]), alpha=-5.0)
+        with pytest.raises(ValueError, match="alpha"):
+            bedroc(scores, jnp.array([1.0, 0.0, 0.0]), alpha=np.float32(-1.0))
 
     def test_jit_and_vmap_trace_once(self) -> None:
         counter = TraceCounter()
@@ -544,6 +561,129 @@ class TestEnrichmentFactor:
             enrichment_factor(scores, jnp.array([1.0, 0.0, 0.0]), fraction=0.0)
         with pytest.raises(ValueError, match="fraction"):
             enrichment_factor(scores, jnp.array([1.0, 0.0, 0.0]), fraction=1.5)
+
+    def test_python_float_fraction_avoids_float32_downward_cutoff_rounding(self) -> None:
+        # Exact RDKit CalcEnrichment cutoff convention: k = min(N, max(1, ceil(N * fraction))).
+        # Specifically checks binary-float pitfalls: 0.07 * 100 -> 7 (not ceil(7.000000000000001)=8),
+        # 0.29 * 100 -> 29 (not 28), 0.05 * 30 -> 2, 0.05 * 3 -> 1, and fraction=1.0 -> EF=1.0.
+        rng = np.random.default_rng(101)
+        for n_items in (3, 10, 30, 100, 300):
+            scores_np = np.arange(n_items, 0, -1, dtype=np.float32)
+            rel_np = (rng.random(n_items) < 0.25).astype(np.float32)
+            rel_np[0] = 1.0
+            n_actives = float(np.sum(rel_np))
+            scores_j = jnp.asarray(scores_np)
+            rel_j = jnp.asarray(rel_np)
+
+            for frac in (0.01, 0.05, 0.07, 0.29, 1.0):
+                k_exact = min(n_items, max(1, math.ceil(fractions.Fraction(str(frac)) * n_items)))
+                hits_exact = float(np.sum(rel_np[:k_exact]))
+                expected_ef = (hits_exact / k_exact) / (n_actives / n_items)
+                actual_ef = float(enrichment_factor(scores_j, rel_j, fraction=frac))
+                assert actual_ef == pytest.approx(
+                    expected_ef, rel=4 * _UNIT_ROUNDOFF, abs=4 * _UNIT_ROUNDOFF
+                ), (n_items, frac, k_exact)
+
+        # Explicitly verify boundary element k=7 at (N=100, fraction=0.07): active at rank 8 must
+        # NOT be counted inside top 7%.
+        scores_100 = jnp.arange(100.0, 0.0, -1.0, dtype=jnp.float32)
+        rel_rank8 = jnp.zeros(100, dtype=jnp.float32).at[7].set(1.0)
+        assert float(enrichment_factor(scores_100, rel_rank8, fraction=0.07)) == 0.0
+        rel_rank7 = jnp.zeros(100, dtype=jnp.float32).at[6].set(1.0)
+        assert float(enrichment_factor(scores_100, rel_rank7, fraction=0.07)) == pytest.approx(
+            100.0 / 7.0, rel=4 * _UNIT_ROUNDOFF
+        )
+
+        # Single-trace compilation under jax.jit and jax.vmap over traced fractions.
+        counter = TraceCounter()
+        compiled = jax.jit(counter.wrap(lambda s, r: enrichment_factor(s, r, fraction=0.07)))
+        with counter.expect(new_traces=1):
+            compiled(scores_100, rel_rank7)
+        with counter.expect(new_traces=0):
+            compiled(scores_100 * 2.0, rel_rank8)
+
+        traced_fracs = jnp.array([0.07, 0.29, 1.0], dtype=jnp.float32)
+        batched = jax.jit(jax.vmap(lambda f: enrichment_factor(scores_100, rel_rank7, fraction=f)))(
+            traced_fracs
+        )
+        np.testing.assert_allclose(
+            np.asarray(batched),
+            np.array([100.0 / 7.0, 100.0 / 29.0, 1.0]),
+            rtol=4 * _UNIT_ROUNDOFF,
+            atol=4 * _UNIT_ROUNDOFF,
+        )
+
+    def test_eager_jit_cutoff_identity_scalar_bounds_and_nan_propagation(self) -> None:
+        jitted_ef = jax.jit(lambda s, r, f: enrichment_factor(s, r, fraction=f))
+        for n_items, frac, expected_k in (
+            (100, 0.07, 7),
+            (1000, 0.007, 7),
+            (50, 0.14, 7),
+            (200, 0.035, 7),
+            (29, 0.05, 2),
+            (10, 0.1 + 0.2, 3),
+            (10, 3 * 0.1, 3),
+            (10, 6 * 0.1, 6),
+            (6, 5.0 / 6.0, 5),
+            (3, 1.0 / 3.0, 1),
+            (3, 2.0 / 3.0, 2),
+            (7, 5.0 / 7.0, 5),
+            (9, 5.0 / 9.0, 5),
+        ):
+            scores = jnp.arange(float(n_items), 0.0, -1.0, dtype=jnp.float32)
+            rel_out = jnp.zeros(n_items, dtype=jnp.int32).at[expected_k].set(1)
+            ef_eager = float(enrichment_factor(scores, rel_out, fraction=frac))
+            ef_jit = float(jitted_ef(scores, rel_out, frac))
+            assert ef_eager == 0.0
+            assert ef_jit == 0.0
+
+            rel_in = jnp.zeros(n_items, dtype=jnp.int32).at[expected_k - 1].set(1)
+            ef_in_eager = float(enrichment_factor(scores, rel_in, fraction=frac))
+            ef_in_jit = float(jitted_ef(scores, rel_in, frac))
+            assert ef_in_eager == pytest.approx(float(n_items) / float(expected_k), rel=1e-6)
+            assert ef_in_jit == ef_in_eager
+
+        scores_100 = jnp.arange(100.0, 0.0, -1.0, dtype=jnp.float32)
+        rel_100 = jnp.zeros(100, dtype=jnp.int32).at[7].set(1)
+        frac_above_f32 = jnp.nextafter(jnp.float32(0.07), jnp.float32(1.0))
+        ef_py = float(enrichment_factor(scores_100, rel_100, fraction=float(frac_above_f32)))
+        ef_arr = float(enrichment_factor(scores_100, rel_100, fraction=frac_above_f32))
+        ef_jit_above = float(
+            jax.jit(lambda f: enrichment_factor(scores_100, rel_100, fraction=f))(
+                float(frac_above_f32)
+            )
+        )
+        assert ef_py == ef_arr
+        assert ef_jit_above == ef_arr
+
+        for bad_frac in (
+            0.0,
+            -0.1,
+            1.1,
+            np.float64(-0.1),
+            np.float32(-0.1),
+            np.array(-0.1, dtype=np.float32),
+        ):
+            with pytest.raises(ValueError, match="fraction"):
+                enrichment_factor(jnp.array([2.0, 1.0]), jnp.array([1, 0]), fraction=bad_frac)
+
+        nan_scores = jnp.array([jnp.nan, 3.0, 2.0, 1.0], dtype=jnp.float32)
+        rel_valid = jnp.array([0.0, 1.0, 0.0, 0.0], dtype=jnp.float32)
+        assert np.isnan(float(enrichment_factor(nan_scores, rel_valid, fraction=0.5)))
+        assert np.isnan(
+            float(
+                jax.jit(lambda s, r: enrichment_factor(s, r, fraction=0.5))(nan_scores, rel_valid)
+            )
+        )
+        assert np.isnan(
+            float(
+                enrichment_factor(
+                    jnp.array([4.0, 3.0, 2.0, 1.0], dtype=jnp.float32),
+                    jnp.array([jnp.nan, 1.0, 0.0, 0.0], dtype=jnp.float32),
+                    fraction=0.5,
+                )
+            )
+        )
 
 
 class TestSequentialDiscoveryMetrics:

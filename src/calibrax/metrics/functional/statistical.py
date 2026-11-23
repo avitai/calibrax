@@ -78,6 +78,8 @@ def pearson_correlation(
     a_arr = a_raw.ravel()
     b_arr = jnp.asarray(b).ravel()
     if mask is None and weights is None:
+        if a_arr.size == 0 or b_arr.size == 0:
+            return jnp.array(jnp.nan, dtype=jnp.result_type(a_arr.dtype, b_arr.dtype, jnp.float32))
         # The unweighted path expresses "no weights" by not having any, rather than by
         # multiplying through a vector of ones. Both the cost and the answer turn on that:
         # routing it through `sample_weights` and `weighted_mean` moved the result by up to
@@ -228,6 +230,8 @@ def spearman_rank_correlation(
     a_arr = a_raw.ravel()
     b_arr = jnp.asarray(b).ravel()
     if mask is None and weights is None:
+        if a_arr.size == 0 or b_arr.size == 0:
+            return jnp.array(jnp.nan, dtype=jnp.result_type(a_arr.dtype, b_arr.dtype, jnp.float32))
         return pearson_correlation(rankdata(a_arr), rankdata(b_arr))
     # Fold at the input's shape and flatten alongside the data, as the other statistics do.
     w = sample_weights(mask, weights, a_raw.shape).ravel()
@@ -307,6 +311,8 @@ def kendall_tau(
     a_arr = a_raw.ravel()
     b_arr = jnp.asarray(b).ravel()
     n = a_arr.shape[0]
+    if mask is None and weights is None and (n == 0 or b_arr.size == 0):
+        return jnp.array(jnp.nan, dtype=jnp.result_type(a_arr.dtype, b_arr.dtype, jnp.float32))
 
     # Fold the mask and weights first, where there are any, and neutralise the excluded
     # elements before the differences are formed. Doing it afterwards would mean every
@@ -415,6 +421,8 @@ def concordance_correlation(
     a_arr = a_raw.ravel()
     b_arr = jnp.asarray(b).ravel()
     if mask is None and weights is None:
+        if a_arr.size == 0 or b_arr.size == 0:
+            return jnp.array(jnp.nan, dtype=jnp.result_type(a_arr.dtype, b_arr.dtype, jnp.float32))
         # As in `pearson_correlation`: the ones vector is neither free nor bit-neutral.
         # Measured against the pre-weights implementation, routing this path through it
         # moved the result by up to 2 float32 ULP and took an eager call from 424
