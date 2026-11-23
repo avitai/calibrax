@@ -9,6 +9,15 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Added
 
+- `nadeau_bengio_t_test` (`NadeauBengioResult`) and `rm_tukey_hsd`
+  (`RepeatedMeasuresTukeyResult`, `TukeyPairwiseComparison`) in `calibrax.statistics` for
+  scale-invariant variance-corrected resampled paired t-testing (Nadeau and Bengio 2003) with
+  cancellation-free Student-t ROPE posteriors (Benavoli et al. 2017) and two-way
+  repeated-measures ANOVA + simultaneous Tukey HSD model tiering across shared benchmark splits
+  (Ash et al. 2025).
+- `method="bca"` on `bootstrap_interval` in `calibrax.statistics` for bias-corrected and
+  accelerated bootstrap confidence intervals (Efron 1987) with vectorized leave-one-out jackknife
+  acceleration, `batch_size` memory bounding, and `jax.jit` compilation support.
 - `null_proportion_regime` (`"marginal_null"` default, `"joint_iid"` opt-in) on
   `conformal_fdr_selection` in `calibrax.metrics.functional.calibration`.
 
