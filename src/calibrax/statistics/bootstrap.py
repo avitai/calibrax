@@ -35,15 +35,18 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Literal
 
 import jax
 import jax.numpy as jnp
 from flax import nnx
+from jax.scipy.special import ndtr, ndtri
 from jax.typing import ArrayLike
 from substrax.rng import key_from
 
 
 DEFAULT_RESAMPLES = 1000
+_MIN_BCA_LENGTH = 2
 # numpy's interpolation measures from the nearer neighbour: below this fraction from the lower.
 _NEARER_LOWER = 0.5
 
@@ -96,6 +99,95 @@ def _percentile(ordered: jax.Array, q: float) -> jax.Array:
     return low + step * fraction if fraction < _NEARER_LOWER else high - step * (1.0 - fraction)
 
 
+def _percentile_traced(ordered: jax.Array, q: jax.Array) -> jax.Array:
+    """JAX-traced linear quantile interpolation matching :func:`_percentile`'s ``_lerp`` rule."""
+    last = ordered.shape[0] - 1
+    safe_q = jnp.clip(q, jnp.asarray(0.0, dtype=q.dtype), jnp.asarray(1.0, dtype=q.dtype))
+    position = safe_q * jnp.asarray(float(last), dtype=q.dtype)
+    below_f = jnp.floor(position)
+    below = below_f.astype(jnp.int32)
+    above = jnp.minimum(below + 1, last)
+    fraction = position - below_f
+    low, high = ordered[below], ordered[above]
+    step = high - low
+    one = jnp.asarray(1.0, dtype=fraction.dtype)
+    return jnp.where(
+        fraction < _NEARER_LOWER, low + step * fraction, high - step * (one - fraction)
+    )
+
+
+def _bca_bounds(
+    value: jax.Array,
+    ordered: jax.Array,
+    samples: jax.Array,
+    arrays: list[jax.Array],
+    statistic: Callable[..., ArrayLike],
+    *,
+    confidence: float,
+    batch_size: int | None,
+) -> tuple[jax.Array, jax.Array]:
+    """Bias-corrected and accelerated (BCa) bounds (Efron 1987; SciPy ``_bca_interval``)."""
+    work_dtype = (
+        ordered.dtype
+        if jnp.issubdtype(ordered.dtype, jnp.floating)
+        else jnp.result_type(ordered.dtype, jnp.float32)
+    )
+    ordered_f = ordered.astype(work_dtype)
+    samples_f = samples.astype(work_dtype)
+    val_f = value.astype(work_dtype)
+
+    b_count = samples_f.shape[0]
+    nonzeros = jnp.count_nonzero(samples_f < val_f) + jnp.count_nonzero(samples_f <= val_f)
+    pct = nonzeros.astype(work_dtype) / jnp.asarray(2.0 * b_count, dtype=work_dtype)
+    valid_pct = (pct > 0.0) & (pct < 1.0)
+    z0_hat = ndtri(jnp.where(valid_pct, pct, jnp.asarray(0.5, dtype=work_dtype)))
+
+    length = arrays[0].shape[0]
+    base = jnp.arange(length - 1, dtype=jnp.int32)
+
+    def one_jackknife(drop_idx: jax.Array) -> jax.Array:
+        keep_idx = jnp.where(base < drop_idx, base, base + 1)
+        return jnp.asarray(statistic(*(a[keep_idx] for a in arrays)))
+
+    drop_indices = jnp.arange(length, dtype=jnp.int32)
+    theta_jack = (
+        jax.vmap(one_jackknife)(drop_indices)
+        if batch_size is None
+        else jax.lax.map(one_jackknife, drop_indices, batch_size=batch_size)
+    ).astype(work_dtype)
+
+    u = jnp.asarray(float(length - 1), dtype=work_dtype) * (jnp.mean(theta_jack) - theta_jack)
+    u_sq_sum = jnp.sum(u * u)
+    valid_jack = u_sq_sum > 0.0
+    one = jnp.asarray(1.0, dtype=work_dtype)
+    safe_u_sq = jnp.where(valid_jack, u_sq_sum, one)
+    a_hat = jnp.sum(u * u * u) / (
+        jnp.asarray(6.0, dtype=work_dtype) * safe_u_sq * jnp.sqrt(safe_u_sq)
+    )
+
+    tail = (1.0 - confidence) / 2.0
+    z_alpha = ndtri(jnp.asarray(tail, dtype=work_dtype))
+    num1 = z0_hat + z_alpha
+    num2 = z0_hat - z_alpha
+    denom1 = one - a_hat * num1
+    denom2 = one - a_hat * num2
+    valid = (
+        valid_pct
+        & valid_jack
+        & (denom1 > 0.0)
+        & (denom2 > 0.0)
+        & (~jnp.isnan(val_f))
+        & (~jnp.any(jnp.isnan(ordered_f)))
+    )
+    alpha_1 = ndtr(z0_hat + num1 / jnp.where(denom1 > 0.0, denom1, one))
+    alpha_2 = ndtr(z0_hat + num2 / jnp.where(denom2 > 0.0, denom2, one))
+    nan_val = jnp.asarray(jnp.nan, dtype=work_dtype)
+    return (
+        jnp.where(valid, _percentile_traced(ordered_f, alpha_1), nan_val),
+        jnp.where(valid, _percentile_traced(ordered_f, alpha_2), nan_val),
+    )
+
+
 def bootstrap_interval(
     statistic: Callable[..., ArrayLike],
     *data: ArrayLike,
@@ -103,8 +195,9 @@ def bootstrap_interval(
     num_resamples: int = DEFAULT_RESAMPLES,
     confidence: float = 0.95,
     batch_size: int | None = None,
+    method: Literal["percentile", "bca"] = "percentile",
 ) -> BootstrapInterval:
-    """The percentile bootstrap interval of ``statistic`` over ``data``.
+    """The percentile or BCa bootstrap confidence interval of ``statistic`` over ``data``.
 
     Args:
         statistic: A function of the arrays in ``data`` returning a scalar; it must trace under
@@ -122,13 +215,18 @@ def bootstrap_interval(
             length is large. Every batch size draws the same resamples; the grouping can move a
             reduction's last bits by a few ULP (the module docstring carries the measurements),
             so re-measure before adopting it under figures pinned exactly.
+        method: Interval construction method: ``"percentile"`` (default) or ``"bca"``
+            (Efron's bias-corrected and accelerated interval using leave-one-out jackknife
+            acceleration, matching ``scipy.stats.bootstrap(..., method="BCa")``).
 
     Returns:
         The statistic's value, the interval and the resampled values.
 
     Raises:
         ValueError: If no array is given, the arrays differ in length, ``num_resamples`` is below
-            one, ``batch_size`` is given and below one, or ``confidence`` is outside ``(0, 1)``.
+            one, ``batch_size`` is given and below one, ``confidence`` is outside ``(0, 1)``,
+            ``method`` is unsupported, or ``method="bca"`` is requested with fewer than two
+            observations.
     """
     resample_key = key_from(key, streams=("sample", "default"), context="bootstrap_interval")
     if not data:
@@ -140,12 +238,18 @@ def bootstrap_interval(
     if batch_size is not None and batch_size < 1:
         msg = f"batch_size must be at least 1 when given, got {batch_size}"
         raise ValueError(msg)
+    if method not in ("percentile", "bca"):
+        msg = f"method must be 'percentile' or 'bca', got {method!r}"
+        raise ValueError(msg)
     check_confidence(confidence)
     arrays = [jnp.asarray(array) for array in data]
     length = arrays[0].shape[0]
     if any(array.shape[0] != length for array in arrays):
         lengths = [array.shape[0] for array in arrays]
         msg = f"arrays resampled together must have the same length, got {lengths}"
+        raise ValueError(msg)
+    if method == "bca" and length < _MIN_BCA_LENGTH:
+        msg = f"BCa bootstrap requires at least 2 observations, got {length}"
         raise ValueError(msg)
 
     value = jnp.asarray(statistic(*arrays))
@@ -166,7 +270,18 @@ def bootstrap_interval(
         samples = jax.vmap(one_resample)(resample_keys)
     else:
         samples = jax.lax.map(one_resample, resample_keys, batch_size=batch_size)
-    tail = (1.0 - confidence) / 2.0
     ordered = jnp.sort(samples)
-    lower, upper = _percentile(ordered, tail), _percentile(ordered, 1.0 - tail)
+    if method == "bca":
+        lower, upper = _bca_bounds(
+            value,
+            ordered,
+            samples,
+            arrays,
+            statistic,
+            confidence=confidence,
+            batch_size=batch_size,
+        )
+    else:
+        tail = (1.0 - confidence) / 2.0
+        lower, upper = _percentile(ordered, tail), _percentile(ordered, 1.0 - tail)
     return BootstrapInterval(value=value, lower=lower, upper=upper, samples=samples)
