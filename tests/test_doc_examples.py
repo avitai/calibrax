@@ -1,336 +1,173 @@
-"""Test all Python code blocks in documentation run successfully.
+"""The documentation's Python code blocks: every one collected, each page run in order.
 
-Auto-discovers every fenced code block in docs/**/*.md, except the example pages
-substrax-notebooks generates under docs/examples, groups them by file,
-and executes each file's blocks sequentially in document order. This design is
-immune to pytest-randomly reordering — files are independent, but blocks within
-a file share a namespace and must run in order.
-
-Blocks marked with ``# doctest: +SKIP`` are skipped with documented reasons.
-A coverage-assertion test guarantees zero blocks are silently missed.
+The blocks themselves run as Sybil items, configured in :mod:`tests.doc_examples` and collected
+through the root conftest; these tests hold that configuration to what the pages contain.
 """
 
 from __future__ import annotations
 
-import logging
 import re
-import textwrap
-from collections.abc import Iterator
-from contextlib import contextmanager, ExitStack
-from dataclasses import dataclass
+from collections import Counter
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
-import jax
 import jax.numpy as jnp
-import matplotlib.pyplot as plt
 import pytest
-from flax import nnx
-from matplotlib.figure import Figure
 
-from tests.factories import make_fake_nvml
-
-
-logger = logging.getLogger(__name__)
-
-DOCS_DIR = Path(__file__).resolve().parent.parent / "docs"
-# The directory of docs/ that `substrax-notebooks page` writes, one page per example.
-GENERATED_EXAMPLE_PAGES = "examples"
-
-# The reason may follow an em dash, an en dash or a hyphen.
-SKIP_PATTERN = re.compile(r"^#\s*doctest:\s*\+SKIP(?:\s*[\u2014\u2013-]\s*(.+))?", re.MULTILINE)
-FENCE_PATTERN = re.compile(r"^```(\w*)\n(.*?)^```", re.MULTILINE | re.DOTALL)
+from calibrax.metrics import MetricRegistry, register_metric
+from tests.doc_examples import (
+    collected_examples,
+    DOCS_DIR,
+    GENERATED_EXAMPLE_PAGES,
+    page_runner,
+    page_sybils,
+)
 
 
-@dataclass(frozen=True, slots=True)
-class CodeBlock:
-    """A fenced code block extracted from a markdown file."""
-
-    file: str
-    line: int
-    language: str
-    code: str
-    skip_reason: str | None
+def _pages() -> list[Path]:
+    """Every Markdown page below ``docs/``."""
+    return sorted(DOCS_DIR.rglob("*.md"))
 
 
-def _extract_skip_reason(code: str) -> str | None:
-    """Extract the skip reason from a ``# doctest: +SKIP`` marker."""
-    match = SKIP_PATTERN.search(code)
-    if match:
-        return match.group(1) or "marked +SKIP"
-    return None
+def _is_generated(page: Path) -> bool:
+    """Whether ``substrax-notebooks page`` wrote ``page``."""
+    return page.relative_to(DOCS_DIR).parts[0] == GENERATED_EXAMPLE_PAGES
 
 
-def discover_doc_code_blocks(docs_dir: Path) -> list[CodeBlock]:
-    """Scan the markdown files under *docs_dir* and extract every fenced code block.
-
-    The pages under ``GENERATED_EXAMPLE_PAGES`` are left out: each repeats an example's code,
-    which ``substrax-notebooks test`` runs in its own invocation.
-    """
-    blocks: list[CodeBlock] = []
-    for md_file in sorted(docs_dir.rglob("*.md")):
-        if md_file.relative_to(docs_dir).parts[0] == GENERATED_EXAMPLE_PAGES:
-            continue
-        content = md_file.read_text()
-        for match in FENCE_PATTERN.finditer(content):
-            lang = match.group(1)
-            code = match.group(2)
-            line = content[: match.start()].count("\n") + 1
-            rel_path = md_file.relative_to(docs_dir)
-            blocks.append(
-                CodeBlock(
-                    file=str(rel_path),
-                    line=line,
-                    language=lang,
-                    code=code,
-                    skip_reason=_extract_skip_reason(code),
-                )
-            )
-    return blocks
-
-
-def _build_preamble() -> dict[str, object]:
-    """Build the preamble namespace injected into every file's execution context."""
-
-    mock_model = MagicMock()
-    mock_model.forward = MagicMock(return_value=jnp.ones((4, 4)))
-
-    return {
-        # Builtins & common imports
-        "__builtins__": __builtins__,
-        "print": print,
-        # Common imports used across doc examples
-        "jax": jax,
-        "jnp": jnp,
-        # Common stub functions used in doc examples
-        "train": lambda *_a, **_kw: None,
-        "train_step": lambda *_a, **_kw: None,
-        "pipeline_fn": lambda *_a, **_kw: None,
-        # Common data stubs
-        "data": [{"image": jnp.ones((4, 8))} for _ in range(10)],
-        "data_loader": [{"image": jnp.ones((4, 8))} for _ in range(100)],
-        "data_iterator": iter([jnp.ones((4, 8)) for _ in range(100)]),
-        "sample_data": jnp.ones((4, 8)),
-        "x": jnp.ones((32, 128)),
-        "batch": jnp.ones((4, 8)),
-        # Metric evaluation stubs (predictions/targets for regression, classification, etc.)
-        "predictions": jnp.array([1.1, 1.9, 3.2, 3.8, 5.1]),
-        "targets": jnp.array([1.0, 2.0, 3.0, 4.0, 5.0]),
-        # Metric learning stubs
-        "embeddings": jnp.array([[1.0, 0.0], [0.9, 0.1], [0.0, 1.0], [0.1, 0.9]]),
-        "labels": jnp.array([0, 0, 1, 1]),
-        # Model stubs
-        "model": nnx.Linear(8, 4, rngs=nnx.Rngs(0)),
-        "my_model": mock_model,
-        "my_nnx_model": nnx.Linear(8, 4, rngs=nnx.Rngs(0)),
-        "my_pytorch_model": mock_model,
-        # Function stubs
-        "fn": lambda x: jnp.dot(x, x.T),
-        "sample_args": (jnp.ones((4, 4)),),
-        # Artifact stubs
-        "fig": _example_figure(),
-        "html_string": "<h1>test</h1>",
-        # Distributed stubs
-        "pjit_function": lambda x: x,
-        "sharded_input": jnp.ones((4, 4)),
+@pytest.mark.doctest
+def test_each_page_is_run_by_one_sybil_and_a_generated_page_by_none() -> None:
+    """A page run by two Sybils would run twice; a generated page repeats its example's code,
+    which ``substrax-notebooks test`` runs in its own invocation."""
+    runs = {str(page.relative_to(DOCS_DIR)): len(page_sybils(page)) for page in _pages()}
+    expected = {
+        str(page.relative_to(DOCS_DIR)): 0 if _is_generated(page) else 1 for page in _pages()
     }
 
-
-def _example_figure() -> Figure:
-    """A small pyplot figure, the kind a user logs or saves."""
-    fig, ax = plt.subplots()
-    ax.plot([1, 2, 3])
-    return fig
+    assert sum(expected.values()) > 20, "found almost no pages; check DOCS_DIR"
+    assert any(_is_generated(page) for page in _pages()), "no generated page to leave out"
+    assert runs == expected
 
 
-def _run_code_block(code: str, namespace: dict[str, object], label: str) -> None:
-    """Compile and run a code block in the given namespace.
+# A python fence's opening line at any indentation: in an admonition, a tab or a list item too.
+PYTHON_FENCE_LINE = re.compile(r"^[ \t]*```python[ \t]*$", re.MULTILINE)
 
-    This intentionally runs documentation code blocks for testing — the input
-    is trusted (authored by project maintainers, stored in docs/).
+
+@pytest.mark.doctest
+def test_every_python_fence_in_the_docs_is_run() -> None:
+    """Every python fence the pages hold is run, counted independently of the extractor.
+
+    A fence the collector does not recognise is neither run nor reported, so an accounting built on
+    the collector's own output cannot see it; counting the fences' opening lines can. The earlier
+    extractor matched fences at column 0 only and never ran the ten indented in admonitions.
     """
-    compiled = compile(code, f"<{label}>", "exec")
-    # S102: exec is intentional here — we are testing doc code blocks
-    exec(compiled, namespace)  # noqa: S102  # running the documented example is the test
-
-
-@contextmanager
-def _patch_external_dependencies(file_path: str) -> Iterator[None]:
-    """Patch external side effects for doc files that include networked examples."""
-    with ExitStack() as stack:
-        if file_path == "user-guide/exporters.md":
-            # Keep docs executable while preventing network/socket dependencies in tests.
-            stack.enter_context(
-                patch(
-                    "calibrax.exporters.wandb.WandBExporter.check_auth",
-                    return_value=True,
-                )
-            )
-            stack.enter_context(
-                patch(
-                    "calibrax.exporters.wandb.WandBExporter.export_run",
-                    return_value="https://wandb.local/mock-run",
-                )
-            )
-            stack.enter_context(
-                patch(
-                    "calibrax.exporters.wandb.WandBExporter.export_analysis",
-                    return_value=None,
-                )
-            )
-            stack.enter_context(
-                patch(
-                    "calibrax.exporters.wandb.WandBExporter.export_trends",
-                    return_value=None,
-                )
-            )
-            stack.enter_context(
-                patch(
-                    "calibrax.exporters.wandb.WandBExporter.log_images",
-                    return_value=None,
-                )
-            )
-            stack.enter_context(
-                patch(
-                    "calibrax.exporters.wandb.WandBExporter.log_html_artifacts",
-                    return_value=None,
-                )
-            )
-            stack.enter_context(
-                patch(
-                    "calibrax.exporters.wandb.WandBExporter.log_extra_tables",
-                    return_value=None,
-                )
-            )
-        if file_path == "user-guide/exporters.md":
-            # The MLflow integration imports mlflow; its calls go to a mock.
-            stack.enter_context(patch("calibrax.exporters.mlflow.mlflow", MagicMock()))
-            stack.enter_context(
-                patch(
-                    "calibrax.exporters.mlflow.MLflowExporter.export_run",
-                    return_value="mock-run-id",
-                )
-            )
-            stack.enter_context(
-                patch(
-                    "calibrax.exporters.mlflow.MLflowExporter.export_analysis",
-                    return_value=None,
-                )
-            )
-        if file_path == "user-guide/profiling.md":
-            # The NVML examples read a GPU; a fake NVML answers where no driver is present.
-            stack.enter_context(patch("calibrax.profiling.nvml.pynvml", make_fake_nvml()))
-        yield
-
-
-# ---------------------------------------------------------------------------
-# Discover all blocks once at module level for parameterization
-# ---------------------------------------------------------------------------
-
-ALL_BLOCKS = discover_doc_code_blocks(DOCS_DIR)
-PYTHON_BLOCKS = [b for b in ALL_BLOCKS if b.language == "python"]
-
-# Group blocks by file, preserving document order within each file
-_BLOCKS_BY_FILE: dict[str, list[CodeBlock]] = {}
-for _block in PYTHON_BLOCKS:
-    _BLOCKS_BY_FILE.setdefault(_block.file, []).append(_block)
-
-
-# ---------------------------------------------------------------------------
-# Parameterized test: one case per documentation FILE
-# Blocks within each file run sequentially in document order, so
-# pytest-randomly can safely shuffle file order without breaking namespaces.
-# ---------------------------------------------------------------------------
-
-
-@pytest.fixture
-def closes_its_figures() -> Iterator[None]:
-    """Close every pyplot figure a documentation file opened, as a reader's session would end."""
-    yield
-    plt.close("all")
-
-
-@pytest.mark.doctest
-@pytest.mark.usefixtures("closes_its_figures")
-@pytest.mark.parametrize(
-    "file_path",
-    sorted(_BLOCKS_BY_FILE.keys()),
-    ids=sorted(_BLOCKS_BY_FILE.keys()),
-)
-def test_doc_file(file_path: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Execute all Python code blocks in a single documentation file, in order."""
-    blocks = _BLOCKS_BY_FILE[file_path]
-    ns = dict(_build_preamble())
-    failures: list[str] = []
-    skipped = 0
-    monkeypatch.chdir(tmp_path)
-
-    with _patch_external_dependencies(file_path):
-        for block in blocks:
-            if block.skip_reason:
-                skipped += 1
-                continue
-
-            code = textwrap.dedent(block.code)
-            try:
-                _run_code_block(code, ns, f"{block.file}:{block.line}")
-            except Exception as exc:
-                failures.append(
-                    f"Block at line {block.line} failed:\n{exc!r}\n\n--- code ---\n{code}"
-                )
-
-    if skipped == len(blocks):
-        pytest.skip(f"All {skipped} blocks in {file_path} are marked +SKIP")
-
-    if failures:
-        header = f"{len(failures)} of {len(blocks)} blocks failed in {file_path}:\n"
-        pytest.fail(header + "\n\n".join(failures))
-
-
-# ---------------------------------------------------------------------------
-# Coverage assertion: every Python block must be accounted for
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.doctest
-def test_generated_example_pages_are_left_to_their_own_run(tmp_path: Path) -> None:
-    """A page `substrax-notebooks page` writes under docs/examples is not run here.
-
-    Each such page repeats its example's code, which `substrax-notebooks test` runs in its own
-    invocation; running it in the main suite would run every example a second time, in this
-    process. Every other page, the examples overview at docs/examples.md included, is read.
-    """
-    fence = "```python\nx = 1\n```\n"
-    (tmp_path / "examples" / "metrics").mkdir(parents=True)
-    (tmp_path / "examples" / "metrics" / "quickstart.md").write_text(fence)
-    (tmp_path / "examples.md").write_text(fence)
-    (tmp_path / "user-guide").mkdir()
-    (tmp_path / "user-guide" / "statistics.md").write_text(fence)
-
-    files = {block.file for block in discover_doc_code_blocks(tmp_path)}
-
-    assert files == {"examples.md", "user-guide/statistics.md"}
-
-
-@pytest.mark.doctest
-def test_all_python_blocks_accounted_for() -> None:
-    """Guarantee that every Python code block is either executed or explicitly skipped."""
-    total = len(PYTHON_BLOCKS)
-    skipped = sum(1 for b in PYTHON_BLOCKS if b.skip_reason)
-    executed = total - skipped
-
-    assert total > 0, "No Python code blocks found in documentation"
-    assert executed + skipped == total, (
-        f"Block accounting mismatch: {executed} executed + {skipped} skipped != {total} total"
+    on_pages = Counter(
+        {
+            str(page.relative_to(DOCS_DIR)): len(PYTHON_FENCE_LINE.findall(page.read_text()))
+            for page in _pages()
+            if not _is_generated(page)
+        }
+    )
+    collected = Counter(
+        {str(page.relative_to(DOCS_DIR)): collected_examples(page) for page in _pages()}
     )
 
-    # Informational summary
-    non_python = sum(1 for b in ALL_BLOCKS if b.language != "python")
-    logger.info(
-        "Doc code blocks: %d total, %d python, %d executed, %d skipped, %d non-python",
-        len(ALL_BLOCKS),
-        total,
-        executed,
-        skipped,
-        non_python,
+    assert sum(on_pages.values()) > 100, "the fence count found almost nothing; check the pattern"
+    assert +collected == +on_pages
+
+
+_ORDERED_PAGE = """\
+```python
+total = 1
+```
+
+!!! note
+
+    ```python
+    total += 1
+    ```
+
+```python
+assert total == 2, total
+```
+"""
+"""Three blocks, the second indented in an admonition, each needing the one before it."""
+
+_ORDER_CONFTEST = """\
+from sybil import Sybil
+from sybil.parsers.markdown import PythonCodeBlockParser
+
+from tests.doc_examples import keep_pages_in_order
+
+pytest_collect_file = Sybil(
+    parsers=[PythonCodeBlockParser()], path="docs", patterns=["*.md"]
+).pytest()
+{hook}
+"""
+_ORDER_HOOK = """
+def pytest_collection_modifyitems(items):
+    keep_pages_in_order(items)
+"""
+
+
+def _run_ordered_pages(
+    pytester: pytest.Pytester, monkeypatch: pytest.MonkeyPatch, *, hook: str, seed: int
+) -> pytest.RunResult:
+    """Run two dependent pages under pytest-randomly with ``seed``, the order hook as given.
+
+    The run is a subprocess, so this suite's warning filters and plugins do not reach it, and
+    finds ``tests.doc_examples`` through the repository root on its path.
+    """
+    monkeypatch.setenv("PYTHONPATH", str(DOCS_DIR.parent))
+    pytester.makeconftest(_ORDER_CONFTEST.format(hook=hook))
+    (pytester.path / "docs").mkdir(exist_ok=True)
+    for name in ("first.md", "second.md"):
+        (pytester.path / "docs" / name).write_text(_ORDERED_PAGE, encoding="utf-8")
+    return pytester.runpytest_subprocess(
+        "-p", "no:cacheprovider", f"--randomly-seed={seed}", "docs"
     )
+
+
+@pytest.mark.doctest
+@pytest.mark.parametrize("seed", [1, 2, 3, 4, 5])
+def test_a_page_s_blocks_run_in_page_order_under_pytest_randomly(
+    pytester: pytest.Pytester, monkeypatch: pytest.MonkeyPatch, seed: int
+) -> None:
+    result = _run_ordered_pages(pytester, monkeypatch, hook=_ORDER_HOOK, seed=seed)
+
+    result.assert_outcomes(passed=6)
+
+
+@pytest.mark.doctest
+def test_pytest_randomly_reorders_a_page_s_blocks_without_the_hook(
+    pytester: pytest.Pytester, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The premise of :func:`~tests.doc_examples.keep_pages_in_order`: without it, a seed breaks
+    a page. Should pytest-randomly stop reordering Sybil's items, this fails and the hook goes."""
+    outcomes = [
+        _run_ordered_pages(pytester, monkeypatch, hook="", seed=seed).parseoutcomes()
+        for seed in range(1, 6)
+    ]
+
+    # Every run collected its six blocks and none errored, so a failure is the blocks' own: a
+    # name used before the block defining it ran, not a run that never started.
+    assert all(sum(outcome.values()) >= 6 and "errors" not in outcome for outcome in outcomes)
+    assert any(outcome.get("failed", 0) for outcome in outcomes)
+
+
+@pytest.mark.doctest
+def test_a_page_leaves_the_metric_registry_as_it_found_it() -> None:
+    """A page that stops before removing what it registered leaves nothing for the next one.
+
+    ``tests/conftest.py`` restores the registry around each test under ``tests/``; the pages run
+    under ``docs/``, out of its reach, so each page restores it when it ends.
+    """
+    setup, teardown = page_runner(())
+    namespace: dict[str, object] = {}
+    setup(namespace)
+    register_metric("a_page_s_own_metric", domain="general")(
+        lambda predictions, targets: float(jnp.mean(predictions - targets))
+    )
+    assert MetricRegistry().has("a_page_s_own_metric")
+
+    teardown(namespace)
+
+    assert not MetricRegistry().has("a_page_s_own_metric")

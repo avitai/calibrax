@@ -7,6 +7,24 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+### Changed
+
+- The documentation's blocks are collected and run by Sybil, one test item per block, each page in
+  one namespace and in page order (`tests/doc_examples.py`, collected through the root conftest;
+  `docs` joins `testpaths` and the CI test command). A page keeps its preamble, its patches of
+  external side effects, a temporary working directory and closed figures, and now restores the
+  metric registry when it ends. pytest-randomly would sort a page's blocks by node id, so the
+  root conftest restores page order after it; a test holds that premise. A census test counts
+  every `python` fence at any indentation and fails when one is not collected.
+
+### Fixed
+
+- The documentation's Python blocks indented inside admonitions now run in the suite. The
+  documentation test matched fences at column 0 only, so ten of the 153 blocks under `docs/`
+  never ran, and two of them could not: the `nnx.jit` adapter tips in
+  `getting-started/concepts.md` and `user-guide/adapters.md` used an undefined model and raised
+  on the refused bound-method form. Both now run.
+
 ## [0.1.22] - 2026-11-24
 
 ### Added
@@ -83,7 +101,6 @@ and uses semantic versioning while the public API stabilizes.
   `NaN` and preserve floating-point input precision.
 - `harrell_c_index`, `uno_c_index`, and `censored_coverage_bounds` propagate `NaN` inputs, score
   tied `+inf` or `-inf` predictions as `0.5`, and preserve floating-point input precision.
-
 ## [0.1.21] - 2026-11-19
 
 ### Changed

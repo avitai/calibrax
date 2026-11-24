@@ -15,7 +15,7 @@ def _restore_the_metric_registry() -> Iterator[None]:
 
     The registry is a process-wide singleton, so a test that registers a metric changes
     what every later test sees. Three things make that more than theoretical here:
-    ``tests/test_doc_examples.py`` executes the documentation, and
+    the documentation's examples run in the suite (``tests/doc_examples.py``), and
     ``docs/user-guide/metrics-overview.md`` contains a worked example that registers a
     ``weighted_mse`` metric into the ``general`` domain; ``pytest-randomly`` reorders the
     suite on every run; and several tests assert what the registry holds.
