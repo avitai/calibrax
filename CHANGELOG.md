@@ -9,12 +9,26 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Added
 
-- `nadeau_bengio_t_test` (`NadeauBengioResult`) and `rm_tukey_hsd`
-  (`RepeatedMeasuresTukeyResult`, `TukeyPairwiseComparison`) in `calibrax.statistics` for
-  scale-invariant variance-corrected resampled paired t-testing (Nadeau and Bengio 2003) with
-  cancellation-free Student-t ROPE posteriors (Benavoli et al. 2017) and two-way
+- `nadeau_bengio_t_test` (`NadeauBengioResult`) in `calibrax.statistics.nadeau_bengio` and
+  `rm_tukey_hsd` (`RepeatedMeasuresTukeyResult`, `TukeyPairwiseComparison`) in
+  `calibrax.statistics.tukey` (re-exported from `calibrax.statistics` and
+  `calibrax.statistics.significance`) for variance-corrected resampled paired t-testing (Nadeau and
+  Bengio 2003) with working-dtype Higham (2nd ed., Eq. 3.4) zero-variance bounds and
+  cancellation-free Student-t ROPE posteriors (Benavoli et al. 2017), plus two-way
   repeated-measures ANOVA + simultaneous Tukey HSD model tiering across shared benchmark splits
-  (Ash et al. 2025).
+  (Ash et al. 2025) with frequentist `TukeyPairwiseComparison.significant` (`p_value < alpha`,
+  matching `statsmodels`) and simultaneous-interval TOST equivalence
+  `TukeyPairwiseComparison.is_practically_equivalent` (`ci_lower >= -rope and ci_upper <= rope`,
+  Schuirmann 1987).
+- `calibrax.statistics.ranks` (re-exported from `calibrax.statistics`) with `decimal_fraction`,
+  `conformal_quantile_rank`, `minimum_conformal_calibration_size`, `conformal_plus_ranks`,
+  `screening_cutoff_count`, `farey_floor_rational`, and `discrete_bh_count_thresholds` for exact
+  host-side decimal probability-to-rank conversion and discrete Benjamini-Hochberg count thresholds.
+- `reverse_kaplan_meier` in `calibrax.metrics.functional.survival` (and
+  `calibrax.metrics.functional`) for log-space left- and right-continuous censoring survival
+  estimation over simultaneous risk sets at arbitrary query times.
+- `eager_bool`, `eager_scalar_float`, and `validate_scalar_numeric` (with `allow_traced=False`
+  static hyperparameter enforcement) exported from `calibrax.core`.
 - `method="bca"` on `bootstrap_interval` in `calibrax.statistics` for bias-corrected and
   accelerated bootstrap confidence intervals (Efron 1987) with vectorized leave-one-out jackknife
   acceleration, `batch_size` memory bounding, and `jax.jit` compilation support.
@@ -23,23 +37,29 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Changed
 
-- Raise the minimum supported dependency floors to `flax>=0.12.10` and `substrax>=0.1.34`,
-  adding source-level contract checks over Flax NNX rules, installed framework premises, and
-  import-time side effects.
-- **Breaking:** `enrichment_factor` defines the top-fraction cutoff as
-  `k = min(N, max(1, ceil(N * fraction)))` (Riniker and Landrum, *J. Cheminf.* 2013), evaluating
-  concrete scalar `fraction` cutoffs in ULP-guarded `float64` (accurate up to `N ~ 10^13`,
-  avoiding binary representation overshoot on exact multiples such as `0.07 * 100`, `0.29 * 100`,
-  and `0.1 + 0.2` where RDKit's unguarded `math.ceil(numMol * f)` rounds `0.07 * 100` to `8`),
-  while traced `float32` `fraction` inputs carry `float32` mantissa precision (`N <= ~2e6`).
-- **Breaking:** `conformal_fdr_selection` normalizes conformal p-values by `1 + n_cal_null` when
-  `cal_null_mask` is supplied (`null_proportion_regime="marginal_null"`, Bates et al.,
-  *Ann. Stat.* 2023), preserving finite-sample outlier validity under test-set null-proportion
-  shift and returning all-`False` when zero calibration nulls exist, and evaluates the
-  Benjamini-Hochberg step-up condition `(1 + c_(r)) * m <= q * r * denom` via exact dyadic
-  integer arithmetic for both concrete and traced `q` without division rounding or positive
-  threshold slack; Jin and Candes (*Biometrika* 2023) joint-exchangeable `1 + n_cal` scaling
-  remains available via `null_proportion_regime="joint_iid"`.
+- Raise the minimum supported dependency floors to `flax>=0.12.10` (`flax 0.12.9` subclasses
+  `jax.experimental.hijax.HiPrimitive`, exported only up to `jax 0.11.1`, whereas `0.12.10`
+  selects the primitive name dynamically on `jax>=0.11.2`) and `substrax>=0.1.36`, adding
+  source-level contract checks over Flax NNX rules, installed framework premises, and import-time
+  side effects.
+- **Breaking:** `enrichment_factor` treats `fraction` as a static scalar hyperparameter
+  (`static_argnames=("fraction",)` under `jax.jit`, raising `TypeError` on JAX tracers) and
+  evaluates `k = min(N, max(1, ceil(N * decimal_fraction(fraction))))` in exact decimal rational
+  arithmetic (Riniker and Landrum, *J. Cheminf.* 2013), avoiding IEEE-754 binary float overshoot on
+  exact decimals such as `(N=100, fraction=0.07) -> 7` while agreeing with RDKit `CalcEnrichment`
+  on the tested cases where float multiplication does not overshoot an integer.
+- **Breaking:** `conformal_fdr_selection` treats `q` as a static scalar hyperparameter
+  (`static_argnames=("q",)` under `jax.jit`, raising `TypeError` on JAX tracers), evaluates
+  Benjamini-Hochberg count thresholds from `decimal_fraction(q)` via `discrete_bh_count_thresholds`,
+  and normalizes conformal p-values by `1 + n_cal_null` when `cal_null_mask` is supplied
+  (`null_proportion_regime="marginal_null"`, Bates et al., *Ann. Stat.* 2023), returning all-`False`
+  when zero calibration nulls exist; Jin and Candes (*Biometrika* 2023) joint-exchangeable
+  `1 + n_cal` scaling remains available via `null_proportion_regime="joint_iid"`.
+- **Breaking:** `uno_c_index` weights comparable event pairs by `G_hat(T_j-)^{-2}` using the
+  strictly left-continuous reverse Kaplan-Meier estimator `reverse_kaplan_meier(...,
+  left_continuous=True)` evaluated over the full risk set `sum(T >= t)` in log-space (Uno et al.,
+  *Stat. Med.* 2011; R `survival::survfit(Surv(time, 1 - status))`), changing numerical values when
+  events and censorings tie or follow earlier censorings.
 - **Breaking:** `harrell_c_index`, `uno_c_index`, and `censored_coverage_bounds` return `NaN` (or
   `(NaN, NaN)`) when `event_indicator` contains values outside `{0, 1}`.
 - **Breaking:** Unweighted `pearson_correlation`, `spearman_rank_correlation`, `kendall_tau`, and
@@ -55,15 +75,12 @@ and uses semantic versioning while the public API stabilizes.
 - `benjamini_hochberg_adjust`, `conformal_fdr_selection`, `harrell_c_index`, `uno_c_index`, and
   `censored_coverage_bounds` convert Python sequences (`list`, `tuple`) before resolving
   floating-point output dtypes, and `conformal_fdr_selection`, `uno_c_index`, `alpha_investing`,
-  `bedroc`, and `enrichment_factor` validate 0-D NumPy scalar parameter bounds consistently with
-  Python scalars.
+  `bedroc`, and `enrichment_factor` validate concrete 0-D NumPy and JAX scalar parameter bounds
+  consistently with Python scalars.
 - `enrichment_factor` and `bedroc` propagate `NaN` scores, relevance labels, and parameters to
   `NaN` and preserve floating-point input precision.
 - `harrell_c_index`, `uno_c_index`, and `censored_coverage_bounds` propagate `NaN` inputs, score
-  tied `+inf` or `-inf` predictions as `0.5`, preserve floating-point input precision, and
-  evaluate `_kaplan_meier_censoring_survival` as the strictly left-continuous reverse Kaplan-Meier
-  estimator `G_hat(t-)` in log-space over the full risk set `sum(T >= t)` (Uno et al., *Stat.
-  Med.* 2011; R `survival::survfit(Surv(time, 1 - status))`).
+  tied `+inf` or `-inf` predictions as `0.5`, and preserve floating-point input precision.
 
 ## [0.1.21] - 2026-11-19
 
