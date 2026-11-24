@@ -27,8 +27,8 @@ and uses semantic versioning while the public API stabilizes.
 - `reverse_kaplan_meier` in `calibrax.metrics.functional.survival` (and
   `calibrax.metrics.functional`) for log-space left- and right-continuous censoring survival
   estimation over simultaneous risk sets at arbitrary query times.
-- `eager_bool`, `eager_scalar_float`, and `validate_scalar_numeric` (with `allow_traced=False`
-  static hyperparameter enforcement) exported from `calibrax.core`.
+- `eager_scalar_float` and `validate_scalar_numeric` (with `allow_traced=False` static
+  hyperparameter enforcement) exported from `calibrax.core`.
 - `method="bca"` on `bootstrap_interval` in `calibrax.statistics` for bias-corrected and
   accelerated bootstrap confidence intervals (Efron 1987) with vectorized leave-one-out jackknife
   acceleration, `batch_size` memory bounding, and `jax.jit` compilation support.

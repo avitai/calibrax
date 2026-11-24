@@ -1,4 +1,4 @@
-"""Tests for shared scalar and boolean validation in calibrax.core."""
+"""Tests for shared scalar validation in calibrax.core."""
 
 from __future__ import annotations
 
@@ -7,11 +7,11 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 
-from calibrax.core import eager_bool, eager_scalar_float, validate_scalar_numeric
+from calibrax.core import eager_scalar_float, validate_scalar_numeric
 
 
-class TestEagerScalarAndBoolValidation:
-    """Tests for eager_scalar_float, eager_bool, and validate_scalar_numeric."""
+class TestEagerScalarValidation:
+    """Tests for eager_scalar_float and validate_scalar_numeric."""
 
     def test_extracts_python_numpy_and_concrete_jax_0d_scalars(self) -> None:
         assert eager_scalar_float(3) == 3.0
@@ -43,29 +43,6 @@ class TestEagerScalarAndBoolValidation:
 
         _probe(jnp.array(0.5))
         assert seen == [None]
-
-    def test_eager_bool_extracts_concrete_predicates_and_skips_tracers(self) -> None:
-        assert eager_bool(True) is True
-        assert eager_bool(False) is False
-        assert eager_bool(np.bool_(True)) is True
-        assert eager_bool(np.array(False, dtype=bool)) is False
-        assert eager_bool(jnp.all(jnp.array([1.0, 2.0]) > 0.0)) is True
-        assert eager_bool(jnp.any(jnp.array([1.0, -2.0]) < 0.0)) is True
-
-        seen_bool: list[bool | None] = []
-
-        @jax.jit
-        def _probe_pred(x: jax.Array) -> jax.Array:
-            seen_bool.append(eager_bool(jnp.all(x > 0.0)))
-            return x * 2.0
-
-        _probe_pred(jnp.array([1.0, 2.0]))
-        assert seen_bool == [None]
-
-        with pytest.raises(TypeError, match="boolean"):
-            eager_bool(jnp.array(1.0))
-        with pytest.raises(ValueError, match="0-D"):
-            eager_bool(jnp.array([True, False]))
 
     def test_validate_scalar_numeric_handles_traced_and_static_modes(self) -> None:
         for bad_bool in (

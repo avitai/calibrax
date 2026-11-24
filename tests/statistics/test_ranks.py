@@ -33,13 +33,38 @@ class TestDecimalRankAndCutoffHelpers:
     """Tests for exact decimal probability-to-rank conversion in calibrax.statistics."""
 
     def test_decimal_fraction_recovers_caller_decimal_across_scalar_types(self) -> None:
-        for val in (0.3, np.float64(0.3), np.float32(0.3), jnp.asarray(0.3)):
+        for val in (
+            0.1,
+            np.float64(0.1),
+            np.float32(0.1),
+            np.float16(0.1),
+            jnp.asarray(0.1, dtype=jnp.float32),
+            jnp.asarray(0.1, dtype=jnp.float16),
+        ):
+            assert decimal_fraction(val) == Fraction(1, 10)
+        for val in (
+            0.3,
+            np.float64(0.3),
+            np.float32(0.3),
+            np.float16(0.3),
+            jnp.asarray(0.3, dtype=jnp.float32),
+            jnp.asarray(0.3, dtype=jnp.float16),
+        ):
             assert decimal_fraction(val) == Fraction(3, 10)
+        with jax.enable_x64(True):
+            assert decimal_fraction(jnp.asarray(0.1, dtype=jnp.float64)) == Fraction(1, 10)
+            assert decimal_fraction(jnp.asarray(0.3, dtype=jnp.float64)) == Fraction(3, 10)
         for val in (0.9, np.float64(0.9), np.float32(0.9), jnp.asarray(0.9)):
             assert decimal_fraction(val) == Fraction(9, 10)
         for val in (0.07, np.float64(0.07), np.float32(0.07), jnp.float32(0.07)):
             assert decimal_fraction(val) == Fraction(7, 100)
         assert decimal_fraction(1) == Fraction(1, 1)
+        assert decimal_fraction(jnp.array(1, dtype=jnp.int32)) == Fraction(1, 1)
+
+        with pytest.raises(TypeError, match="Python float"):
+            decimal_fraction(jnp.asarray(0.3, dtype=jnp.bfloat16))
+        with pytest.raises(TypeError, match="Python float"):
+            conformal_quantile_rank(10, jnp.asarray(0.3, dtype=jnp.bfloat16))
 
         q_below_f32 = np.nextafter(np.float32(0.05), np.float32(0.0))
         assert decimal_fraction(q_below_f32) < Fraction(1, 20)
