@@ -209,12 +209,14 @@ def bootstrap_interval(
         confidence: Confidence level of the interval, in ``(0, 1)``.
         batch_size: Resamples evaluated together. ``None`` evaluates all of them in one
             ``jax.vmap``, holding every resample's indices and intermediates at once, so its
-            memory grows with ``num_resamples``. An integer groups them through
-            ``jax.lax.map``: memory then scales with ``batch_size`` times the data's length,
-            whatever ``num_resamples`` is. Give one when ``num_resamples`` times the data's
-            length is large. Every batch size draws the same resamples; the grouping can move a
-            reduction's last bits by a few ULP (the module docstring carries the measurements),
-            so re-measure before adopting it under figures pinned exactly.
+            memory grows with ``num_resamples`` (and as ``O(n^2)`` during the ``n`` leave-one-out
+            jackknife evaluations when ``method="bca"``). An integer groups both bootstrap
+            resamples and BCa leave-one-out jackknife passes through ``jax.lax.map``: memory then
+            scales as ``O(batch_size * n)`` regardless of ``num_resamples`` or ``n``. Give one
+            when ``num_resamples`` times the data's length (or ``n^2`` under ``method="bca"``) is
+            large. Every batch size draws the same resamples; the grouping can move a reduction's
+            last bits by a few ULP (the module docstring carries the measurements), so re-measure
+            before adopting it under figures pinned exactly.
         method: Interval construction method: ``"percentile"`` (default) or ``"bca"``
             (Efron's bias-corrected and accelerated interval using leave-one-out jackknife
             acceleration, matching ``scipy.stats.bootstrap(..., method="BCa")``).
