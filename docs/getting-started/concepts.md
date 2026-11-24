@@ -165,6 +165,7 @@ flowchart TD
     methods:
 
     ```python
+    import jax.numpy as jnp
     from flax import nnx
     from calibrax.core.adapters import NNXBenchmarkAdapter
 
@@ -172,9 +173,9 @@ flowchart TD
         def predict(self, x):
             return self.model(x)
 
-    adapter = MyAdapter(my_model)
+    adapter = MyAdapter(nnx.Linear(8, 4, rngs=nnx.Rngs(0)))
     # Correct: pass the unbound method + instance
-    result = nnx.jit(MyAdapter.predict)(adapter, x)
+    result = nnx.jit(MyAdapter.predict)(adapter, jnp.ones((2, 8)))
     ```
 
 The `AdapterRegistry` manages adapter resolution. The default registry

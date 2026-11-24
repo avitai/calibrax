@@ -79,8 +79,11 @@ print(adapter.name)  # "unknown" (nnx.Linear has no .name attribute)
     # Correct: unbound method + instance
     result = nnx.jit(MyAdapter.predict)(adapter, x)
 
-    # Incorrect — will fail
-    result = nnx.jit(adapter.predict)(x)
+    # Incorrect: nnx.jit refuses a bound method
+    try:
+        nnx.jit(adapter.predict)
+    except ValueError as error:
+        print(error)
     ```
 
 `NNXBenchmarkAdapter.can_adapt()` returns `True` for any `nnx.Module` instance, typed
