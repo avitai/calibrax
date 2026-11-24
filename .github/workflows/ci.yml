@@ -100,6 +100,9 @@ jobs:
       matrix:
         python-version: ["3.12", "3.13"]
     env:
+      # The tracked .python-version is every uv command's interpreter request, so the
+      # matrix version must reach them all; a venv made with another is replaced by uv sync.
+      UV_PYTHON: ${{ matrix.python-version }}
       JAX_PLATFORMS: cpu
       WANDB_DIR: /tmp/calibrax-test-wandb
       WANDB_MODE: offline

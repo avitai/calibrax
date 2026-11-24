@@ -25,6 +25,10 @@ jobs:
     # A push or pull request builds on ubuntu; macos.yml passes macos-15 nightly and before a
     # release.
     runs-on: ${{ inputs.os || 'ubuntu-latest' }}
+    env:
+      # The tracked .python-version is every uv command's interpreter request, so the
+      # matrix version must reach them all; a venv made with another is replaced by uv sync.
+      UV_PYTHON: ${{ matrix.python-version }}
     strategy:
       fail-fast: false
       matrix:
