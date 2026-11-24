@@ -4,7 +4,8 @@ Pure functions for evaluating predictive rankings and one-sided lower prediction
 bounds when outcomes are right-, left-, or interval-censored (for example clinical
 time-to-event endpoints or assay detection-limit bounds such as ``IC50 > 10 uM``).
 
-Includes 3 functions: harrell_c_index, uno_c_index, censored_coverage_bounds.
+Includes 4 functions: harrell_c_index, uno_c_index, reverse_kaplan_meier,
+censored_coverage_bounds.
 """
 
 from __future__ import annotations
@@ -128,24 +129,16 @@ def harrell_c_index(
     return jnp.where(has_pairs, numer / safe_denom, jnp.asarray(jnp.nan, dtype=out_dtype))
 
 
-def _kaplan_meier_censoring_survival(
-    observed_time: jax.Array,
-    event_indicator: jax.Array,
+def _censoring_km_step_table(
+    obs_clean: jax.Array,
+    ev: jax.Array,
 ) -> tuple[jax.Array, jax.Array]:
-    """Left-continuous reverse Kaplan-Meier censoring survival ``G_hat(T_k-)``.
-
-    Matches Uno et al. (Stat. Med. 2011, ``cran/survC1``) and
-    ``survival::survfit(Surv(time, 1 - status))`` by forming censoring hazards over the
-    full risk set ``sum(observed_time >= t_k)``, evaluating the strictly left-continuous
-    limit ``G_hat(t_k-)`` in log-space via ``cumsum(log1p(-hazard))`` to avoid cumulative
-    product drift.
-    """
-    dtype = observed_time.dtype
-    size = observed_time.size
-    order = jnp.argsort(observed_time)
-    t_ord = observed_time[order]
-    ev_ord = event_indicator[order].astype(dtype)
-    cens_ord = 1.0 - ev_ord
+    """Return sorted times ``t_ord`` and group-aligned post-step survival ``step_survival``."""
+    dtype = obs_clean.dtype
+    size = obs_clean.size
+    order = jnp.argsort(obs_clean)
+    t_ord = obs_clean[order]
+    cens_ord = jnp.asarray(1.0, dtype=dtype) - ev[order].astype(dtype)
 
     idx = jnp.arange(size)
     starts = jnp.concatenate([jnp.ones(1, dtype=bool), t_ord[1:] != t_ord[:-1]])
@@ -165,9 +158,88 @@ def _kaplan_meier_censoring_survival(
     log_factor = jnp.where(
         all_censored, jnp.asarray(-jnp.inf, dtype=dtype), jnp.log1p(-safe_hazard)
     )
-    cum_log_prev = jnp.concatenate([jnp.zeros(1, dtype=dtype), jnp.cumsum(log_factor)[:-1]])
-    g_ord = jnp.exp(cum_log_prev)[group]
-    return order, g_ord
+    post_group_surv = jnp.exp(jnp.cumsum(log_factor))[group]
+    step_survival = jnp.concatenate([jnp.ones(1, dtype=dtype), post_group_surv])
+    return t_ord, step_survival
+
+
+def reverse_kaplan_meier(
+    observed_time: ArrayLike,
+    event_indicator: ArrayLike,
+    eval_times: ArrayLike | None = None,
+    *,
+    left_continuous: bool = True,
+) -> jax.Array:
+    """Reverse Kaplan-Meier censoring survival estimator ``G_hat(t-)`` or ``G_hat(t)``.
+
+    Estimates the censoring survival distribution ``P(C >= t)`` (``left_continuous=True``,
+    ``G_hat(t-) = prod_{u_g < t} (1 - d_g^C / R_g)``) or ``P(C > t)``
+    (``left_continuous=False``, ``G_hat(t) = prod_{u_g <= t} (1 - d_g^C / R_g)``) over the
+    simultaneous risk set ``R_g = sum(observed_time >= u_g)`` in log-space via
+    ``cumsum(log1p(-hazard))``, matching Uno et al. (*Stat. Med.* 2011, ``cran/survC1``)
+    and R ``survival::survfit(Surv(time, 1 - status))``.
+
+    Note:
+        Returns censoring survival probabilities matching ``eval_times`` (or
+        ``observed_time`` when ``eval_times is None``) rather than a scalar metric;
+        not registered in ``MetricRegistry``.
+
+    Args:
+        observed_time: Observed follow-up times ``min(T_latent, C)``.
+        event_indicator: Binary event indicator (``1``/``True`` = observed event,
+            ``0``/``False`` = right-censored).
+        eval_times: Optional query times at which to evaluate ``G_hat``. Defaults to
+            ``observed_time``.
+        left_continuous: If ``True`` (default), evaluate strictly left-continuous
+            ``G_hat(t-)`` (excluding censorings tied at ``t``); if ``False``, evaluate
+            right-continuous ``G_hat(t)``.
+
+    Returns:
+        JAX array of censoring survival estimates in ``[0, 1]`` with the shape of
+        ``eval_times`` (or ``observed_time`` when ``eval_times is None``), propagating
+        ``NaN`` on empty ``observed_time``, ``NaN`` inputs, or non-binary
+        ``event_indicator`` entries.
+
+    Raises:
+        ValueError: If ``observed_time`` and ``event_indicator`` differ in size.
+    """
+    obs_raw = jnp.asarray(observed_time)
+    obs_flat = obs_raw.ravel()
+    ev, valid_ev = _validate_binary_events(event_indicator)
+    if obs_flat.size != ev.size:
+        raise ValueError(
+            f"Shape mismatch: observed_time={obs_flat.size}, event_indicator={ev.size}"
+        )
+
+    obs_f_dtype = obs_raw.dtype if jnp.issubdtype(obs_raw.dtype, jnp.floating) else jnp.float32
+    if eval_times is None:
+        out_dtype = jnp.result_type(obs_f_dtype, jnp.float32)
+        q_raw = obs_raw.astype(out_dtype)
+    else:
+        q_check = jnp.asarray(eval_times)
+        out_dtype = (
+            jnp.result_type(obs_f_dtype, eval_times, jnp.float32)
+            if jnp.issubdtype(q_check.dtype, jnp.floating)
+            else jnp.result_type(obs_f_dtype, jnp.float32)
+        )
+        q_raw = q_check.astype(out_dtype)
+
+    if obs_flat.size == 0:
+        return jnp.full(q_raw.shape, jnp.nan, dtype=out_dtype)
+
+    obs = obs_flat.astype(out_dtype)
+    obs_has_nan = jnp.any(jnp.isnan(obs))
+    safe_obs = jnp.where(jnp.isnan(obs), jnp.asarray(0.0, dtype=out_dtype), obs)
+    t_ord, step_survival = _censoring_km_step_table(safe_obs, ev)
+
+    q_flat = q_raw.ravel()
+    q_nan = jnp.isnan(q_flat)
+    safe_q = jnp.where(q_nan, jnp.asarray(0.0, dtype=out_dtype), q_flat)
+    pos = jnp.searchsorted(t_ord, safe_q, side="left" if left_continuous else "right")
+    vals = step_survival[pos]
+    nan_val = jnp.asarray(jnp.nan, dtype=out_dtype)
+    valid_fit = valid_ev & (~obs_has_nan)
+    return jnp.where(valid_fit & (~q_nan), vals, nan_val).reshape(q_raw.shape)
 
 
 def uno_c_index(
@@ -230,11 +302,10 @@ def uno_c_index(
 
     has_nan = jnp.any(jnp.isnan(pred) | jnp.isnan(time))
     safe_time = jnp.where(jnp.isnan(time), jnp.asarray(0.0, dtype=out_dtype), time)
-    order, g_ord = _kaplan_meier_censoring_survival(safe_time, ev)
+    g_hat = reverse_kaplan_meier(safe_time, ev, left_continuous=True)
     eps = jnp.asarray(jnp.finfo(out_dtype).eps, dtype=out_dtype)
-    safe_g_ord = jnp.maximum(g_ord, eps)
-    ipcw_ord = 1.0 / (safe_g_ord * safe_g_ord)
-    ipcw = jnp.zeros_like(time).at[order].set(ipcw_ord)
+    safe_g = jnp.maximum(g_hat, eps)
+    ipcw = 1.0 / (safe_g * safe_g)
 
     if tau is None:
         within_tau = jnp.ones_like(ev)

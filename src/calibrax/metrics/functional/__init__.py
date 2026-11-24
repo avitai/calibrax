@@ -200,6 +200,7 @@ from calibrax.metrics.functional.statistical import (
 from calibrax.metrics.functional.survival import (
     censored_coverage_bounds,
     harrell_c_index,
+    reverse_kaplan_meier,
     uno_c_index,
 )
 from calibrax.metrics.functional.text import (
@@ -363,6 +364,7 @@ __all__ = [
     "reliability_diagram_bins",
     "renyi_divergence",
     "resistance_distance",
+    "reverse_kaplan_meier",
     "reverse_kl_divergence",
     "rmsd",
     "rmse",

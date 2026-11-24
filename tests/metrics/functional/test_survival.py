@@ -10,8 +10,8 @@ from substrax.testing import TraceCounter
 
 from calibrax.core.models import MetricDirection
 from calibrax.metrics import MetricRegistry
+from calibrax.metrics.functional import reverse_kaplan_meier
 from calibrax.metrics.functional.survival import (
-    _kaplan_meier_censoring_survival,
     censored_coverage_bounds,
     harrell_c_index,
     uno_c_index,
@@ -280,15 +280,13 @@ class TestUnoCIndex:
         ) == pytest.approx(64.0 / 89.0, abs=4 * float(jnp.finfo(jnp.float32).eps))
 
         # Direct [2(C), 2(E), 2(E)] + later probe at t=3.0: survfit(Surv(c(2,2,2,3), c(1,0,0,0)))
-        # gives G(2+) = 1 - 1/4 = 3/4, and on [2(C), 2(E), 2(E)] followed by probe G_hat(t-) = 2/3
-        # when 3 items are at t=2 (verify via [2(C), 2(E), 2(E)] + infinitesimally later probe
-        # vs subtracting events which collapsed 3 - 2 = 1 -> G = 0!).
-        _, g_ord = _kaplan_meier_censoring_survival(
+        # gives G(2+) = 1 - 1/4 = 3/4, while left-continuous G_hat(t-) = [1, 1, 1, 3/4].
+        g_left = reverse_kaplan_meier(
             jnp.array([2.0, 2.0, 2.0, 3.0], dtype=jnp.float32),
             jnp.array([False, True, True, True]),
         )
         np.testing.assert_allclose(
-            np.asarray(g_ord),
+            np.asarray(g_left),
             np.array([1.0, 1.0, 1.0, 0.75], dtype=np.float32),
             atol=float(jnp.finfo(jnp.float32).eps),
         )
@@ -397,6 +395,93 @@ class TestCensoredCoverageBounds:
             compiled_bounds(lower_pred, obs_time, ev_bool)
         with counter.expect(new_traces=0):
             compiled_bounds(lower_pred + 1.0, obs_time, ev_bool)
+
+
+class TestReverseKaplanMeier:
+    """Public left- and right-continuous reverse Kaplan-Meier censoring survival."""
+
+    def test_left_and_right_continuous_query_grid_and_unsorted_order_preservation(self) -> None:
+        # Unsorted observations: times = [3, 2, 1, 2], events = [1, 0, 1, 1].
+        # Sorted unique times:
+        # u=1: R=4, d_C=0 -> G(1-) = 1,   G(1) = 1
+        # u=2: R=3, d_C=1 -> G(2-) = 1,   G(2) = 2/3
+        # u=3: R=1, d_C=0 -> G(3-) = 2/3, G(3) = 2/3
+        obs = jnp.array([3.0, 2.0, 1.0, 2.0], dtype=jnp.float32)
+        ev = jnp.array([1, 0, 1, 1], dtype=jnp.int32)
+        eps = float(jnp.finfo(jnp.float32).eps)
+
+        g_obs_left = reverse_kaplan_meier(obs, ev, left_continuous=True)
+        g_obs_right = reverse_kaplan_meier(obs, ev, left_continuous=False)
+        np.testing.assert_allclose(
+            np.asarray(g_obs_left),
+            np.array([2.0 / 3.0, 1.0, 1.0, 1.0], dtype=np.float32),
+            atol=2 * eps,
+        )
+        np.testing.assert_allclose(
+            np.asarray(g_obs_right),
+            np.array([2.0 / 3.0, 2.0 / 3.0, 1.0, 2.0 / 3.0], dtype=np.float32),
+            atol=2 * eps,
+        )
+
+        queries = jnp.array([[0.5, 1.0, 1.5], [2.0, 2.5, 4.0]], dtype=jnp.float32)
+        q_left = reverse_kaplan_meier(obs, ev, queries, left_continuous=True)
+        q_right = reverse_kaplan_meier(obs, ev, queries, left_continuous=False)
+        assert q_left.shape == (2, 3)
+        np.testing.assert_allclose(
+            np.asarray(q_left),
+            np.array([[1.0, 1.0, 1.0], [1.0, 2.0 / 3.0, 2.0 / 3.0]], dtype=np.float32),
+            atol=2 * eps,
+        )
+        np.testing.assert_allclose(
+            np.asarray(q_right),
+            np.array([[1.0, 1.0, 1.0], [2.0 / 3.0, 2.0 / 3.0, 2.0 / 3.0]], dtype=np.float32),
+            atol=2 * eps,
+        )
+
+        # Scalar 0-D query time (as used for G_hat(c0-) in censored conformal weighting).
+        scalar_g = reverse_kaplan_meier(obs, ev, 2.5, left_continuous=True)
+        assert scalar_g.ndim == 0
+        assert float(scalar_g) == pytest.approx(2.0 / 3.0, abs=2 * eps)
+
+        # Terminal censoring drop to 0: at u=3, R=1, d_C=1 -> G(3)=0, G(4-)=0, while G(3-)=2/3.
+        ev_term_cens = jnp.array([0, 0, 1, 1], dtype=jnp.int32)
+        assert float(reverse_kaplan_meier(obs, ev_term_cens, 3.0, left_continuous=True)) == (
+            pytest.approx(2.0 / 3.0, abs=2 * eps)
+        )
+        assert float(reverse_kaplan_meier(obs, ev_term_cens, 3.0, left_continuous=False)) == 0.0
+        assert float(reverse_kaplan_meier(obs, ev_term_cens, 4.0, left_continuous=True)) == 0.0
+
+    def test_validation_nan_dtype_and_jit_vmap(self) -> None:
+        empty = jnp.zeros(0, dtype=jnp.float32)
+        assert reverse_kaplan_meier(empty, empty).shape == (0,)
+        assert bool(jnp.all(jnp.isnan(reverse_kaplan_meier(empty, empty, jnp.array([1.0, 2.0])))))
+        with pytest.raises(ValueError, match="Shape mismatch"):
+            reverse_kaplan_meier(jnp.ones(3), jnp.ones(2))
+
+        obs = jnp.array([1.0, 2.0, 3.0], dtype=jnp.float32)
+        ev = jnp.array([1, 0, 1], dtype=jnp.int32)
+        q_nan = jnp.array([1.5, jnp.nan, 2.5], dtype=jnp.float32)
+        out_q_nan = reverse_kaplan_meier(obs, ev, q_nan)
+        assert float(out_q_nan[0]) == pytest.approx(1.0)
+        assert np.isnan(float(out_q_nan[1]))
+        assert float(out_q_nan[2]) == pytest.approx(0.5)
+
+        assert bool(jnp.all(jnp.isnan(reverse_kaplan_meier(obs.at[0].set(jnp.nan), ev))))
+        assert bool(jnp.all(jnp.isnan(reverse_kaplan_meier(obs, jnp.array([1, 2, 0])))))
+
+        with jax.enable_x64(True):
+            obs64 = jnp.array([1.0, 2.0, 3.0], dtype=jnp.float64)
+            assert reverse_kaplan_meier(obs, ev).dtype == jnp.float32
+            assert reverse_kaplan_meier(obs64, ev).dtype == jnp.float64
+
+        counter = TraceCounter()
+        compiled = jax.jit(counter.wrap(reverse_kaplan_meier))
+        with counter.expect(new_traces=1):
+            compiled(obs, ev, jnp.array([1.5, 2.5], dtype=jnp.float32))
+        with counter.expect(new_traces=0):
+            compiled(obs + 1.0, ev, jnp.array([2.5, 3.5], dtype=jnp.float32))
+        vmapped = jax.vmap(reverse_kaplan_meier)(jnp.stack([obs, obs + 1.0]), jnp.stack([ev, ev]))
+        assert vmapped.shape == (2, 3)
 
 
 class TestSurvivalRegistration:
