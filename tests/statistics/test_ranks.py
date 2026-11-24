@@ -191,3 +191,30 @@ class TestDecimalRankAndCutoffHelpers:
             jax.jit(lambda d: discrete_bh_count_thresholds(65536, d, q=0.1, max_denominator=65536))(
                 jnp.int32(10)
             )
+        with pytest.raises(ValueError, match="2\\*\\*31"):
+            jax.jit(lambda d: discrete_bh_count_thresholds(1, d, q=0.1, max_denominator=1 << 31))(
+                jnp.int32(10)
+            )
+        with pytest.raises(ValueError, match="int32"):
+            discrete_bh_count_thresholds(2, 1 << 32, q=0.75)
+
+        # Verify vectorized int64 fast path and >int64 bigint fallback match exact bigints.
+        fast_out = discrete_bh_count_thresholds(2048, 503, q=0.3)
+        fast_ref = np.asarray(
+            [(r * 503 * 3) // (2048 * 10) for r in range(1, 2049)], dtype=np.int32
+        )
+        np.testing.assert_array_equal(np.asarray(fast_out), fast_ref)
+
+        q_sub = float(np.nextafter(0.3, 0.0))
+        q_sub_frac = decimal_fraction(q_sub)
+        assert 100 * 10_000 * q_sub_frac.numerator >= (1 << 63)
+        fallback_out = discrete_bh_count_thresholds(100, 10_000, q=q_sub)
+        fallback_ref = np.asarray(
+            [
+                (r * 10_000 * q_sub_frac.numerator) // (100 * q_sub_frac.denominator)
+                for r in range(1, 101)
+            ],
+            dtype=np.int32,
+        )
+        np.testing.assert_array_equal(np.asarray(fallback_out), fallback_ref)
+        assert discrete_bh_count_thresholds(10, 10, q=1e-20).tolist() == [0] * 10

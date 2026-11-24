@@ -26,7 +26,9 @@ from jax.typing import ArrayLike
 from calibrax.core._validation import validate_scalar_numeric
 
 
+_I32_LIMIT = 1 << 31
 _U32_LIMIT = 1 << 32
+_I64_LIMIT = 1 << 63
 _ACCEPTED_FLOAT_SCALARS: dict[np.dtype[np.floating], type[np.floating]] = {
     np.dtype(np.float64): np.float64,
     np.dtype(np.float32): np.float32,
@@ -282,6 +284,24 @@ def _try_concrete_int(denom: int | jax.Array) -> int | None:
         return None
 
 
+def _concrete_bh_count_thresholds(m_int: int, d_concrete: int, q_frac: Fraction) -> jax.Array:
+    """Compute exact BH count thresholds on the host for a concrete denominator."""
+    if d_concrete <= 0:
+        return jnp.zeros(m_int, dtype=jnp.int32)
+    num = q_frac.numerator
+    den = m_int * q_frac.denominator
+    if (d_concrete * num) // q_frac.denominator >= _I32_LIMIT:
+        raise ValueError(f"BH count threshold exceeds int32 range for denom={d_concrete}")
+    if m_int * d_concrete * num < _I64_LIMIT and den < _I64_LIMIT:
+        ranks = np.arange(1, m_int + 1, dtype=np.int64)
+        thresholds = (ranks * np.int64(d_concrete * num)) // np.int64(den)
+        return jnp.asarray(thresholds, dtype=jnp.int32)
+    return jnp.asarray(
+        [(r_idx * d_concrete * num) // den for r_idx in range(1, m_int + 1)],
+        dtype=jnp.int32,
+    )
+
+
 def discrete_bh_count_thresholds(  # noqa: DOC503
     m: int,
     denom: int | jax.Array,
@@ -295,7 +315,9 @@ def discrete_bh_count_thresholds(  # noqa: DOC503
     ``(1 + c_(r)) / denom``:
 
     - When ``denom`` is concrete (including ``1 + n_cal`` inside ``jax.jit``), evaluates
-      all ``m`` integer floors directly in exact host bigints.
+      all ``m`` integer floors via vectorized ``int64`` integer division whenever
+      ``m * denom * num < 2**63`` and ``m * den < 2**63``, falling back to exact host
+      bigints otherwise.
     - When ``denom`` is a traced integer bounded by ``1 <= denom <= max_denominator``
       (such as ``1 + n_cal_null`` under ``jax.vmap``), reduces ``decimal_fraction(q) / m``
       via :func:`farey_floor_rational` with bound ``m * max_denominator`` and evaluates
@@ -305,7 +327,8 @@ def discrete_bh_count_thresholds(  # noqa: DOC503
         m: Number of hypotheses ``m >= 1``.
         denom: Positive conformal p-value denominator (concrete ``int`` or traced 0-D ``int32``).
         q: Static target false discovery rate in ``(0, 1)``.
-        max_denominator: Upper bound ``D >= 1`` on ``denom`` required when ``denom`` is traced.
+        max_denominator: Upper bound ``1 <= D < 2**31`` on ``denom`` required when
+            ``denom`` is traced.
 
     Returns:
         1-D ``int32`` JAX array of shape ``(m,)`` holding maximum admissible ``1 + c_(r)``
@@ -313,28 +336,25 @@ def discrete_bh_count_thresholds(  # noqa: DOC503
 
     Raises:
         TypeError: If ``m`` or ``denom`` is non-integer, or ``q`` is boolean or traced.
-        ValueError: If ``m < 1``, ``q`` lies outside ``(0, 1)``, or ``denom`` is traced
-            without a positive ``max_denominator``.
+        ValueError: If ``m < 1``, ``q`` lies outside ``(0, 1)``, a threshold exceeds
+            ``int32``, or ``denom`` is traced without ``1 <= max_denominator < 2**31``
+            and ``m * max_denominator < 2**32``.
     """
     m_int = _validate_positive_int(m, name="m")
     q_frac = _open_unit_fraction(q, name="q")
     d_concrete = _try_concrete_int(denom)
     if d_concrete is not None:
-        if d_concrete <= 0:
-            return jnp.zeros(m_int, dtype=jnp.int32)
-        num = q_frac.numerator
-        den = m_int * q_frac.denominator
-        return jnp.asarray(
-            [(r_idx * d_concrete * num) // den for r_idx in range(1, m_int + 1)],
-            dtype=jnp.int32,
-        )
+        return _concrete_bh_count_thresholds(m_int, d_concrete, q_frac)
 
     if max_denominator is None:
         raise ValueError("max_denominator is required when denom is a traced JAX array")
     max_den = _validate_positive_int(max_denominator, name="max_denominator")
     max_k = m_int * max_den
-    if max_k >= _U32_LIMIT:
-        raise ValueError(f"m * max_denominator must be < 2**32 for traced denom, got {max_k}")
+    if max_den >= _I32_LIMIT or max_k >= _U32_LIMIT:
+        raise ValueError(
+            "Traced denom requires max_denominator < 2**31 and m * max_denominator < 2**32; "
+            f"got max_denominator={max_den}, m * max_denominator={max_k}"
+        )
     beta = farey_floor_rational(Fraction(q_frac.numerator, m_int * q_frac.denominator), max_k)
     denom_arr = jnp.asarray(denom, dtype=jnp.int32)
     safe_denom = jnp.maximum(denom_arr, 0).astype(jnp.uint32)
