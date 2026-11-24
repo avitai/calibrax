@@ -35,7 +35,7 @@ from scipy.stats import (
 from substrax.records import read_record
 from substrax.typing import JsonValue
 
-from calibrax.core._validation import eager_scalar_float
+from calibrax.core._validation import validate_scalar_numeric
 from calibrax.core.models import SignificanceResult
 
 
@@ -218,20 +218,17 @@ def alpha_investing(
         ValueError: If eager ``wealth <= 0``, ``pay_out <= 0``, or ``invest_fraction``
             lies outside ``(0, 1)``.
     """
-    eager_wealth = eager_scalar_float(wealth)
+    eager_wealth, w_raw = validate_scalar_numeric(wealth, name="wealth")
     if eager_wealth is not None and not (eager_wealth > 0.0):
         raise ValueError(f"wealth must be positive, got {wealth}")
-    eager_pay_out = eager_scalar_float(pay_out)
+    eager_pay_out, po_raw = validate_scalar_numeric(pay_out, name="pay_out")
     if eager_pay_out is not None and not (eager_pay_out > 0.0):
         raise ValueError(f"pay_out must be positive, got {pay_out}")
-    eager_invest = eager_scalar_float(invest_fraction)
+    eager_invest, gamma_raw = validate_scalar_numeric(invest_fraction, name="invest_fraction")
     if eager_invest is not None and not (0.0 < eager_invest < 1.0):
         raise ValueError(f"invest_fraction must be in (0, 1), got {invest_fraction}")
 
     p_raw = jnp.asarray(p_values).ravel()
-    w_raw = jnp.asarray(wealth)
-    po_raw = jnp.asarray(pay_out)
-    gamma_raw = jnp.asarray(invest_fraction)
     out_dtype = jnp.result_type(p_raw.dtype, w_raw, po_raw, gamma_raw, jnp.float32)
     p = p_raw.astype(out_dtype)
     if p.size == 0:

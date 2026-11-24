@@ -11,6 +11,10 @@ from substrax.testing import TraceCounter
 from calibrax.core.models import MetricDirection
 from calibrax.metrics import MetricRegistry
 from calibrax.metrics.functional.calibration import (
+    _carry_limbs,
+    _dyadic_q_limbs,
+    _shift_prod_limbs,
+    _u31_pair_limbs,
     adaptive_calibration_error,
     brier_decomposition,
     brier_score,
@@ -548,9 +552,14 @@ class TestSelectiveConformalFDR:
             np.array(1.5, dtype=np.float32),
             np.array(-0.1, dtype=np.float64),
             np.array(np.nan, dtype=np.float32),
+            np.array([0.05, 0.2], dtype=np.float32),
+            jnp.array([0.05, 0.2], dtype=jnp.float32),
         ):
-            with pytest.raises(ValueError, match="q must be in"):
+            with pytest.raises(ValueError, match="q"):
                 conformal_fdr_selection(jnp.ones(4), jnp.ones(3), q=bad_q)
+        for bool_q in (False, True):
+            with pytest.raises(TypeError, match="q"):
+                conformal_fdr_selection(jnp.ones(4), jnp.ones(3), q=bool_q)
         with pytest.raises(ValueError, match="null_proportion_regime"):
             conformal_fdr_selection(
                 jnp.ones(4),
@@ -644,13 +653,28 @@ class TestSelectiveConformalFDR:
                 cal60, test
             ).tolist() == [False, False, False]
 
-        # Dyadic q = 0.25 (q_num=1, q_den=4) exercises the 32-bit exact integer fast path:
-        # 11 null calibration scores -> denom=12, BH q-values [3/12=0.25, 1.0, 1.0].
+        # Exact dyadic q = 0.25 = 2^-2: 11 null calibration scores -> denom=12,
+        # BH q-values [3/12=0.25, 1.0, 1.0].
         cal12 = jnp.zeros(11, dtype=jnp.float32)
         assert conformal_fdr_selection(cal12, test, q=0.25).tolist() == [True, False, False]
         assert conformal_fdr_selection(
             cal12, test, q=float(np.nextafter(np.float32(0.25), np.float32(0.0)))
         ).tolist() == [False, False, False]
+
+        # Large 60-bit rank*denom product (2^60 * 0.125 = 2^57) where shifted[4] occupies high bits
+        # of the 5-limb 70-bit window: LHS = 2^58 > RHS = 2^57 must compare strictly greater.
+        lhs_hi = _u31_pair_limbs(jnp.array([1 << 29], dtype=jnp.int32), jnp.int32(1 << 29))
+        rd_hi = _u31_pair_limbs(jnp.array([1 << 30], dtype=jnp.int32), jnp.int32(1 << 30))
+        q_limbs_hi, shift_hi = _dyadic_q_limbs(jnp.asarray(0.125), 0.125)
+        prod_acc_hi = [jnp.zeros_like(lhs_hi[0]) for _ in range(9)]
+        for idx_i, rdi in enumerate(rd_hi):
+            for idx_k, qk in enumerate(q_limbs_hi):
+                prod_acc_hi[idx_i + idx_k] = prod_acc_hi[idx_i + idx_k] + rdi * qk
+        rhs_shifted_hi = _shift_prod_limbs(_carry_limbs(prod_acc_hi), shift_hi)
+        lhs_val = sum(int(lhs_hi[k][0]) << (14 * k) for k in range(5))
+        rhs_val = sum(int(rhs_shifted_hi[k][0]) << (14 * k) for k in range(5))
+        assert lhs_val == (1 << 58)
+        assert rhs_val == (1 << 57)
 
         # Concrete float64 q near 1.0 (which rounds to 1.0 in float32) remains valid in (0, 1).
         assert conformal_fdr_selection(cal12, test, q=float(np.nextafter(1.0, 0.0))).tolist() == [

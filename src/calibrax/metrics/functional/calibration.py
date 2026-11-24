@@ -21,7 +21,7 @@ import jax.numpy as jnp
 import numpy as np
 from jax.typing import ArrayLike
 
-from calibrax.core._validation import eager_scalar_float
+from calibrax.core._validation import validate_scalar_numeric
 from calibrax.metrics._utils import _EPSILON, _prepare_arrays, safe_divide
 
 
@@ -333,7 +333,6 @@ _U31_LIMBS = 3
 _PAIR_LIMBS = 5
 _Q_LIMBS = 4
 _PROD_LIMBS = _PAIR_LIMBS + _Q_LIMBS
-_PADDED_LIMBS = _PROD_LIMBS + _PAIR_LIMBS + 1
 _PROD_BITS = _PROD_LIMBS * _LIMB_BITS
 _F32_MANTISSA_BITS = 24
 _F64_MANTISSA_BITS = 53
@@ -399,33 +398,29 @@ def _dyadic_q_limbs(
 def _shift_prod_limbs(
     prod: list[jax.Array],
     shift: int | jax.Array,
-) -> tuple[list[jax.Array], jax.Array]:
-    """Extract 5 LSB-first shifted limbs of ``prod >> shift`` and any non-zero high overflow."""
+) -> list[jax.Array]:
+    """Extract 5 LSB-first shifted limbs of ``prod >> shift``.
+
+    Since ``0 <= r, denom < 2^31`` and ``0 <= q < 1``, ``floor(q * r * denom) < 2^62 < 2^70``,
+    so 5 14-bit limbs represent the entire shifted integer quotient without high-bit overflow.
+    """
     zero = jnp.zeros_like(prod[0])
     ext = prod + [zero] * (_PAIR_LIMBS + 1)
     if isinstance(shift, int):
         q_limb, r_bit = divmod(shift, _LIMB_BITS)
         if r_bit == 0:
-            shifted = [ext[q_limb + j] for j in range(_PAIR_LIMBS)]
-        else:
-            r_u = jnp.uint32(r_bit)
-            l_u = jnp.uint32(_LIMB_BITS - r_bit)
-            shifted = [
-                ((ext[q_limb + j] >> r_u) | (ext[q_limb + j + 1] << l_u)) & jnp.uint32(_LIMB_MASK)
-                for j in range(_PAIR_LIMBS)
-            ]
-        high_terms = prod[q_limb + _PAIR_LIMBS :]
-        high_nonzero = (
-            jnp.zeros(prod[0].shape, dtype=bool)
-            if not high_terms
-            else jnp.any(jnp.stack(high_terms, axis=0) > 0, axis=0)
-        )
-        return shifted, high_nonzero
+            return [ext[q_limb + j] for j in range(_PAIR_LIMBS)]
+        r_u = jnp.uint32(r_bit)
+        l_u = jnp.uint32(_LIMB_BITS - r_bit)
+        return [
+            ((ext[q_limb + j] >> r_u) | (ext[q_limb + j + 1] << l_u)) & jnp.uint32(_LIMB_MASK)
+            for j in range(_PAIR_LIMBS)
+        ]
 
     padded = jnp.stack(ext, axis=0)
     q_limb_arr = jnp.clip(shift // jnp.int32(_LIMB_BITS), 0, _PROD_LIMBS)
     r_u = (shift % jnp.int32(_LIMB_BITS)).astype(jnp.uint32)
-    shifted = [
+    return [
         (
             (padded[q_limb_arr + j] >> r_u)
             | ((padded[q_limb_arr + j + 1] << jnp.uint32(1)) << (jnp.uint32(_LIMB_BITS - 1) - r_u))
@@ -433,11 +428,6 @@ def _shift_prod_limbs(
         & jnp.uint32(_LIMB_MASK)
         for j in range(_PAIR_LIMBS)
     ]
-    high_nonzero = jnp.any(
-        (jnp.arange(_PADDED_LIMBS)[:, None] >= (q_limb_arr + _PAIR_LIMBS)) & (padded > 0),
-        axis=0,
-    )
-    return shifted, high_nonzero
 
 
 def _step_up_max_count(
@@ -462,17 +452,15 @@ def _step_up_max_count(
     for i, rdi in enumerate(rd_limbs):
         for k, qk in enumerate(q_limbs):
             prod_acc[i + k] = prod_acc[i + k] + rdi * qk
-    prod = _carry_limbs(prod_acc)
+    rhs_shifted = _shift_prod_limbs(_carry_limbs(prod_acc), shift_val)
 
-    rhs_shifted, high_nonzero = _shift_prod_limbs(prod, shift_val)
-
-    lt = jnp.zeros_like(high_nonzero)
-    gt = jnp.zeros_like(high_nonzero)
+    lt = jnp.zeros(sorted_opc.shape, dtype=bool)
+    gt = jnp.zeros(sorted_opc.shape, dtype=bool)
     for l_limb, r_limb in zip(reversed(lhs_limbs), reversed(rhs_shifted), strict=True):
         undecided = ~(lt | gt)
         lt = lt | (undecided & (l_limb < r_limb))
         gt = gt | (undecided & (l_limb > r_limb))
-    ok = (shift_val < _PROD_BITS) & (high_nonzero | (~gt))
+    ok = (shift_val < _PROD_BITS) & (~gt)
     return jnp.max(jnp.where(ok, sorted_opc, 0))
 
 
@@ -547,7 +535,7 @@ def conformal_fdr_selection(
         ValueError: If eager ``q`` lies outside ``(0, 1)``, ``cal_null_mask`` differs
             in length from ``cal_scores``, or ``null_proportion_regime`` is unrecognized.
     """
-    eager_q = eager_scalar_float(q)
+    eager_q, q_raw = validate_scalar_numeric(q, name="q")
     if eager_q is not None and not (0.0 < eager_q < 1.0):
         raise ValueError(f"q must be in (0, 1), got {q}")
     if null_proportion_regime not in ("marginal_null", "joint_iid"):
@@ -558,7 +546,6 @@ def conformal_fdr_selection(
 
     cal_raw = jnp.asarray(cal_scores)
     test_raw = jnp.asarray(test_scores)
-    q_raw = jnp.asarray(q)
     score_dtype = jnp.result_type(cal_raw.dtype, test_raw.dtype, jnp.float32)
     p_dtype = jnp.result_type(score_dtype, q_raw, jnp.float32)
     cal = cal_raw.astype(score_dtype).ravel()
