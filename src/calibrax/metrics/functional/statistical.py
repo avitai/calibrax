@@ -68,6 +68,9 @@ def pearson_correlation(
     Returns:
         Pearson r as a scalar value; ``NaN`` for a selection with no members.
 
+    Raises:
+        ValueError: If ``a`` and ``b`` have different element counts.
+
     Examples:
         >>> import jax.numpy as jnp
         >>> pearson_correlation(jnp.array([1.0, 2.0, 3.0]),
@@ -77,8 +80,10 @@ def pearson_correlation(
     a_raw = jnp.asarray(a)
     a_arr = a_raw.ravel()
     b_arr = jnp.asarray(b).ravel()
+    if a_arr.size != b_arr.size:
+        raise ValueError(f"Shape mismatch: a has {a_arr.size} elements, b has {b_arr.size}")
     if mask is None and weights is None:
-        if a_arr.size == 0 or b_arr.size == 0:
+        if a_arr.size == 0:
             return jnp.array(jnp.nan, dtype=jnp.result_type(a_arr.dtype, b_arr.dtype, jnp.float32))
         # The unweighted path expresses "no weights" by not having any, rather than by
         # multiplying through a vector of ones. Both the cost and the answer turn on that:
@@ -220,6 +225,9 @@ def spearman_rank_correlation(
     Returns:
         Spearman rho as a scalar value; ``NaN`` for a selection with no members.
 
+    Raises:
+        ValueError: If ``a`` and ``b`` have different element counts.
+
     Examples:
         >>> import jax.numpy as jnp
         >>> spearman_rank_correlation(jnp.array([1.0, 2.0, 3.0]),
@@ -229,8 +237,10 @@ def spearman_rank_correlation(
     a_raw = jnp.asarray(a)
     a_arr = a_raw.ravel()
     b_arr = jnp.asarray(b).ravel()
+    if a_arr.size != b_arr.size:
+        raise ValueError(f"Shape mismatch: a has {a_arr.size} elements, b has {b_arr.size}")
     if mask is None and weights is None:
-        if a_arr.size == 0 or b_arr.size == 0:
+        if a_arr.size == 0:
             return jnp.array(jnp.nan, dtype=jnp.result_type(a_arr.dtype, b_arr.dtype, jnp.float32))
         return pearson_correlation(rankdata(a_arr), rankdata(b_arr))
     # Fold at the input's shape and flatten alongside the data, as the other statistics do.
@@ -301,6 +311,9 @@ def kendall_tau(
     Returns:
         Kendall tau as a scalar value; ``NaN`` for a selection with no members.
 
+    Raises:
+        ValueError: If ``a`` and ``b`` have different element counts.
+
     Examples:
         >>> import jax.numpy as jnp
         >>> kendall_tau(jnp.array([1.0, 2.0, 3.0]),
@@ -310,8 +323,10 @@ def kendall_tau(
     a_raw = jnp.asarray(a)
     a_arr = a_raw.ravel()
     b_arr = jnp.asarray(b).ravel()
+    if a_arr.size != b_arr.size:
+        raise ValueError(f"Shape mismatch: a has {a_arr.size} elements, b has {b_arr.size}")
     n = a_arr.shape[0]
-    if mask is None and weights is None and (n == 0 or b_arr.size == 0):
+    if mask is None and weights is None and n == 0:
         return jnp.array(jnp.nan, dtype=jnp.result_type(a_arr.dtype, b_arr.dtype, jnp.float32))
 
     # Fold the mask and weights first, where there are any, and neutralise the excluded
@@ -411,6 +426,9 @@ def concordance_correlation(
         Concordance correlation as a scalar value; ``NaN`` for a selection with no
         members.
 
+    Raises:
+        ValueError: If ``a`` and ``b`` have different element counts.
+
     Examples:
         >>> import jax.numpy as jnp
         >>> concordance_correlation(jnp.array([1.0, 2.0, 3.0]),
@@ -420,8 +438,10 @@ def concordance_correlation(
     a_raw = jnp.asarray(a)
     a_arr = a_raw.ravel()
     b_arr = jnp.asarray(b).ravel()
+    if a_arr.size != b_arr.size:
+        raise ValueError(f"Shape mismatch: a has {a_arr.size} elements, b has {b_arr.size}")
     if mask is None and weights is None:
-        if a_arr.size == 0 or b_arr.size == 0:
+        if a_arr.size == 0:
             return jnp.array(jnp.nan, dtype=jnp.result_type(a_arr.dtype, b_arr.dtype, jnp.float32))
         # As in `pearson_correlation`: the ones vector is neither free nor bit-neutral.
         # Measured against the pre-weights implementation, routing this path through it

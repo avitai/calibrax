@@ -237,6 +237,30 @@ class TestUnweightedEmptyCorrelationInputs:
                 assert out.dtype == jnp.float32
                 assert np.isnan(float(out))
 
+    @pytest.mark.parametrize(
+        "metric",
+        [
+            pearson_correlation,
+            spearman_rank_correlation,
+            kendall_tau,
+            concordance_correlation,
+        ],
+    )
+    def test_mismatched_element_counts_raise_before_empty_nan(
+        self, metric: Callable[..., jax.Array]
+    ) -> None:
+        empty = jnp.zeros((0,), dtype=jnp.float32)
+        non_empty = jnp.array([1.0, 2.0, 3.0], dtype=jnp.float32)
+        shorter = jnp.array([1.0, 2.0], dtype=jnp.float32)
+
+        for left, right in ((empty, non_empty), (non_empty, empty), (shorter, non_empty)):
+            with pytest.raises(ValueError, match="Shape mismatch"):
+                metric(left, right)
+            with pytest.raises(ValueError, match="Shape mismatch"):
+                jax.jit(metric)(left, right)
+            with pytest.raises(ValueError, match="Shape mismatch"):
+                metric(left, right, weights=jnp.ones_like(left))
+
 
 class TestStatisticalMetricRegistration:
     """Tests for statistical metric registration."""
