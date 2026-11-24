@@ -13,6 +13,7 @@ conformal_fdr_selection, false_discovery_proportion, empirical_power.
 
 from __future__ import annotations
 
+from fractions import Fraction
 from typing import Literal
 
 import jax
@@ -20,9 +21,8 @@ import jax.numpy as jnp
 import numpy as np
 from jax.typing import ArrayLike
 
-from calibrax.core._validation import validate_scalar_numeric
 from calibrax.metrics._utils import _EPSILON, _prepare_arrays, safe_divide
-from calibrax.statistics.ranks import discrete_bh_count_thresholds
+from calibrax.statistics.ranks import decimal_fraction, discrete_bh_count_thresholds
 
 
 def _bin_predictions(
@@ -406,8 +406,8 @@ def conformal_fdr_selection(  # noqa: DOC503
         ValueError: If ``q`` lies outside ``(0, 1)``, ``cal_null_mask`` differs
             in length from ``cal_scores``, or ``null_proportion_regime`` is unrecognized.
     """
-    eager_q, _ = validate_scalar_numeric(q, name="q", allow_traced=False)
-    if eager_q is None or not (0.0 < eager_q < 1.0):
+    q_frac = decimal_fraction(q, name="q")
+    if not (Fraction(0, 1) < q_frac < Fraction(1, 1)):
         raise ValueError(f"q must be in (0, 1), got {q}")
     if null_proportion_regime not in ("marginal_null", "joint_iid"):
         raise ValueError(

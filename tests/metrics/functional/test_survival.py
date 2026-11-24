@@ -469,6 +469,12 @@ class TestReverseKaplanMeier:
         assert bool(jnp.all(jnp.isnan(reverse_kaplan_meier(obs.at[0].set(jnp.nan), ev))))
         assert bool(jnp.all(jnp.isnan(reverse_kaplan_meier(obs, jnp.array([1, 2, 0])))))
 
+        # Python list and tuple eval_times sequences convert cleanly before dtype resolution.
+        seq_list = reverse_kaplan_meier([1.0, 2.0, 3.0], (1, 0, 1), [1.5, 2.5])  # type: ignore[arg-type]
+        seq_tuple = reverse_kaplan_meier((1.0, 2.0, 3.0), [1, 0, 1], (1.5, 2.5))  # type: ignore[arg-type]
+        np.testing.assert_allclose(np.asarray(seq_list), np.array([1.0, 0.5]), atol=1e-7)
+        np.testing.assert_allclose(np.asarray(seq_tuple), np.array([1.0, 0.5]), atol=1e-7)
+
         with jax.enable_x64(True):
             obs64 = jnp.array([1.0, 2.0, 3.0], dtype=jnp.float64)
             assert reverse_kaplan_meier(obs, ev).dtype == jnp.float32

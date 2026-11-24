@@ -61,10 +61,15 @@ class TestDecimalRankAndCutoffHelpers:
         assert decimal_fraction(1) == Fraction(1, 1)
         assert decimal_fraction(jnp.array(1, dtype=jnp.int32)) == Fraction(1, 1)
 
-        with pytest.raises(TypeError, match="Python float"):
-            decimal_fraction(jnp.asarray(0.3, dtype=jnp.bfloat16))
-        with pytest.raises(TypeError, match="Python float"):
-            conformal_quantile_rank(10, jnp.asarray(0.3, dtype=jnp.bfloat16))
+        for bad_bf16 in (
+            jnp.asarray(0.3, dtype=jnp.bfloat16),
+            np.asarray(0.3, dtype=jnp.bfloat16),
+            np.asarray(0.3, dtype=jnp.bfloat16)[()],
+        ):
+            with pytest.raises(TypeError, match="Python float"):
+                decimal_fraction(bad_bf16)
+            with pytest.raises(TypeError, match="Python float"):
+                conformal_quantile_rank(10, bad_bf16)
 
         q_below_f32 = np.nextafter(np.float32(0.05), np.float32(0.0))
         assert decimal_fraction(q_below_f32) < Fraction(1, 20)
@@ -168,8 +173,9 @@ class TestDecimalRankAndCutoffHelpers:
                 eager_row = discrete_bh_count_thresholds(7, d_int, q=q_val)
                 np.testing.assert_array_equal(np.asarray(traced_mat[idx]), np.asarray(eager_row))
 
-        # Exercise the > 32-bit overflow-free uint32 product branch (max_k * b_num >= 2^32).
-        q_large = 0.7 / 3.0
+        # Exercise the > 32-bit overflow-free uint32 product branch (max_k * b_num >= 2^32):
+        # at m=2000, max_denominator=2000 (max_k=4e6) and q ~ 0.97, b_num ~ 1940 -> 7.76e9 > 2^32.
+        q_large = 0.97 / 1.000001
         large_traced = jax.jit(
             lambda d: discrete_bh_count_thresholds(2000, d, q=q_large, max_denominator=2000)
         )(jnp.int32(1999))
@@ -181,3 +187,7 @@ class TestDecimalRankAndCutoffHelpers:
         ).tolist() == [0, 0, 0, 0, 0]
         with pytest.raises(ValueError, match="max_denominator"):
             jax.jit(lambda d: discrete_bh_count_thresholds(5, d, q=0.1))(jnp.int32(3))
+        with pytest.raises(ValueError, match="2\\*\\*32"):
+            jax.jit(lambda d: discrete_bh_count_thresholds(65536, d, q=0.1, max_denominator=65536))(
+                jnp.int32(10)
+            )

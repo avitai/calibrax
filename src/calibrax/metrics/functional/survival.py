@@ -217,11 +217,12 @@ def reverse_kaplan_meier(
         q_raw = obs_raw.astype(out_dtype)
     else:
         q_check = jnp.asarray(eval_times)
-        out_dtype = (
-            jnp.result_type(obs_f_dtype, eval_times, jnp.float32)
-            if jnp.issubdtype(q_check.dtype, jnp.floating)
-            else jnp.result_type(obs_f_dtype, jnp.float32)
-        )
+        if isinstance(eval_times, int | float):
+            out_dtype = jnp.result_type(obs_f_dtype, eval_times, jnp.float32)
+        elif jnp.issubdtype(q_check.dtype, jnp.floating):
+            out_dtype = jnp.result_type(obs_f_dtype, q_check.dtype, jnp.float32)
+        else:
+            out_dtype = jnp.result_type(obs_f_dtype, jnp.float32)
         q_raw = q_check.astype(out_dtype)
 
     if obs_flat.size == 0:

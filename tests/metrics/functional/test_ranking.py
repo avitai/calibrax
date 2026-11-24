@@ -627,6 +627,10 @@ class TestEnrichmentFactor:
             enrichment_factor(scores_100, rel_rank8, fraction=jnp.asarray(1.5))
         with pytest.raises(TypeError, match="fraction"):
             enrichment_factor(scores_100, rel_rank8, fraction=True)
+        with pytest.raises(TypeError, match="Python float"):
+            enrichment_factor(
+                jnp.zeros(0), jnp.zeros(0), fraction=jnp.asarray(0.3, dtype=jnp.bfloat16)
+            )
         with pytest.raises(TypeError, match="static_argnames"):
             jax.jit(lambda f: enrichment_factor(scores_100, rel_rank8, fraction=f))(
                 jnp.float32(0.07)

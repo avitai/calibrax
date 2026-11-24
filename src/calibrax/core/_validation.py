@@ -13,12 +13,23 @@ def _is_numeric_dtype(dtype: jax.typing.DTypeLike) -> bool:
     return bool(jnp.issubdtype(dtype, jnp.integer) or jnp.issubdtype(dtype, jnp.floating))
 
 
+def _extract_jax_scalar_float(value: jax.Array) -> float | None:
+    """Extract a Python ``float`` from a concrete 0-D numeric :class:`jax.Array`."""
+    if value.ndim != 0 or not _is_numeric_dtype(value.dtype):
+        return None
+    try:
+        return float(value)
+    except jax.errors.ConcretizationTypeError:
+        return None
+
+
 def eager_scalar_float(value: ArrayLike) -> float | None:
     """Extract a Python ``float`` from a concrete numeric scalar or 0-D array.
 
-    Inspects Python scalars, NumPy scalars, 0-D NumPy arrays, and concrete 0-D
-    :class:`jax.Array` values, returning ``None`` for JAX tracers (inside ``jax.jit``,
-    ``jax.vmap``, or ``jax.grad``), booleans, and non-scalar arrays.
+    Inspects Python scalars, NumPy/``ml_dtypes`` ``np.generic`` scalars, 0-D NumPy
+    arrays, and concrete 0-D :class:`jax.Array` values, returning ``None`` for JAX
+    tracers (inside ``jax.jit``, ``jax.vmap``, or ``jax.grad``), booleans, and
+    non-scalar arrays.
 
     Args:
         value: Candidate scalar or array-like parameter.
@@ -28,15 +39,14 @@ def eager_scalar_float(value: ArrayLike) -> float | None:
     """
     if isinstance(value, bool | np.bool_):
         return None
-    if isinstance(value, int | float | np.integer | np.floating):
+    if isinstance(value, int | float):
+        return float(value)
+    if isinstance(value, np.generic) and _is_numeric_dtype(value.dtype):
         return float(value)
     if isinstance(value, np.ndarray) and value.ndim == 0 and _is_numeric_dtype(value.dtype):
         return float(value.item())
-    if isinstance(value, jax.Array) and value.ndim == 0 and _is_numeric_dtype(value.dtype):
-        try:
-            return float(value)
-        except jax.errors.ConcretizationTypeError:
-            return None
+    if isinstance(value, jax.Array):
+        return _extract_jax_scalar_float(value)
     return None
 
 

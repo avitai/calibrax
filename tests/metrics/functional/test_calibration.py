@@ -577,6 +577,10 @@ class TestSelectiveConformalFDR:
         for bool_q in (False, True, np.bool_(False), jnp.array(True)):
             with pytest.raises(TypeError, match="q"):
                 conformal_fdr_selection(jnp.ones(4), jnp.ones(3), q=bool_q)
+        with pytest.raises(TypeError, match="Python float"):
+            conformal_fdr_selection(
+                jnp.zeros(0), jnp.zeros(0), q=jnp.asarray(0.3, dtype=jnp.bfloat16)
+            )
         with pytest.raises(ValueError, match="null_proportion_regime"):
             conformal_fdr_selection(
                 jnp.ones(4),
