@@ -1,7 +1,6 @@
 """Core data models, protocols, and abstractions; each export loads on first use."""
 
 from ._validation import (
-    eager_bool as eager_bool,
     eager_scalar_float as eager_scalar_float,
     validate_scalar_numeric as validate_scalar_numeric,
 )
@@ -106,7 +105,6 @@ __all__ = [
     # result
     "BenchmarkResult",
     # validation
-    "eager_bool",
     "eager_scalar_float",
     "validate_scalar_numeric",
 ]

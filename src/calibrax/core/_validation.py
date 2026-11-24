@@ -1,4 +1,4 @@
-"""Shared eager scalar and boolean extraction helpers for parameter validation."""
+"""Shared eager scalar extraction helpers for parameter validation."""
 
 from __future__ import annotations
 
@@ -38,36 +38,6 @@ def eager_scalar_float(value: ArrayLike) -> float | None:
         except jax.errors.ConcretizationTypeError:
             return None
     return None
-
-
-def eager_bool(predicate: ArrayLike, *, name: str = "predicate") -> bool | None:
-    """Extract a Python ``bool`` from a concrete 0-D boolean value, or ``None`` if traced.
-
-    Args:
-        predicate: Candidate 0-D boolean scalar or JAX boolean array.
-        name: Parameter name used in ``TypeError`` and ``ValueError`` diagnostics.
-
-    Returns:
-        Python ``bool`` when ``predicate`` is concrete, or ``None`` when ``predicate``
-        is a traced :class:`jax.Array` inside a JAX transformation.
-
-    Raises:
-        TypeError: If ``predicate`` does not have boolean dtype.
-        ValueError: If ``predicate`` does not have ``ndim == 0``.
-    """
-    if isinstance(predicate, bool | np.bool_):
-        return bool(predicate)
-    raw = jnp.asarray(predicate)
-    if raw.dtype != jnp.bool_:
-        raise TypeError(f"{name} must have boolean dtype, got {raw.dtype}")
-    if raw.ndim != 0:
-        raise ValueError(f"{name} must be a scalar (0-D), got shape {raw.shape}")
-    if isinstance(predicate, np.ndarray):
-        return bool(predicate.item())
-    try:
-        return bool(raw)
-    except jax.errors.ConcretizationTypeError:
-        return None
 
 
 def validate_scalar_numeric(

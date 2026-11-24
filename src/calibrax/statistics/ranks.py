@@ -27,6 +27,11 @@ from calibrax.core._validation import validate_scalar_numeric
 
 
 _U32_LIMIT = 1 << 32
+_ACCEPTED_FLOAT_SCALARS: dict[np.dtype[np.floating], type[np.floating]] = {
+    np.dtype(np.float64): np.float64,
+    np.dtype(np.float32): np.float32,
+    np.dtype(np.float16): np.float16,
+}
 
 
 def _validate_positive_int(value: int, *, name: str) -> int:
@@ -39,37 +44,49 @@ def _validate_positive_int(value: int, *, name: str) -> int:
     return out
 
 
-def decimal_fraction(value: ArrayLike, *, name: str = "value") -> Fraction:  # noqa: DOC503
+def decimal_fraction(value: ArrayLike, *, name: str = "value") -> Fraction:
     """Convert a concrete numeric scalar to its shortest round-trip decimal ``Fraction``.
 
-    Uses ``str(np.float32(...))`` for 32-bit floating scalars (including concrete 0-D
-    ``float32`` JAX and NumPy arrays) and ``repr(float(...))`` for 64-bit Python and
-    NumPy floats, so ``0.3``, ``np.float32(0.3)``, and ``jnp.asarray(0.3)`` all map
-    to ``Fraction(3, 10)``, while distinct sub-boundary floats such as
-    ``np.nextafter(np.float32(0.05), np.float32(0.0))`` remain strictly below ``1/20``.
+    Formats accepted IEEE-754 binary floating-point scalars (Python ``float``,
+    ``float64``, ``float32``, and ``float16``) with one Dragon4 shortest-unique rule,
+    ``np.format_float_positional(x, unique=True, trim="-")``, so ``0.1`` and ``0.3``
+    in any accepted dtype map to ``Fraction(1, 10)`` and ``Fraction(3, 10)`` while
+    sub-boundary floats such as ``np.nextafter(np.float32(0.05), np.float32(0.0))``
+    stay strictly below ``1/20``. Low-mantissa non-IEEE formats such as ``bfloat16``
+    are refused with ``TypeError`` asking for a Python ``float``.
 
     Args:
-        value: Concrete static numeric scalar.
+        value: Concrete static numeric scalar (``int`` or ``float16``/``float32``/``float64``).
         name: Parameter name used in ``TypeError`` and ``ValueError`` diagnostics.
 
     Returns:
         Exact decimal :class:`fractions.Fraction` representation of ``value``.
 
     Raises:
-        TypeError: If ``value`` is boolean, non-numeric, or a JAX tracer.
+        TypeError: If ``value`` is boolean, non-numeric, a JAX tracer, or uses an
+            unsupported floating-point dtype such as ``bfloat16``.
         ValueError: If ``value`` is non-finite or not a 0-D scalar.
     """
     eager, _ = validate_scalar_numeric(value, name=name, allow_traced=False)
     if eager is None or not math.isfinite(eager):
         raise ValueError(f"{name} must be finite, got {value}")
-    if isinstance(value, int | np.integer):
-        return Fraction(int(value), 1)
-    val_dtype = getattr(value, "dtype", None)
-    if val_dtype == jnp.float32:
-        return Fraction(str(np.float32(eager)))
-    if val_dtype == jnp.float16:
-        return Fraction(str(np.float16(eager)))
-    return Fraction(repr(eager))
+    raw_dtype = getattr(value, "dtype", None)
+    if isinstance(value, int | np.integer) or (
+        raw_dtype is not None and jnp.issubdtype(raw_dtype, jnp.integer)
+    ):
+        return Fraction(int(eager), 1)
+    if isinstance(value, float):
+        scalar = np.float64(eager)
+    else:
+        scalar_cls = (
+            _ACCEPTED_FLOAT_SCALARS.get(np.dtype(raw_dtype)) if raw_dtype is not None else None
+        )
+        if scalar_cls is None:
+            raise TypeError(
+                f"{name} has unsupported floating-point dtype {raw_dtype}; pass a Python float."
+            )
+        scalar = scalar_cls(eager)
+    return Fraction(np.format_float_positional(scalar, unique=True, trim="-"))
 
 
 def _open_unit_fraction(value: ArrayLike, *, name: str) -> Fraction:
