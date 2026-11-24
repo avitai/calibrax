@@ -583,39 +583,95 @@ class TestSelectiveConformalFDR:
         assert traced_q.dtype == jnp.bool_
 
     def test_exact_step_up_threshold_rejects_sub_boundary_q(self) -> None:
-        # 99 null calibration scores of 0.0 and 3 test scores [1.0, -1.0, -1.0]:
-        # conformal p-values are [1/100, 100/100, 100/100] -> exact BH q-values [0.03, 1.0, 1.0].
-        cal = jnp.zeros(99, dtype=jnp.float32)
+        # 59 null calibration scores of 0.0 and 3 test scores [1.0, -1.0, -1.0]:
+        # conformal p-values are [1/60, 60/60, 60/60] -> exact BH q-values [0.05, 1.0, 1.0].
+        cal60 = jnp.zeros(59, dtype=jnp.float32)
         test = jnp.array([1.0, -1.0, -1.0], dtype=jnp.float32)
 
-        assert conformal_fdr_selection(cal, test, q=0.03).tolist() == [True, False, False]
-        assert jax.jit(lambda c, t: conformal_fdr_selection(c, t, q=0.03))(cal, test).tolist() == [
+        assert conformal_fdr_selection(cal60, test, q=0.05).tolist() == [True, False, False]
+        assert conformal_fdr_selection(cal60, test, q=np.float32(0.05)).tolist() == [
+            True,
+            False,
+            False,
+        ]
+        assert jax.jit(lambda c, t: conformal_fdr_selection(c, t, q=0.05))(
+            cal60, test
+        ).tolist() == [
             True,
             False,
             False,
         ]
 
-        q_below_f32 = np.nextafter(np.float32(0.03), np.float32(0.0))
-        assert conformal_fdr_selection(cal, test, q=float(q_below_f32)).tolist() == [
+        q_below_f32 = np.nextafter(np.float32(0.05), np.float32(0.0))
+        assert conformal_fdr_selection(cal60, test, q=float(q_below_f32)).tolist() == [
             False,
             False,
             False,
         ]
-        assert conformal_fdr_selection(cal, test, q=q_below_f32).tolist() == [False, False, False]
-        assert jax.jit(lambda qv: conformal_fdr_selection(cal, test, q=qv))(
+        assert conformal_fdr_selection(cal60, test, q=q_below_f32).tolist() == [False, False, False]
+        assert jax.jit(lambda qv: conformal_fdr_selection(cal60, test, q=qv))(
             jnp.asarray(q_below_f32)
         ).tolist() == [False, False, False]
 
+        # 99 null calibration scores -> exact BH q-value is 3/100. Both float32(0.03) and binary64
+        # 0.03 lie strictly below 3/100, so exact rational comparison rejects 3/100 and matches
+        # traced float32(0.03), whereas nextafter(0.03, 1.0) > 3/100 selects the first item.
+        cal100 = jnp.zeros(99, dtype=jnp.float32)
+        assert conformal_fdr_selection(cal100, test, q=np.float32(0.03)).tolist() == [
+            False,
+            False,
+            False,
+        ]
+        assert jax.jit(lambda qv: conformal_fdr_selection(cal100, test, q=qv))(
+            jnp.float32(0.03)
+        ).tolist() == [False, False, False]
+        assert conformal_fdr_selection(cal100, test, q=0.03).tolist() == [False, False, False]
+        assert conformal_fdr_selection(cal100, test, q=float(np.nextafter(0.03, 1.0))).tolist() == [
+            True,
+            False,
+            False,
+        ]
+
+        # Arbitrarily small q values (whose binary denominators exceed 2^100) must never overflow
+        # limb representations into spurious selections.
+        for tiny_q in (1e-30, 1e-300, float(np.finfo(np.float64).tiny)):
+            assert conformal_fdr_selection(cal60, test, q=tiny_q).tolist() == [
+                False,
+                False,
+                False,
+            ]
+            assert jax.jit(lambda c, t, qv=tiny_q: conformal_fdr_selection(c, t, q=qv))(
+                cal60, test
+            ).tolist() == [False, False, False]
+
+        # Dyadic q = 0.25 (q_num=1, q_den=4) exercises the 32-bit exact integer fast path:
+        # 11 null calibration scores -> denom=12, BH q-values [3/12=0.25, 1.0, 1.0].
+        cal12 = jnp.zeros(11, dtype=jnp.float32)
+        assert conformal_fdr_selection(cal12, test, q=0.25).tolist() == [True, False, False]
+        assert conformal_fdr_selection(
+            cal12, test, q=float(np.nextafter(np.float32(0.25), np.float32(0.0)))
+        ).tolist() == [False, False, False]
+
+        # Concrete float64 q near 1.0 (which rounds to 1.0 in float32) remains valid in (0, 1).
+        assert conformal_fdr_selection(cal12, test, q=float(np.nextafter(1.0, 0.0))).tolist() == [
+            True,
+            False,
+            False,
+        ]
+
         with jax.enable_x64(True):
-            cal64 = jnp.zeros(99, dtype=jnp.float64)
+            cal64 = jnp.zeros(59, dtype=jnp.float64)
             test64 = jnp.array([1.0, -1.0, -1.0], dtype=jnp.float64)
-            q_below_f64 = float(np.nextafter(0.03, 0.0))
-            assert conformal_fdr_selection(cal64, test64, q=0.03).tolist() == [True, False, False]
+            q_below_f64 = float(np.nextafter(0.05, 0.0))
+            assert conformal_fdr_selection(cal64, test64, q=0.05).tolist() == [True, False, False]
             assert conformal_fdr_selection(cal64, test64, q=q_below_f64).tolist() == [
                 False,
                 False,
                 False,
             ]
+            assert jax.jit(lambda qv: conformal_fdr_selection(cal64, test64, q=qv))(
+                jnp.float64(q_below_f64)
+            ).tolist() == [False, False, False]
 
     def test_rank3_nested_vmap_parity(self) -> None:
         rng = np.random.default_rng(2026)

@@ -36,10 +36,10 @@ and uses semantic versioning while the public API stabilizes.
   `cal_null_mask` is supplied (`null_proportion_regime="marginal_null"`, Bates et al.,
   *Ann. Stat.* 2023), preserving finite-sample outlier validity under test-set null-proportion
   shift and returning all-`False` when zero calibration nulls exist, and evaluates the
-  Benjamini-Hochberg step-up condition `(1 + c_(r)) * m <= q * r * denom` via exact integer
-  rational cross-multiplication without division rounding or positive threshold slack; Jin and
-  Candes (*Biometrika* 2023) joint-exchangeable `1 + n_cal` scaling remains available via
-  `null_proportion_regime="joint_iid"`.
+  Benjamini-Hochberg step-up condition `(1 + c_(r)) * m <= q * r * denom` via exact dyadic
+  integer arithmetic for both concrete and traced `q` without division rounding or positive
+  threshold slack; Jin and Candes (*Biometrika* 2023) joint-exchangeable `1 + n_cal` scaling
+  remains available via `null_proportion_regime="joint_iid"`.
 - **Breaking:** `harrell_c_index`, `uno_c_index`, and `censored_coverage_bounds` return `NaN` (or
   `(NaN, NaN)`) when `event_indicator` contains values outside `{0, 1}`.
 - **Breaking:** Unweighted `pearson_correlation`, `spearman_rank_correlation`, `kendall_tau`, and
