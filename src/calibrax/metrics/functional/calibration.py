@@ -13,16 +13,16 @@ conformal_fdr_selection, false_discovery_proportion, empirical_power.
 
 from __future__ import annotations
 
+import fractions
 from typing import Literal
 
 import jax
 import jax.numpy as jnp
 import numpy as np
-from jax.typing import ArrayLike, DTypeLike
+from jax.typing import ArrayLike
 
 from calibrax.core._validation import eager_scalar_float
 from calibrax.metrics._utils import _EPSILON, _prepare_arrays, safe_divide
-from calibrax.statistics.significance import benjamini_hochberg_adjust
 
 
 def _bin_predictions(
@@ -327,6 +327,83 @@ def classwise_ece(
     return jnp.mean(per_class_ece)
 
 
+_MAX_DECIMAL_DENOM = 1_000_000
+_INT32_MAX = (1 << 31) - 1
+_LIMB_BITS = 15
+_LIMB_MASK = (1 << _LIMB_BITS) - 1
+
+
+def _mul_u31_by_u75_limbs(x: jax.Array, c: int) -> tuple[jax.Array, ...]:
+    """Exact product of non-negative ``int32`` ``x`` and ``0 <= c < 2^75`` as MSB-first limbs."""
+    x_u = x.astype(jnp.uint32)
+    x_limbs = [(x_u >> jnp.uint32(_LIMB_BITS * i)) & jnp.uint32(_LIMB_MASK) for i in range(3)]
+    c_limbs = [jnp.uint32((c >> (_LIMB_BITS * j)) & _LIMB_MASK) for j in range(5)]
+    acc = [jnp.zeros_like(x_u) for _ in range(8)]
+    for i, xi in enumerate(x_limbs):
+        for j, cj in enumerate(c_limbs):
+            acc[i + j] = acc[i + j] + xi * cj
+    out: list[jax.Array] = []
+    carry = jnp.zeros_like(x_u)
+    for limb in acc:
+        total = limb + carry
+        out.append(total & jnp.uint32(_LIMB_MASK))
+        carry = total >> jnp.uint32(_LIMB_BITS)
+    return tuple(reversed(out))
+
+
+def _limbs_le(lhs: tuple[jax.Array, ...], rhs: tuple[jax.Array, ...]) -> jax.Array:
+    """Element-wise lexicographic ``lhs <= rhs`` over MSB-first unsigned limbs."""
+    lt = jnp.zeros(lhs[0].shape, dtype=bool)
+    gt = jnp.zeros(lhs[0].shape, dtype=bool)
+    for l_limb, r_limb in zip(lhs, rhs, strict=True):
+        undecided = ~(lt | gt)
+        lt = lt | (undecided & (l_limb < r_limb))
+        gt = gt | (undecided & (l_limb > r_limb))
+    return ~gt
+
+
+def _eager_q_rational(q: ArrayLike, eager_q: float) -> tuple[int, int]:
+    """Exact ``(numerator, denominator)`` for concrete ``q`` preserving decimal literals."""
+    q_item = q.item() if isinstance(q, np.ndarray) and q.ndim == 0 else q
+    text = (
+        str(q_item) if isinstance(q_item, int | float | np.integer | np.floating) else str(eager_q)
+    )
+    dec = fractions.Fraction(text)
+    if dec.denominator <= _MAX_DECIMAL_DENOM:
+        return dec.numerator, dec.denominator
+    return eager_q.as_integer_ratio()
+
+
+def _step_up_max_count(
+    one_plus_c: jax.Array,
+    denom: jax.Array,
+    *,
+    n_cal: int,
+    q: ArrayLike,
+    q_raw: jax.Array,
+    eager_q: float | None,
+    p_dtype: jnp.dtype,
+) -> jax.Array:
+    """Largest ``1 + c_(r)`` satisfying ``(1 + c_(r)) * m <= q * r * denom``."""
+    m = one_plus_c.size
+    sorted_opc = jnp.sort(one_plus_c)
+    if eager_q is not None:
+        q_num, q_den = _eager_q_rational(q, eager_q)
+        ranks_i32 = jnp.arange(1, m + 1, dtype=jnp.int32)
+        max_bound = max(q_num, q_den) * m * (1 + n_cal)
+        if max_bound <= _INT32_MAX:
+            ok = sorted_opc * jnp.int32(m * q_den) <= ranks_i32 * jnp.int32(q_num) * denom
+        else:
+            lhs_limbs = _mul_u31_by_u75_limbs(sorted_opc * jnp.int32(m), q_den)
+            rhs_limbs = _mul_u31_by_u75_limbs(ranks_i32 * denom, q_num)
+            ok = _limbs_le(lhs_limbs, rhs_limbs)
+    else:
+        ranks_f = jnp.arange(1, m + 1, dtype=p_dtype)
+        lhs_f = sorted_opc.astype(p_dtype) * jnp.asarray(float(m), dtype=p_dtype)
+        ok = lhs_f <= q_raw.astype(p_dtype) * (ranks_f * denom.astype(p_dtype))
+    return jnp.max(jnp.where(ok, sorted_opc, 0))
+
+
 def _conformal_null_counts(
     cal_sorted: jax.Array,
     order: jax.Array,
@@ -334,11 +411,10 @@ def _conformal_null_counts(
     null_mask: jax.Array | None,
     *,
     regime: Literal["marginal_null", "joint_iid"],
-    p_dtype: DTypeLike,
 ) -> tuple[jax.Array, jax.Array, jax.Array]:
     """Compute ``(ge_count, denominator, has_nulls)`` for conformal p-values."""
     pos = jnp.searchsorted(cal_sorted, test_flat, side="left")
-    full_denom = jnp.asarray(1.0 + float(cal_sorted.size), dtype=p_dtype)
+    full_denom = jnp.asarray(1 + cal_sorted.size, dtype=jnp.int32)
     if null_mask is None:
         return cal_sorted.size - pos, full_denom, jnp.array(True)
 
@@ -351,8 +427,7 @@ def _conformal_null_counts(
         return ge_count, full_denom, jnp.array(True)
 
     n_cal_null = suffix_null[0]
-    denom = jnp.asarray(1.0, dtype=p_dtype) + n_cal_null.astype(p_dtype)
-    return ge_count, denom, n_cal_null > 0
+    return ge_count, 1 + n_cal_null, n_cal_null > 0
 
 
 def conformal_fdr_selection(
@@ -439,18 +514,22 @@ def conformal_fdr_selection(
         test_flat,
         null_mask,
         regime=null_proportion_regime,
-        p_dtype=p_dtype,
     )
 
-    one = jnp.asarray(1.0, dtype=p_dtype)
-    raw_p = (one + ge_count.astype(p_dtype)) / denom
-    has_nan = jnp.isnan(test_flat) | jnp.any(jnp.isnan(cal))
-    p_vals = jnp.where(has_nan, jnp.asarray(jnp.nan, dtype=p_dtype), raw_p)
-    q_vals = benjamini_hochberg_adjust(p_vals)
-    q_arr = jnp.asarray(q, dtype=p_dtype)
-    valid_q = (q_arr > 0.0) & (q_arr < 1.0) & has_nulls
-    q_bound = q_arr + 4.0 * jnp.finfo(p_dtype).eps * q_arr
-    return (valid_q & (q_vals <= q_bound)).reshape(test.shape)
+    one_plus_c = 1 + ge_count
+    max_opc = _step_up_max_count(
+        one_plus_c,
+        denom,
+        n_cal=cal.size,
+        q=q,
+        q_raw=q_raw,
+        eager_q=eager_q,
+        p_dtype=p_dtype,
+    )
+    q_arr = q_raw.astype(p_dtype)
+    has_nan = jnp.any(jnp.isnan(test_flat)) | jnp.any(jnp.isnan(cal))
+    valid_q = (q_arr > 0.0) & (q_arr < 1.0) & has_nulls & (~has_nan)
+    return (valid_q & (one_plus_c <= max_opc)).reshape(test.shape)
 
 
 def false_discovery_proportion(selected: ArrayLike, is_null: ArrayLike) -> jax.Array:

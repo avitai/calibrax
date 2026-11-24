@@ -582,6 +582,41 @@ class TestSelectiveConformalFDR:
         assert traced_q.shape == (2, 4)
         assert traced_q.dtype == jnp.bool_
 
+    def test_exact_step_up_threshold_rejects_sub_boundary_q(self) -> None:
+        # 99 null calibration scores of 0.0 and 3 test scores [1.0, -1.0, -1.0]:
+        # conformal p-values are [1/100, 100/100, 100/100] -> exact BH q-values [0.03, 1.0, 1.0].
+        cal = jnp.zeros(99, dtype=jnp.float32)
+        test = jnp.array([1.0, -1.0, -1.0], dtype=jnp.float32)
+
+        assert conformal_fdr_selection(cal, test, q=0.03).tolist() == [True, False, False]
+        assert jax.jit(lambda c, t: conformal_fdr_selection(c, t, q=0.03))(cal, test).tolist() == [
+            True,
+            False,
+            False,
+        ]
+
+        q_below_f32 = np.nextafter(np.float32(0.03), np.float32(0.0))
+        assert conformal_fdr_selection(cal, test, q=float(q_below_f32)).tolist() == [
+            False,
+            False,
+            False,
+        ]
+        assert conformal_fdr_selection(cal, test, q=q_below_f32).tolist() == [False, False, False]
+        assert jax.jit(lambda qv: conformal_fdr_selection(cal, test, q=qv))(
+            jnp.asarray(q_below_f32)
+        ).tolist() == [False, False, False]
+
+        with jax.enable_x64(True):
+            cal64 = jnp.zeros(99, dtype=jnp.float64)
+            test64 = jnp.array([1.0, -1.0, -1.0], dtype=jnp.float64)
+            q_below_f64 = float(np.nextafter(0.03, 0.0))
+            assert conformal_fdr_selection(cal64, test64, q=0.03).tolist() == [True, False, False]
+            assert conformal_fdr_selection(cal64, test64, q=q_below_f64).tolist() == [
+                False,
+                False,
+                False,
+            ]
+
     def test_rank3_nested_vmap_parity(self) -> None:
         rng = np.random.default_rng(2026)
         cal_np = rng.normal(size=(7, 5, 16)).astype(np.float32)
