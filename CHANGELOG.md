@@ -27,10 +27,11 @@ and uses semantic versioning while the public API stabilizes.
   adding source-level contract checks over Flax NNX rules, installed framework premises, and
   import-time side effects.
 - **Breaking:** `enrichment_factor` defines the top-fraction cutoff as
-  `k = min(N, max(1, ceil(N * fraction)))` (Riniker and Landrum, *J. Cheminf.* 2013) through one
-  ULP-guarded floating-point ceiling shared by eager calls and `jax.jit`, avoiding binary
-  representation overshoot on exact multiples (`0.07 * 100`, `0.29 * 100`, `0.1 + 0.2`), and
-  validates NumPy scalar `fraction` bounds consistently with Python scalars.
+  `k = min(N, max(1, ceil(N * fraction)))` (Riniker and Landrum, *J. Cheminf.* 2013), evaluating
+  concrete scalar `fraction` cutoffs in ULP-guarded `float64` (accurate up to `N ~ 10^13`,
+  avoiding binary representation overshoot on exact multiples such as `0.07 * 100`, `0.29 * 100`,
+  and `0.1 + 0.2` where RDKit's unguarded `math.ceil(numMol * f)` rounds `0.07 * 100` to `8`),
+  while traced `float32` `fraction` inputs carry `float32` mantissa precision (`N <= ~2e6`).
 - **Breaking:** `conformal_fdr_selection` normalizes conformal p-values by `1 + n_cal_null` when
   `cal_null_mask` is supplied (`null_proportion_regime="marginal_null"`, Bates et al.,
   *Ann. Stat.* 2023), preserving finite-sample outlier validity under test-set null-proportion

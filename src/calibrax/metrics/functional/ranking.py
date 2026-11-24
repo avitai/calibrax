@@ -12,10 +12,12 @@ bedroc, enrichment_factor, sequential_discovery_nauc, sequential_shortfall.
 from __future__ import annotations
 
 import functools
+import math
 from typing import NamedTuple
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 from jax import lax
 from jax.typing import ArrayLike
 
@@ -416,9 +418,11 @@ def enrichment_factor(
 
     Ratio of tie-averaged precision among the top ``k = min(N, max(1, ceil(fraction * N)))``
     ranked items (Riniker and Landrum, J. Cheminf. 2013; McSherry and Najork, ECIR 2008)
-    to the library base rate ``n_actives / N``. Evaluates the ULP-guarded ceiling on the
-    resolved floating-point product so eager calls and ``jax.jit`` share one exact cutoff
-    identity without binary representation overshoot at exact multiples such as ``0.07 * 100``.
+    to the library base rate ``n_actives / N``. Concrete scalar ``fraction`` cutoffs are
+    evaluated in ``float64`` with a ULP guard (accurate up to ``N ~ 10^13`` without binary
+    representation overshoot on exact multiples such as ``0.07 * 100 -> 7``, where RDKit's
+    unguarded ``math.ceil(numMol * f)`` yields ``8``), while traced ``float32`` ``fraction``
+    arrays carry ``float32`` mantissa precision (``N <= ~2e6``).
 
     Note:
         Direction: HIGHER (values above 1.0 outperform random selection).
@@ -451,14 +455,21 @@ def enrichment_factor(
 
     ranking = _tied_ranking(s, r)
     n_items = jnp.asarray(float(s.size), dtype=out_dtype)
-    frac = frac_raw.astype(out_dtype)
-    valid_frac = (frac > 0.0) & (frac <= 1.0)
     one = jnp.asarray(1.0, dtype=out_dtype)
-    prod = jnp.where(valid_frac, frac, one) * n_items
-    k = jnp.clip(jnp.ceil(prod - 4.0 * jnp.finfo(out_dtype).eps * prod), one, n_items)
-    hits = jnp.sum(
-        jnp.where(ranking.position.astype(out_dtype) < k, _expected_relevance(ranking), 0.0)
-    )
+    if eager_frac is not None and not math.isnan(eager_frac):
+        prod64 = eager_frac * float(s.size)
+        eps64 = float(np.finfo(np.float64).eps)
+        k_int = min(s.size, max(1, math.ceil(prod64 - 4.0 * eps64 * prod64)))
+        k = jnp.asarray(float(k_int), dtype=out_dtype)
+        in_top_k = ranking.position < k_int
+        valid_frac = jnp.array(True)
+    else:
+        frac = frac_raw.astype(out_dtype)
+        valid_frac = (frac > 0.0) & (frac <= 1.0)
+        prod = jnp.where(valid_frac, frac, one) * n_items
+        k = jnp.clip(jnp.ceil(prod - 4.0 * jnp.finfo(out_dtype).eps * prod), one, n_items)
+        in_top_k = ranking.position.astype(out_dtype) < k
+    hits = jnp.sum(jnp.where(in_top_k, _expected_relevance(ranking), 0.0))
     n_actives = jnp.sum(ranking.relevance).astype(out_dtype)
     has_nan = jnp.any(jnp.isnan(s)) | jnp.any(jnp.isnan(r))
     valid = (~has_nan) & valid_frac & (n_actives > 0.0)
