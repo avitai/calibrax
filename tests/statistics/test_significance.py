@@ -227,6 +227,20 @@ class TestBenjaminiHochbergAdjust:
             expected_row = false_discovery_control(np.asarray(batch[row_idx], dtype=np.float64))
             np.testing.assert_allclose(np.asarray(vmapped[row_idx]), expected_row, atol=1e-6)
 
+        seq_list = benjamini_hochberg_adjust([0.01, 0.04, 0.2])  # type: ignore[arg-type]
+        seq_tuple = benjamini_hochberg_adjust((0.01, 0.04, 0.2))  # type: ignore[arg-type]
+        expected_seq = false_discovery_control(np.array([0.01, 0.04, 0.2], dtype=np.float64))
+        np.testing.assert_allclose(np.asarray(seq_list), expected_seq, atol=1e-6)
+        np.testing.assert_allclose(np.asarray(seq_tuple), expected_seq, atol=1e-6)
+
+        with jax.enable_x64(True):
+            assert benjamini_hochberg_adjust(jnp.array([0.01, 0.2], dtype=jnp.float32)).dtype == (
+                jnp.float32
+            )
+            assert benjamini_hochberg_adjust(jnp.array([0.01, 0.2], dtype=jnp.float64)).dtype == (
+                jnp.float64
+            )
+
 
 class TestAlphaInvesting:
     """Foster and Stine (JRSS-B 2008) sequential mFDR control."""
@@ -261,12 +275,49 @@ class TestAlphaInvesting:
         assert empty_res.thresholds.shape == (0,)
         assert empty_res.wealth.shape == (0,)
 
-        with pytest.raises(ValueError, match="wealth"):
-            alpha_investing(jnp.array([0.01]), wealth=0.0)
-        with pytest.raises(ValueError, match="pay_out"):
-            alpha_investing(jnp.array([0.01]), pay_out=-0.01)
-        with pytest.raises(ValueError, match="invest_fraction"):
-            alpha_investing(jnp.array([0.01]), invest_fraction=1.0)
+        for bad_w in (0.0, -0.1, float("nan"), np.array(-1.0, dtype=np.float32), np.array(np.nan)):
+            with pytest.raises(ValueError, match="wealth"):
+                alpha_investing(jnp.array([0.01]), wealth=bad_w)
+        for bad_p in (0.0, -0.01, float("nan"), np.array(-0.5, dtype=np.float32), np.array(np.nan)):
+            with pytest.raises(ValueError, match="pay_out"):
+                alpha_investing(jnp.array([0.01]), pay_out=bad_p)
+        for bad_g in (
+            0.0,
+            1.0,
+            1.5,
+            float("nan"),
+            np.array(1.5, dtype=np.float32),
+            np.array(np.nan),
+        ):
+            with pytest.raises(ValueError, match="invest_fraction"):
+                alpha_investing(jnp.array([0.01]), invest_fraction=bad_g)
+
+        seq_ai = alpha_investing([0.01, 0.20, 0.50])  # type: ignore[arg-type]
+        tup_ai = alpha_investing((0.01, 0.20, 0.50))  # type: ignore[arg-type]
+        assert seq_ai.rejected.tolist() == [True, False, False]
+        assert tup_ai.rejected.tolist() == [True, False, False]
+
+        traced_ai = jax.jit(
+            jax.vmap(
+                lambda w, po, g: alpha_investing(
+                    jnp.array([0.01, 0.20], dtype=jnp.float32),
+                    wealth=w,
+                    pay_out=po,
+                    invest_fraction=g,
+                )
+            )
+        )(
+            jnp.array([0.05, 0.10], dtype=jnp.float32),
+            jnp.array([0.05, 0.05], dtype=jnp.float32),
+            jnp.array([0.5, 0.5], dtype=jnp.float32),
+        )
+        assert traced_ai.rejected.shape == (2, 2)
+
+        with jax.enable_x64(True):
+            ai32 = alpha_investing(jnp.array([0.01, 0.2], dtype=jnp.float32))
+            ai64 = alpha_investing(jnp.array([0.01, 0.2], dtype=jnp.float64))
+            assert ai32.wealth.dtype == jnp.float32
+            assert ai64.wealth.dtype == jnp.float64
 
         counter = TraceCounter()
         compiled = jax.jit(counter.wrap(alpha_investing))

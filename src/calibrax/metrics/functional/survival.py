@@ -11,9 +11,10 @@ from __future__ import annotations
 
 import jax
 import jax.numpy as jnp
-import numpy as np
 from jax import lax
 from jax.typing import ArrayLike
+
+from calibrax.core._validation import eager_scalar_float
 
 
 def _concordance_score_matrix(predictions: jax.Array) -> jax.Array:
@@ -79,24 +80,28 @@ def harrell_c_index(
     if upper is not None and event_indicator is not None:
         raise ValueError("Cannot specify both upper and event_indicator")
 
-    out_dtype = (
-        jnp.result_type(predictions, lower, jnp.float32)
-        if upper is None
-        else jnp.result_type(predictions, lower, upper, jnp.float32)
-    )
-    pred = jnp.asarray(predictions, dtype=out_dtype).ravel()
-    lo = jnp.asarray(lower, dtype=out_dtype).ravel()
-    if pred.size != lo.size:
+    pred_raw = jnp.asarray(predictions).ravel()
+    lo_raw = jnp.asarray(lower).ravel()
+    if pred_raw.size != lo_raw.size:
         raise ValueError(
-            f"Shape mismatch: predictions has {pred.size} elements, lower has {lo.size}"
+            f"Shape mismatch: predictions has {pred_raw.size} elements, lower has {lo_raw.size}"
         )
 
     if upper is not None:
-        hi = jnp.asarray(upper, dtype=out_dtype).ravel()
-        if hi.size != lo.size:
-            raise ValueError(f"Shape mismatch: lower has {lo.size} elements, upper has {hi.size}")
+        hi_raw = jnp.asarray(upper).ravel()
+        if hi_raw.size != lo_raw.size:
+            raise ValueError(
+                f"Shape mismatch: lower has {lo_raw.size} elements, upper has {hi_raw.size}"
+            )
+        out_dtype = jnp.result_type(pred_raw.dtype, lo_raw.dtype, hi_raw.dtype, jnp.float32)
+        pred = pred_raw.astype(out_dtype)
+        lo = lo_raw.astype(out_dtype)
+        hi = hi_raw.astype(out_dtype)
         valid_ev = jnp.array(True)
     elif event_indicator is not None:
+        out_dtype = jnp.result_type(pred_raw.dtype, lo_raw.dtype, jnp.float32)
+        pred = pred_raw.astype(out_dtype)
+        lo = lo_raw.astype(out_dtype)
         ev, valid_ev = _validate_binary_events(event_indicator)
         if ev.size != lo.size:
             raise ValueError(
@@ -104,6 +109,9 @@ def harrell_c_index(
             )
         hi = jnp.where(ev, lo, jnp.asarray(jnp.inf, dtype=out_dtype))
     else:
+        out_dtype = jnp.result_type(pred_raw.dtype, lo_raw.dtype, jnp.float32)
+        pred = pred_raw.astype(out_dtype)
+        lo = lo_raw.astype(out_dtype)
         hi = lo
         valid_ev = jnp.array(True)
 
@@ -198,23 +206,23 @@ def uno_c_index(
     Raises:
         ValueError: If input lengths differ or eager ``horizon`` is not positive.
     """
-    if (
-        horizon is not None
-        and isinstance(horizon, int | float | np.number)
-        and not isinstance(horizon, jax.Array)
-        and float(horizon) <= 0.0
-    ):
-        raise ValueError(f"horizon must be positive, got {horizon}")
+    pred_raw = jnp.asarray(scores).ravel()
+    time_raw = jnp.asarray(observed_time).ravel()
+    if horizon is None:
+        out_dtype = jnp.result_type(pred_raw.dtype, time_raw.dtype, jnp.float32)
+        tau = None
+    else:
+        eager_horizon = eager_scalar_float(horizon)
+        if eager_horizon is not None and eager_horizon <= 0.0:
+            raise ValueError(f"horizon must be positive, got {horizon}")
+        tau_raw = jnp.asarray(horizon)
+        out_dtype = jnp.result_type(pred_raw.dtype, time_raw.dtype, tau_raw, jnp.float32)
+        tau = tau_raw.astype(out_dtype)
 
-    out_dtype = (
-        jnp.result_type(scores, observed_time, jnp.float32)
-        if horizon is None
-        else jnp.result_type(scores, observed_time, horizon, jnp.float32)
-    )
-    pred = jnp.asarray(scores, dtype=out_dtype).ravel()
-    time = jnp.asarray(observed_time, dtype=out_dtype).ravel()
+    pred = pred_raw.astype(out_dtype)
+    time = time_raw.astype(out_dtype)
     ev, valid_ev = _validate_binary_events(event_indicator)
-    if not (pred.size == time.size == ev.size):
+    if pred.size != time.size or time.size != ev.size:
         raise ValueError(
             f"Shape mismatch: scores={pred.size}, observed_time={time.size}, "
             f"event_indicator={ev.size}"
@@ -230,11 +238,10 @@ def uno_c_index(
     ipcw_ord = 1.0 / (safe_g_ord * safe_g_ord)
     ipcw = jnp.zeros_like(time).at[order].set(ipcw_ord)
 
-    if horizon is None:
+    if tau is None:
         within_tau = jnp.ones_like(ev)
         valid_tau = jnp.array(True)
     else:
-        tau = jnp.asarray(horizon, dtype=out_dtype)
         within_tau = time < tau
         valid_tau = (tau > 0.0) & (~jnp.any(jnp.isnan(tau)))
 
@@ -279,9 +286,11 @@ def censored_coverage_bounds(
     Raises:
         ValueError: If input lengths do not match.
     """
-    out_dtype = jnp.result_type(lower_pred, observed_time, jnp.float32)
-    lo = jnp.asarray(lower_pred, dtype=out_dtype).ravel()
-    obs = jnp.asarray(observed_time, dtype=out_dtype).ravel()
+    lo_raw = jnp.asarray(lower_pred).ravel()
+    obs_raw = jnp.asarray(observed_time).ravel()
+    out_dtype = jnp.result_type(lo_raw.dtype, obs_raw.dtype, jnp.float32)
+    lo = lo_raw.astype(out_dtype)
+    obs = obs_raw.astype(out_dtype)
     ev, valid_ev = _validate_binary_events(event_indicator)
     if not (lo.size == obs.size == ev.size):
         raise ValueError(

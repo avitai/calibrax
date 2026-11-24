@@ -520,6 +520,27 @@ class TestBEDROC:
             bedroc(scores, jnp.array([1.0, 0.0, 0.0]), alpha=-5.0)
         with pytest.raises(ValueError, match="alpha"):
             bedroc(scores, jnp.array([1.0, 0.0, 0.0]), alpha=np.float32(-1.0))
+        with pytest.raises(ValueError, match="alpha"):
+            bedroc(scores, jnp.array([1.0, 0.0, 0.0]), alpha=np.array(-1.0, dtype=np.float32))
+
+    def test_sequence_inputs_traced_alpha_and_dtype_preservation(self) -> None:
+        val_list = bedroc([3.0, 2.0, 1.0], [1, 0, 0], alpha=20.0)  # type: ignore[arg-type]
+        val_tuple = bedroc((3.0, 2.0, 1.0), (1, 0, 0), alpha=20.0)  # type: ignore[arg-type]
+        assert float(val_list) == pytest.approx(1.0, abs=1e-6)
+        assert float(val_tuple) == pytest.approx(1.0, abs=1e-6)
+
+        scores = jnp.array([3.0, 2.0, 1.0], dtype=jnp.float32)
+        rel = jnp.array([1.0, 0.0, 0.0], dtype=jnp.float32)
+        traced = jax.jit(jax.vmap(lambda a: bedroc(scores, rel, alpha=a)))(
+            jnp.array([10.0, 20.0], dtype=jnp.float32)
+        )
+        np.testing.assert_allclose(np.asarray(traced), np.array([1.0, 1.0]), atol=1e-6)
+
+        with jax.enable_x64(True):
+            out_f32 = bedroc(scores, rel, alpha=20.0)
+            out_f64 = bedroc(scores.astype(jnp.float64), rel.astype(jnp.float64), alpha=20.0)
+            assert out_f32.dtype == jnp.float32
+            assert out_f64.dtype == jnp.float64
 
     def test_jit_and_vmap_trace_once(self) -> None:
         counter = TraceCounter()
@@ -666,6 +687,27 @@ class TestEnrichmentFactor:
         ):
             with pytest.raises(ValueError, match="fraction"):
                 enrichment_factor(jnp.array([2.0, 1.0]), jnp.array([1, 0]), fraction=bad_frac)
+
+        assert float(
+            enrichment_factor([3.0, 2.0, 1.0], (1, 0, 0), fraction=0.5)  # type: ignore[arg-type]
+        ) == pytest.approx(1.5, abs=1e-6)
+        with jax.enable_x64(True):
+            assert (
+                enrichment_factor(
+                    jnp.array([3.0, 2.0, 1.0], dtype=jnp.float32),
+                    jnp.array([1.0, 0.0, 0.0], dtype=jnp.float32),
+                    fraction=0.5,
+                ).dtype
+                == jnp.float32
+            )
+            assert (
+                enrichment_factor(
+                    jnp.array([3.0, 2.0, 1.0], dtype=jnp.float64),
+                    jnp.array([1.0, 0.0, 0.0], dtype=jnp.float64),
+                    fraction=0.5,
+                ).dtype
+                == jnp.float64
+            )
 
         nan_scores = jnp.array([jnp.nan, 3.0, 2.0, 1.0], dtype=jnp.float32)
         rel_valid = jnp.array([0.0, 1.0, 0.0, 0.0], dtype=jnp.float32)

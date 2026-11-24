@@ -538,10 +538,19 @@ class TestSelectiveConformalFDR:
         assert np.isnan(float(empirical_power(empty, empty)))
 
     def test_validation_and_jit_vmap_compatibility(self) -> None:
-        with pytest.raises(ValueError, match="q must be in"):
-            conformal_fdr_selection(jnp.ones(4), jnp.ones(3), q=0.0)
-        with pytest.raises(ValueError, match="q must be in"):
-            conformal_fdr_selection(jnp.ones(4), jnp.ones(3), q=np.float32(1.0))
+        for bad_q in (
+            0.0,
+            1.0,
+            -0.2,
+            1.5,
+            float("nan"),
+            np.float32(1.0),
+            np.array(1.5, dtype=np.float32),
+            np.array(-0.1, dtype=np.float64),
+            np.array(np.nan, dtype=np.float32),
+        ):
+            with pytest.raises(ValueError, match="q must be in"):
+                conformal_fdr_selection(jnp.ones(4), jnp.ones(3), q=bad_q)
         with pytest.raises(ValueError, match="null_proportion_regime"):
             conformal_fdr_selection(
                 jnp.ones(4),
@@ -555,11 +564,23 @@ class TestSelectiveConformalFDR:
         with pytest.raises(ValueError, match="Shape mismatch"):
             empirical_power(jnp.ones(2, dtype=bool), jnp.ones(3, dtype=bool))
 
+        sel_seq = conformal_fdr_selection([0.0, 0.1, 0.2, 0.3], (5.0, -1.0), q=0.5)  # type: ignore[arg-type]
+        sel_tup = conformal_fdr_selection((0.0, 0.1, 0.2, 0.3), [5.0, -1.0], q=0.5)  # type: ignore[arg-type]
+        assert sel_seq.tolist() == [True, False]
+        assert sel_tup.tolist() == [True, False]
+
         cal = jnp.linspace(-2.0, 1.0, 32, dtype=jnp.float32)
         test_batch = jnp.array([[2.0, 2.5, -1.0, 0.0], [-1.5, -0.5, 0.2, 3.0]], dtype=jnp.float32)
         vmapped = jax.jit(jax.vmap(lambda ts: conformal_fdr_selection(cal, ts, q=0.2)))(test_batch)
         assert vmapped.shape == (2, 4)
         assert vmapped.dtype == jnp.bool_
+
+        q_grid = jnp.array([0.05, 0.30], dtype=jnp.float32)
+        traced_q = jax.jit(
+            jax.vmap(lambda q_val: conformal_fdr_selection(cal, test_batch[0], q=q_val))
+        )(q_grid)
+        assert traced_q.shape == (2, 4)
+        assert traced_q.dtype == jnp.bool_
 
     def test_rank3_nested_vmap_parity(self) -> None:
         rng = np.random.default_rng(2026)

@@ -20,6 +20,7 @@ import jax.numpy as jnp
 import numpy as np
 from jax.typing import ArrayLike, DTypeLike
 
+from calibrax.core._validation import eager_scalar_float
 from calibrax.metrics._utils import _EPSILON, _prepare_arrays, safe_divide
 from calibrax.statistics.significance import benjamini_hochberg_adjust
 
@@ -399,11 +400,8 @@ def conformal_fdr_selection(
         ValueError: If eager ``q`` lies outside ``(0, 1)``, ``cal_null_mask`` differs
             in length from ``cal_scores``, or ``null_proportion_regime`` is unrecognized.
     """
-    if (
-        isinstance(q, int | float | np.number)
-        and not isinstance(q, jax.Array)
-        and not (0.0 < float(q) < 1.0)
-    ):
+    eager_q = eager_scalar_float(q)
+    if eager_q is not None and not (0.0 < eager_q < 1.0):
         raise ValueError(f"q must be in (0, 1), got {q}")
     if null_proportion_regime not in ("marginal_null", "joint_iid"):
         raise ValueError(
@@ -411,10 +409,13 @@ def conformal_fdr_selection(
             f"got {null_proportion_regime!r}"
         )
 
-    score_dtype = jnp.result_type(cal_scores, test_scores, jnp.float32)
-    p_dtype = jnp.result_type(score_dtype, q, jnp.float32)
-    cal = jnp.asarray(cal_scores, dtype=score_dtype).ravel()
-    test = jnp.asarray(test_scores, dtype=score_dtype)
+    cal_raw = jnp.asarray(cal_scores)
+    test_raw = jnp.asarray(test_scores)
+    q_raw = jnp.asarray(q)
+    score_dtype = jnp.result_type(cal_raw.dtype, test_raw.dtype, jnp.float32)
+    p_dtype = jnp.result_type(score_dtype, q_raw, jnp.float32)
+    cal = cal_raw.astype(score_dtype).ravel()
+    test = test_raw.astype(score_dtype)
     test_flat = test.ravel()
 
     if cal_null_mask is not None:

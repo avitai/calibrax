@@ -16,10 +16,10 @@ from typing import NamedTuple
 
 import jax
 import jax.numpy as jnp
-import numpy as np
 from jax import lax
 from jax.typing import ArrayLike
 
+from calibrax.core._validation import eager_scalar_float
 from calibrax.metrics._utils import _EPSILON
 
 
@@ -335,17 +335,6 @@ def coverage(items: ArrayLike, *, catalog_size: int) -> jax.Array:
     return jnp.count_nonzero(counts) / catalog_size
 
 
-def _eager_scalar_float(value: ArrayLike) -> float | None:
-    """Extract a Python float from an eager Python/NumPy scalar or 0-D NumPy array."""
-    if isinstance(value, jax.Array):
-        return None
-    if isinstance(value, int | float | np.number):
-        return float(value)
-    if isinstance(value, np.ndarray) and value.ndim == 0:
-        return float(value.item())
-    return None
-
-
 def bedroc(
     scores: ArrayLike,
     relevance: ArrayLike,
@@ -362,7 +351,7 @@ def bedroc(
     ``float32`` at large ``alpha``.
 
     Note:
-        Direction: HIGHER (1.0 = all active items ranked ahead of all inactive items).
+        Direction: HIGHER (1.0 = perfect ranking, all active items ahead of inactive items).
         Range: [0, 1]. ``NaN`` when the list is empty, contains ``NaN`` values, or
         contains only actives or only inactives (where ``RIE_max == RIE_min``).
 
@@ -377,21 +366,22 @@ def bedroc(
     Raises:
         ValueError: If ``scores`` and ``relevance`` differ in size or eager ``alpha <= 0``.
     """
-    eager_alpha = _eager_scalar_float(alpha)
+    eager_alpha = eager_scalar_float(alpha)
     if eager_alpha is not None and eager_alpha <= 0.0:
         raise ValueError(f"alpha must be positive, got {alpha}")
     s = jnp.asarray(scores).ravel()
     r = jnp.asarray(relevance).ravel()
     if s.size != r.size:
         raise ValueError(f"Shape mismatch: scores has {s.size} elements, relevance has {r.size}")
-    out_dtype = jnp.result_type(s.dtype, r.dtype, alpha, jnp.float32)
+    alpha_raw = jnp.asarray(alpha)
+    out_dtype = jnp.result_type(s.dtype, r.dtype, alpha_raw, jnp.float32)
     if s.size == 0:
         return jnp.array(jnp.nan, dtype=out_dtype)
 
     ranking = _tied_ranking(s, r)
     n_items = jnp.asarray(float(s.size), dtype=out_dtype)
     n_actives = jnp.sum(ranking.relevance).astype(out_dtype)
-    alpha_arr = jnp.asarray(alpha, dtype=out_dtype)
+    alpha_arr = alpha_raw.astype(out_dtype)
     has_nan = jnp.any(jnp.isnan(s)) | jnp.any(jnp.isnan(r)) | jnp.any(jnp.isnan(alpha_arr))
     valid = (~has_nan) & (n_actives > 0.0) & (n_actives < n_items) & (alpha_arr > 0.0)
 
@@ -447,20 +437,21 @@ def enrichment_factor(
         ValueError: If ``scores`` and ``relevance`` differ in size or eager ``fraction``
             lies outside ``(0, 1]``.
     """
-    eager_frac = _eager_scalar_float(fraction)
+    eager_frac = eager_scalar_float(fraction)
     if eager_frac is not None and (eager_frac <= 0.0 or eager_frac > 1.0):
         raise ValueError(f"fraction must be in (0, 1], got {fraction}")
     s = jnp.asarray(scores).ravel()
     r = jnp.asarray(relevance).ravel()
     if s.size != r.size:
         raise ValueError(f"Shape mismatch: scores has {s.size} elements, relevance has {r.size}")
-    out_dtype = jnp.result_type(s.dtype, r.dtype, fraction, jnp.float32)
+    frac_raw = jnp.asarray(fraction)
+    out_dtype = jnp.result_type(s.dtype, r.dtype, frac_raw, jnp.float32)
     if s.size == 0:
         return jnp.array(jnp.nan, dtype=out_dtype)
 
     ranking = _tied_ranking(s, r)
     n_items = jnp.asarray(float(s.size), dtype=out_dtype)
-    frac = jnp.asarray(fraction, dtype=out_dtype)
+    frac = frac_raw.astype(out_dtype)
     valid_frac = (frac > 0.0) & (frac <= 1.0)
     one = jnp.asarray(1.0, dtype=out_dtype)
     prod = jnp.where(valid_frac, frac, one) * n_items
