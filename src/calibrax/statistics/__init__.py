@@ -5,6 +5,10 @@ from calibrax.statistics.bootstrap import (
     BootstrapInterval,
     DEFAULT_RESAMPLES,
 )
+from calibrax.statistics.nadeau_bengio import (
+    nadeau_bengio_t_test,
+    NadeauBengioResult,
+)
 from calibrax.statistics.ranks import (
     conformal_plus_ranks,
     conformal_quantile_rank,
@@ -21,13 +25,8 @@ from calibrax.statistics.significance import (
     effect_size,
     mann_whitney_u,
     minimum_detectable_effect,
-    nadeau_bengio_t_test,
-    NadeauBengioResult,
     paired_significance_test,
-    RepeatedMeasuresTukeyResult,
-    rm_tukey_hsd,
     statistical_power,
-    TukeyPairwiseComparison,
     welch_t_test,
 )
 from calibrax.statistics.summary import (
@@ -36,6 +35,11 @@ from calibrax.statistics.summary import (
     SampleSummary,
     STABILITY_CV_THRESHOLD,
     summarize,
+)
+from calibrax.statistics.tukey import (
+    RepeatedMeasuresTukeyResult,
+    rm_tukey_hsd,
+    TukeyPairwiseComparison,
 )
 
 

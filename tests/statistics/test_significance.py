@@ -33,12 +33,28 @@ from calibrax.statistics import (
     statistical_power,
     TukeyPairwiseComparison,
 )
+from calibrax.statistics.nadeau_bengio import (
+    nadeau_bengio_t_test as nadeau_bengio_from_submod,
+    NadeauBengioResult as NadeauBengioResultFromSubmod,
+)
 from calibrax.statistics.significance import (
     effect_size,
     mann_whitney_u,
     paired_significance_test,
     welch_t_test,
 )
+from calibrax.statistics.tukey import (
+    RepeatedMeasuresTukeyResult as RepeatedMeasuresTukeyResultFromSubmod,
+    rm_tukey_hsd as rm_tukey_from_submod,
+    TukeyPairwiseComparison as TukeyPairwiseComparisonFromSubmod,
+)
+
+
+def _gamma64(k: int) -> float:
+    """Higham (2nd ed., Eq. 3.4) float64 rounding constant ``k * u / (1 - k * u)``."""
+    u = 0.5 * float(np.finfo(np.float64).eps)
+    ku = float(k) * u
+    return ku / (1.0 - ku)
 
 
 class TestWelchTTest:
@@ -414,32 +430,38 @@ class TestNadeauBengioTTest:
         res_counts = nadeau_bengio_t_test(
             scores_a, scores_b, n_train=80, n_test=20, alpha=0.05, rope=0.01
         )
+        assert nadeau_bengio_from_submod is nadeau_bengio_t_test
+        assert NadeauBengioResultFromSubmod is NadeauBengioResult
         assert isinstance(res_folds, NadeauBengioResult)
-        assert res_frac.statistic == pytest.approx(res_folds.statistic, abs=1e-15)
-        assert res_counts.statistic == pytest.approx(res_folds.statistic, abs=1e-15)
-        assert res_counts.p_value == pytest.approx(res_folds.p_value, abs=1e-15)
+        g8 = _gamma64(8)
+        assert res_frac.statistic == pytest.approx(res_folds.statistic, rel=g8, abs=g8)
+        assert res_counts.statistic == pytest.approx(res_folds.statistic, rel=g8, abs=g8)
+        assert res_counts.p_value == pytest.approx(res_folds.p_value, abs=g8)
 
         # Exact relation to naive paired t-test: SE_nb = SE_naive * sqrt(1 + J * rho).
         naive = ttest_rel(scores_a, scores_b)
         inflation = np.sqrt(1.0 + 25.0 * 0.25)
         assert res_folds.df == 24
-        assert res_folds.statistic == pytest.approx(float(naive.statistic) / inflation, abs=1e-14)
+        g32 = _gamma64(32)
+        assert res_folds.statistic == pytest.approx(
+            float(naive.statistic) / inflation, rel=g32, abs=g32
+        )
         expected_p = float(2.0 * student_t.sf(abs(res_folds.statistic), 24))
-        assert res_folds.p_value == pytest.approx(expected_p, abs=1e-15)
+        assert res_folds.p_value == pytest.approx(expected_p, abs=g8)
 
         # Verify CI and ROPE probabilities against quadrature of Student-t posterior.
         p_left, p_rope, p_right = res_folds.rope_probabilities
-        assert p_left + p_rope + p_right == pytest.approx(1.0, abs=1e-15)
-        quad_rope, _ = quad(
+        assert p_left + p_rope + p_right == pytest.approx(1.0, abs=g8)
+        quad_rope, quad_err = quad(
             lambda x: student_t.pdf(x, df=24, loc=res_folds.mean_diff, scale=res_folds.se),
             -0.01,
             0.01,
         )
-        assert p_rope == pytest.approx(quad_rope, rel=1e-11, abs=1e-14)
+        assert p_rope == pytest.approx(quad_rope, rel=1e-11, abs=max(quad_err, g32))
 
         # Round-trip serialization.
         reloaded = NadeauBengioResult.from_dict(res_folds.to_dict())
-        assert reloaded.statistic == pytest.approx(res_folds.statistic, abs=1e-15)
+        assert reloaded.statistic == pytest.approx(res_folds.statistic, abs=g8)
         assert reloaded.rope_probabilities == pytest.approx(res_folds.rope_probabilities)
 
     def test_one_sided_alternatives_zero_variance_and_extreme_tail_rope_precision(self) -> None:
@@ -448,8 +470,9 @@ class TestNadeauBengioTTest:
         two = nadeau_bengio_t_test(a, b, n_folds=5, alternative="two-sided")
         greater = nadeau_bengio_t_test(a, b, n_folds=5, alternative="greater")
         less = nadeau_bengio_t_test(a, b, n_folds=5, alternative="less")
-        assert greater.p_value == pytest.approx(two.p_value / 2.0, abs=1e-15)
-        assert less.p_value == pytest.approx(1.0 - greater.p_value, abs=1e-15)
+        g8 = _gamma64(8)
+        assert greater.p_value == pytest.approx(two.p_value / 2.0, abs=g8)
+        assert less.p_value == pytest.approx(1.0 - greater.p_value, abs=g8)
         assert np.isinf(greater.ci_upper)
         assert greater.ci_upper > 0.0
         assert np.isinf(less.ci_lower)
@@ -504,11 +527,18 @@ class TestNadeauBengioTTest:
         assert zero_res.statistic == 0.0
         assert zero_res.p_value == 1.0
 
-        # Sub-ULP arithmetic round-trip noise must not trigger a false-positive t = inf.
+        # Sub-ULP arithmetic round-trip noise in both float64 and float32 must not trigger t = inf.
         probe = np.array([1.0, 2.0, 3.0, 7.0, 11.0], dtype=np.float64)
         roundtrip = nadeau_bengio_t_test((probe / 3.0) * 3.0, probe, n_folds=5)
         assert roundtrip.statistic == 0.0
         assert roundtrip.p_value == 1.0
+
+        probe_f32 = np.array([1.0, 2.0, 3.0, 7.0, 11.0], dtype=np.float32)
+        roundtrip_f32 = nadeau_bengio_t_test(
+            (probe_f32 / np.float32(3.0)) * np.float32(3.0), probe_f32, n_folds=5
+        )
+        assert roundtrip_f32.statistic == 0.0
+        assert roundtrip_f32.p_value == 1.0
 
     def test_validation_errors(self) -> None:
         with pytest.raises(ValueError, match="at least 2"):
@@ -537,6 +567,9 @@ class TestRepeatedMeasuresTukeyHSD:
         scores = block_effects + model_effects + noise
         names = ("gnn", "rf", "ridge", "dummy")
 
+        assert rm_tukey_from_submod is rm_tukey_hsd
+        assert RepeatedMeasuresTukeyResultFromSubmod is RepeatedMeasuresTukeyResult
+        assert TukeyPairwiseComparisonFromSubmod is TukeyPairwiseComparison
         res = rm_tukey_hsd(scores, model_names=names, alpha=0.05, higher_is_better=True)
         assert isinstance(res, RepeatedMeasuresTukeyResult)
         assert res.df_resid == (n_blocks - 1) * (n_models - 1)
@@ -554,23 +587,28 @@ class TestRepeatedMeasuresTukeyHSD:
             + scores.mean()
         )
         expected_mse = float(np.sum(resid**2) / ((n_blocks - 1) * (n_models - 1)))
-        assert res.mse == pytest.approx(expected_mse, abs=1e-15)
+        g_rm = _gamma64(n_blocks * n_models + 8)
+        assert res.mse == pytest.approx(expected_mse, rel=g_rm, abs=g_rm)
         ms_model = float(n_blocks * np.sum((scores.mean(axis=0) - scores.mean()) ** 2) / 3)
         expected_f = ms_model / expected_mse
-        assert res.f_statistic == pytest.approx(expected_f, rel=1e-13)
+        assert res.f_statistic == pytest.approx(expected_f, rel=4 * g_rm)
         assert res.anova_p_value == pytest.approx(
-            float(f_dist.sf(expected_f, 3, res.df_resid)), abs=1e-14
+            float(f_dist.sf(expected_f, 3, res.df_resid)), abs=4 * g_rm
         )
 
         # Adding arbitrary per-block difficulty offsets leaves MSE, F, q, p_adj, and top_tier invariant.
         shifted_scores = scores + np.linspace(-10.0, 25.0, n_blocks)[:, None]
         res_shifted = rm_tukey_hsd(shifted_scores, model_names=names, alpha=0.05)
-        assert res_shifted.mse == pytest.approx(res.mse, rel=1e-12, abs=1e-14)
-        assert res_shifted.f_statistic == pytest.approx(res.f_statistic, rel=1e-12)
+        shift_cond = 25.0 / max(expected_mse**0.5, 1e-6)
+        shift_tol = shift_cond * g_rm
+        assert res_shifted.mse == pytest.approx(res.mse, rel=shift_tol, abs=shift_tol)
+        assert res_shifted.f_statistic == pytest.approx(res.f_statistic, rel=shift_tol)
         assert res_shifted.top_tier == res.top_tier
         for c1, c2 in zip(res.comparisons, res_shifted.comparisons, strict=True):
             assert isinstance(c1, TukeyPairwiseComparison)
-            assert c2.p_value == pytest.approx(c1.p_value, abs=1e-12)
+            assert c1.significant == (c1.p_value < 0.05)
+            assert c1.is_practically_equivalent is False
+            assert c2.p_value == pytest.approx(c1.p_value, abs=shift_tol)
 
         # Verify exact studentized_range parameterization agreement against scipy.stats.tukey_hsd
         # on block-centered data (accounting for df_rm = (B-1)(M-1) vs df_1way = M(B-1)).
@@ -580,13 +618,14 @@ class TestRepeatedMeasuresTukeyHSD:
         comp_01 = res.comparisons[0]
         q_1w = abs(comp_01.q_statistic) / scale_df
         assert float(studentized_range.sf(q_1w, n_models, n_models * (n_blocks - 1))) == (
-            pytest.approx(float(scipy_1w.pvalue[0, 1]), abs=1e-14)
+            pytest.approx(float(scipy_1w.pvalue[0, 1]), abs=4 * g_rm)
         )
 
-        # Serialization round-trip.
+        # Serialization round-trip preserves both significant and is_practically_equivalent.
         reloaded = RepeatedMeasuresTukeyResult.from_dict(res.to_dict())
         assert reloaded.top_tier == res.top_tier
         assert len(reloaded.comparisons) == len(res.comparisons)
+        assert reloaded.comparisons[0].is_practically_equivalent is False
 
     def test_lower_is_better_rope_and_zero_residual_mse(self) -> None:
         # Deterministic additive errors: RMSE = block_base + [0.10, 0.105, 0.30] -> MSE == 0.
@@ -601,15 +640,63 @@ class TestRepeatedMeasuresTukeyHSD:
         assert res_strict.mse == 0.0
         assert res_strict.rank_order == ("m_best", "m_close", "m_bad")
         assert res_strict.top_tier == ("m_best",)
+        assert res_strict.comparisons[0].significant is True
+        assert res_strict.comparisons[0].is_practically_equivalent is False
 
-        # With practical equivalence rope=0.01, m_close (diff 0.005 <= 0.01) joins top_tier.
+        # With rope=0.01: significant means p_value < alpha (still True because MSE==0 and diff!=0),
+        # while simultaneous CI [-0.005, -0.005] lies inside [-0.01, 0.01] so
+        # is_practically_equivalent is True and m_close joins top_tier.
         res_rope = rm_tukey_hsd(
             rmse_matrix,
             model_names=("m_best", "m_close", "m_bad"),
             higher_is_better=False,
             rope=0.01,
         )
+        comp_best_close = res_rope.comparisons[0]
+        assert comp_best_close.p_value == 0.0
+        assert comp_best_close.significant is True
+        assert comp_best_close.is_practically_equivalent is True
         assert res_rope.top_tier == ("m_best", "m_close")
+
+        # Point estimate inside [-rope, +rope] does NOT establish practical equivalence when the
+        # simultaneous confidence interval extends outside [-rope, +rope] (Schuirmann 1987 / TOST):
+        # mean_diff(A - B) = 0.04 <= rope = 0.05, but noisy residuals push ci_upper > 0.05 while
+        # ci_lower > 0.0 (so p_value < 0.05 AND is_practically_equivalent is False -> B excluded!).
+        n_b = 20
+        alt_noise = np.tile(np.array([[0.03, -0.03, 0.0]]), (n_b // 2, 1))
+        alt_noise = np.concatenate([alt_noise, -alt_noise], axis=0)
+        scores_straddle = np.array([[0.84, 0.80, 0.50]]) + alt_noise
+        res_straddle = rm_tukey_hsd(
+            scores_straddle, model_names=("A", "B", "C"), alpha=0.05, rope=0.05
+        )
+        comp_ab = res_straddle.comparisons[0]
+        assert abs(comp_ab.mean_diff) <= 0.05
+        assert comp_ab.ci_lower > 0.0
+        assert comp_ab.ci_upper > 0.05
+        assert comp_ab.significant is True
+        assert comp_ab.is_practically_equivalent is False
+        assert res_straddle.top_tier == ("A",)
+
+        # Tighter noise with mean_diff = 0.02 and simultaneous CI strictly inside [-0.05, +0.05]:
+        # statistically non-zero (significant is True), practically equivalent (True), kept in top_tier.
+        tight_noise = alt_noise * 0.1
+        scores_inside = np.array([[0.82, 0.80, 0.50]]) + tight_noise
+        res_inside = rm_tukey_hsd(scores_inside, model_names=("A", "B", "C"), alpha=0.05, rope=0.05)
+        comp_inside = res_inside.comparisons[0]
+        assert comp_inside.ci_lower > 0.0
+        assert comp_inside.ci_upper <= 0.05
+        assert comp_inside.significant is True
+        assert comp_inside.is_practically_equivalent is True
+        assert res_inside.top_tier == ("A", "B")
+        assert TukeyPairwiseComparison.from_dict(comp_inside.to_dict()) == comp_inside
+
+        # float32 additive score matrix uses float32 unit roundoff for zero-MSE detection.
+        f32_mat = np.array([[1.1], [2.3], [3.7], [5.9]], dtype=np.float32) + np.array(
+            [[0.15, 0.15, 0.45]], dtype=np.float32
+        )
+        res_f32 = rm_tukey_hsd(f32_mat, model_names=("x", "y", "z"))
+        assert res_f32.mse == 0.0
+        assert res_f32.comparisons[0].p_value == 1.0
 
     def test_scale_invariance_at_tiny_and_large_magnitudes(self) -> None:
         rng = np.random.default_rng(42)
