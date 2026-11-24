@@ -2,19 +2,18 @@
 
 from __future__ import annotations
 
+import math
+
 import jax
 import jax.numpy as jnp
 import numpy as np
 import pytest
+from scipy.stats import false_discovery_control
 from substrax.testing import TraceCounter
 
 from calibrax.core.models import MetricDirection
 from calibrax.metrics import MetricRegistry
 from calibrax.metrics.functional.calibration import (
-    _carry_limbs,
-    _dyadic_q_limbs,
-    _shift_prod_limbs,
-    _u31_pair_limbs,
     adaptive_calibration_error,
     brier_decomposition,
     brier_score,
@@ -501,9 +500,19 @@ class TestSelectiveConformalFDR:
         )
 
         # Severe label shift: 15% null calibration set vs 95% null test set controls empirical FDR.
+        # Exact finite-sample bound (Bates et al., Ann. Stat. 2023, Thm. 1):
+        # E[FDP] <= (E[m_0] / m) * q = 0.95 * 0.2 = 0.19. With T = 400 independent trials in [0, 1]
+        # and failure probability delta = 1e-4, Hoeffding's inequality bounds the sample mean by
+        # E[FDP] + sqrt(ln(1 / delta) / (2 * T)).
         rng = np.random.default_rng(909)
+        n_trials = 400
+        delta = 1e-4
+        hoeffding_slack = math.sqrt(math.log(1.0 / delta) / (2.0 * n_trials))
+        jitted_sel = jax.jit(
+            lambda cd, td, mask: conformal_fdr_selection(cd, td, q=0.2, cal_null_mask=mask)
+        )
         fdps = []
-        for _ in range(80):
+        for trial_idx in range(n_trials):
             cal_is_null = rng.random(120) < 0.15
             cal_is_null[:2] = True
             cal_draw = np.where(
@@ -513,9 +522,14 @@ class TestSelectiveConformalFDR:
             test_draw = np.where(
                 test_is_null, rng.normal(0.0, 1.0, 200), rng.normal(3.0, 1.0, 200)
             ).astype(np.float32)
-            sel = conformal_fdr_selection(cal_draw, test_draw, q=0.2, cal_null_mask=cal_is_null)
+            sel = jitted_sel(cal_draw, test_draw, cal_is_null)
+            if trial_idx == 0:
+                eager_sel = conformal_fdr_selection(
+                    cal_draw, test_draw, q=0.2, cal_null_mask=cal_is_null
+                )
+                np.testing.assert_array_equal(np.asarray(sel), np.asarray(eager_sel))
             fdps.append(float(false_discovery_proportion(sel, test_is_null)))
-        assert float(np.mean(fdps)) <= 0.22
+        assert float(np.mean(fdps)) <= 0.95 * 0.2 + hoeffding_slack
 
     def test_false_discovery_proportion_and_empirical_power_identities(self) -> None:
         selected = jnp.array([True, True, False, True, False])
@@ -552,12 +566,15 @@ class TestSelectiveConformalFDR:
             np.array(1.5, dtype=np.float32),
             np.array(-0.1, dtype=np.float64),
             np.array(np.nan, dtype=np.float32),
+            jnp.asarray(0.0),
+            jnp.asarray(1.5),
+            jnp.asarray(jnp.nan),
             np.array([0.05, 0.2], dtype=np.float32),
             jnp.array([0.05, 0.2], dtype=jnp.float32),
         ):
             with pytest.raises(ValueError, match="q"):
                 conformal_fdr_selection(jnp.ones(4), jnp.ones(3), q=bad_q)
-        for bool_q in (False, True):
+        for bool_q in (False, True, np.bool_(False), jnp.array(True)):
             with pytest.raises(TypeError, match="q"):
                 conformal_fdr_selection(jnp.ones(4), jnp.ones(3), q=bool_q)
         with pytest.raises(ValueError, match="null_proportion_regime"):
@@ -584,14 +601,57 @@ class TestSelectiveConformalFDR:
         assert vmapped.shape == (2, 4)
         assert vmapped.dtype == jnp.bool_
 
-        q_grid = jnp.array([0.05, 0.30], dtype=jnp.float32)
-        traced_q = jax.jit(
-            jax.vmap(lambda q_val: conformal_fdr_selection(cal, test_batch[0], q=q_val))
-        )(q_grid)
-        assert traced_q.shape == (2, 4)
-        assert traced_q.dtype == jnp.bool_
+        jitted_static = jax.jit(conformal_fdr_selection, static_argnames=("q",))
+        assert jitted_static(cal, test_batch[0], q=0.2).tolist() == (
+            conformal_fdr_selection(cal, test_batch[0], q=0.2).tolist()
+        )
+        assert jitted_static(cal, test_batch[0], q=0.05).tolist() == (
+            conformal_fdr_selection(cal, test_batch[0], q=0.05).tolist()
+        )
+
+        # Traced q must fail loudly with static_argnames guidance instead of silent float32 rounding.
+        with pytest.raises(TypeError, match="static_argnames"):
+            jax.jit(lambda q_val: conformal_fdr_selection(cal, test_batch[0], q=q_val))(
+                jnp.float32(0.2)
+            )
+        with pytest.raises(TypeError, match="static_argnames"):
+            jax.vmap(lambda q_val: conformal_fdr_selection(cal, test_batch[0], q=q_val))(
+                jnp.array([0.05, 0.30], dtype=jnp.float32)
+            )
+
+        # Compact XLA graph without multi-limb uint32 polynomial expansion, single trace per static q.
+        jaxpr = jax.make_jaxpr(lambda cs, ts: conformal_fdr_selection(cs, ts, q=0.2))(
+            cal, test_batch[0]
+        )
+        assert len(jaxpr.eqns) < 120
+        counter = TraceCounter()
+        compiled = jax.jit(counter.wrap(lambda cs, ts: conformal_fdr_selection(cs, ts, q=0.2)))
+        with counter.expect(new_traces=1):
+            compiled(cal, test_batch[0])
+        with counter.expect(new_traces=0):
+            compiled(cal + 1.0, test_batch[1])
 
     def test_exact_step_up_threshold_rejects_sub_boundary_q(self) -> None:
+        # Exact decimal boundaries at n_cal=9 (denom=10), m=10 for q=0.3 and q=0.9:
+        # float(0.3) > 3/10 in binary64 whereas float32(0.3) > 3/10 and float32(0.9) < 9/10;
+        # all concrete scalar spellings must agree with exact BH and scipy.false_discovery_control.
+        cal10 = jnp.arange(1.0, 10.0, dtype=jnp.float32)
+        jitted_static = jax.jit(conformal_fdr_selection, static_argnames=("q",))
+        for q_target, score_val in ((0.3, 7.5), (0.9, 1.5)):
+            test10 = jnp.full(10, score_val, dtype=jnp.float32)
+            scipy_expected = int(
+                np.sum(false_discovery_control(np.full(10, q_target), method="bh") <= q_target)
+            )
+            assert scipy_expected == 10
+            for q_in in (
+                q_target,
+                np.float64(q_target),
+                np.float32(q_target),
+                jnp.asarray(q_target),
+            ):
+                assert int(jnp.sum(conformal_fdr_selection(cal10, test10, q=q_in))) == 10
+            assert int(jnp.sum(jitted_static(cal10, test10, q=q_target))) == 10
+
         # 59 null calibration scores of 0.0 and 3 test scores [1.0, -1.0, -1.0]:
         # conformal p-values are [1/60, 60/60, 60/60] -> exact BH q-values [0.05, 1.0, 1.0].
         cal60 = jnp.zeros(59, dtype=jnp.float32)
@@ -599,6 +659,11 @@ class TestSelectiveConformalFDR:
 
         assert conformal_fdr_selection(cal60, test, q=0.05).tolist() == [True, False, False]
         assert conformal_fdr_selection(cal60, test, q=np.float32(0.05)).tolist() == [
+            True,
+            False,
+            False,
+        ]
+        assert conformal_fdr_selection(cal60, test, q=jnp.asarray(0.05)).tolist() == [
             True,
             False,
             False,
@@ -618,31 +683,32 @@ class TestSelectiveConformalFDR:
             False,
         ]
         assert conformal_fdr_selection(cal60, test, q=q_below_f32).tolist() == [False, False, False]
-        assert jax.jit(lambda qv: conformal_fdr_selection(cal60, test, q=qv))(
-            jnp.asarray(q_below_f32)
-        ).tolist() == [False, False, False]
+        assert jitted_static(cal60, test, q=float(q_below_f32)).tolist() == [
+            False,
+            False,
+            False,
+        ]
 
-        # 99 null calibration scores -> exact BH q-value is 3/100. Both float32(0.03) and binary64
-        # 0.03 lie strictly below 3/100, so exact rational comparison rejects 3/100 and matches
-        # traced float32(0.03), whereas nextafter(0.03, 1.0) > 3/100 selects the first item.
+        # 99 null calibration scores -> exact BH q-value is 3/100 = 0.03. Caller-written 0.03
+        # (in Python float, float32, or concrete 0-D JAX scalar) selects the first item, while
+        # nextafter below 0.03 in either precision rejects it.
         cal100 = jnp.zeros(99, dtype=jnp.float32)
-        assert conformal_fdr_selection(cal100, test, q=np.float32(0.03)).tolist() == [
+        for q_exact_03 in (0.03, np.float32(0.03), jnp.float32(0.03)):
+            assert conformal_fdr_selection(cal100, test, q=q_exact_03).tolist() == [
+                True,
+                False,
+                False,
+            ]
+        assert conformal_fdr_selection(cal100, test, q=float(np.nextafter(0.03, 0.0))).tolist() == [
             False,
             False,
             False,
         ]
-        assert jax.jit(lambda qv: conformal_fdr_selection(cal100, test, q=qv))(
-            jnp.float32(0.03)
+        assert conformal_fdr_selection(
+            cal100, test, q=np.nextafter(np.float32(0.03), np.float32(0.0))
         ).tolist() == [False, False, False]
-        assert conformal_fdr_selection(cal100, test, q=0.03).tolist() == [False, False, False]
-        assert conformal_fdr_selection(cal100, test, q=float(np.nextafter(0.03, 1.0))).tolist() == [
-            True,
-            False,
-            False,
-        ]
 
-        # Arbitrarily small q values (whose binary denominators exceed 2^100) must never overflow
-        # limb representations into spurious selections.
+        # Arbitrarily small q values (whose denominators exceed 10^300) never spuriously select.
         for tiny_q in (1e-30, 1e-300, float(np.finfo(np.float64).tiny)):
             assert conformal_fdr_selection(cal60, test, q=tiny_q).tolist() == [
                 False,
@@ -661,21 +727,6 @@ class TestSelectiveConformalFDR:
             cal12, test, q=float(np.nextafter(np.float32(0.25), np.float32(0.0)))
         ).tolist() == [False, False, False]
 
-        # Large 60-bit rank*denom product (2^60 * 0.125 = 2^57) where shifted[4] occupies high bits
-        # of the 5-limb 70-bit window: LHS = 2^58 > RHS = 2^57 must compare strictly greater.
-        lhs_hi = _u31_pair_limbs(jnp.array([1 << 29], dtype=jnp.int32), jnp.int32(1 << 29))
-        rd_hi = _u31_pair_limbs(jnp.array([1 << 30], dtype=jnp.int32), jnp.int32(1 << 30))
-        q_limbs_hi, shift_hi = _dyadic_q_limbs(jnp.asarray(0.125), 0.125)
-        prod_acc_hi = [jnp.zeros_like(lhs_hi[0]) for _ in range(9)]
-        for idx_i, rdi in enumerate(rd_hi):
-            for idx_k, qk in enumerate(q_limbs_hi):
-                prod_acc_hi[idx_i + idx_k] = prod_acc_hi[idx_i + idx_k] + rdi * qk
-        rhs_shifted_hi = _shift_prod_limbs(_carry_limbs(prod_acc_hi), shift_hi)
-        lhs_val = sum(int(lhs_hi[k][0]) << (14 * k) for k in range(5))
-        rhs_val = sum(int(rhs_shifted_hi[k][0]) << (14 * k) for k in range(5))
-        assert lhs_val == (1 << 58)
-        assert rhs_val == (1 << 57)
-
         # Concrete float64 q near 1.0 (which rounds to 1.0 in float32) remains valid in (0, 1).
         assert conformal_fdr_selection(cal12, test, q=float(np.nextafter(1.0, 0.0))).tolist() == [
             True,
@@ -693,9 +744,11 @@ class TestSelectiveConformalFDR:
                 False,
                 False,
             ]
-            assert jax.jit(lambda qv: conformal_fdr_selection(cal64, test64, q=qv))(
-                jnp.float64(q_below_f64)
-            ).tolist() == [False, False, False]
+            assert jitted_static(cal64, test64, q=q_below_f64).tolist() == [
+                False,
+                False,
+                False,
+            ]
 
     def test_rank3_nested_vmap_parity(self) -> None:
         rng = np.random.default_rng(2026)

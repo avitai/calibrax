@@ -12,17 +12,16 @@ bedroc, enrichment_factor, sequential_discovery_nauc, sequential_shortfall.
 from __future__ import annotations
 
 import functools
-import math
 from typing import NamedTuple
 
 import jax
 import jax.numpy as jnp
-import numpy as np
 from jax import lax
 from jax.typing import ArrayLike
 
 from calibrax.core._validation import validate_scalar_numeric
 from calibrax.metrics._utils import _EPSILON
+from calibrax.statistics.ranks import screening_cutoff_count
 
 
 class _TiedRanking(NamedTuple):
@@ -407,21 +406,24 @@ def bedroc(
     )
 
 
-def enrichment_factor(
+def enrichment_factor(  # noqa: DOC503
     scores: ArrayLike,
     relevance: ArrayLike,
     *,
     fraction: ArrayLike = 0.01,
 ) -> jax.Array:
-    """Early enrichment factor at screening cutoff ``fraction``.
+    """Early enrichment factor at static screening cutoff ``fraction``.
 
-    Ratio of tie-averaged precision among the top ``k = min(N, max(1, ceil(fraction * N)))``
-    ranked items (Riniker and Landrum, J. Cheminf. 2013; McSherry and Najork, ECIR 2008)
-    to the library base rate ``n_actives / N``. Concrete scalar ``fraction`` cutoffs are
-    evaluated in ``float64`` with a ULP guard (accurate up to ``N ~ 10^13`` without binary
-    representation overshoot on exact multiples such as ``0.07 * 100 -> 7``, where RDKit's
-    unguarded ``math.ceil(numMol * f)`` yields ``8``), while traced ``float32`` ``fraction``
-    arrays carry ``float32`` mantissa precision (``N <= ~2e6``).
+    Ratio of tie-averaged precision among the top
+    ``k = min(N, max(1, ceil(N * decimal_fraction(fraction))))`` ranked items
+    (Riniker and Landrum, *J. Cheminf.* 2013; McSherry and Najork, *ECIR* 2008)
+    to the library base rate ``n_actives / N``. ``fraction`` is a static hyperparameter
+    evaluated via :func:`calibrax.statistics.screening_cutoff_count`, eliminating IEEE-754
+    binary representation overshoot on exact multiples such as ``(N=100, fraction=0.07) -> 7``
+    (where RDKit's unguarded ``math.ceil(numMol * f)`` yields ``8``) while agreeing with
+    RDKit ``CalcEnrichment`` whenever the float product does not overshoot an integer.
+    When wrapping a function that forwards ``fraction`` with ``jax.jit``, mark
+    ``static_argnames=("fraction",)``.
 
     Note:
         Direction: HIGHER (values above 1.0 outperform random selection).
@@ -431,56 +433,41 @@ def enrichment_factor(
     Args:
         scores: Predicted ranking scores (higher ranks earlier).
         relevance: Binary ground-truth activity indicators (0 or 1).
-        fraction: Screening fraction in ``(0, 1]`` (defaults to ``0.01``).
+        fraction: Static screening fraction in ``(0, 1]`` (defaults to ``0.01``).
+            Pass ``static_argnames=("fraction",)`` when forwarding ``fraction`` into ``jax.jit``.
 
     Returns:
         Enrichment factor as a scalar JAX array, or ``NaN`` when undefined.
 
     Raises:
-        ValueError: If ``scores`` and ``relevance`` differ in size or eager ``fraction``
+        TypeError: If ``fraction`` is boolean, non-numeric, or a JAX tracer.
+        ValueError: If ``scores`` and ``relevance`` differ in size or ``fraction``
             lies outside ``(0, 1]``.
     """
-    eager_frac, frac_raw = validate_scalar_numeric(fraction, name="fraction")
-    if eager_frac is not None and (eager_frac <= 0.0 or eager_frac > 1.0):
+    eager_frac, _ = validate_scalar_numeric(fraction, name="fraction", allow_traced=False)
+    if eager_frac is None or not (0.0 < eager_frac <= 1.0):
         raise ValueError(f"fraction must be in (0, 1], got {fraction}")
     s = jnp.asarray(scores).ravel()
     r = jnp.asarray(relevance).ravel()
     if s.size != r.size:
         raise ValueError(f"Shape mismatch: scores has {s.size} elements, relevance has {r.size}")
-    out_dtype = jnp.result_type(s.dtype, r.dtype, frac_raw, jnp.float32)
+    out_dtype = jnp.result_type(
+        *(x.dtype for x in (s, r) if jnp.issubdtype(x.dtype, jnp.floating)),
+        jnp.float32,
+    )
     if s.size == 0:
         return jnp.array(jnp.nan, dtype=out_dtype)
 
     ranking = _tied_ranking(s, r)
     n_items = jnp.asarray(float(s.size), dtype=out_dtype)
     one = jnp.asarray(1.0, dtype=out_dtype)
-    if eager_frac is not None and not math.isnan(eager_frac):
-        prod64 = eager_frac * float(s.size)
-        host_dtype = np.asarray(fraction).dtype
-        frac_eps = (
-            max(float(np.finfo(np.float64).eps), float(np.finfo(host_dtype).eps))
-            if np.issubdtype(host_dtype, np.floating)
-            else float(np.finfo(np.float64).eps)
-        )
-        k_int = min(s.size, max(1, math.ceil(prod64 - 4.0 * frac_eps * prod64)))
-        k = jnp.asarray(float(k_int), dtype=out_dtype)
-        in_top_k = ranking.position < k_int
-        valid_frac = jnp.array(True)
-    else:
-        frac = frac_raw.astype(out_dtype)
-        valid_frac = (frac > 0.0) & (frac <= 1.0)
-        prod = jnp.where(valid_frac, frac, one) * n_items
-        dev_eps = (
-            max(float(jnp.finfo(out_dtype).eps), float(jnp.finfo(frac_raw.dtype).eps))
-            if jnp.issubdtype(frac_raw.dtype, jnp.floating)
-            else float(jnp.finfo(out_dtype).eps)
-        )
-        k = jnp.clip(jnp.ceil(prod - 4.0 * dev_eps * prod), one, n_items)
-        in_top_k = ranking.position.astype(out_dtype) < k
+    k_int = screening_cutoff_count(s.size, fraction)
+    k = jnp.asarray(float(k_int), dtype=out_dtype)
+    in_top_k = ranking.position < k_int
     hits = jnp.sum(jnp.where(in_top_k, _expected_relevance(ranking), 0.0))
     n_actives = jnp.sum(ranking.relevance).astype(out_dtype)
     has_nan = jnp.any(jnp.isnan(s)) | jnp.any(jnp.isnan(r))
-    valid = (~has_nan) & valid_frac & (n_actives > 0.0)
+    valid = (~has_nan) & (n_actives > 0.0)
     safe_denom = jnp.where(valid, k * n_actives, one)
     return jnp.where(valid, (hits * n_items) / safe_denom, jnp.asarray(jnp.nan, dtype=out_dtype))
 
