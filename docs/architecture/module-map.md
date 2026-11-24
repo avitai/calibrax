@@ -69,7 +69,7 @@ which depend on the foundation. No circular dependencies exist.
 |--------|-----------|----------------|-------------|
 | `core` | `models`, `protocols`, `adapters`, `registry`, `result`, `record_values` | ~30 | Data models, enums, protocols, adapters, registry, result container |
 | `profiling` | `timing`, `timing_records`, `resources`, `gpu`, `nvml`, `energy`, `flops`, `hardware`, `roofline`, `compilation`, `complexity`, `tracing`, `carbon` | ~40 | Timing, resources, GPU (JAX memory statistics, NVML), energy, FLOPs, hardware specs, roofline analysis, compilation profiling, complexity analysis, XLA tracing, carbon tracking |
-| `statistics` | `summary`, `significance`, `bootstrap` | ~14 | Summary statistics, outlier detection, significance tests, BH/alpha-investing FDR, power/MDE, effect size, bootstrap intervals |
+| `statistics` | `summary`, `ranks`, `significance`, `nadeau_bengio`, `tukey`, `bootstrap` | ~25 | Summary statistics, outlier detection, exact decimal ranks and BH count thresholds, classical and correlated-resample significance tests, repeated-measures Tukey HSD, BH/alpha-investing FDR, power/MDE, effect size, percentile/BCa bootstrap intervals |
 | `analysis` | `regression`, `ranking`, `comparison`, `scaling`, `pareto`, `changepoint` | ~10 | Regression detection, ranking, comparison reports, scaling laws, Pareto fronts, changepoint detection |
 | `validation` | `framework`, `convergence`, `accuracy` | ~6 | Validation reports, convergence checking, accuracy assessment |
 | `monitoring` | `monitor`, `production` | ~6 | Alert management, threshold monitoring, pipeline health |

@@ -333,6 +333,8 @@ def discrete_bh_count_thresholds(  # noqa: DOC503
         raise ValueError("max_denominator is required when denom is a traced JAX array")
     max_den = _validate_positive_int(max_denominator, name="max_denominator")
     max_k = m_int * max_den
+    if max_k >= _U32_LIMIT:
+        raise ValueError(f"m * max_denominator must be < 2**32 for traced denom, got {max_k}")
     beta = farey_floor_rational(Fraction(q_frac.numerator, m_int * q_frac.denominator), max_k)
     denom_arr = jnp.asarray(denom, dtype=jnp.int32)
     safe_denom = jnp.maximum(denom_arr, 0).astype(jnp.uint32)

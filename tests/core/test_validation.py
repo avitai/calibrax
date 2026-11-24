@@ -23,6 +23,10 @@ class TestEagerScalarValidation:
         assert eager_scalar_float(np.array(-4, dtype=np.int32)) == -4.0
         assert eager_scalar_float(jnp.array(1.5, dtype=jnp.float32)) == pytest.approx(1.5)
         assert eager_scalar_float(jnp.array(-3, dtype=jnp.int32)) == -3.0
+        bf16_scalar = np.asarray(0.5, dtype=jnp.bfloat16)[()]
+        bf16_0d = np.asarray(0.5, dtype=jnp.bfloat16)
+        assert eager_scalar_float(bf16_scalar) == pytest.approx(0.5)
+        assert eager_scalar_float(bf16_0d) == pytest.approx(0.5)
 
     def test_returns_none_for_booleans_tracers_and_nd_arrays(self) -> None:
         assert eager_scalar_float(True) is None

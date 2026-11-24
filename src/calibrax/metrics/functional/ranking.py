@@ -12,6 +12,7 @@ bedroc, enrichment_factor, sequential_discovery_nauc, sequential_shortfall.
 from __future__ import annotations
 
 import functools
+from fractions import Fraction
 from typing import NamedTuple
 
 import jax
@@ -21,7 +22,7 @@ from jax.typing import ArrayLike
 
 from calibrax.core._validation import validate_scalar_numeric
 from calibrax.metrics._utils import _EPSILON
-from calibrax.statistics.ranks import screening_cutoff_count
+from calibrax.statistics.ranks import decimal_fraction, screening_cutoff_count
 
 
 class _TiedRanking(NamedTuple):
@@ -444,8 +445,8 @@ def enrichment_factor(  # noqa: DOC503
         ValueError: If ``scores`` and ``relevance`` differ in size or ``fraction``
             lies outside ``(0, 1]``.
     """
-    eager_frac, _ = validate_scalar_numeric(fraction, name="fraction", allow_traced=False)
-    if eager_frac is None or not (0.0 < eager_frac <= 1.0):
+    q_frac = decimal_fraction(fraction, name="fraction")
+    if not (Fraction(0, 1) < q_frac <= Fraction(1, 1)):
         raise ValueError(f"fraction must be in (0, 1], got {fraction}")
     s = jnp.asarray(scores).ravel()
     r = jnp.asarray(relevance).ravel()
