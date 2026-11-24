@@ -13,7 +13,7 @@ conformal_fdr_selection, false_discovery_proportion, empirical_power.
 
 from __future__ import annotations
 
-import fractions
+import math
 from typing import Literal
 
 import jax
@@ -327,80 +327,152 @@ def classwise_ece(
     return jnp.mean(per_class_ece)
 
 
-_MAX_DECIMAL_DENOM = 1_000_000
-_INT32_MAX = (1 << 31) - 1
-_LIMB_BITS = 15
+_LIMB_BITS = 14
 _LIMB_MASK = (1 << _LIMB_BITS) - 1
+_U31_LIMBS = 3
+_PAIR_LIMBS = 5
+_Q_LIMBS = 4
+_PROD_LIMBS = _PAIR_LIMBS + _Q_LIMBS
+_PADDED_LIMBS = _PROD_LIMBS + _PAIR_LIMBS + 1
+_PROD_BITS = _PROD_LIMBS * _LIMB_BITS
+_F32_MANTISSA_BITS = 24
+_F64_MANTISSA_BITS = 53
 
 
-def _mul_u31_by_u75_limbs(x: jax.Array, c: int) -> tuple[jax.Array, ...]:
-    """Exact product of non-negative ``int32`` ``x`` and ``0 <= c < 2^75`` as MSB-first limbs."""
-    x_u = x.astype(jnp.uint32)
-    x_limbs = [(x_u >> jnp.uint32(_LIMB_BITS * i)) & jnp.uint32(_LIMB_MASK) for i in range(3)]
-    c_limbs = [jnp.uint32((c >> (_LIMB_BITS * j)) & _LIMB_MASK) for j in range(5)]
-    acc = [jnp.zeros_like(x_u) for _ in range(8)]
-    for i, xi in enumerate(x_limbs):
-        for j, cj in enumerate(c_limbs):
-            acc[i + j] = acc[i + j] + xi * cj
+def _carry_limbs(raw_limbs: list[jax.Array]) -> list[jax.Array]:
+    """Propagate ``_LIMB_BITS`` carries across LSB-first ``uint32`` limbs."""
     out: list[jax.Array] = []
-    carry = jnp.zeros_like(x_u)
-    for limb in acc:
+    carry = jnp.zeros_like(raw_limbs[0])
+    for limb in raw_limbs:
         total = limb + carry
         out.append(total & jnp.uint32(_LIMB_MASK))
         carry = total >> jnp.uint32(_LIMB_BITS)
-    return tuple(reversed(out))
+    return out
 
 
-def _limbs_le(lhs: tuple[jax.Array, ...], rhs: tuple[jax.Array, ...]) -> jax.Array:
-    """Element-wise lexicographic ``lhs <= rhs`` over MSB-first unsigned limbs."""
-    lt = jnp.zeros(lhs[0].shape, dtype=bool)
-    gt = jnp.zeros(lhs[0].shape, dtype=bool)
-    for l_limb, r_limb in zip(lhs, rhs, strict=True):
-        undecided = ~(lt | gt)
-        lt = lt | (undecided & (l_limb < r_limb))
-        gt = gt | (undecided & (l_limb > r_limb))
-    return ~gt
+def _u31_pair_limbs(x: jax.Array, y: jax.Array) -> list[jax.Array]:
+    """Exact 5-limb LSB-first ``uint32`` product ``x * y`` for ``0 <= x, y < 2^31``."""
+    x_u = x.astype(jnp.uint32)
+    y_u = jnp.broadcast_to(y.astype(jnp.uint32), x_u.shape)
+    x_limbs = [
+        (x_u >> jnp.uint32(_LIMB_BITS * i)) & jnp.uint32(_LIMB_MASK) for i in range(_U31_LIMBS)
+    ]
+    y_limbs = [
+        (y_u >> jnp.uint32(_LIMB_BITS * j)) & jnp.uint32(_LIMB_MASK) for j in range(_U31_LIMBS)
+    ]
+    acc = [jnp.zeros_like(x_u) for _ in range(_PAIR_LIMBS)]
+    for i, xi in enumerate(x_limbs):
+        for j, yj in enumerate(y_limbs):
+            acc[i + j] = acc[i + j] + xi * yj
+    return _carry_limbs(acc)
 
 
-def _eager_q_rational(q: ArrayLike, eager_q: float) -> tuple[int, int]:
-    """Exact ``(numerator, denominator)`` for concrete ``q`` preserving decimal literals."""
-    q_item = q.item() if isinstance(q, np.ndarray) and q.ndim == 0 else q
-    text = (
-        str(q_item) if isinstance(q_item, int | float | np.integer | np.floating) else str(eager_q)
+def _dyadic_q_limbs(
+    q_raw: jax.Array,
+    eager_q: float | None,
+) -> tuple[list[jax.Array], int | jax.Array]:
+    """Exact dyadic decomposition ``q = (sum_k limb_k 2^(14k)) / 2^shift`` for ``q in (0, 1)``."""
+    if eager_q is not None:
+        mant, exp = math.frexp(eager_q)
+        m_int = int(math.ldexp(mant, _F64_MANTISSA_BITS))
+        limbs = [jnp.uint32((m_int >> (_LIMB_BITS * k)) & _LIMB_MASK) for k in range(_Q_LIMBS)]
+        return limbs, _F64_MANTISSA_BITS - exp
+    if q_raw.dtype == jnp.float64:
+        q_safe = jnp.where((q_raw > 0.0) & (q_raw < 1.0), q_raw, jnp.float64(0.0))
+        mant, exp = jnp.frexp(q_safe)
+        m_u64 = jnp.ldexp(mant, _F64_MANTISSA_BITS).astype(jnp.uint64)
+        limbs = [
+            ((m_u64 >> jnp.uint64(_LIMB_BITS * k)) & jnp.uint64(_LIMB_MASK)).astype(jnp.uint32)
+            for k in range(_Q_LIMBS)
+        ]
+        return limbs, jnp.int32(_F64_MANTISSA_BITS) - exp.astype(jnp.int32)
+    q_f32 = q_raw.astype(jnp.float32)
+    q_safe = jnp.where((q_f32 > 0.0) & (q_f32 < 1.0), q_f32, jnp.float32(0.0))
+    mant, exp = jnp.frexp(q_safe)
+    m_u32 = jnp.ldexp(mant, _F32_MANTISSA_BITS).astype(jnp.uint32)
+    limbs = [
+        (m_u32 >> jnp.uint32(_LIMB_BITS * k)) & jnp.uint32(_LIMB_MASK) for k in range(_Q_LIMBS)
+    ]
+    return limbs, jnp.int32(_F32_MANTISSA_BITS) - exp.astype(jnp.int32)
+
+
+def _shift_prod_limbs(
+    prod: list[jax.Array],
+    shift: int | jax.Array,
+) -> tuple[list[jax.Array], jax.Array]:
+    """Extract 5 LSB-first shifted limbs of ``prod >> shift`` and any non-zero high overflow."""
+    zero = jnp.zeros_like(prod[0])
+    ext = prod + [zero] * (_PAIR_LIMBS + 1)
+    if isinstance(shift, int):
+        q_limb, r_bit = divmod(shift, _LIMB_BITS)
+        if r_bit == 0:
+            shifted = [ext[q_limb + j] for j in range(_PAIR_LIMBS)]
+        else:
+            r_u = jnp.uint32(r_bit)
+            l_u = jnp.uint32(_LIMB_BITS - r_bit)
+            shifted = [
+                ((ext[q_limb + j] >> r_u) | (ext[q_limb + j + 1] << l_u)) & jnp.uint32(_LIMB_MASK)
+                for j in range(_PAIR_LIMBS)
+            ]
+        high_terms = prod[q_limb + _PAIR_LIMBS :]
+        high_nonzero = (
+            jnp.zeros(prod[0].shape, dtype=bool)
+            if not high_terms
+            else jnp.any(jnp.stack(high_terms, axis=0) > 0, axis=0)
+        )
+        return shifted, high_nonzero
+
+    padded = jnp.stack(ext, axis=0)
+    q_limb_arr = jnp.clip(shift // jnp.int32(_LIMB_BITS), 0, _PROD_LIMBS)
+    r_u = (shift % jnp.int32(_LIMB_BITS)).astype(jnp.uint32)
+    shifted = [
+        (
+            (padded[q_limb_arr + j] >> r_u)
+            | ((padded[q_limb_arr + j + 1] << jnp.uint32(1)) << (jnp.uint32(_LIMB_BITS - 1) - r_u))
+        )
+        & jnp.uint32(_LIMB_MASK)
+        for j in range(_PAIR_LIMBS)
+    ]
+    high_nonzero = jnp.any(
+        (jnp.arange(_PADDED_LIMBS)[:, None] >= (q_limb_arr + _PAIR_LIMBS)) & (padded > 0),
+        axis=0,
     )
-    dec = fractions.Fraction(text)
-    if dec.denominator <= _MAX_DECIMAL_DENOM:
-        return dec.numerator, dec.denominator
-    return eager_q.as_integer_ratio()
+    return shifted, high_nonzero
 
 
 def _step_up_max_count(
     one_plus_c: jax.Array,
     denom: jax.Array,
     *,
-    n_cal: int,
-    q: ArrayLike,
     q_raw: jax.Array,
     eager_q: float | None,
-    p_dtype: jnp.dtype,
 ) -> jax.Array:
-    """Largest ``1 + c_(r)`` satisfying ``(1 + c_(r)) * m <= q * r * denom``."""
+    """Largest ``1 + c_(r)`` satisfying exact ``(1 + c_(r)) * m <= q * r * denom``."""
+    if eager_q is not None:
+        _, exp = math.frexp(eager_q)
+        if (_F64_MANTISSA_BITS - exp) >= _PROD_BITS:
+            return jnp.int32(0)
     m = one_plus_c.size
     sorted_opc = jnp.sort(one_plus_c)
-    if eager_q is not None:
-        q_num, q_den = _eager_q_rational(q, eager_q)
-        ranks_i32 = jnp.arange(1, m + 1, dtype=jnp.int32)
-        max_bound = max(q_num, q_den) * m * (1 + n_cal)
-        if max_bound <= _INT32_MAX:
-            ok = sorted_opc * jnp.int32(m * q_den) <= ranks_i32 * jnp.int32(q_num) * denom
-        else:
-            lhs_limbs = _mul_u31_by_u75_limbs(sorted_opc * jnp.int32(m), q_den)
-            rhs_limbs = _mul_u31_by_u75_limbs(ranks_i32 * denom, q_num)
-            ok = _limbs_le(lhs_limbs, rhs_limbs)
-    else:
-        ranks_f = jnp.arange(1, m + 1, dtype=p_dtype)
-        lhs_f = sorted_opc.astype(p_dtype) * jnp.asarray(float(m), dtype=p_dtype)
-        ok = lhs_f <= q_raw.astype(p_dtype) * (ranks_f * denom.astype(p_dtype))
+    lhs_limbs = _u31_pair_limbs(sorted_opc, jnp.int32(m))
+    rd_limbs = _u31_pair_limbs(jnp.arange(1, m + 1, dtype=jnp.int32), denom)
+    q_limbs, shift_val = _dyadic_q_limbs(q_raw, eager_q)
+
+    prod_acc = [jnp.zeros_like(lhs_limbs[0]) for _ in range(_PROD_LIMBS)]
+    for i, rdi in enumerate(rd_limbs):
+        for k, qk in enumerate(q_limbs):
+            prod_acc[i + k] = prod_acc[i + k] + rdi * qk
+    prod = _carry_limbs(prod_acc)
+
+    rhs_shifted, high_nonzero = _shift_prod_limbs(prod, shift_val)
+
+    lt = jnp.zeros_like(high_nonzero)
+    gt = jnp.zeros_like(high_nonzero)
+    for l_limb, r_limb in zip(reversed(lhs_limbs), reversed(rhs_shifted), strict=True):
+        undecided = ~(lt | gt)
+        lt = lt | (undecided & (l_limb < r_limb))
+        gt = gt | (undecided & (l_limb > r_limb))
+    ok = (shift_val < _PROD_BITS) & (high_nonzero | (~gt))
     return jnp.max(jnp.where(ok, sorted_opc, 0))
 
 
@@ -520,15 +592,16 @@ def conformal_fdr_selection(
     max_opc = _step_up_max_count(
         one_plus_c,
         denom,
-        n_cal=cal.size,
-        q=q,
         q_raw=q_raw,
         eager_q=eager_q,
-        p_dtype=p_dtype,
     )
-    q_arr = q_raw.astype(p_dtype)
+    q_in_bounds = (
+        jnp.array(True)
+        if eager_q is not None
+        else ((q_raw.astype(p_dtype) > 0.0) & (q_raw.astype(p_dtype) < 1.0))
+    )
     has_nan = jnp.any(jnp.isnan(test_flat)) | jnp.any(jnp.isnan(cal))
-    valid_q = (q_arr > 0.0) & (q_arr < 1.0) & has_nulls & (~has_nan)
+    valid_q = q_in_bounds & has_nulls & (~has_nan)
     return (valid_q & (one_plus_c <= max_opc)).reshape(test.shape)
 
 
