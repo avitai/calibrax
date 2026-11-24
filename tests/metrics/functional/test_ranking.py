@@ -667,13 +667,19 @@ class TestEnrichmentFactor:
         scores_100 = jnp.arange(100.0, 0.0, -1.0, dtype=jnp.float32)
         rel_100 = jnp.zeros(100, dtype=jnp.int32).at[7].set(1)
         frac_above_f32 = jnp.nextafter(jnp.float32(0.07), jnp.float32(1.0))
-        ef_py = float(enrichment_factor(scores_100, rel_100, fraction=float(frac_above_f32)))
-        ef_arr = float(enrichment_factor(scores_100, rel_100, fraction=frac_above_f32))
+        assert float(
+            enrichment_factor(scores_100, rel_100, fraction=float(frac_above_f32))
+        ) == pytest.approx(12.5)
+
+        frac_above_guard = jnp.float32(0.07) + 8.0 * jnp.finfo(jnp.float32).eps
+        ef_py = float(enrichment_factor(scores_100, rel_100, fraction=float(frac_above_guard)))
+        ef_arr = float(enrichment_factor(scores_100, rel_100, fraction=frac_above_guard))
         ef_jit_above = float(
             jax.jit(lambda f: enrichment_factor(scores_100, rel_100, fraction=f))(
-                float(frac_above_f32)
+                float(frac_above_guard)
             )
         )
+        assert ef_py == pytest.approx(12.5)
         assert ef_py == ef_arr
         assert ef_jit_above == ef_arr
 
@@ -708,6 +714,32 @@ class TestEnrichmentFactor:
                 ).dtype
                 == jnp.float64
             )
+        assert np.isnan(
+            float(
+                enrichment_factor(
+                    jnp.array([3.0, 2.0, 1.0]), jnp.array([1, 0, 0]), fraction=float("nan")
+                )
+            )
+        )
+
+    def test_large_library_concrete_fraction_cutoff_in_float64(self) -> None:
+        n_items = 10_000_001
+        scores = jnp.arange(n_items, 0, -1, dtype=jnp.int32)
+        zeros = jnp.zeros(n_items, dtype=jnp.int32)
+        jitted_1pct = jax.jit(lambda s, r: enrichment_factor(s, r, fraction=0.01))
+
+        # ceil(10_000_001 * 0.01) = ceil(100_000.01) = 100_001 (0-based index 100_000).
+        expected = float(n_items) / 100_001.0
+        assert float(
+            enrichment_factor(scores, zeros.at[100_000].set(1), fraction=0.01)
+        ) == pytest.approx(expected, rel=1e-6)
+        assert float(jitted_1pct(scores, zeros.at[100_000].set(1))) == pytest.approx(
+            expected, rel=1e-6
+        )
+        assert float(jitted_1pct(scores, zeros.at[99_999].set(1))) == pytest.approx(
+            expected, rel=1e-6
+        )
+        assert float(jitted_1pct(scores, zeros.at[100_001].set(1))) == 0.0
 
         nan_scores = jnp.array([jnp.nan, 3.0, 2.0, 1.0], dtype=jnp.float32)
         rel_valid = jnp.array([0.0, 1.0, 0.0, 0.0], dtype=jnp.float32)
