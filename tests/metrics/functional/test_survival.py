@@ -189,8 +189,41 @@ class TestUnoCIndex:
             uno_c_index(t, t, jnp.ones(3), horizon=0.0)
         with pytest.raises(ValueError, match="horizon"):
             uno_c_index(t, t, jnp.ones(3), horizon=np.float32(-1.0))
+        with pytest.raises(ValueError, match="horizon"):
+            uno_c_index(t, t, jnp.ones(3), horizon=np.array(-1.0, dtype=np.float32))
+        with pytest.raises(ValueError, match="horizon"):
+            uno_c_index(t, t, jnp.ones(3), horizon=np.array(0.0, dtype=np.float64))
         with pytest.raises(ValueError, match="Shape mismatch"):
             uno_c_index(jnp.ones(2), t, jnp.ones(3))
+
+        # Python list/tuple inputs and traced horizon / float64 dtype preservation.
+        assert float(
+            harrell_c_index([1.0, 2.0, 3.0], (1.0, 2.0, 3.0))  # type: ignore[arg-type]
+        ) == pytest.approx(1.0)
+        assert float(
+            harrell_c_index([1.0, 2.0, 3.0], [1.0, 2.0, 3.0], (1.0, 2.0, 3.0))  # type: ignore[arg-type]
+        ) == pytest.approx(1.0)
+        assert float(
+            uno_c_index([1.0, 2.0, 3.0], (1.0, 2.0, 3.0), [1, 1, 1])  # type: ignore[arg-type]
+        ) == pytest.approx(1.0)
+        lb_seq, ub_seq = censored_coverage_bounds([1.0, 2.0], (2.0, 1.0), [1, 0])  # type: ignore[arg-type]
+        assert (float(lb_seq), float(ub_seq)) == (pytest.approx(0.5), pytest.approx(1.0))
+
+        traced_tau = jax.jit(jax.vmap(lambda h: uno_c_index(t, t, jnp.ones(3), horizon=h)))(
+            jnp.array([2.5, 5.0], dtype=jnp.float32)
+        )
+        np.testing.assert_allclose(np.asarray(traced_tau), np.array([1.0, 1.0]), atol=1e-7)
+
+        with jax.enable_x64(True):
+            t64 = jnp.array([1.0, 2.0, 3.0], dtype=jnp.float64)
+            assert harrell_c_index(t, t).dtype == jnp.float32
+            assert harrell_c_index(t64, t64).dtype == jnp.float64
+            assert uno_c_index(t, t, jnp.ones(3), horizon=2.5).dtype == jnp.float32
+            assert uno_c_index(t64, t64, jnp.ones(3), horizon=2.5).dtype == jnp.float64
+            lb32, _ = censored_coverage_bounds(t, t, jnp.ones(3))
+            lb64, _ = censored_coverage_bounds(t64, t64, jnp.ones(3))
+            assert lb32.dtype == jnp.float32
+            assert lb64.dtype == jnp.float64
 
         times_4 = jnp.array([1.0, 2.0, 3.0, 4.0], dtype=jnp.float32)
         events_4 = jnp.ones(4, dtype=jnp.int32)

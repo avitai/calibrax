@@ -40,6 +40,11 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Fixed
 
+- `benjamini_hochberg_adjust`, `conformal_fdr_selection`, `harrell_c_index`, `uno_c_index`, and
+  `censored_coverage_bounds` convert Python sequences (`list`, `tuple`) before resolving
+  floating-point output dtypes, and `conformal_fdr_selection`, `uno_c_index`, `alpha_investing`,
+  `bedroc`, and `enrichment_factor` validate 0-D NumPy scalar parameter bounds consistently with
+  Python scalars.
 - `enrichment_factor` and `bedroc` propagate `NaN` scores, relevance labels, and parameters to
   `NaN` and preserve floating-point input precision.
 - `harrell_c_index`, `uno_c_index`, and `censored_coverage_bounds` propagate `NaN` inputs and

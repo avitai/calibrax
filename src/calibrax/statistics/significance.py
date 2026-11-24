@@ -35,6 +35,7 @@ from scipy.stats import (
 from substrax.records import read_record
 from substrax.typing import JsonValue
 
+from calibrax.core._validation import eager_scalar_float
 from calibrax.core.models import SignificanceResult
 
 
@@ -167,8 +168,9 @@ def benjamini_hochberg_adjust(p_values: ArrayLike) -> jax.Array:
     Returns:
         Adjusted q-values with the same shape as ``p_values``.
     """
-    out_dtype = jnp.result_type(p_values, jnp.float32)
-    p = jnp.asarray(p_values, dtype=out_dtype)
+    p_raw = jnp.asarray(p_values)
+    out_dtype = jnp.result_type(p_raw.dtype, jnp.float32)
+    p = p_raw.astype(out_dtype)
     flat = p.ravel()
     m = flat.size
     if m == 0:
@@ -216,43 +218,40 @@ def alpha_investing(
         ValueError: If eager ``wealth <= 0``, ``pay_out <= 0``, or ``invest_fraction``
             lies outside ``(0, 1)``.
     """
-    if (
-        isinstance(wealth, int | float | np.number)
-        and not isinstance(wealth, jax.Array)
-        and float(wealth) <= 0.0
-    ):
+    eager_wealth = eager_scalar_float(wealth)
+    if eager_wealth is not None and not (eager_wealth > 0.0):
         raise ValueError(f"wealth must be positive, got {wealth}")
-    if (
-        isinstance(pay_out, int | float | np.number)
-        and not isinstance(pay_out, jax.Array)
-        and float(pay_out) <= 0.0
-    ):
+    eager_pay_out = eager_scalar_float(pay_out)
+    if eager_pay_out is not None and not (eager_pay_out > 0.0):
         raise ValueError(f"pay_out must be positive, got {pay_out}")
-    if (
-        isinstance(invest_fraction, int | float | np.number)
-        and not isinstance(invest_fraction, jax.Array)
-        and not (0.0 < float(invest_fraction) < 1.0)
-    ):
+    eager_invest = eager_scalar_float(invest_fraction)
+    if eager_invest is not None and not (0.0 < eager_invest < 1.0):
         raise ValueError(f"invest_fraction must be in (0, 1), got {invest_fraction}")
 
-    p = jnp.asarray(p_values, dtype=jnp.float32).ravel()
+    p_raw = jnp.asarray(p_values).ravel()
+    w_raw = jnp.asarray(wealth)
+    po_raw = jnp.asarray(pay_out)
+    gamma_raw = jnp.asarray(invest_fraction)
+    out_dtype = jnp.result_type(p_raw.dtype, w_raw, po_raw, gamma_raw, jnp.float32)
+    p = p_raw.astype(out_dtype)
     if p.size == 0:
-        empty_f = jnp.zeros((0,), dtype=jnp.float32)
+        empty_f = jnp.zeros((0,), dtype=out_dtype)
         return AlphaInvestingResult(
             rejected=jnp.zeros((0,), dtype=bool),
             thresholds=empty_f,
             wealth=empty_f,
         )
 
-    w0 = jnp.asarray(wealth, dtype=jnp.float32)
-    reward = jnp.asarray(pay_out, dtype=jnp.float32)
-    gamma = jnp.asarray(invest_fraction, dtype=jnp.float32)
+    w0 = w_raw.astype(out_dtype)
+    reward = po_raw.astype(out_dtype)
+    gamma = gamma_raw.astype(out_dtype)
+    one = jnp.asarray(1.0, dtype=out_dtype)
 
     def _step(
         cur_wealth: jax.Array, p_t: jax.Array
     ) -> tuple[jax.Array, tuple[jax.Array, jax.Array, jax.Array]]:
         bet = gamma * cur_wealth
-        alpha_t = bet / (1.0 + bet)
+        alpha_t = bet / (one + bet)
         rej = p_t <= alpha_t
         next_wealth = jnp.where(rej, cur_wealth + reward, cur_wealth - bet)
         return next_wealth, (rej, alpha_t, next_wealth)
