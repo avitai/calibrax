@@ -128,7 +128,7 @@ jobs:
 
       - name: Run tests
         run: |
-          uv run pytest tests/ \
+          uv run pytest tests/ docs/ \
             --cov=src/calibrax \
             --cov-report=term-missing \
             --cov-fail-under=80 \

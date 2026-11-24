@@ -129,6 +129,7 @@ dev = [
   "scipy-stubs>=1.17,<1.18",
   # `substrax-compute` runs the examples on a GPU; the Modal backend needs Modal
   "substrax[modal]>=0.1.36",
+  "sybil>=10.2.0",
   "twine>=4.0.2"
 ]
 docs = [
@@ -176,6 +177,7 @@ test = [
   # The shared example tests and the notebook tools: `substrax-notebooks` converts, checks,
   # pages and tests the examples.
   "substrax[notebooks,testing]>=0.1.36",
+  "sybil>=10.2.0",
   "wandb>=0.18"
 ]
 text = [
@@ -316,7 +318,7 @@ minversion = "6.0"
 python_classes = "Test*"
 python_files = "test_*.py"
 python_functions = "test_*"
-testpaths = ["tests"]
+testpaths = ["docs", "tests"]
 
 [tool.pytest_env]
 JAX_PLATFORMS = {skip_if_set = true, value = "cpu"}

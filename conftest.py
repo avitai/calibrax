@@ -4,6 +4,20 @@ from pathlib import Path
 
 import pytest
 
+from tests.doc_examples import DOCS, keep_pages_in_order
+
+
+pytest_plugins = ["pytester"]
+
+# The documentation's Python code blocks, one item each (tests/doc_examples.py).
+pytest_collect_file = DOCS.pytest()
+
+
+@pytest.hookimpl(trylast=True)
+def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
+    """Run each documentation page's blocks together and in page order, whatever reordered them."""
+    keep_pages_in_order(items)
+
 
 @pytest.fixture
 def tmp_data_dir(tmp_path: Path) -> Path:

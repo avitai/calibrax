@@ -67,7 +67,7 @@ class TestItIsRegisteredUnderGeneral:
 
     **Membership, never a count.** Asserting ``len(list_by_domain("general")) == 16`` is
     flaky by construction: the registry is a process-wide singleton,
-    ``tests/test_doc_examples.py`` executes ``docs/user-guide/metrics-overview.md``, and that
+    the documentation's examples run ``docs/user-guide/metrics-overview.md``, and that
     document's example registers a ``weighted_mse`` metric into the general domain. With
     ``pytest-randomly`` deciding the order, such an assertion sees 16 or 17 depending on the
     seed -- measured, it fails in one full run and passes in the next with no code change

@@ -463,6 +463,7 @@ all = [
     { name = "scikit-learn" },
     { name = "scipy-stubs" },
     { name = "substrax", extra = ["modal", "notebooks", "testing"] },
+    { name = "sybil" },
     { name = "twine" },
     { name = "wandb" },
 ]
@@ -506,6 +507,7 @@ all-cpu = [
     { name = "scikit-learn" },
     { name = "scipy-stubs" },
     { name = "substrax", extra = ["modal", "notebooks", "testing"] },
+    { name = "sybil" },
     { name = "twine" },
     { name = "wandb" },
 ]
@@ -550,6 +552,7 @@ all-macos = [
     { name = "scikit-learn" },
     { name = "scipy-stubs" },
     { name = "substrax", extra = ["modal", "notebooks", "testing"] },
+    { name = "sybil" },
     { name = "twine" },
     { name = "wandb" },
 ]
@@ -598,6 +601,7 @@ cuda-dev = [
     { name = "ruff" },
     { name = "scipy-stubs" },
     { name = "substrax", extra = ["modal"] },
+    { name = "sybil" },
     { name = "twine" },
 ]
 cuda12 = [
@@ -641,6 +645,7 @@ dev = [
     { name = "ruff" },
     { name = "scipy-stubs" },
     { name = "substrax", extra = ["modal"] },
+    { name = "sybil" },
     { name = "twine" },
 ]
 docs = [
@@ -684,6 +689,7 @@ test = [
     { name = "ruptures" },
     { name = "scikit-learn" },
     { name = "substrax", extra = ["notebooks", "testing"] },
+    { name = "sybil" },
     { name = "wandb" },
 ]
 wandb = [
@@ -777,6 +783,8 @@ requires-dist = [
     { name = "substrax", specifier = ">=0.1.36" },
     { name = "substrax", extras = ["modal"], marker = "extra == 'dev'", specifier = ">=0.1.36" },
     { name = "substrax", extras = ["notebooks", "testing"], marker = "extra == 'test'", specifier = ">=0.1.36" },
+    { name = "sybil", marker = "extra == 'dev'", specifier = ">=10.2.0" },
+    { name = "sybil", marker = "extra == 'test'", specifier = ">=10.2.0" },
     { name = "twine", marker = "extra == 'dev'", specifier = ">=4.0.2" },
     { name = "wandb", marker = "extra == 'test'", specifier = ">=0.18" },
     { name = "wandb", marker = "extra == 'wandb'", specifier = ">=0.18" },
@@ -5434,6 +5442,15 @@ notebooks = [
 ]
 testing = [
     { name = "pytest" },
+]
+
+[[package]]
+name = "sybil"
+version = "10.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/70/8a/0be1965fde349571cd31b4e9c993f9716bd9d2ff9827fed5ee780de392bd/sybil-10.2.0.tar.gz", hash = "sha256:b2a41dd63aad5f6a348d95b1e957361df2bd0f5d88db071b14854411cb4cdecd", size = 86597, upload-time = "2026-11-22T15:19:22.706Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0f/9d/3acf537c2bcb5a5e3ade95f9645439eeb1c26435e766c6ad65a87c500f5f/sybil-10.2.0-py3-none-any.whl", hash = "sha256:21d1d3ca56f40bac5d05cf6d7719a53b8ee8265c13cc151014ea4cf296d7abe5", size = 41512, upload-time = "2026-11-22T15:19:21.594Z" },
 ]
 
 [[package]]
