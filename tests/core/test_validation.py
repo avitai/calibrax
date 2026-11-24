@@ -7,11 +7,11 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 
-from calibrax.core._validation import eager_scalar_float
+from calibrax.core._validation import eager_scalar_float, validate_scalar_numeric
 
 
 class TestEagerScalarFloat:
-    """Tests for eager_scalar_float."""
+    """Tests for eager_scalar_float and validate_scalar_numeric."""
 
     def test_extracts_python_and_numpy_numeric_scalars_and_0d_arrays(self) -> None:
         assert eager_scalar_float(3) == 3.0
@@ -29,6 +29,7 @@ class TestEagerScalarFloat:
         assert eager_scalar_float(np.array(True, dtype=bool)) is None
         assert eager_scalar_float(np.array([1.0])) is None
         assert eager_scalar_float(jnp.array(0.5)) is None
+        assert eager_scalar_float("not_a_number") is None  # type: ignore[arg-type]
 
         seen: list[float | None] = []
 
@@ -39,3 +40,26 @@ class TestEagerScalarFloat:
 
         _probe(jnp.array(0.5))
         assert seen == [None]
+
+    def test_validate_scalar_numeric_rejects_booleans_and_non_scalars(self) -> None:
+        for bad_bool in (
+            True,
+            False,
+            np.bool_(True),
+            np.array(False, dtype=bool),
+            jnp.array(True),
+        ):
+            with pytest.raises(TypeError, match="param"):
+                validate_scalar_numeric(bad_bool, name="param")
+        for bad_nd in ([0.5], (0.5, 0.6), np.array([0.5]), jnp.array([0.5, 0.6])):
+            with pytest.raises(ValueError, match="param"):
+                validate_scalar_numeric(bad_nd, name="param")  # type: ignore[arg-type]
+
+        eager_f, arr_f = validate_scalar_numeric(np.float32(0.25), name="param")
+        assert eager_f == pytest.approx(0.25)
+        assert arr_f.ndim == 0
+
+        vmapped = jax.jit(jax.vmap(lambda x: validate_scalar_numeric(x, name="param")[1]))(
+            jnp.array([0.1, 0.2], dtype=jnp.float32)
+        )
+        np.testing.assert_allclose(np.asarray(vmapped), np.array([0.1, 0.2]), atol=1e-7)

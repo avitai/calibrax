@@ -14,7 +14,7 @@ import jax.numpy as jnp
 from jax import lax
 from jax.typing import ArrayLike
 
-from calibrax.core._validation import eager_scalar_float
+from calibrax.core._validation import validate_scalar_numeric
 
 
 def _concordance_score_matrix(predictions: jax.Array) -> jax.Array:
@@ -211,10 +211,9 @@ def uno_c_index(
         out_dtype = jnp.result_type(pred_raw.dtype, time_raw.dtype, jnp.float32)
         tau = None
     else:
-        eager_horizon = eager_scalar_float(horizon)
+        eager_horizon, tau_raw = validate_scalar_numeric(horizon, name="horizon")
         if eager_horizon is not None and eager_horizon <= 0.0:
             raise ValueError(f"horizon must be positive, got {horizon}")
-        tau_raw = jnp.asarray(horizon)
         out_dtype = jnp.result_type(pred_raw.dtype, time_raw.dtype, tau_raw, jnp.float32)
         tau = tau_raw.astype(out_dtype)
 

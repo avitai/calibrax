@@ -610,6 +610,27 @@ class TestEnrichmentFactor:
         scores_100 = jnp.arange(100.0, 0.0, -1.0, dtype=jnp.float32)
         rel_rank8 = jnp.zeros(100, dtype=jnp.float32).at[7].set(1.0)
         assert float(enrichment_factor(scores_100, rel_rank8, fraction=0.07)) == 0.0
+        assert float(enrichment_factor(scores_100, rel_rank8, fraction=np.float32(0.07))) == 0.0
+        assert float(enrichment_factor(scores_100, rel_rank8, fraction=jnp.float32(0.07))) == 0.0
+        assert (
+            float(
+                jax.jit(lambda f: enrichment_factor(scores_100, rel_rank8, fraction=f))(
+                    np.float32(0.07)
+                )
+            )
+            == 0.0
+        )
+        with jax.enable_x64(True):
+            scores_100_f64 = scores_100.astype(jnp.float64)
+            rel_rank8_f64 = rel_rank8.astype(jnp.float64)
+            assert (
+                float(enrichment_factor(scores_100_f64, rel_rank8_f64, fraction=jnp.float32(0.07)))
+                == 0.0
+            )
+        with pytest.raises(ValueError, match="fraction"):
+            enrichment_factor(scores_100, rel_rank8, fraction=np.array([0.07, 0.2]))
+        with pytest.raises(TypeError, match="fraction"):
+            enrichment_factor(scores_100, rel_rank8, fraction=True)
         rel_rank7 = jnp.zeros(100, dtype=jnp.float32).at[6].set(1.0)
         assert float(enrichment_factor(scores_100, rel_rank7, fraction=0.07)) == pytest.approx(
             100.0 / 7.0, rel=4 * _UNIT_ROUNDOFF
