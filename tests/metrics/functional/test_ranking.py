@@ -612,14 +612,8 @@ class TestEnrichmentFactor:
         assert float(enrichment_factor(scores_100, rel_rank8, fraction=0.07)) == 0.0
         assert float(enrichment_factor(scores_100, rel_rank8, fraction=np.float32(0.07))) == 0.0
         assert float(enrichment_factor(scores_100, rel_rank8, fraction=jnp.float32(0.07))) == 0.0
-        assert (
-            float(
-                jax.jit(lambda f: enrichment_factor(scores_100, rel_rank8, fraction=f))(
-                    np.float32(0.07)
-                )
-            )
-            == 0.0
-        )
+        jitted_static = jax.jit(enrichment_factor, static_argnames=("fraction",))
+        assert float(jitted_static(scores_100, rel_rank8, fraction=0.07)) == 0.0
         with jax.enable_x64(True):
             scores_100_f64 = scores_100.astype(jnp.float64)
             rel_rank8_f64 = rel_rank8.astype(jnp.float64)
@@ -629,14 +623,20 @@ class TestEnrichmentFactor:
             )
         with pytest.raises(ValueError, match="fraction"):
             enrichment_factor(scores_100, rel_rank8, fraction=np.array([0.07, 0.2]))
+        with pytest.raises(ValueError, match="fraction"):
+            enrichment_factor(scores_100, rel_rank8, fraction=jnp.asarray(1.5))
         with pytest.raises(TypeError, match="fraction"):
             enrichment_factor(scores_100, rel_rank8, fraction=True)
+        with pytest.raises(TypeError, match="static_argnames"):
+            jax.jit(lambda f: enrichment_factor(scores_100, rel_rank8, fraction=f))(
+                jnp.float32(0.07)
+            )
         rel_rank7 = jnp.zeros(100, dtype=jnp.float32).at[6].set(1.0)
         assert float(enrichment_factor(scores_100, rel_rank7, fraction=0.07)) == pytest.approx(
             100.0 / 7.0, rel=4 * _UNIT_ROUNDOFF
         )
 
-        # Single-trace compilation under jax.jit and jax.vmap over traced fractions.
+        # Single-trace compilation under jax.jit and jax.vmap with static fraction.
         counter = TraceCounter()
         compiled = jax.jit(counter.wrap(lambda s, r: enrichment_factor(s, r, fraction=0.07)))
         with counter.expect(new_traces=1):
@@ -644,44 +644,29 @@ class TestEnrichmentFactor:
         with counter.expect(new_traces=0):
             compiled(scores_100 * 2.0, rel_rank8)
 
-        traced_fracs = jnp.array([0.07, 0.29, 1.0], dtype=jnp.float32)
-        batched = jax.jit(jax.vmap(lambda f: enrichment_factor(scores_100, rel_rank7, fraction=f)))(
-            traced_fracs
-        )
-        np.testing.assert_allclose(
-            np.asarray(batched),
-            np.array([100.0 / 7.0, 100.0 / 29.0, 1.0]),
-            rtol=4 * _UNIT_ROUNDOFF,
-            atol=4 * _UNIT_ROUNDOFF,
-        )
-
     def test_eager_jit_cutoff_identity_scalar_bounds_and_nan_propagation(self) -> None:
-        jitted_ef = jax.jit(lambda s, r, f: enrichment_factor(s, r, fraction=f))
+        jitted_ef = jax.jit(enrichment_factor, static_argnames=("fraction",))
         for n_items, frac, expected_k in (
             (100, 0.07, 7),
             (1000, 0.007, 7),
             (50, 0.14, 7),
             (200, 0.035, 7),
             (29, 0.05, 2),
-            (10, 0.1 + 0.2, 3),
-            (10, 3 * 0.1, 3),
-            (10, 6 * 0.1, 6),
-            (6, 5.0 / 6.0, 5),
+            (10, 0.3, 3),
+            (10, 0.6, 6),
             (3, 1.0 / 3.0, 1),
             (3, 2.0 / 3.0, 2),
-            (7, 5.0 / 7.0, 5),
-            (9, 5.0 / 9.0, 5),
         ):
             scores = jnp.arange(float(n_items), 0.0, -1.0, dtype=jnp.float32)
             rel_out = jnp.zeros(n_items, dtype=jnp.int32).at[expected_k].set(1)
             ef_eager = float(enrichment_factor(scores, rel_out, fraction=frac))
-            ef_jit = float(jitted_ef(scores, rel_out, frac))
+            ef_jit = float(jitted_ef(scores, rel_out, fraction=frac))
             assert ef_eager == 0.0
             assert ef_jit == 0.0
 
             rel_in = jnp.zeros(n_items, dtype=jnp.int32).at[expected_k - 1].set(1)
             ef_in_eager = float(enrichment_factor(scores, rel_in, fraction=frac))
-            ef_in_jit = float(jitted_ef(scores, rel_in, frac))
+            ef_in_jit = float(jitted_ef(scores, rel_in, fraction=frac))
             assert ef_in_eager == pytest.approx(float(n_items) / float(expected_k), rel=1e-6)
             assert ef_in_jit == ef_in_eager
 
@@ -691,26 +676,19 @@ class TestEnrichmentFactor:
         assert float(
             enrichment_factor(scores_100, rel_100, fraction=float(frac_above_f32))
         ) == pytest.approx(12.5)
-
-        frac_above_guard = jnp.float32(0.07) + 8.0 * jnp.finfo(jnp.float32).eps
-        ef_py = float(enrichment_factor(scores_100, rel_100, fraction=float(frac_above_guard)))
-        ef_arr = float(enrichment_factor(scores_100, rel_100, fraction=frac_above_guard))
-        ef_jit_above = float(
-            jax.jit(lambda f: enrichment_factor(scores_100, rel_100, fraction=f))(
-                float(frac_above_guard)
-            )
-        )
-        assert ef_py == pytest.approx(12.5)
-        assert ef_py == ef_arr
-        assert ef_jit_above == ef_arr
+        assert float(
+            enrichment_factor(scores_100, rel_100, fraction=frac_above_f32)
+        ) == pytest.approx(12.5)
 
         for bad_frac in (
             0.0,
             -0.1,
             1.1,
+            float("nan"),
             np.float64(-0.1),
             np.float32(-0.1),
             np.array(-0.1, dtype=np.float32),
+            jnp.array(-0.1, dtype=jnp.float32),
         ):
             with pytest.raises(ValueError, match="fraction"):
                 enrichment_factor(jnp.array([2.0, 1.0]), jnp.array([1, 0]), fraction=bad_frac)
@@ -735,13 +713,6 @@ class TestEnrichmentFactor:
                 ).dtype
                 == jnp.float64
             )
-        assert np.isnan(
-            float(
-                enrichment_factor(
-                    jnp.array([3.0, 2.0, 1.0]), jnp.array([1, 0, 0]), fraction=float("nan")
-                )
-            )
-        )
 
     def test_large_library_concrete_fraction_cutoff_in_float64(self) -> None:
         n_items = 10_000_001

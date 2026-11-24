@@ -13,7 +13,6 @@ conformal_fdr_selection, false_discovery_proportion, empirical_power.
 
 from __future__ import annotations
 
-import math
 from typing import Literal
 
 import jax
@@ -23,6 +22,7 @@ from jax.typing import ArrayLike
 
 from calibrax.core._validation import validate_scalar_numeric
 from calibrax.metrics._utils import _EPSILON, _prepare_arrays, safe_divide
+from calibrax.statistics.ranks import discrete_bh_count_thresholds
 
 
 def _bin_predictions(
@@ -327,143 +327,6 @@ def classwise_ece(
     return jnp.mean(per_class_ece)
 
 
-_LIMB_BITS = 14
-_LIMB_MASK = (1 << _LIMB_BITS) - 1
-_U31_LIMBS = 3
-_PAIR_LIMBS = 5
-_Q_LIMBS = 4
-_PROD_LIMBS = _PAIR_LIMBS + _Q_LIMBS
-_PROD_BITS = _PROD_LIMBS * _LIMB_BITS
-_F32_MANTISSA_BITS = 24
-_F64_MANTISSA_BITS = 53
-
-
-def _carry_limbs(raw_limbs: list[jax.Array]) -> list[jax.Array]:
-    """Propagate ``_LIMB_BITS`` carries across LSB-first ``uint32`` limbs."""
-    out: list[jax.Array] = []
-    carry = jnp.zeros_like(raw_limbs[0])
-    for limb in raw_limbs:
-        total = limb + carry
-        out.append(total & jnp.uint32(_LIMB_MASK))
-        carry = total >> jnp.uint32(_LIMB_BITS)
-    return out
-
-
-def _u31_pair_limbs(x: jax.Array, y: jax.Array) -> list[jax.Array]:
-    """Exact 5-limb LSB-first ``uint32`` product ``x * y`` for ``0 <= x, y < 2^31``."""
-    x_u = x.astype(jnp.uint32)
-    y_u = jnp.broadcast_to(y.astype(jnp.uint32), x_u.shape)
-    x_limbs = [
-        (x_u >> jnp.uint32(_LIMB_BITS * i)) & jnp.uint32(_LIMB_MASK) for i in range(_U31_LIMBS)
-    ]
-    y_limbs = [
-        (y_u >> jnp.uint32(_LIMB_BITS * j)) & jnp.uint32(_LIMB_MASK) for j in range(_U31_LIMBS)
-    ]
-    acc = [jnp.zeros_like(x_u) for _ in range(_PAIR_LIMBS)]
-    for i, xi in enumerate(x_limbs):
-        for j, yj in enumerate(y_limbs):
-            acc[i + j] = acc[i + j] + xi * yj
-    return _carry_limbs(acc)
-
-
-def _dyadic_q_limbs(
-    q_raw: jax.Array,
-    eager_q: float | None,
-) -> tuple[list[jax.Array], int | jax.Array]:
-    """Exact dyadic decomposition ``q = (sum_k limb_k 2^(14k)) / 2^shift`` for ``q in (0, 1)``."""
-    if eager_q is not None:
-        mant, exp = math.frexp(eager_q)
-        m_int = int(math.ldexp(mant, _F64_MANTISSA_BITS))
-        limbs = [jnp.uint32((m_int >> (_LIMB_BITS * k)) & _LIMB_MASK) for k in range(_Q_LIMBS)]
-        return limbs, _F64_MANTISSA_BITS - exp
-    if q_raw.dtype == jnp.float64:
-        q_safe = jnp.where((q_raw > 0.0) & (q_raw < 1.0), q_raw, jnp.float64(0.0))
-        mant, exp = jnp.frexp(q_safe)
-        m_u64 = jnp.ldexp(mant, _F64_MANTISSA_BITS).astype(jnp.uint64)
-        limbs = [
-            ((m_u64 >> jnp.uint64(_LIMB_BITS * k)) & jnp.uint64(_LIMB_MASK)).astype(jnp.uint32)
-            for k in range(_Q_LIMBS)
-        ]
-        return limbs, jnp.int32(_F64_MANTISSA_BITS) - exp.astype(jnp.int32)
-    q_f32 = q_raw.astype(jnp.float32)
-    q_safe = jnp.where((q_f32 > 0.0) & (q_f32 < 1.0), q_f32, jnp.float32(0.0))
-    mant, exp = jnp.frexp(q_safe)
-    m_u32 = jnp.ldexp(mant, _F32_MANTISSA_BITS).astype(jnp.uint32)
-    limbs = [
-        (m_u32 >> jnp.uint32(_LIMB_BITS * k)) & jnp.uint32(_LIMB_MASK) for k in range(_Q_LIMBS)
-    ]
-    return limbs, jnp.int32(_F32_MANTISSA_BITS) - exp.astype(jnp.int32)
-
-
-def _shift_prod_limbs(
-    prod: list[jax.Array],
-    shift: int | jax.Array,
-) -> list[jax.Array]:
-    """Extract 5 LSB-first shifted limbs of ``prod >> shift``.
-
-    Since ``0 <= r, denom < 2^31`` and ``0 <= q < 1``, ``floor(q * r * denom) < 2^62 < 2^70``,
-    so 5 14-bit limbs represent the entire shifted integer quotient without high-bit overflow.
-    """
-    zero = jnp.zeros_like(prod[0])
-    ext = prod + [zero] * (_PAIR_LIMBS + 1)
-    if isinstance(shift, int):
-        q_limb, r_bit = divmod(shift, _LIMB_BITS)
-        if r_bit == 0:
-            return [ext[q_limb + j] for j in range(_PAIR_LIMBS)]
-        r_u = jnp.uint32(r_bit)
-        l_u = jnp.uint32(_LIMB_BITS - r_bit)
-        return [
-            ((ext[q_limb + j] >> r_u) | (ext[q_limb + j + 1] << l_u)) & jnp.uint32(_LIMB_MASK)
-            for j in range(_PAIR_LIMBS)
-        ]
-
-    padded = jnp.stack(ext, axis=0)
-    q_limb_arr = jnp.clip(shift // jnp.int32(_LIMB_BITS), 0, _PROD_LIMBS)
-    r_u = (shift % jnp.int32(_LIMB_BITS)).astype(jnp.uint32)
-    return [
-        (
-            (padded[q_limb_arr + j] >> r_u)
-            | ((padded[q_limb_arr + j + 1] << jnp.uint32(1)) << (jnp.uint32(_LIMB_BITS - 1) - r_u))
-        )
-        & jnp.uint32(_LIMB_MASK)
-        for j in range(_PAIR_LIMBS)
-    ]
-
-
-def _step_up_max_count(
-    one_plus_c: jax.Array,
-    denom: jax.Array,
-    *,
-    q_raw: jax.Array,
-    eager_q: float | None,
-) -> jax.Array:
-    """Largest ``1 + c_(r)`` satisfying exact ``(1 + c_(r)) * m <= q * r * denom``."""
-    if eager_q is not None:
-        _, exp = math.frexp(eager_q)
-        if (_F64_MANTISSA_BITS - exp) >= _PROD_BITS:
-            return jnp.int32(0)
-    m = one_plus_c.size
-    sorted_opc = jnp.sort(one_plus_c)
-    lhs_limbs = _u31_pair_limbs(sorted_opc, jnp.int32(m))
-    rd_limbs = _u31_pair_limbs(jnp.arange(1, m + 1, dtype=jnp.int32), denom)
-    q_limbs, shift_val = _dyadic_q_limbs(q_raw, eager_q)
-
-    prod_acc = [jnp.zeros_like(lhs_limbs[0]) for _ in range(_PROD_LIMBS)]
-    for i, rdi in enumerate(rd_limbs):
-        for k, qk in enumerate(q_limbs):
-            prod_acc[i + k] = prod_acc[i + k] + rdi * qk
-    rhs_shifted = _shift_prod_limbs(_carry_limbs(prod_acc), shift_val)
-
-    lt = jnp.zeros(sorted_opc.shape, dtype=bool)
-    gt = jnp.zeros(sorted_opc.shape, dtype=bool)
-    for l_limb, r_limb in zip(reversed(lhs_limbs), reversed(rhs_shifted), strict=True):
-        undecided = ~(lt | gt)
-        lt = lt | (undecided & (l_limb < r_limb))
-        gt = gt | (undecided & (l_limb > r_limb))
-    ok = (shift_val < _PROD_BITS) & (~gt)
-    return jnp.max(jnp.where(ok, sorted_opc, 0))
-
-
 def _conformal_null_counts(
     cal_sorted: jax.Array,
     order: jax.Array,
@@ -471,10 +334,10 @@ def _conformal_null_counts(
     null_mask: jax.Array | None,
     *,
     regime: Literal["marginal_null", "joint_iid"],
-) -> tuple[jax.Array, jax.Array, jax.Array]:
+) -> tuple[jax.Array, int | jax.Array, jax.Array]:
     """Compute ``(ge_count, denominator, has_nulls)`` for conformal p-values."""
     pos = jnp.searchsorted(cal_sorted, test_flat, side="left")
-    full_denom = jnp.asarray(1 + cal_sorted.size, dtype=jnp.int32)
+    full_denom = 1 + cal_sorted.size
     if null_mask is None:
         return cal_sorted.size - pos, full_denom, jnp.array(True)
 
@@ -490,7 +353,7 @@ def _conformal_null_counts(
     return ge_count, 1 + n_cal_null, n_cal_null > 0
 
 
-def conformal_fdr_selection(
+def conformal_fdr_selection(  # noqa: DOC503
     cal_scores: ArrayLike,
     test_scores: ArrayLike,
     *,
@@ -501,17 +364,23 @@ def conformal_fdr_selection(
     """Selective-conformal test-set discovery mask with finite-sample FDR control.
 
     Computes conformal p-values via ``O((n + m) log n)`` binary search and applies
-    Benjamini-Hochberg step-up selection at level ``q`` (Bates et al., Ann. Stat. 2023;
-    Jin and Candes, Biometrika 2023). Larger scores indicate stronger evidence against
-    the null hypothesis.
+    exact Benjamini-Hochberg step-up selection at static level ``q`` (Bates et al.,
+    *Ann. Stat.* 2023; Jin and Candes, *Biometrika* 2023). Larger scores indicate
+    stronger evidence against the null hypothesis.
+
+    ``q`` is a static hyperparameter evaluated via :func:`calibrax.statistics.decimal_fraction`
+    and :func:`calibrax.statistics.discrete_bh_count_thresholds`, so ``q=0.3``,
+    ``np.float32(0.3)``, and ``jnp.asarray(0.3)`` produce identical step-up boundaries
+    without IEEE-754 binary-float drift. When wrapping a function that accepts ``q``
+    with ``jax.jit``, mark ``static_argnames=("q",)``.
 
     Under ``null_proportion_regime="marginal_null"`` (default), p-values normalize by
-    ``1 + n_cal_null`` (Bates et al., Ann. Stat. 2023), remaining valid under arbitrary
+    ``1 + n_cal_null`` (Bates et al., *Ann. Stat.* 2023), remaining valid under arbitrary
     test-set null prevalence (for example when screening a prospective library with higher
     inactive prevalence than an enriched calibration set) and returning all-``False`` when
     zero calibration nulls are present. Under ``null_proportion_regime="joint_iid"``,
     p-values normalize by ``1 + n_cal`` assuming calibration and test pairs are jointly
-    exchangeable from the same mixture distribution (Jin and Candes, Biometrika 2023).
+    exchangeable from the same mixture distribution (Jin and Candes, *Biometrika* 2023).
 
     Note:
         Returns a boolean selection array rather than a scalar; not registered in
@@ -520,7 +389,8 @@ def conformal_fdr_selection(
     Args:
         cal_scores: Calibration scores of shape ``(n_cal,)``.
         test_scores: Candidate test scores of arbitrary shape.
-        q: Target false discovery rate level in ``(0, 1)`` (defaults to ``0.1``).
+        q: Static target false discovery rate level in ``(0, 1)`` (defaults to ``0.1``).
+            Pass ``static_argnames=("q",)`` when forwarding ``q`` into ``jax.jit``.
         cal_null_mask: Optional boolean mask of shape ``(n_cal,)`` marking calibration
             observations that satisfy the null hypothesis. When ``None``, all entries
             of ``cal_scores`` are treated as null calibration scores.
@@ -532,11 +402,12 @@ def conformal_fdr_selection(
         Boolean JAX array with the same shape as ``test_scores`` marking selected discoveries.
 
     Raises:
-        ValueError: If eager ``q`` lies outside ``(0, 1)``, ``cal_null_mask`` differs
+        TypeError: If ``q`` is boolean, non-numeric, or a JAX tracer.
+        ValueError: If ``q`` lies outside ``(0, 1)``, ``cal_null_mask`` differs
             in length from ``cal_scores``, or ``null_proportion_regime`` is unrecognized.
     """
-    eager_q, q_raw = validate_scalar_numeric(q, name="q")
-    if eager_q is not None and not (0.0 < eager_q < 1.0):
+    eager_q, _ = validate_scalar_numeric(q, name="q", allow_traced=False)
+    if eager_q is None or not (0.0 < eager_q < 1.0):
         raise ValueError(f"q must be in (0, 1), got {q}")
     if null_proportion_regime not in ("marginal_null", "joint_iid"):
         raise ValueError(
@@ -547,7 +418,6 @@ def conformal_fdr_selection(
     cal_raw = jnp.asarray(cal_scores)
     test_raw = jnp.asarray(test_scores)
     score_dtype = jnp.result_type(cal_raw.dtype, test_raw.dtype, jnp.float32)
-    p_dtype = jnp.result_type(score_dtype, q_raw, jnp.float32)
     cal = cal_raw.astype(score_dtype).ravel()
     test = test_raw.astype(score_dtype)
     test_flat = test.ravel()
@@ -576,20 +446,17 @@ def conformal_fdr_selection(
     )
 
     one_plus_c = 1 + ge_count
-    max_opc = _step_up_max_count(
-        one_plus_c,
+    sorted_opc = jnp.sort(one_plus_c)
+    thresholds = discrete_bh_count_thresholds(
+        test_flat.size,
         denom,
-        q_raw=q_raw,
-        eager_q=eager_q,
+        q=q,
+        max_denominator=1 + cal_sorted.size,
     )
-    q_in_bounds = (
-        jnp.array(True)
-        if eager_q is not None
-        else ((q_raw.astype(p_dtype) > 0.0) & (q_raw.astype(p_dtype) < 1.0))
-    )
+    max_opc = jnp.max(jnp.where(sorted_opc <= thresholds, sorted_opc, 0))
     has_nan = jnp.any(jnp.isnan(test_flat)) | jnp.any(jnp.isnan(cal))
-    valid_q = q_in_bounds & has_nulls & (~has_nan)
-    return (valid_q & (one_plus_c <= max_opc)).reshape(test.shape)
+    valid = has_nulls & (~has_nan)
+    return (valid & (one_plus_c <= max_opc)).reshape(test.shape)
 
 
 def false_discovery_proportion(selected: ArrayLike, is_null: ArrayLike) -> jax.Array:
