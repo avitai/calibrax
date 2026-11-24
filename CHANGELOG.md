@@ -40,6 +40,15 @@ and uses semantic versioning while the public API stabilizes.
   rational cross-multiplication without division rounding or positive threshold slack; Jin and
   Candes (*Biometrika* 2023) joint-exchangeable `1 + n_cal` scaling remains available via
   `null_proportion_regime="joint_iid"`.
+- **Breaking:** `harrell_c_index`, `uno_c_index`, and `censored_coverage_bounds` return `NaN` (or
+  `(NaN, NaN)`) when `event_indicator` contains values outside `{0, 1}`.
+- **Breaking:** Unweighted `pearson_correlation`, `spearman_rank_correlation`, `kendall_tau`, and
+  `concordance_correlation` return `NaN` when both inputs are empty `(0,)` (matching their
+  weighted paths) and raise `ValueError` when input element counts differ.
+- **Breaking:** `classwise_ece` pools calibration bins across all leading dimensions of
+  `(..., n_classes)` predictions matched against `(...,)` targets (use `jax.vmap` for per-batch
+  values), infers `num_classes` from `predictions.shape[-1]` when omitted, and raises `ValueError`
+  when an explicit `num_classes` disagrees with `predictions.shape[-1]`.
 
 ### Fixed
 
@@ -50,17 +59,11 @@ and uses semantic versioning while the public API stabilizes.
   Python scalars.
 - `enrichment_factor` and `bedroc` propagate `NaN` scores, relevance labels, and parameters to
   `NaN` and preserve floating-point input precision.
-- `harrell_c_index`, `uno_c_index`, and `censored_coverage_bounds` propagate `NaN` inputs and
-  reject non-binary `event_indicator` values outside `{0, 1}` as `NaN` (returning `(NaN, NaN)` in
-  `censored_coverage_bounds`), score tied `+inf` or `-inf` predictions as `0.5`, preserve
-  floating-point input precision, and evaluate `_kaplan_meier_censoring_survival` as the strictly
-  left-continuous estimator `G_hat(t-)` in log-space with observed events preceding tied
-  censorings.
-- Unweighted `pearson_correlation`, `spearman_rank_correlation`, `kendall_tau`, and
-  `concordance_correlation` return `NaN` on empty `(0,)` inputs, matching their weighted paths.
-- `classwise_ece` accepts arbitrary leading batch dimensions `(..., n_classes)` matched against
-  `targets` of shape `(...,)`, infers `num_classes` from the trailing axis when omitted, and
-  raises `ValueError` when an explicit `num_classes` disagrees with `predictions.shape[-1]`.
+- `harrell_c_index`, `uno_c_index`, and `censored_coverage_bounds` propagate `NaN` inputs, score
+  tied `+inf` or `-inf` predictions as `0.5`, preserve floating-point input precision, and
+  evaluate `_kaplan_meier_censoring_survival` as the strictly left-continuous reverse Kaplan-Meier
+  estimator `G_hat(t-)` in log-space over the full risk set `sum(T >= t)` (Uno et al., *Stat.
+  Med.* 2011; R `survival::survfit(Surv(time, 1 - status))`).
 
 ## [0.1.21] - 2026-11-19
 

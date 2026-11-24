@@ -11,6 +11,7 @@ from substrax.testing import TraceCounter
 from calibrax.core.models import MetricDirection
 from calibrax.metrics import MetricRegistry
 from calibrax.metrics.functional.survival import (
+    _kaplan_meier_censoring_survival,
     censored_coverage_bounds,
     harrell_c_index,
     uno_c_index,
@@ -256,14 +257,40 @@ class TestUnoCIndex:
         scores = jnp.array([10.0, 40.0, 50.0, 30.0], dtype=jnp.float32)
         assert float(uno_c_index(scores, times, events)) == pytest.approx(0.75, abs=1e-7)
 
-        # Tie at t=1.0 (1 event, 1 censoring among 4 at risk): observed event precedes censoring,
-        # so censoring hazard at t=1.0 is 1 / (4 - 1) = 1/3 -> factor = 2/3. Left-continuous
-        # G_hat(1.0-) = 1.0 (w=1.0) for the 2 concordant pairs at t=1.0, while G_hat(2.0-) = 2/3
-        # (w=9/4) for the 1 discordant pair at t=2.0 -> 2 / (2 + 9/4) = 8/17.
+        # Tie at t=1.0 (1 event, 1 censoring among 4 at risk): under Uno et al. (2011, survC1) and
+        # R survival::survfit(Surv(time, 1 - status)), the censoring hazard uses the full risk set
+        # sum(T >= 1.0) = 4 -> 1 / 4, giving factor 3/4. Left-continuous G_hat(1.0-) = 1.0 (w=1.0)
+        # for the 2 concordant pairs at t=1.0, while G_hat(2.0-) = 3/4 (w=16/9) for the 1
+        # discordant pair at t=2.0 -> 2 / (2 + 16/9) = 9/17.
         times_early_tie = jnp.array([1.0, 1.0, 2.0, 3.0], dtype=jnp.float32)
         events_early_tie = jnp.array([1, 0, 1, 1], dtype=jnp.int32)
         assert float(uno_c_index(scores, times_early_tie, events_early_tie)) == pytest.approx(
-            8.0 / 17.0, abs=4 * float(jnp.finfo(jnp.float32).eps)
+            9.0 / 17.0, abs=4 * float(jnp.finfo(jnp.float32).eps)
+        )
+
+        # Multiple tied events alongside a censoring [2(C), 2(E), 2(E), 3(E), 4(E)]:
+        # at t=2.0, yi = 5 and di = 1 censoring -> G_hat(2.0-) = 1.0 (w=1.0 for all 4 concordant
+        # pairs anchored at the two t=2.0 events) and G_hat(3.0-) = 1 - 1/5 = 4/5 (w=25/16 for
+        # the 1 discordant pair between t=3.0 and t=4.0) -> 4 / (4 + 25/16) = 64/89.
+        times_multi_tie = jnp.array([2.0, 2.0, 2.0, 3.0, 4.0], dtype=jnp.float32)
+        events_multi_tie = jnp.array([0, 1, 1, 1, 1], dtype=jnp.int32)
+        scores_multi_tie = jnp.array([10.0, 20.0, 30.0, 50.0, 40.0], dtype=jnp.float32)
+        assert float(
+            uno_c_index(scores_multi_tie, times_multi_tie, events_multi_tie)
+        ) == pytest.approx(64.0 / 89.0, abs=4 * float(jnp.finfo(jnp.float32).eps))
+
+        # Direct [2(C), 2(E), 2(E)] + later probe at t=3.0: survfit(Surv(c(2,2,2,3), c(1,0,0,0)))
+        # gives G(2+) = 1 - 1/4 = 3/4, and on [2(C), 2(E), 2(E)] followed by probe G_hat(t-) = 2/3
+        # when 3 items are at t=2 (verify via [2(C), 2(E), 2(E)] + infinitesimally later probe
+        # vs subtracting events which collapsed 3 - 2 = 1 -> G = 0!).
+        _, g_ord = _kaplan_meier_censoring_survival(
+            jnp.array([2.0, 2.0, 2.0, 3.0], dtype=jnp.float32),
+            jnp.array([False, True, True, True]),
+        )
+        np.testing.assert_allclose(
+            np.asarray(g_ord),
+            np.array([1.0, 1.0, 1.0, 0.75], dtype=np.float32),
+            atol=float(jnp.finfo(jnp.float32).eps),
         )
 
         # Tied event and censoring at t_max=2.0 where right-continuous G_hat(2.0) would vanish to 0:

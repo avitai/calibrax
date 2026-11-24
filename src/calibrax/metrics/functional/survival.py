@@ -132,12 +132,13 @@ def _kaplan_meier_censoring_survival(
     observed_time: jax.Array,
     event_indicator: jax.Array,
 ) -> tuple[jax.Array, jax.Array]:
-    """Left-continuous Kaplan-Meier censoring survival ``G_hat(T_k-)``.
+    """Left-continuous reverse Kaplan-Meier censoring survival ``G_hat(T_k-)``.
 
-    Under ``event_indicator = I(T_latent <= C)``, observed events at ``t_k`` precede
-    censorings tied at ``t_k`` (removing ``events_seg`` from the censoring risk set),
-    and IPCW weights evaluate the strictly left-continuous limit ``G_hat(t_k-)`` in
-    log-space via ``cumsum(log1p(-hazard))`` to avoid cumulative product drift.
+    Matches Uno et al. (Stat. Med. 2011, ``cran/survC1``) and
+    ``survival::survfit(Surv(time, 1 - status))`` by forming censoring hazards over the
+    full risk set ``sum(observed_time >= t_k)``, evaluating the strictly left-continuous
+    limit ``G_hat(t_k-)`` in log-space via ``cumsum(log1p(-hazard))`` to avoid cumulative
+    product drift.
     """
     dtype = observed_time.dtype
     size = observed_time.size
@@ -152,14 +153,12 @@ def _kaplan_meier_censoring_survival(
     group_start = lax.cummax(jnp.where(starts, idx, 0))
     at_risk_item = (size - group_start).astype(dtype)
 
-    events_seg = jax.ops.segment_sum(ev_ord, group, num_segments=size)
     cens_seg = jax.ops.segment_sum(cens_ord, group, num_segments=size)
     at_risk_seg = jax.ops.segment_max(at_risk_item, group, num_segments=size)
-    cens_at_risk = at_risk_seg - events_seg
     has_cens = cens_seg > 0.0
     one = jnp.asarray(1.0, dtype=dtype)
     zero = jnp.asarray(0.0, dtype=dtype)
-    safe_risk = jnp.where(has_cens, jnp.maximum(cens_at_risk, one), one)
+    safe_risk = jnp.where(has_cens, jnp.maximum(at_risk_seg, one), one)
     hazard = jnp.clip(jnp.where(has_cens, cens_seg, zero) / safe_risk, zero, one)
     all_censored = hazard >= one
     safe_hazard = jnp.where(all_censored, zero, hazard)
