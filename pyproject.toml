@@ -25,7 +25,7 @@ classifiers = [
 ]
 dependencies = [
   "click>=8.0",
-  # 0.12.10 is the minimum release compatible with JAX 0.12+.
+  # 0.12.10 is the first Flax release declaring jax>=0.11.1, matching our JAX floor.
   "flax>=0.12.10",
   "jax>=0.11.1",
   "jaxlib>=0.11.1",
