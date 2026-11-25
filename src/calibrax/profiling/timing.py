@@ -30,24 +30,18 @@ class TimingCollector:
     iteration exclusion for JIT-compiled workloads.
 
     JAX dispatches operations asynchronously -- the host returns
-    immediately while the device is still computing.  Without an explicit
-    synchronization barrier, ``perf_counter`` measures only host-side
-    dispatch latency, not actual compute time. Pass a ``sync_fn`` that
-    calls ``block_until_ready()`` on the workload result to force the host
-    to wait for device completion before recording the timestamp.
+    immediately while the device is still computing -- so each batch's
+    clock stops only after ``sync_fn`` returns. By default that is
+    ``jax.block_until_ready`` over the whole result pytree, so a batch's time
+    is its computation, not its dispatch. Pass a ``sync_fn`` only for a
+    result that needs some other wait.
 
-    Example -- JAX GPU timing with warm-up:
+    Example -- JAX timing with warm-up:
 
     ```python
-    import jax.numpy as jnp
+    run_step = jax.jit(step_fn)
 
-    def run_step(batch):
-        return jax.jit(step_fn)(batch)
-
-    collector = TimingCollector(
-        sync_fn=lambda result: result.block_until_ready(),
-        warmup_iterations=2,
-    )
+    collector = TimingCollector(warmup_iterations=2)
     sample = collector.measure_iteration(data_iter, num_batches=50, process_fn=run_step)
     # sample.per_batch_times excludes the first 2 batches
     ```
