@@ -120,6 +120,8 @@ dev = [
   "pytest-env>=1.0.1",
   "pytest-json-report>=1.5.0",
   "pytest-randomly>=3.15",
+  # Shards the CI test job (ci.yml) by recorded test durations.
+  "pytest-split>=0.11.0",
   "pytest-timeout>=2.1",
   "pytest-xdist>=3.6",
   "pytest>=9.0.3",
@@ -237,6 +239,9 @@ omit = [
   "*/tests/*"
 ]
 parallel = true
+# Paths stored relative to the checkout, so CI's coverage job on ubuntu can combine the shards'
+# data, including a macOS run's (macos.yml), whose workspace path differs.
+relative_files = true
 source = ["src"]
 
 [tool.coverage.xml]
