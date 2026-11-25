@@ -20,15 +20,19 @@ def timing_collector():
 
 
 def test_matmul_throughput(timing_collector):
+    import statistics
+
+    import jax
     import jax.numpy as jnp
 
+    matmul = jax.jit(lambda a: a @ a)
     data = [jnp.ones((64, 64)) for _ in range(20)]
-    sample = timing_collector.measure_iteration(iter(data), num_batches=20)
+    # Each batch is timed through process_fn and its whole result waited for.
+    sample = timing_collector.measure_iteration(iter(data), num_batches=20, process_fn=matmul)
 
     assert sample.num_batches == 20
     assert sample.warmup_batches_excluded == 2
-    mean_time = sum(sample.per_batch_times) / len(sample.per_batch_times)
-    assert mean_time < 1.0  # Sanity check
+    assert statistics.median(sample.per_batch_times) < 1.0  # Sanity check
 ```
 
 ## Store-Backed Benchmarking Fixture
@@ -49,11 +53,14 @@ def benchmark_store(tmp_path):
 
 
 def test_training_step_speed(benchmark_store):
-    import time
+    import jax
+    import jax.numpy as jnp
+    from calibrax.profiling import time_calls
 
-    start = time.perf_counter()
-    # ... run training step ...
-    elapsed = time.perf_counter() - start
+    step = jax.jit(lambda w, x: jnp.tanh(x @ w))
+    w, x = jnp.ones((128, 128)), jnp.ones((32, 128))
+    # Warms up (absorbing compilation), waits for every call's result, reports the median.
+    timing = time_calls(lambda: step(w, x))
 
     run = Run(
         points=(
@@ -61,7 +68,7 @@ def test_training_step_speed(benchmark_store):
                 name="training_step",
                 scenario="speed",
                 tags={"framework": "jax"},
-                metrics={"wall_time_sec": Metric(value=elapsed)},
+                metrics={"wall_time_sec": Metric(value=timing.median_sec)},
             ),
         ),
     )
@@ -74,29 +81,19 @@ Use pytest-benchmark for quick timing and Calibrax for detailed analysis:
 
 ```python
 def test_forward_pass(benchmark):
+    import jax
     import jax.numpy as jnp
+    from calibrax.profiling import time_calls
 
+    forward = jax.jit(lambda x: jnp.dot(x, x.T))
     x = jnp.ones((32, 128))
 
-    def forward():
-        return jnp.dot(x, x.T).block_until_ready()
+    # pytest-benchmark: wait for the whole result, or a round times only the dispatch.
+    benchmark(lambda: jax.block_until_ready(forward(x)))
 
-    # Quick benchmark via pytest-benchmark
-    result = benchmark(forward)
-
-    # Detailed profiling via Calibrax (optional, for CI)
-    from calibrax.profiling.timing import TimingCollector
-
-    collector = TimingCollector(
-        sync_fn=lambda result: jnp.array(0.0).block_until_ready(),
-        warmup_iterations=3,
-    )
-    sample = collector.measure_iteration(
-        iter(range(50)),
-        num_batches=50,
-        count_fn=lambda _: (forward(), 1)[1],
-    )
-    assert len(sample.per_batch_times) == 47  # 50 - 3 warmup
+    # Calibrax: warm-up excluded, every call waited for, median and percentiles reported.
+    timing = time_calls(lambda: forward(x), warmup=3, iterations=47)
+    assert len(timing.samples_sec) == 47
 ```
 
 ## CI Regression Checking

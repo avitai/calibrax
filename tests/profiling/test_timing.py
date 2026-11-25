@@ -243,6 +243,40 @@ class TestTimingCollector:
 
         assert result.num_batches == 3
 
+    def test_the_default_sync_waits_for_the_whole_result(self) -> None:
+        """With no ``sync_fn``, every array of a batch's result is ready when its time is taken.
+
+        A jitted call returns before its computation finishes, so an unsynced result is still
+        pending. ``count_fn`` runs after the sync, so it sees each leaf as the clock saw it; the
+        result is a nested container, which a wait on a single array would not cover.
+        """
+
+        @jax.jit
+        def step(x: jax.Array) -> dict[str, object]:
+            y = x
+            for _ in range(20):
+                y = jnp.tanh(y @ y)
+            return {"first": y, "nested": [y + 1.0]}
+
+        batch = jnp.full((512, 512), 1e-3)
+        jax.block_until_ready(step(batch))
+        results: list[object] = []
+        ready: list[bool] = []
+
+        def process(x: jax.Array) -> object:
+            results.append(step(x))
+            return results[-1]
+
+        def count(_batch: jax.Array) -> int:
+            ready.append(all(leaf.is_ready() for leaf in jax.tree.leaves(results[-1])))
+            return 1
+
+        TimingCollector().measure_iteration(
+            iter([batch, batch]), num_batches=2, process_fn=process, count_fn=count
+        )
+
+        assert ready == [True, True]
+
     def test_first_batch_time_captured_separately(self) -> None:
         data = [1, 2, 3]
         collector = TimingCollector()

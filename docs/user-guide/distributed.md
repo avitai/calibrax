@@ -29,12 +29,8 @@ aggregate results using Calibrax's analysis tools:
 import jax
 from calibrax.profiling.timing import TimingCollector
 
-collectors = {}
-for device in jax.devices():
-    collectors[device.id] = TimingCollector(
-        sync_fn=lambda result: jax.numpy.array(0.0).block_until_ready(),
-        warmup_iterations=2,
-    )
+# Each collector waits for every batch's whole result (jax.block_until_ready) by default.
+collectors = {device.id: TimingCollector(warmup_iterations=2) for device in jax.devices()}
 
 # After collecting per-device samples, compare using analysis module
 from calibrax.analysis.comparison import compare_configurations

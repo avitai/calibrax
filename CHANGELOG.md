@@ -37,6 +37,14 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Fixed
 
+- The timing examples teach the default wait. `TimingCollector` waits for each batch's whole
+  result with `jax.block_until_ready`, but its docstring still asked for a `sync_fn` calling the
+  array-only `.block_until_ready()` method, written before that default existed. The
+  pytest-integration guide's pytest-benchmark example synced on a new `jnp.array(0.0)` and ran
+  the forward pass in `count_fn`, outside the timed region, so it timed nothing it showed; its
+  store example timed unsynced work with `perf_counter`. The distributed guide repeated the
+  unrelated sync. The examples now time through `process_fn` or `time_calls`, and a test checks
+  that every leaf of a nested result is ready when the default sync returns.
 - Every CodSpeed benchmark waits for its result (`jax.block_until_ready`). CodSpeed measures in
   walltime mode, and an eager JAX call returns before its work is done, so nine benchmarks timed
   dispatch plus whatever queued work overlapped it. `test_spearman_weighted_performance` read
