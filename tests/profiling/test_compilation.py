@@ -9,6 +9,7 @@ import builtins
 import dataclasses
 import importlib.util
 import sys
+import time
 import types
 from collections.abc import Mapping, Sequence
 from pathlib import Path
@@ -16,6 +17,7 @@ from unittest.mock import MagicMock, patch
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 import pytest
 from flax import nnx
 from substrax.testing import TraceCounter
@@ -424,41 +426,76 @@ class TestCompilationProfiler:
         result = profiler.get_result()
         assert 0.0 <= result.health_score <= 1.0
 
-    def test_warmup_runtime_error_logs_and_reraises(self, caplog: pytest.LogCaptureFixture) -> None:
-        profiler = CompilationProfiler()
-        with patch("calibrax.profiling.compilation.jax.jit") as mock_jit:
-            mock_jit.return_value = MagicMock(side_effect=RuntimeError("warmup compile failed"))
-            fn = profiler.profile_jit_compilation(lambda x: x)
+    def test_compilation_time_excludes_the_first_execution(self) -> None:
+        """The recorded time is tracing, lowering and XLA compilation, not the first run.
 
-            with (
-                caplog.at_level("WARNING"),
-                pytest.raises(RuntimeError, match="warmup compile failed"),
-            ):
-                fn(jnp.ones((2,)))
+        The host callback sleeps when the program runs and never while it compiles, so a
+        compilation time that included the first execution would be at least the sleep.
+        """
+        sleep_sec = 1.0
+
+        def sleep_then_echo(value: np.ndarray) -> np.ndarray:
+            time.sleep(sleep_sec)
+            return value
+
+        def slow_only_when_run(x: jax.Array) -> jax.Array:
+            return jax.pure_callback(sleep_then_echo, jax.ShapeDtypeStruct(x.shape, x.dtype), x)
+
+        profiler = CompilationProfiler()
+        fn = profiler.profile_jit_compilation(slow_only_when_run)
+        start = time.perf_counter()
+        fn(jnp.ones((4,)))
+        call_sec = time.perf_counter() - start
+
+        assert call_sec >= sleep_sec, "the call did not run the program"
+        assert profiler.get_result().max_compilation_time_ms < sleep_sec * 1000
+
+    def test_a_compile_failure_logs_and_reraises(self, caplog: pytest.LogCaptureFixture) -> None:
+        """A shape error raised while tracing is a compile failure: logged, then raised."""
+        profiler = CompilationProfiler()
+        fn = profiler.profile_jit_compilation(lambda x: x @ jnp.ones((3, 3)))
+
+        with caplog.at_level("WARNING"), pytest.raises(TypeError):
+            fn(jnp.ones((2,)))
 
         assert any("Compilation failed after" in msg for msg in caplog.messages)
 
-    def test_warmup_unexpected_error_propagates_without_wrapper_warning(
+    def test_an_unexpected_compile_error_propagates_without_the_wrapper_warning(
         self, caplog: pytest.LogCaptureFixture
     ) -> None:
         class CatastrophicCompileError(Exception):
             pass
 
-        profiler = CompilationProfiler()
-        with patch("calibrax.profiling.compilation.jax.jit") as mock_jit:
-            mock_jit.return_value = MagicMock(
-                side_effect=CatastrophicCompileError("unexpected compile failure")
-            )
-            fn = profiler.profile_jit_compilation(lambda x: x)
+        def fail_while_tracing(_x: jax.Array) -> jax.Array:
+            raise CatastrophicCompileError("unexpected compile failure")
 
-            with (
-                caplog.at_level("WARNING"),
-                pytest.raises(
-                    CatastrophicCompileError,
-                    match="unexpected compile failure",
-                ),
-            ):
-                fn(jnp.ones((2,)))
+        profiler = CompilationProfiler()
+        fn = profiler.profile_jit_compilation(fail_while_tracing)
+
+        with (
+            caplog.at_level("WARNING"),
+            pytest.raises(CatastrophicCompileError, match="unexpected compile failure"),
+        ):
+            fn(jnp.ones((2,)))
+
+        assert all("Compilation failed after" not in msg for msg in caplog.messages)
+
+    def test_a_failure_while_running_is_not_reported_as_a_compile_failure(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """The program compiles; the host callback fails when it runs."""
+
+        def fail_when_run(_value: np.ndarray) -> np.ndarray:
+            raise ValueError("failed while running")
+
+        def compiles_then_fails(x: jax.Array) -> jax.Array:
+            return jax.pure_callback(fail_when_run, jax.ShapeDtypeStruct(x.shape, x.dtype), x)
+
+        profiler = CompilationProfiler()
+        fn = profiler.profile_jit_compilation(compiles_then_fails)
+
+        with caplog.at_level("WARNING"), pytest.raises(Exception, match="failed while running"):
+            fn(jnp.ones((2,)))
 
         assert all("Compilation failed after" not in msg for msg in caplog.messages)
 

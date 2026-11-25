@@ -27,6 +27,13 @@ and uses semantic versioning while the public API stabilizes.
   from the test job to a coverage job that combines every shard's data; coverage stores relative
   paths so it can combine a macOS run's on ubuntu. A shards job fails when the four groups do not
   partition the collection. macos.yml's call keeps one test job per Python.
+- **Breaking:** `CompilationProfiler`'s compilation times cover tracing, lowering and XLA
+  compilation only. The wrapper compiles with JAX's ahead-of-time `lower(...).compile()`, whose
+  executable serves the call that follows, so the first run of the program is no longer timed
+  as compilation; a program whose run took one second recorded at least one second of
+  "compilation". A failure while the program runs is no longer logged as a compilation failure.
+  `avg_compilation_time_ms` and `max_compilation_time_ms` read lower wherever a first run was
+  slow.
 
 ### Fixed
 

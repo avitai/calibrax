@@ -304,7 +304,9 @@ for rec in result.recommendations:
 ## Compilation Profiling
 
 `CompilationProfiler` analyzes JIT compilation overhead, shape consistency,
-and XLA optimization effectiveness:
+and XLA optimization effectiveness. A compilation time covers tracing, lowering
+and XLA compilation, staged with JAX's ahead-of-time `lower(...).compile()`; the
+first run of the program is not part of it:
 
 ```python
 from calibrax.profiling.compilation import CompilationProfiler
