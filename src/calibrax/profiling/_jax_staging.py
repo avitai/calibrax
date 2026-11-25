@@ -17,6 +17,7 @@ from typing import Any, Protocol, runtime_checkable
 import jax
 import jax.numpy as jnp
 from flax import nnx
+from substrax.typing import PyTree
 
 
 _NNX_PURE_TUPLE_LEN = 2
@@ -31,6 +32,20 @@ class Shaped(Protocol):
 
     @property
     def dtype(self) -> jax.typing.DTypeLike: ...
+
+
+class Compilable(Protocol):
+    """A lowered program, ``jax.stages.Lowered`` or flax's ``nnx`` counterpart."""
+
+    def compile(self) -> object: ...
+
+
+class StagedJit(Protocol):
+    """What ``jax.jit`` and ``nnx.jit`` both return: callable, and staged ahead of time."""
+
+    def __call__(self, *args: object, **kwargs: object) -> PyTree: ...
+
+    def lower(self, *args: object, **kwargs: object) -> Compilable: ...
 
 
 def abstract_leaf(leaf: object) -> object:
@@ -126,8 +141,11 @@ def compile_callable(
     static_argnums: tuple[int, ...] = (),
     static_argnames: tuple[str, ...] = (),
     jit_fn: Callable[..., Any] = jax.jit,
-) -> Callable[..., Any]:
-    """Wrap ``target`` with ``jax.jit`` or ``nnx.jit``, passing static options only when set."""
+) -> StagedJit:
+    """Wrap ``target`` with ``jax.jit`` or ``nnx.jit``, passing static options only when set.
+
+    Either wrapper is callable and stages ahead of time with ``.lower(...).compile()``.
+    """
     argnums_opt = static_argnums or None
     argnames_opt = static_argnames or None
     if use_nnx:

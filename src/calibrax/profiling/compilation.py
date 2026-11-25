@@ -264,8 +264,10 @@ class CompilationProfiler:
 
         The returned callable jits ``func`` once per input signature (PyTree structure, leaf
         shapes/dtypes, and static positional/keyword arguments), counts cache hits and misses
-        and compilation times, and waits for every result. Supports pure JAX callables as well
-        as stateful ``flax.nnx.Module`` instances and bound methods.
+        and compilation times, and waits for every result. A compilation time covers tracing,
+        lowering and XLA compilation (``jitted.lower(...).compile()``), not the first run of the
+        program. Supports pure JAX callables as well as stateful ``flax.nnx.Module`` instances
+        and bound methods.
 
         Args:
             func: JAX function, ``nnx.Module``, or bound ``nnx.Module`` method to instrument.
@@ -296,7 +298,6 @@ class CompilationProfiler:
                 result = cached[1](*full_args, **full_kwargs)
                 return jax.block_until_ready(result)
 
-            compilation_start = time.perf_counter()
             jitted = compile_callable(
                 target,
                 use_nnx=use_nnx,
@@ -304,8 +305,12 @@ class CompilationProfiler:
                 static_argnames=norm_names,
                 jit_fn=jax.jit,
             )
+            # JAX's ahead-of-time API stages and compiles without running the program, and the
+            # executable it builds serves the call below (for jax.jit and nnx.jit alike), so the
+            # recorded time is compilation alone.
+            compilation_start = time.perf_counter()
             try:
-                result = jax.block_until_ready(jitted(*full_args, **full_kwargs))
+                jitted.lower(*full_args, **full_kwargs).compile()
             except _RECOVERABLE_COMPILATION_ERRORS:
                 logger.warning(
                     "Compilation failed after %.3fs for signature %s",
@@ -317,7 +322,7 @@ class CompilationProfiler:
             self._cache_miss_count += 1
             self._signatures.add(signature)
             compiled[signature] = (self._generation, jitted)
-            return result
+            return jax.block_until_ready(jitted(*full_args, **full_kwargs))
 
         return instrumented_func
 
