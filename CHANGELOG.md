@@ -7,6 +7,8 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+## [0.1.23] - 2026-11-24
+
 ### Changed
 
 - The documentation's blocks are collected and run by Sybil, one test item per block, each page in
