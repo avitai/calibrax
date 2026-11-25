@@ -30,6 +30,11 @@ and uses semantic versioning while the public API stabilizes.
 
 ### Fixed
 
+- Every CodSpeed benchmark waits for its result (`jax.block_until_ready`). CodSpeed measures in
+  walltime mode, and an eager JAX call returns before its work is done, so nine benchmarks timed
+  dispatch plus whatever queued work overlapped it. `test_spearman_weighted_performance` read
+  3.8 to 5.3 ms across seven runs of identical source on the same runner type, and flagged
+  version-only commits as regressions. A test fails on any benchmark call that does not block.
 - The documentation's Python blocks indented inside admonitions now run in the suite. The
   documentation test matched fences at column 0 only, so ten of the 153 blocks under `docs/`
   never ran, and two of them could not: the `nnx.jit` adapter tips in

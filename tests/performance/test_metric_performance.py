@@ -1,9 +1,13 @@
 """Performance benchmarks for the metric paths an eager call pays for.
 
-CodSpeed runs this directory under its simulation instrument, which counts instructions rather
-than timing them, so a benchmark here moves when the Python-level work of an eager call moves,
-even where the compiled program is identical. That is the cost a helper adds when it does work
-the compiler would have absorbed, and it is invisible to anything measured under ``jax.jit``.
+CodSpeed times this directory in walltime mode on one bare-metal runner
+(``.github/workflows/codspeed.yml``), so a round here is the whole eager call: its
+Python-level work and the computation it enqueues. JAX dispatches asynchronously, and a call
+returns before that computation is done, so a round that stopped the clock there would measure
+however much of the work happened to overlap it, which varies from one process to the next.
+Every benchmark therefore waits for its result (:func:`_blocking`). The Python-level work alone
+is counted, not timed, in ``tests/metrics/test_eager_cost.py``, where a helper that does work
+the compiler would have absorbed shows up exactly.
 
 A metric that takes ``mask`` or ``weights`` has two paths. The unweighted path is the one every
 existing caller uses, so it is benchmarked for each ratio statistic; the masked path is the
@@ -18,6 +22,11 @@ answer on a fixed fixture, so none is a recorded measurement that could drift wi
 """
 
 from __future__ import annotations
+
+import ast
+from collections.abc import Callable
+from pathlib import Path
+from typing import TypeGuard
 
 import jax
 import jax.numpy as jnp
@@ -34,15 +43,48 @@ from calibrax.metrics.functional.statistical import (
 )
 
 
-#: Small on purpose. CodSpeed's simulation instrument cannot simulate system calls
-#: consistently and leaves them out, so a benchmark dominated by them is measured as less than
-#: it is, and allocation is what generates them here. The size buys nothing for what these
-#: benchmarks detect: every benchmarked path makes the same number of Python-level calls at
-#: 100,000, 10,000 and 2,000 elements.
+#: Small on purpose: every benchmarked path makes the same number of Python-level calls at
+#: 100,000, 10,000 and 2,000 elements, so a larger input adds computation without adding
+#: anything these benchmarks detect.
 _SIZE = 10_000
 
 #: A field-shaped fixture for ``relative_l2_error``, whose mask is per sample.
 _SAMPLES, _FIELD = 400, 50
+
+
+def _blocking(
+    function: Callable[..., jax.Array], *args: object, **kwargs: object
+) -> Callable[[], jax.Array]:
+    """``function(*args, **kwargs)`` as a call that returns once its result is ready.
+
+    The JAX guide's benchmarking rule: without ``block_until_ready`` a timing measures dispatch
+    and whatever queued work overlaps it, not the computation.
+    """
+    return lambda: jax.block_until_ready(function(*args, **kwargs))
+
+
+def _is_name_call(node: ast.AST, name: str) -> TypeGuard[ast.Call]:
+    """Whether ``node`` calls the plain name ``name``."""
+    return isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == name
+
+
+def test_every_benchmark_waits_for_its_result() -> None:
+    """Every timed call goes through :func:`_blocking`, so no round stops at dispatch."""
+    tree = ast.parse(Path(__file__).read_text(encoding="utf-8"))
+    benchmarks = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.FunctionDef) and any(a.arg == "benchmark" for a in node.args.args)
+    ]
+    calls = [node for node in ast.walk(tree) if _is_name_call(node, "benchmark")]
+
+    assert benchmarks, "found no benchmark; the check is reading the wrong file"
+    assert len(calls) == len(benchmarks)
+    assert [
+        call.lineno
+        for call in calls
+        if not (call.args and _is_name_call(call.args[0], "_blocking"))
+    ] == []
 
 
 @pytest.mark.performance
@@ -55,7 +97,7 @@ def test_mse_large_vector_performance(benchmark: BenchmarkFixture) -> None:
     predictions = jnp.ones((100_000,), dtype=jnp.float32)
     targets = jnp.zeros((100_000,), dtype=jnp.float32)
 
-    result = benchmark(mse, predictions, targets)
+    result = benchmark(_blocking(mse, predictions, targets))
 
     assert result == pytest.approx(1.0)
 
@@ -69,7 +111,7 @@ def test_pearson_unweighted_performance(benchmark: BenchmarkFixture) -> None:
     x = jnp.linspace(-1.0, 1.0, _SIZE, dtype=jnp.float32)
     y = 2.0 * x + 3.0
 
-    result = benchmark(pearson_correlation, x, y)
+    result = benchmark(_blocking(pearson_correlation, x, y))
 
     assert result == pytest.approx(1.0, abs=1e-6)
 
@@ -79,7 +121,7 @@ def test_concordance_unweighted_performance(benchmark: BenchmarkFixture) -> None
     """The unweighted path of the concordance correlation; identical inputs give 1."""
     x = jnp.linspace(-1.0, 1.0, _SIZE, dtype=jnp.float32)
 
-    result = benchmark(concordance_correlation, x, x)
+    result = benchmark(_blocking(concordance_correlation, x, x))
 
     assert result == pytest.approx(1.0, abs=1e-6)
 
@@ -162,7 +204,7 @@ def test_spearman_unweighted_performance(benchmark: BenchmarkFixture) -> None:
     """
     x, y = jnp.asarray(_SPEARMAN_X), jnp.asarray(_SPEARMAN_Y)
 
-    result = benchmark(spearman_rank_correlation, x, y)
+    result = benchmark(_blocking(spearman_rank_correlation, x, y))
 
     assert result == pytest.approx(_SPEARMAN_RHO, abs=_SPEARMAN_TOLERANCE)
 
@@ -174,7 +216,7 @@ def test_spearman_masked_performance(benchmark: BenchmarkFixture) -> None:
     x, y = jnp.asarray(_SPEARMAN_X), jnp.asarray(_SPEARMAN_Y)
     keep = jnp.asarray(_SPEARMAN_KEEP)
 
-    result = benchmark(spearman_rank_correlation, x, y, mask=keep)
+    result = benchmark(_blocking(spearman_rank_correlation, x, y, mask=keep))
 
     assert result == pytest.approx(_SPEARMAN_RHO_KEPT, abs=_SPEARMAN_TOLERANCE)
 
@@ -186,7 +228,7 @@ def test_spearman_weighted_performance(benchmark: BenchmarkFixture) -> None:
     x, y = jnp.asarray(_SPEARMAN_X), jnp.asarray(_SPEARMAN_Y)
     weights = jnp.asarray(_SPEARMAN_COUNTS, dtype=jnp.float32)
 
-    result = benchmark(spearman_rank_correlation, x, y, weights=weights)
+    result = benchmark(_blocking(spearman_rank_correlation, x, y, weights=weights))
 
     assert result == pytest.approx(_SPEARMAN_RHO_WEIGHTED, abs=_SPEARMAN_TOLERANCE)
 
@@ -200,7 +242,7 @@ def test_spearman_weighted_bootstrap_performance(benchmark: BenchmarkFixture) ->
     resampled = jax.jit(jax.vmap(lambda w: spearman_rank_correlation(x, y, weights=w)))
     jax.block_until_ready(resampled(counts))
 
-    result = benchmark(lambda: jax.block_until_ready(resampled(counts)))
+    result = benchmark(_blocking(resampled, counts))
 
     np.testing.assert_allclose(
         np.asarray(result), _BOOTSTRAP_RHOS, atol=_SPEARMAN_TOLERANCE, rtol=0.0
@@ -218,7 +260,7 @@ def test_spearman_jitted_performance(benchmark: BenchmarkFixture) -> None:
     compiled = jax.jit(spearman_rank_correlation)
     jax.block_until_ready(compiled(x, y))
 
-    result = benchmark(lambda: jax.block_until_ready(compiled(x, y)))
+    result = benchmark(_blocking(compiled, x, y))
 
     assert result == pytest.approx(_SPEARMAN_RHO, abs=_SPEARMAN_TOLERANCE)
 
@@ -228,7 +270,7 @@ def test_r_squared_unweighted_performance(benchmark: BenchmarkFixture) -> None:
     """The unweighted path of R-squared, through the shared core; identical inputs give 1."""
     x = jnp.linspace(-1.0, 1.0, _SIZE, dtype=jnp.float32)
 
-    result = benchmark(r_squared, x, x)
+    result = benchmark(_blocking(r_squared, x, x))
 
     assert result == pytest.approx(1.0, abs=1e-6)
 
@@ -244,7 +286,7 @@ def test_mse_masked_performance(benchmark: BenchmarkFixture) -> None:
     targets = jnp.zeros((_SIZE,), dtype=jnp.float32)
     keep = jnp.arange(_SIZE) % 2 == 0
 
-    result = benchmark(mse, predictions, targets, mask=keep)
+    result = benchmark(_blocking(mse, predictions, targets, mask=keep))
 
     assert result == pytest.approx(1.0)
 
@@ -258,6 +300,6 @@ def test_relative_l2_error_masked_performance(benchmark: BenchmarkFixture) -> No
     fields = jnp.ones((_SAMPLES, _FIELD), dtype=jnp.float32)
     keep = jnp.arange(_SAMPLES) % 2 == 0
 
-    result = benchmark(relative_l2_error, 2.0 * fields, fields, mask=keep)
+    result = benchmark(_blocking(relative_l2_error, 2.0 * fields, fields, mask=keep))
 
     assert result == pytest.approx(1.0)
