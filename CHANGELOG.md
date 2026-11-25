@@ -7,6 +7,8 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+## [0.1.22] - 2026-11-24
+
 ### Added
 
 - `nadeau_bengio_t_test` (`NadeauBengioResult`) in `calibrax.statistics.nadeau_bengio` and
