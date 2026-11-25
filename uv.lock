@@ -455,6 +455,7 @@ all = [
     { name = "pytest-env" },
     { name = "pytest-json-report" },
     { name = "pytest-randomly" },
+    { name = "pytest-split" },
     { name = "pytest-timeout" },
     { name = "pytest-xdist" },
     { name = "radon" },
@@ -499,6 +500,7 @@ all-cpu = [
     { name = "pytest-env" },
     { name = "pytest-json-report" },
     { name = "pytest-randomly" },
+    { name = "pytest-split" },
     { name = "pytest-timeout" },
     { name = "pytest-xdist" },
     { name = "radon" },
@@ -544,6 +546,7 @@ all-macos = [
     { name = "pytest-env" },
     { name = "pytest-json-report" },
     { name = "pytest-randomly" },
+    { name = "pytest-split" },
     { name = "pytest-timeout" },
     { name = "pytest-xdist" },
     { name = "radon" },
@@ -595,6 +598,7 @@ cuda-dev = [
     { name = "pytest-env" },
     { name = "pytest-json-report" },
     { name = "pytest-randomly" },
+    { name = "pytest-split" },
     { name = "pytest-timeout" },
     { name = "pytest-xdist" },
     { name = "radon" },
@@ -639,6 +643,7 @@ dev = [
     { name = "pytest-env" },
     { name = "pytest-json-report" },
     { name = "pytest-randomly" },
+    { name = "pytest-split" },
     { name = "pytest-timeout" },
     { name = "pytest-xdist" },
     { name = "radon" },
@@ -769,6 +774,7 @@ requires-dist = [
     { name = "pytest-json-report", marker = "extra == 'dev'", specifier = ">=1.5.0" },
     { name = "pytest-json-report", marker = "extra == 'test'", specifier = ">=1.5.0" },
     { name = "pytest-randomly", marker = "extra == 'dev'", specifier = ">=3.15" },
+    { name = "pytest-split", marker = "extra == 'dev'", specifier = ">=0.11.0" },
     { name = "pytest-timeout", marker = "extra == 'dev'", specifier = ">=2.1" },
     { name = "pytest-timeout", marker = "extra == 'test'", specifier = ">=2.1" },
     { name = "pytest-xdist", marker = "extra == 'dev'", specifier = ">=3.6" },
@@ -4561,6 +4567,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/c4/1d/258a4bf1109258c00c35043f40433be5c16647387b6e7cd5582d638c116b/pytest_randomly-4.0.1.tar.gz", hash = "sha256:174e57bb12ac2c26f3578188490bd333f0e80620c3f47340158a86eca0593cd8", size = 14130, upload-time = "2025-09-12T15:23:00.085Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/33/3e/a4a9227807b56869790aad3e24472a554b585974fe7e551ea350f50897ae/pytest_randomly-4.0.1-py3-none-any.whl", hash = "sha256:e0dfad2fd4f35e07beff1e47c17fbafcf98f9bf4531fd369d9260e2f858bfcb7", size = 8304, upload-time = "2025-09-12T15:22:58.946Z" },
+]
+
+[[package]]
+name = "pytest-split"
+version = "0.11.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pytest" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/2f/16/8af4c5f2ceb3640bb1f78dfdf5c184556b10dfe9369feaaad7ff1c13f329/pytest_split-0.11.0.tar.gz", hash = "sha256:8ebdb29cc72cc962e8eb1ec07db1eeb98ab25e215ed8e3216f6b9fc7ce0ec2b5", size = 13421, upload-time = "2026-02-03T09:14:31.469Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ae/a1/d4423657caaa8be9b31e491592b49cebdcfd434d3e74512ce71f6ec39905/pytest_split-0.11.0-py3-none-any.whl", hash = "sha256:899d7c0f5730da91e2daf283860eb73b503259cb416851a65599368849c7f382", size = 11911, upload-time = "2026-02-03T09:14:33.708Z" },
 ]
 
 [[package]]

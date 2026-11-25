@@ -22,43 +22,95 @@ def _load_workflow(path: Path) -> dict:
     return yaml.load(path.read_text(), Loader=yaml.BaseLoader)  # noqa: S506  # BaseLoader keeps `on:` a string
 
 
-def coverage_cap_violations(workflow: dict, pyproject: dict) -> list[str]:
-    """Return why the test job would not fail below the coverage floor, if it would not."""
-    job = workflow["jobs"]["test"]
-    command = next(step["run"] for step in job["steps"] if "pytest" in step.get("run", ""))
-    addopts = pyproject["tool"]["pytest"]["ini_options"].get("addopts", "")
-    addopts = " ".join(addopts) if isinstance(addopts, list) else addopts
-    # A cap on the command line overrides the one in addopts.
-    caps = re.findall(r"--cov-fail-under[= ](\d+)", command) or re.findall(
-        r"--cov-fail-under[= ](\d+)", addopts
-    )
+def _pytest_commands(job: dict) -> list[str]:
+    return [step["run"] for step in job.get("steps", []) if "pytest" in step.get("run", "")]
 
+
+def _needs(job: dict) -> list[str]:
+    needs = job.get("needs", [])
+    return [needs] if isinstance(needs, str) else list(needs)
+
+
+def _combined_floors(coverage_job: dict, pyproject: dict) -> tuple[list[str], list[int]]:
+    """Return the coverage job's ``coverage report`` commands and the floors they apply."""
+    runs = "\n".join(step.get("run", "") for step in coverage_job.get("steps", []))
+    reports = re.findall(r"coverage report[^\n]*", runs)
+    # A --fail-under on the report command overrides [tool.coverage.report] fail_under.
+    floors = [
+        int(cap) for report in reports for cap in re.findall(r"--fail-under[= ](\d+)", report)
+    ]
+    configured = pyproject["tool"].get("coverage", {}).get("report", {}).get("fail_under")
+    if not floors and configured is not None:
+        floors = [int(configured)]
+    return reports, floors
+
+
+def coverage_floor_violations(workflow: dict, pyproject: dict) -> list[str]:
+    """Return why CI would not fail when the suite's coverage drops below the floor, if it would not.
+
+    The test job runs the suite in shards that each measure part of it, so no shard holds the
+    floor: the coverage job combines every shard's data and holds it over the whole suite.
+    """
+    jobs = workflow["jobs"]
+    test, coverage = jobs["test"], jobs.get("coverage")
     problems = []
-    if not caps or min(int(cap) for cap in caps) < 80:
-        problems.append(f"the pytest coverage floor is {caps}, not at least 80")
     if not {"push", "pull_request"} <= set(workflow["on"]):
         problems.append(f"CI runs on {sorted(workflow['on'])}, not on both push and pull_request")
     # The one condition allowed is the already-tested gate: it skips a merge only when its pull
-    # request ran this job, floor included, over the same tree with every check green.
-    if job.get("if", GATE_CONDITION) != GATE_CONDITION:
-        problems.append(f"the test job only runs when {job['if']}")
+    # request ran these jobs, floor included, over the same tree with every check green.
+    for name, job in (("test", test), ("coverage", coverage or {})):
+        if job.get("if", GATE_CONDITION) != GATE_CONDITION:
+            problems.append(f"the {name} job only runs when {job['if']}")
+    commands = _pytest_commands(test)
+    if not commands:
+        problems.append("the test job runs no pytest command")
     problems += [
-        f"the pytest command overrides the floor with {override}"
+        f"a pytest command stops measuring coverage with {override}"
+        for command in commands
         for override in CAP_OVERRIDES
         if override in command
     ]
+    if coverage is None:
+        return [*problems, "no coverage job combines the test job's coverage data"]
+    if "test" not in _needs(coverage):
+        problems.append(f"the coverage job needs {_needs(coverage)}, not the test job")
+    if not any("coverage combine" in step.get("run", "") for step in coverage.get("steps", [])):
+        problems.append("the coverage job does not combine the shards' data")
+    reports, floors = _combined_floors(coverage, pyproject)
+    if not reports:
+        problems.append("the coverage job runs no `coverage report`")
+    elif not floors or min(floors) < 80:
+        problems.append(f"the combined coverage floor is {floors}, not at least 80")
     return problems
 
 
-def test_ci_test_job_fails_below_the_coverage_floor() -> None:
-    """Every tree that reaches main passed pytest with a floor of at least 80%.
+def test_ci_fails_below_the_coverage_floor_over_the_whole_suite() -> None:
+    """Every tree that reaches main passed a coverage floor of at least 80% over the whole suite.
 
-    The test job runs it on every pull request, and on every push except a merge whose pull
-    request already ran it over the same tree.
+    CI runs it on every pull request, and on every push except a merge whose pull request already
+    ran it over the same tree.
     """
     pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text())
 
-    assert coverage_cap_violations(_load_workflow(WORKFLOWS / "ci.yml"), pyproject) == []
+    assert coverage_floor_violations(_load_workflow(WORKFLOWS / "ci.yml"), pyproject) == []
+
+
+def test_the_floor_contract_refuses_a_lowered_floor_and_a_missing_combine() -> None:
+    """The contract fails on the two ways the floor could silently stop applying."""
+    pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text())
+    workflow = _load_workflow(WORKFLOWS / "ci.yml")
+    tool = pyproject["tool"]
+    lowered = {**pyproject, "tool": {**tool, "coverage": {**tool["coverage"], "report": {}}}}
+    lowered["tool"]["coverage"]["report"]["fail_under"] = 70
+    without_combine = {
+        **workflow,
+        "jobs": {name: job for name, job in workflow["jobs"].items() if name != "coverage"},
+    }
+
+    assert any("not at least 80" in p for p in coverage_floor_violations(workflow, lowered))
+    assert "no coverage job combines the test job's coverage data" in coverage_floor_violations(
+        without_combine, pyproject
+    )
 
 
 def test_ci_uploads_no_coverage_to_codecov() -> None:
@@ -89,10 +141,14 @@ def test_pytest_measures_coverage_by_source_directory() -> None:
     addopts = pyproject["tool"]["pytest"]["ini_options"].get("addopts", "")
     addopts = " ".join(addopts) if isinstance(addopts, list) else addopts
     workflow = _load_workflow(WORKFLOWS / "ci.yml")
-    job = workflow["jobs"]["test"]
-    command = next(step["run"] for step in job["steps"] if "pytest" in step.get("run", ""))
+    places = [("addopts", addopts)] + [
+        (f"ci.yml test command {index}", command)
+        for index, command in enumerate(_pytest_commands(workflow["jobs"]["test"]))
+    ]
 
-    for where, sources in (("addopts", _cov_sources(addopts)), ("ci.yml", _cov_sources(command))):
+    assert len(places) > 1, "ci.yml's test job runs no pytest command"
+    for where, command_line in places:
+        sources = _cov_sources(command_line)
         assert sources, f"{where} measures no coverage source"
         assert [source for source in sources if not (ROOT / source).is_dir()] == [], where
 

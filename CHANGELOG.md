@@ -21,6 +21,12 @@ and uses semantic versioning while the public API stabilizes.
   installed (a free-threaded 3.14 on one development machine).
   Every CI job with a Python matrix sets `UV_PYTHON` to its matrix version, which the pin
   would otherwise override for its uv commands.
+- CI runs `tests/` in four pytest-split shards per Python on ubuntu, balanced by the committed
+  `.test_durations` and seeded with the run's id, and the documentation unsplit in shard 1, since
+  a page's blocks share one namespace. The 80% floor (`[tool.coverage.report] fail_under`) moves
+  from the test job to a coverage job that combines every shard's data; coverage stores relative
+  paths so it can combine a macOS run's on ubuntu. A shards job fails when the four groups do not
+  partition the collection. macos.yml's call keeps one test job per Python.
 
 ### Fixed
 

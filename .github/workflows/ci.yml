@@ -88,8 +88,14 @@ jobs:
     with:
       already-tested: ${{ needs.already_tested.outputs.skip }}
 
+  # The suite took 6.8-10.3 min per Python in one process, the whole of a pull request's wait, so
+  # on ubuntu it runs in four pytest-split shards. Every shard takes the run's id as its
+  # pytest-randomly seed: one order, each test in exactly one shard (the shards job checks it).
+  # macos.yml's call keeps one job per Python, so the nightly still holds two macOS runners.
   test:
-    name: Test (Python ${{ matrix.python-version }}, ${{ inputs.os || 'ubuntu-latest' }})
+    name: >-
+      Test (Python ${{ matrix.python-version }}, ${{ inputs.os || 'ubuntu-latest' }},
+      shard ${{ matrix.group }})
     # A push or pull request tests on ubuntu; macos.yml passes macos-15 nightly and before a
     # release.
     runs-on: ${{ inputs.os || 'ubuntu-latest' }}
@@ -99,10 +105,14 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.12", "3.13"]
+        group: ${{ fromJSON((inputs.os || 'ubuntu-latest') == 'ubuntu-latest' && '[1, 2, 3, 4]' || '[1]') }}
     env:
       # The tracked .python-version is every uv command's interpreter request, so the
       # matrix version must reach them all; a venv made with another is replaced by uv sync.
       UV_PYTHON: ${{ matrix.python-version }}
+      SHARDS: ${{ (inputs.os || 'ubuntu-latest') == 'ubuntu-latest' && '4' || '1' }}
+      GROUP: ${{ matrix.group }}
+      SEED: ${{ github.run_id }}
       JAX_PLATFORMS: cpu
       WANDB_DIR: /tmp/calibrax-test-wandb
       WANDB_MODE: offline
@@ -129,19 +139,156 @@ jobs:
       - name: Create temp directory
         run: mkdir -p temp
 
+      # A shard measures part of the suite, so it holds no coverage floor: the coverage job holds
+      # it over every shard's data. --store-durations records this shard's times for
+      # .test_durations, which balances the split.
       - name: Run tests
+        env:
+          COVERAGE_FILE: ${{ github.workspace }}/covdata/.coverage.tests-${{ matrix.group }}
         run: |
-          uv run pytest tests/ docs/ \
+          shard=()
+          if [ "$SHARDS" -gt 1 ]; then
+            shard=(--splits "$SHARDS" --group "$GROUP" --splitting-algorithm least_duration
+                   --store-durations)
+          fi
+          uv run pytest tests/ "${shard[@]}" \
+            --randomly-seed="$SEED" \
             --cov=src/calibrax \
             --cov-report=term-missing \
-            --cov-fail-under=80 \
+            --cov-fail-under=0 \
             --timeout=300 \
             -v
+
+      # Sybil runs a page's blocks in order, in one process (conftest.py), and pytest-split
+      # assigns items one at a time, so the documentation is never split: shard 1 runs all of it.
+      - name: Run the documentation examples
+        if: matrix.group == 1
+        env:
+          COVERAGE_FILE: ${{ github.workspace }}/covdata/.coverage.docs
+        run: |
+          uv run pytest docs/ \
+            --randomly-seed="$SEED" \
+            --cov=src/calibrax \
+            --cov-report=term-missing \
+            --cov-fail-under=0 \
+            --timeout=300 \
+            -v
+
+      - name: Hand this shard's coverage to the coverage job
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-${{ inputs.os || 'ubuntu-latest' }}-py${{ matrix.python-version }}-${{ matrix.group }}
+          path: covdata/
+          # upload-artifact skips dot-files unless told otherwise.
+          include-hidden-files: true
+          if-no-files-found: error
+
+      - name: Upload this shard's test durations
+        if: env.SHARDS != '1'
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-durations-py${{ matrix.python-version }}-${{ matrix.group }}
+          path: .test_durations
+          include-hidden-files: true
+          if-no-files-found: error
+
+  # The floor ([tool.coverage.report] fail_under) over the whole suite, for each Python: every
+  # shard's data and the documentation run's, combined. On ubuntu for a macOS call too, which
+  # relative_files makes possible.
+  coverage:
+    name: Coverage (Python ${{ matrix.python-version }}, ${{ inputs.os || 'ubuntu-latest' }})
+    runs-on: ubuntu-latest
+    needs: [test, already_tested]
+    if: needs.already_tested.outputs.skip != 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
+    env:
+      UV_PYTHON: ${{ matrix.python-version }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v10.2.0
+        with:
+          prune-cache: true
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Create virtual environment
+        run: uv venv
+
+      - name: Install coverage from the lock
+        run: uv sync --locked --extra test --no-install-project
+
+      - name: Download this Python's shards
+        uses: actions/download-artifact@v8
+        with:
+          pattern: coverage-${{ inputs.os || 'ubuntu-latest' }}-py${{ matrix.python-version }}-*
+          path: covdata
+          merge-multiple: true
+
+      - name: Coverage over every shard
+        run: |
+          uv run --no-sync coverage combine covdata
+          uv run --no-sync coverage report
+
+  # pytest-split gives each test exactly one shard only when every shard collects the same tests
+  # in the same order. This checks that the four groups partition tests/ for this run's seed.
+  shards:
+    name: Test shards partition the suite
+    runs-on: ubuntu-latest
+    needs: [already_tested]
+    if: needs.already_tested.outputs.skip != 'true' && (inputs.os || 'ubuntu-latest') == 'ubuntu-latest'
+    env:
+      SEED: ${{ github.run_id }}
+      JAX_PLATFORMS: cpu
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v10.2.0
+        with:
+          prune-cache: true
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Create virtual environment
+        run: uv venv
+
+      - name: Install dependencies
+        run: uv sync --locked --extra dev --extra test --extra changepoint --extra mlflow
+
+      - name: Compare the four shards with the whole collection
+        run: |
+          mkdir -p temp
+          collect() {
+            uv run --no-sync pytest tests/ --collect-only --verbosity=-1 --no-cov \
+              --randomly-seed="$SEED" "$@" | grep '::'
+          }
+          collect > all.txt
+          total=$(wc -l < all.txt)
+          # tests/ holds about 3,400 tests; far fewer means the id extraction matched nothing.
+          [ "$total" -gt 1000 ] || { echo "collected only $total test ids"; exit 1; }
+          for group in 1 2 3 4; do
+            collect --splits 4 --group "$group" --splitting-algorithm least_duration
+          done > shards.txt
+          twice=$(sort shards.txt | uniq -d | wc -l)
+          missing=$(comm -23 <(sort all.txt) <(sort -u shards.txt) | wc -l)
+          extra=$(comm -13 <(sort all.txt) <(sort -u shards.txt) | wc -l)
+          echo "$total tests; $(wc -l < shards.txt) across the shards;" \
+            "$twice in two shards, $missing in none, $extra not in the collection"
+          [ "$twice" -eq 0 ] && [ "$missing" -eq 0 ] && [ "$extra" -eq 0 ]
 
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: [test, already_tested]
+    needs: [test, coverage, already_tested]
     if: needs.already_tested.outputs.skip != 'true'
     steps:
       - uses: actions/checkout@v7
