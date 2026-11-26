@@ -312,3 +312,51 @@ jobs:
         run: |
           uv sync --locked --extra dev
           uv run twine check --strict dist/*
+
+  # Security, Quality Checks and Build Verification run inside this workflow, so the one check
+  # the main ruleset names reports them too. macos.yml calls this workflow for the suite alone.
+  security:
+    name: Security
+    if: (inputs.os || 'ubuntu-latest') == 'ubuntu-latest'
+    uses: ./.github/workflows/security.yml
+
+  quality_checks:
+    name: Quality Checks
+    if: (inputs.os || 'ubuntu-latest') == 'ubuntu-latest'
+    # Its already-tested gate reads the merged pull request and its checks, as this file's does.
+    permissions:
+      contents: read
+      pull-requests: read
+      checks: read
+      statuses: read
+    uses: ./.github/workflows/quality-checks.yml
+
+  build_verification:
+    name: Build Verification
+    if: (inputs.os || 'ubuntu-latest') == 'ubuntu-latest'
+    uses: ./.github/workflows/build-verification.yml
+
+  required:
+    name: required
+    # The one check the main ruleset names. It runs whatever the jobs above did and fails unless
+    # each succeeded or was skipped on purpose: a pull request may skip nothing, and a push may
+    # also skip what the already-tested gate stands down.
+    if: always() && (inputs.os || 'ubuntu-latest') == 'ubuntu-latest'
+    needs:
+      - already_tested
+      - lint
+      - examples
+      - test
+      - coverage
+      - shards
+      - build
+      - security
+      - quality_checks
+      - build_verification
+    runs-on: ubuntu-latest
+    steps:
+      - uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35 # v1.3.0
+        with:
+          jobs: ${{ toJSON(needs) }}
+          # `&&` and `||` return an operand and '' is falsy, so a pull request gets ''.
+          allowed-skips: ${{ github.event_name != 'pull_request' && 'lint, examples, test, coverage, shards, build, quality_checks' || '' }}

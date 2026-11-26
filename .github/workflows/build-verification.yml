@@ -1,11 +1,8 @@
 name: Build Verification
 
+# ci.yml calls this workflow on every pull request and push, so its result reaches the one
+# `required` check the main ruleset names; macos.yml calls it to build on macOS.
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-  # macos.yml builds on macOS through this workflow.
   workflow_call:
     inputs:
       os:
