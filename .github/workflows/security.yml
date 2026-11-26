@@ -1,15 +1,16 @@
 name: Security
 
+# ci.yml calls this workflow on every pull request and push, so its result reaches the one
+# `required` check the main ruleset names. The weekly run audits against newly published advisories.
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_call:
   schedule:
     - cron: "0 0 * * 1"
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  # Called from ci.yml, github.workflow names the caller; the suffix keeps this group apart from
+  # the caller's own and from the other calls, which would otherwise cancel each other.
+  group: ${{ github.workflow }}-security-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:

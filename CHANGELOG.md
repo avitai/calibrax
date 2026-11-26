@@ -7,6 +7,15 @@ and uses semantic versioning while the public API stabilizes.
 
 ## [Unreleased]
 
+### Changed
+
+- One required check, `required`, answers for every check a pull request runs. It is the last job of
+  `ci.yml` and needs every other job there, and `ci.yml` now calls Security, Quality Checks and
+  Build Verification as reusable workflows, so a failed audit, lint or package build blocks a merge
+  as a failed test does. Those three no longer run on their own pull-request or push trigger, and
+  each keeps a concurrency group of its own. The documentation build, which runs only when its paths
+  change, and CodSpeed stay outside the gate. `tests/ci/test_required_gate.py` holds the contract.
+
 ## [0.1.23] - 2026-11-24
 
 ### Changed
